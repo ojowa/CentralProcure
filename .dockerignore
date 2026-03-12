@@ -1,0 +1,16 @@
+.git
+.gitignore
+.dotnet
+artifacts
+Frontend
+database_schema
+design notes
+**/bin
+**/obj
+**/.vs
+**/.vscode
+**/TestResults
+**/*.user
+**/*.suo
+**/*.cache
+**/*.log

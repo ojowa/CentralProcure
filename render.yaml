@@ -9,11 +9,13 @@ services:
     name: centralprocure-backend
     plan: free
     runtime: docker
-    dockerContext: ./Backend
-    dockerfilePath: ./Backend/Dockerfile
+    dockerContext: .
+    dockerfilePath: ./Dockerfile
     buildFilter:
       paths:
         - Backend/**
+        - Dockerfile
+        - .dockerignore
         - render.yaml
     healthCheckPath: /health
     envVars:
