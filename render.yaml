@@ -9,9 +9,12 @@ services:
     name: centralprocure-backend
     plan: free
     runtime: docker
-    rootDir: Backend
-    dockerContext: .
-    dockerfilePath: ./Dockerfile
+    dockerContext: ./Backend
+    dockerfilePath: ./Backend/Dockerfile
+    buildFilter:
+      paths:
+        - Backend/**
+        - render.yaml
     healthCheckPath: /health
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
