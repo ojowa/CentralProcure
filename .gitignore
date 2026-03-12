@@ -1,6 +1,8 @@
 # Build folders
 [Bb]in/
 [Oo]bj/
+.next/
+**/.next/
 
 
 # Logs
@@ -18,15 +20,29 @@
 
 # Environment files
 .env
+.env.local
+.env.*.local
+Frontend/.env.local
 
-# Frontend  
-*.next
-node_modules
-*.js
+# Frontend / package managers
+node_modules/
+**/node_modules/
+.vercel/
+Frontend/.vercel/
 internal-frontend/.next
 internal-frontend/node_modules
 public-frontend/.next
-public
 !Frontend/src/public/
 !Frontend/src/public/**
 the-frontend/node_modules
+
+# Render / Docker deployment files
+.render/
+Backend/.render/
+!render.yaml
+!Dockerfile
+!.dockerignore
+!Backend/Dockerfile
+!Backend/.dockerignore
+!compose.backend.yml
+!database_schema/render-bootstrap.sql
