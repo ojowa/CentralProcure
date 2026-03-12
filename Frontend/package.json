@@ -7,7 +7,7 @@
     "dev": "next dev --webpack -p 6006",
     "build": "next build",
     "lint": "next lint",
-    "start": "next start -p 6006"
+    "start": "next start"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.6.0",

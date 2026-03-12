@@ -17,6 +17,24 @@ This application will be built using Next.js 16 (React + TypeScript) and will pr
 
 ... and other internal administrative tasks as outlined in the project documentation, plus the public vendor-facing portal.
 
+## Render
+
+This repo can be deployed on Render as a Web Service using the included `render.yaml`.
+
+Deploy flow:
+
+1. Create a new Blueprint or Web Service from this repository.
+2. Use the Node runtime.
+3. Set `NEXT_PUBLIC_BACKEND_URL` to your deployed backend base URL, for example `https://centralprocure-backend.onrender.com`.
+4. Set `NEXT_PUBLIC_APP_BASE_PATH` only if you are serving the app from a subpath.
+
+Render notes:
+
+-   Build command: `npm install && npm run build`
+-   Start command: `npm start`
+-   The production start script uses `next start`, which lets Render provide the port via the `PORT` environment variable.
+-   `NEXT_PUBLIC_*` variables are compiled into the frontend bundle at build time, so changing them requires a new deploy.
+
 ## Coding Standards & Naming Conventions
 
 -   **Frontend (React/TypeScript):** All components, variables, properties, and types must use **PascalCase**.
