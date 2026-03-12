@@ -27,4 +27,6 @@ internal-frontend/.next
 internal-frontend/node_modules
 public-frontend/.next
 public
+!Frontend/src/public/
+!Frontend/src/public/**
 the-frontend/node_modules
