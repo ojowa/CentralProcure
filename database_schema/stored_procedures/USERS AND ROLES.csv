@@ -1,0 +1,17 @@
+email,role_name
+admin@nis.gov.ng,Admin
+requisitioningofficer@nis.gov.ng,RequisitioningOfficer
+departmenthead@nis.gov.ng,DepartmentHead
+procurement@nis.gov.ng,ProcurementOfficer
+procurementmanager@nis.gov.ng,ProcurementManager
+technicalevaluator@nis.gov.ng,TechnicalEvaluator
+financialevaluator@nis.gov.ng,FinancialEvaluator
+tendersboardmember@nis.gov.ng,TendersBoardMember
+tendersboardsecretary@nis.gov.ng,TendersBoardSecretary
+accountingofficer@nis.gov.ng,AccountingOfficer
+bppliaison@nis.gov.ng,BPPLiaison
+contractmanager@nis.gov.ng,ContractManager
+inspectionofficer@nis.gov.ng,InspectionOfficer
+finance@nis.gov.ng,PaymentOfficer
+audit@nis.gov.ng,AuditOfficer
+ict@nis.gov.ng,SystemAdministrator

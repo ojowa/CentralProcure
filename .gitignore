@@ -1,0 +1,30 @@
+# Build folders
+[Bb]in/
+[Oo]bj/
+
+
+# Logs
+*.log
+
+# User-specific files
+*.user
+*.suo
+.dotnet
+.nuget
+.offline-nuget
+
+# VS Code
+.vscode/
+
+# Environment files
+.env
+
+# Frontend  
+*.next
+node_modules
+*.js
+internal-frontend/.next
+internal-frontend/node_modules
+public-frontend/.next
+public
+the-frontend/node_modules

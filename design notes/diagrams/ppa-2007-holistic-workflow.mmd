@@ -1,0 +1,64 @@
+flowchart LR
+    A[Department Need Capture] --> B[Planning Committee Review]
+    B --> C[Budget Confirmation]
+    C --> D[APP Approval]
+    D --> E[Procurement Initiation]
+    E --> F[Threshold Resolution]
+    F --> G[Method Validation]
+    G --> H[Solicitation]
+    H --> I[Bid Receipt and Opening]
+    I --> J[Evaluation]
+    J --> K[Tenders Board Review]
+    K --> L{Accounting Officer Gate?}
+    L -- No --> N[Award and Publication]
+    L -- Yes --> M[Accounting Officer Review]
+    M --> O{BPP No Objection Required?}
+    O -- No --> N
+    O -- Yes --> P[BPP No Objection]
+    P --> N
+    N --> Q[Contract Execution]
+    Q --> R[Inspection and Payment]
+    R --> S[Closeout and Audit]
+
+    H -. Complaint .-> T[Administrative Review]
+    J -. Complaint .-> T
+    N -. Complaint .-> T
+    T --> U[Accounting Officer Decision]
+    U --> V[BPP Review]
+
+    subgraph APP [APP Planning Layer]
+      A
+      B
+      C
+      D
+    end
+
+    subgraph THRESHOLD [Threshold Control Layer]
+      E
+      F
+      G
+    end
+
+    subgraph EXECUTION [Procurement Execution Layer]
+      H
+      I
+      J
+      K
+      L
+      M
+      O
+      P
+      N
+    end
+
+    subgraph POSTAWARD [Post-Award Layer]
+      Q
+      R
+      S
+    end
+
+    subgraph REVIEW [Review and Oversight]
+      T
+      U
+      V
+    end

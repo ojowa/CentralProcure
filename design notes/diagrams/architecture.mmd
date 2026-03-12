@@ -1,0 +1,49 @@
+flowchart TB
+  subgraph Presentation
+    Internal[Internal NIS Web Portal]
+    Vendor[Vendor Public Portal]
+  end
+
+  APIGW[API Gateway (Kong)]
+  Internal --> APIGW
+  Vendor --> APIGW
+
+  subgraph "Application / Microservices"
+    ID[identity-service]
+    VS[vendor-sourcing-service]
+    PW[procurement-workflow-service]
+    PA[post-award-service]
+    GOV[governance-service]
+  end
+
+  APIGW --> ID
+  APIGW --> VS
+  APIGW --> PW
+  APIGW --> PA
+  APIGW --> GOV
+
+  subgraph Data
+    IDDB[(Identity DB)]
+    VSDB[(Sourcing DB)]
+    PWDB[(Workflow DB)]
+    PADB[(Post-Award DB)]
+    GOVDB[(Governance and Audit DB)]
+  end
+
+  ID --> IDDB
+  VS --> VSDB
+  PW --> PWDB
+  PA --> PADB
+  GOV --> GOVDB
+
+  subgraph Integration
+    BPP[BPP No Objection]
+    Notify[Email and SMS Gateway]
+    DMS[Document Management and E-Signature]
+    Pay[Financial and Payment Systems]
+  end
+
+  PW --> BPP
+  GOV --> Notify
+  PW --> DMS
+  PA --> Pay

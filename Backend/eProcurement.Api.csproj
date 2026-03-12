@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>eProcurement.Api</RootNamespace>
+    <PackageId>eProcurement.Api</PackageId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Modules\**\*.cs" />
+    <Compile Remove="Shared\**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="Shared\eProcurement.Shared.csproj" />
+    <ProjectReference Include="Modules\eProcurement.Modules.Identity\eProcurement.Modules.Identity.csproj" />
+    <ProjectReference Include="Modules\eProcurement.Modules.VendorSourcing\eProcurement.Modules.VendorSourcing.csproj" />
+    <ProjectReference Include="Modules\eProcurement.Modules.ProcurementWorkflow\eProcurement.Modules.ProcurementWorkflow.csproj" />
+    <ProjectReference Include="Modules\eProcurement.Modules.PostAward\eProcurement.Modules.PostAward.csproj" />
+    <ProjectReference Include="Modules\eProcurement.Modules.Governance\eProcurement.Modules.Governance.csproj" />
+  </ItemGroup>
+</Project>

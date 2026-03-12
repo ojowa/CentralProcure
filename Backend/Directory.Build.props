@@ -1,0 +1,8 @@
+<Project>
+  <ItemGroup>
+    <Using Include="Microsoft.AspNetCore.Hosting" />
+    <Using Include="Microsoft.AspNetCore.Http" />
+    <Using Include="Microsoft.Extensions.Configuration" />
+    <Using Include="Microsoft.Extensions.Logging" />
+  </ItemGroup>
+</Project>
