@@ -15,9 +15,9 @@ dotnet build "Backend\eProcurement.Api\eProcurement.Api.csproj"
 ```powershell
 $env:DOTNET_SKIP_FIRST_TIME_EXPERIENCE='1'
 $env:DOTNET_CLI_HOME='C:\Users\OJOWA\Documents\Project 4\CentralProcure\.dotnet'
-$env:DOTNET_MSBUILD_SDK_RESOLVER_SDKS_DIR='C:\Users\OJOWA\Documents\Project 4\CentralProcure\.dotnet-sdks\Sdks'
-$env:MSBuildSDKsPath='C:\Users\OJOWA\Documents\Project 4\CentralProcure\.dotnet-sdks\Sdks'
-dotnet build "Backend\eProcurement.Api\eProcurement.Api.csproj" -v:normal --no-restore /p:NETCoreSdkBundledVersionsProps="C:\Program Files\dotnet\sdk\10.0.103\Microsoft.NETCoreSdk.BundledVersions.props" /p:BuildInParallel=false
+$env:MSBuildEnableWorkloadResolver='false'
+dotnet restore "Backend\eProcurement.Api\eProcurement.Api.csproj"
+dotnet build "Backend\eProcurement.Api\eProcurement.Api.csproj" -v:minimal --no-restore
 ```
 
 ## Run
@@ -62,6 +62,30 @@ If you need to rebuild the database from scratch, remove the volume first:
 ```powershell
 docker compose -f compose.backend.yml down -v
 docker compose -f compose.backend.yml up --build
+```
+
+## Render
+This repo now includes a Render Blueprint at `render.yaml` for a Docker web service plus a managed PostgreSQL database.
+
+Deploy flow:
+
+```powershell
+render blueprint launch
+```
+
+If you prefer the dashboard, create a new Blueprint service from this repository and let Render read `render.yaml`.
+
+Render-specific notes:
+- The backend is proxy-aware and now respects Render forwarded headers.
+- The app can bind to Render's injected `PORT` automatically.
+- Health check path is `/health`.
+
+Render managed Postgres does not execute this repo's Docker init scripts. After the database is created, apply the schema manually with `psql` using `database_schema/render-bootstrap.sql`.
+
+Example:
+
+```powershell
+psql "<render-external-database-url>?sslmode=require" -f "database_schema/render-bootstrap.sql"
 ```
 
 ## Coding Standards & Naming Conventions

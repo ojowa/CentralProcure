@@ -6,10 +6,17 @@ using VendorSourcingModule = eProcurement.Modules.VendorSourcing.ModuleMarker;
 using eProcurement.Shared.Configurations;
 using eProcurement.Shared.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+var renderPort = Environment.GetEnvironmentVariable("PORT");
+
+if (!string.IsNullOrWhiteSpace(renderPort))
+{
+    builder.WebHost.UseUrls($"http://0.0.0.0:{renderPort}");
+}
 
 // --- Logging ---
 builder.Logging.ClearProviders();
@@ -34,6 +41,12 @@ mvcBuilder.AddApplicationPart(typeof(GovernanceModule).Assembly);
 
 builder.Services.AddHealthChecks();
 builder.Services.AddCors();
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 // --- Authentication & Authorization ---
 var jwtSettings = new JwtSettings();
@@ -67,6 +80,7 @@ builder.Services.AddAuthorization();
 var app = builder.Build();
 
 // --- Middleware ---
+app.UseForwardedHeaders();
 app.UseMiddleware<ExceptionMiddleware>();
 app.UseMiddleware<CsrfMiddleware>();
 
