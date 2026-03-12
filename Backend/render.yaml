@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: centralprocure-backend
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ConnectionStrings__Primary
+        sync: false
+      - key: Security__PasswordPepper
+        sync: false
+      - key: Jwt__Key
+        sync: false
+      - key: Jwt__Issuer
+        value: nis-eproc-identity
+      - key: Jwt__Audience
+        value: nis-eproc-clients

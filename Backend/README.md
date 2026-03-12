@@ -65,28 +65,21 @@ docker compose -f compose.backend.yml up --build
 ```
 
 ## Render
-This repo now includes a Render Blueprint at `render.yaml` for a Docker web service plus a managed PostgreSQL database.
+This repo includes a Render Blueprint at `render.yaml` for a Docker web service only. It does not create or bootstrap a database.
 
 Deploy flow:
 
-```powershell
-render blueprint launch
-```
+1. Create a new Blueprint service in Render from this repository.
+2. When Render reads `render.yaml`, set `ConnectionStrings__Primary` to your existing Render Postgres internal connection string.
+3. Set `Security__PasswordPepper` and `Jwt__Key` to strong secrets.
 
-If you prefer the dashboard, create a new Blueprint service from this repository and let Render read `render.yaml`.
+If you prefer the dashboard, create a new Web Service from this repository and use the same environment variable names manually.
 
 Render-specific notes:
-- The backend is proxy-aware and now respects Render forwarded headers.
+- The backend is proxy-aware and respects Render forwarded headers.
 - The app can bind to Render's injected `PORT` automatically.
 - Health check path is `/health`.
-
-Render managed Postgres does not execute this repo's Docker init scripts. After the database is created, apply the schema manually with `psql` using `database_schema/render-bootstrap.sql`.
-
-Example:
-
-```powershell
-psql "<render-external-database-url>?sslmode=require" -f "database_schema/render-bootstrap.sql"
-```
+- This repo assumes your target Postgres database already contains the required schema, functions, procedures, and seed data.
 
 ## Coding Standards & Naming Conventions
 - **Backend Code (.NET/C#):** All classes, methods, variables, and properties must use **PascalCase**.
