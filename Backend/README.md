@@ -25,6 +25,45 @@ dotnet build "Backend\eProcurement.Api\eProcurement.Api.csproj" -v:normal --no-r
 dotnet run --project "Backend\eProcurement.Api\eProcurement.Api.csproj"
 ```
 
+## Docker
+Build the backend image from the repository root:
+
+```powershell
+docker build -f Backend\Dockerfile -t centralprocure-backend Backend
+```
+
+Run the backend container against an existing PostgreSQL instance:
+
+```powershell
+docker run --rm -p 8080:8080 `
+  -e ASPNETCORE_URLS=http://+:8080 `
+  -e ConnectionStrings__Primary="Host=host.docker.internal;Port=5432;Database=NIS_EPROCUREMENT;Username=postgres;Password=postgres" `
+  -e Security__PasswordPepper="CHANGE_THIS_PEPPER" `
+  -e Jwt__Key="CHANGE_THIS_TO_A_LONG_RANDOM_SECRET_AT_LEAST_32_CHARS" `
+  -e Jwt__Issuer="nis-eproc-identity" `
+  -e Jwt__Audience="nis-eproc-clients" `
+  centralprocure-backend
+```
+
+Run the backend plus PostgreSQL together:
+
+```powershell
+docker compose -f compose.backend.yml up --build
+```
+
+The compose stack exposes:
+- Backend API: `http://localhost:8080`
+- PostgreSQL: `localhost:5432`
+
+The PostgreSQL image now initializes the schema, functions, procedures, and seed data automatically on the first startup of a fresh `postgres_data` volume.
+
+If you need to rebuild the database from scratch, remove the volume first:
+
+```powershell
+docker compose -f compose.backend.yml down -v
+docker compose -f compose.backend.yml up --build
+```
+
 ## Coding Standards & Naming Conventions
 - **Backend Code (.NET/C#):** All classes, methods, variables, and properties must use **PascalCase**.
 - **Database (PostgreSQL):** All schemas, tables, and columns must use **snake_case**.

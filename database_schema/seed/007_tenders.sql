@@ -1,4 +1,4 @@
-add -- Seed tenders (PostgreSQL)
+-- Seed tenders (PostgreSQL)
 INSERT INTO vendor_sourcing.tenders (
     tender_id,
     title,
