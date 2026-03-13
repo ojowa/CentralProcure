@@ -62,4 +62,54 @@ namespace eProcurement.Modules.VendorSourcing.DTOs
         string DocumentType,
         string FileReference,
         string DocumentStatus);
+
+    public record VendorApprovalSummary(
+        Guid VendorId,
+        string CompanyName,
+        string RegistrationNumber,
+        string TaxId,
+        string ContactPerson,
+        string Email,
+        DateTime RegistrationDate,
+        string VendorStatus,
+        bool IsActive,
+        int ComplianceDocumentsCount,
+        int ApprovedDocumentsCount,
+        int PendingDocumentsCount,
+        int RejectedDocumentsCount,
+        DateTime? LastComplianceUpdateAt);
+
+    public record VendorComplianceReviewItem(
+        Guid DocumentId,
+        string DocumentType,
+        string VerificationStatus,
+        DateTime? ExpiryDate,
+        DateTime CreatedAt,
+        DateTime UpdatedAt,
+        string? VerifiedBy,
+        DateTime? VerifiedAt,
+        string FileUrl);
+
+    public record VendorApprovalDetail(
+        Guid VendorId,
+        string CompanyName,
+        string RegistrationNumber,
+        string TaxId,
+        string CompanyAddress,
+        string ContactPerson,
+        string Email,
+        DateTime RegistrationDate,
+        DateTime? LastLogin,
+        string VendorStatus,
+        bool IsActive,
+        int ComplianceDocumentsCount,
+        int ApprovedDocumentsCount,
+        int PendingDocumentsCount,
+        int RejectedDocumentsCount,
+        DateTime? LastComplianceUpdateAt,
+        IReadOnlyList<VendorComplianceReviewItem> ComplianceDocuments);
+
+    public record VendorApprovalDecisionRequest(
+        string Decision,
+        string? Notes);
 }

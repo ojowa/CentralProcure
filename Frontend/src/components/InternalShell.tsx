@@ -38,7 +38,10 @@ import type {
   WorkflowBlueprintPhase,
   WorkflowBlueprintRoleTask,
   WorkflowBlueprintState,
-  WorkflowBlueprintThreshold
+  WorkflowBlueprintThreshold,
+  VendorApprovalDetail,
+  VendorApprovalStatus,
+  VendorApprovalSummary
 } from '../types/internal';
 import {
   createProcurementPlan,
@@ -79,6 +82,12 @@ import {
   updateBppNoObjection
 } from '../services/bppNoObjectionService';
 import { fetchWorkflowBlueprint } from '../services/workflowBlueprintService';
+import {
+  decideVendorApproval,
+  downloadVendorApprovalDocument,
+  fetchVendorApprovalDetail,
+  fetchVendorApprovals
+} from '../services/vendorApprovalService';
 import { WorkflowConfigurationModulePage } from './WorkflowConfigurationModulePage';
 
 interface HeaderProps {
@@ -133,6 +142,11 @@ const adminQuickActions = {
     { title: 'Provision Internal User', detail: 'Assign role, unit, and approval scope.' },
     { title: 'Create Role Profile', detail: 'Define guardrails and module entitlements.' },
     { title: 'Review Access Requests', detail: 'Resolve escalations and approvals.' }
+  ],
+  'vendor-registration-approval': [
+    { title: 'Review Registrations', detail: 'Inspect supplier onboarding details and compliance coverage.' },
+    { title: 'Approve Suppliers', detail: 'Activate vetted vendors for procurement participation.' },
+    { title: 'Reject Incomplete Files', detail: 'Hold back registrations that fail review checks.' }
   ],
   'workflow-configuration': [
     { title: 'Publish Workflow Gate', detail: 'Deploy updated routing rules.' },
@@ -8731,6 +8745,398 @@ const SystemAdminModulePage = ({ module, moduleData, moduleError, isLoading }: M
   );
 };
 
+const VendorRegistrationApprovalModulePage = ({
+  module,
+  token
+}: Pick<ModulePageProps, 'module' | 'token'>) => {
+  const [records, setRecords] = useState<VendorApprovalSummary[]>([]);
+  const [filters, setFilters] = useState({ status: 'Pending Approval', query: '' });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [detailTarget, setDetailTarget] = useState<VendorApprovalDetail | null>(null);
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
+  const [decisionNotes, setDecisionNotes] = useState('');
+  const [isDeciding, setIsDeciding] = useState(false);
+  const [isDownloading, setIsDownloading] = useState<string | null>(null);
+
+  const statusTone = (status?: string | null) => {
+    switch ((status ?? '').toLowerCase()) {
+      case 'active':
+      case 'approved':
+        return 'admin-status--good';
+      case 'rejected':
+        return 'admin-status--alert';
+      default:
+        return 'admin-status--warn';
+    }
+  };
+
+  const summary = useMemo(() => {
+    const pending = records.filter((item) => item.VendorStatus === 'Pending Approval').length;
+    const active = records.filter((item) => item.VendorStatus === 'Active').length;
+    const rejected = records.filter((item) => item.VendorStatus === 'Rejected').length;
+    return { pending, active, rejected };
+  }, [records]);
+
+  const refreshRecords = async () => {
+    if (!token) {
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    try {
+      const next = await fetchVendorApprovals(token, {
+        status: filters.status || undefined,
+        query: filters.query.trim() || undefined
+      });
+      setRecords(next);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to load vendor registrations.');
+      setRecords([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    refreshRecords();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, filters.status, filters.query]);
+
+  const openDetail = async (vendorId: string) => {
+    if (!token) {
+      return;
+    }
+
+    setIsDetailLoading(true);
+    setDetailError(null);
+    setDecisionNotes('');
+    setDetailTarget(null);
+
+    try {
+      const detail = await fetchVendorApprovalDetail(token, vendorId);
+      setDetailTarget(detail);
+    } catch (err) {
+      setDetailError(err instanceof Error ? err.message : 'Unable to load vendor details.');
+    } finally {
+      setIsDetailLoading(false);
+    }
+  };
+
+  const closeDetail = () => {
+    setDetailTarget(null);
+    setDetailError(null);
+    setDecisionNotes('');
+    setIsDetailLoading(false);
+  };
+
+  const handleDecision = async (decision: VendorApprovalStatus) => {
+    if (!token || !detailTarget) {
+      return;
+    }
+
+    setIsDeciding(true);
+    setDetailError(null);
+    try {
+      await decideVendorApproval(token, detailTarget.VendorId, {
+        Decision: decision,
+        Notes: decisionNotes.trim() || null
+      });
+      const refreshed = await fetchVendorApprovalDetail(token, detailTarget.VendorId);
+      setDetailTarget(refreshed);
+      await refreshRecords();
+    } catch (err) {
+      setDetailError(err instanceof Error ? err.message : 'Unable to update vendor registration.');
+    } finally {
+      setIsDeciding(false);
+    }
+  };
+
+  const handleDownload = async (documentId: string, fileUrl: string) => {
+    if (!token) {
+      return;
+    }
+
+    setIsDownloading(documentId);
+    setDetailError(null);
+    try {
+      const blob = await downloadVendorApprovalDocument(token, fileUrl);
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = objectUrl;
+      anchor.download = `${documentId}.bin`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (err) {
+      setDetailError(err instanceof Error ? err.message : 'Unable to download compliance document.');
+    } finally {
+      setIsDownloading(null);
+    }
+  };
+
+  return (
+    <section className="portal-module">
+      <h2>{module.title}</h2>
+      <p>{module.description}</p>
+
+      {!token ? <div className="portal-alert">Authentication token is missing.</div> : null}
+
+      <div className="portal-module-grid">
+        <article className="portal-module-card">
+          <h3>Pending Review</h3>
+          <p>
+            <strong>{summary.pending}</strong> registrations still require an activation decision.
+          </p>
+        </article>
+        <article className="portal-module-card">
+          <h3>Active Vendors</h3>
+          <p>
+            <strong>{summary.active}</strong> vendors in the current result set are already active.
+          </p>
+        </article>
+        <article className="portal-module-card">
+          <h3>Rejected Files</h3>
+          <p>
+            <strong>{summary.rejected}</strong> registrations are currently blocked from vendor login.
+          </p>
+        </article>
+      </div>
+
+      <div className="plan-toolbar">
+        <div className="plan-filters">
+          <label className="plan-field">
+            <span>Status</span>
+            <select
+              className="plan-select"
+              value={filters.status}
+              onChange={(event) => setFilters((prev) => ({ ...prev, status: event.target.value }))}
+            >
+              <option value="">All statuses</option>
+              <option value="Pending Approval">Pending Approval</option>
+              <option value="Active">Active</option>
+              <option value="Rejected">Rejected</option>
+            </select>
+          </label>
+          <label className="plan-field">
+            <span>Search</span>
+            <input
+              className="plan-input"
+              type="text"
+              value={filters.query}
+              placeholder="Company, email, CAC, TIN"
+              onChange={(event) => setFilters((prev) => ({ ...prev, query: event.target.value }))}
+            />
+          </label>
+          <div className="plan-actions">
+            <button type="button" className="plan-button plan-button--secondary" onClick={refreshRecords} disabled={!token || isLoading}>
+              Refresh
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {error ? <div className="portal-alert">{error}</div> : null}
+      {isLoading ? <div className="plan-muted">Loading vendor registrations...</div> : null}
+
+      {!isLoading ? (
+        <table className="plan-table">
+          <thead>
+            <tr>
+              <th>Vendor</th>
+              <th>Registration</th>
+              <th>Status</th>
+              <th>Compliance</th>
+              <th>Last Update</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {records.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="plan-empty">
+                  No vendor registrations match the current filters.
+                </td>
+              </tr>
+            ) : (
+              records.map((record) => (
+                <tr key={record.VendorId}>
+                  <td>
+                    <strong>{record.CompanyName}</strong>
+                    <div className="plan-muted">{record.Email}</div>
+                    <div className="plan-muted">{record.ContactPerson}</div>
+                  </td>
+                  <td>
+                    <div>CAC: {record.RegistrationNumber}</div>
+                    <div className="plan-muted">TIN: {record.TaxId}</div>
+                    <div className="plan-muted">Registered {formatDate(record.RegistrationDate)}</div>
+                  </td>
+                  <td>
+                    <span className={`admin-status ${statusTone(record.VendorStatus)}`}>{record.VendorStatus}</span>
+                  </td>
+                  <td>
+                    <div>{record.ComplianceDocumentsCount} uploaded</div>
+                    <div className="plan-muted">
+                      Approved {record.ApprovedDocumentsCount} | Pending {record.PendingDocumentsCount} | Rejected{' '}
+                      {record.RejectedDocumentsCount}
+                    </div>
+                  </td>
+                  <td>{formatDateTimeShort(record.LastComplianceUpdateAt ?? record.RegistrationDate)}</td>
+                  <td>
+                    <button type="button" className="plan-link" onClick={() => openDetail(record.VendorId)}>
+                      Review
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      ) : null}
+
+      {(detailTarget || isDetailLoading || detailError) ? (
+        <div className="plan-modal" role="dialog" aria-modal="true">
+          <div className="plan-modal__backdrop" onClick={closeDetail} />
+          <div className="plan-modal__content requisition-detail-modal">
+            <div className="plan-modal__header">
+              <div>
+                <h3>{detailTarget?.CompanyName ?? 'Vendor review'}</h3>
+                <p>{detailTarget?.Email ?? 'Loading vendor profile...'}</p>
+              </div>
+              <button type="button" className="plan-link" onClick={closeDetail}>
+                Close
+              </button>
+            </div>
+
+            {isDetailLoading ? <div className="plan-muted">Loading vendor detail...</div> : null}
+            {detailError ? <div className="portal-alert">{detailError}</div> : null}
+
+            {detailTarget ? (
+              <>
+                <div className="portal-module-grid" style={{ marginTop: '12px' }}>
+                  <article className="portal-module-card">
+                    <h3>Registration Profile</h3>
+                    <p>{detailTarget.CompanyAddress}</p>
+                    <p className="plan-muted" style={{ marginTop: '8px' }}>
+                      Contact: {detailTarget.ContactPerson}
+                    </p>
+                  </article>
+                  <article className="portal-module-card">
+                    <h3>Status</h3>
+                    <p>
+                      <span className={`admin-status ${statusTone(detailTarget.VendorStatus)}`}>{detailTarget.VendorStatus}</span>
+                    </p>
+                    <p className="plan-muted" style={{ marginTop: '8px' }}>
+                      Last login: {formatDateTimeShort(detailTarget.LastLogin)}
+                    </p>
+                  </article>
+                  <article className="portal-module-card">
+                    <h3>Compliance Snapshot</h3>
+                    <p>{detailTarget.ComplianceDocumentsCount} uploaded documents</p>
+                    <p className="plan-muted" style={{ marginTop: '8px' }}>
+                      Approved {detailTarget.ApprovedDocumentsCount} | Pending {detailTarget.PendingDocumentsCount} | Rejected{' '}
+                      {detailTarget.RejectedDocumentsCount}
+                    </p>
+                  </article>
+                </div>
+
+                <div className="portal-module-card" style={{ marginTop: '16px' }}>
+                  <h3>Decision Notes</h3>
+                  <textarea
+                    className="plan-textarea"
+                    rows={4}
+                    value={decisionNotes}
+                    placeholder="Capture the basis for approval or rejection."
+                    onChange={(event) => setDecisionNotes(event.target.value)}
+                  />
+                  <div className="plan-actions" style={{ marginTop: '12px' }}>
+                    <button
+                      type="button"
+                      className="plan-button"
+                      onClick={() => handleDecision('Active')}
+                      disabled={isDeciding}
+                    >
+                      Approve Vendor
+                    </button>
+                    <button
+                      type="button"
+                      className="plan-button plan-button--secondary"
+                      onClick={() => handleDecision('Pending Approval')}
+                      disabled={isDeciding}
+                    >
+                      Return To Pending
+                    </button>
+                    <button
+                      type="button"
+                      className="plan-button plan-button--danger"
+                      onClick={() => handleDecision('Rejected')}
+                      disabled={isDeciding}
+                    >
+                      Reject Vendor
+                    </button>
+                  </div>
+                </div>
+
+                <div className="portal-module-card" style={{ marginTop: '16px' }}>
+                  <h3>Compliance Documents</h3>
+                  <table className="plan-table">
+                    <thead>
+                      <tr>
+                        <th>Document Type</th>
+                        <th>Status</th>
+                        <th>Uploaded</th>
+                        <th>Expiry</th>
+                        <th>Verified By</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {detailTarget.ComplianceDocuments.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="plan-empty">
+                            This vendor has not uploaded compliance documents yet.
+                          </td>
+                        </tr>
+                      ) : (
+                        detailTarget.ComplianceDocuments.map((document) => (
+                          <tr key={document.DocumentId}>
+                            <td>{document.DocumentType}</td>
+                            <td>
+                              <span className={`admin-status ${statusTone(document.VerificationStatus)}`}>
+                                {document.VerificationStatus}
+                              </span>
+                            </td>
+                            <td>{formatDateTimeShort(document.CreatedAt)}</td>
+                            <td>{formatDate(document.ExpiryDate)}</td>
+                            <td>{document.VerifiedBy ?? 'Unassigned'}</td>
+                            <td>
+                              <button
+                                type="button"
+                                className="plan-link"
+                                onClick={() => handleDownload(document.DocumentId, document.FileUrl)}
+                                disabled={isDownloading === document.DocumentId}
+                              >
+                                {isDownloading === document.DocumentId ? 'Downloading...' : 'Download'}
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+};
+
 const ModulePage = ({ module, moduleData, moduleError, isLoading, token, role, userEmail }: ModulePageProps) => {
   if (module.id === 'workflow-blueprint') {
     return <WorkflowBlueprintModulePage module={module} token={token} role={role} />;
@@ -8810,6 +9216,10 @@ const ModulePage = ({ module, moduleData, moduleError, isLoading, token, role, u
 
   if (module.id === 'compliance-reports') {
     return <ComplianceReportsModulePage module={module} />;
+  }
+
+  if (module.id === 'vendor-registration-approval') {
+    return <VendorRegistrationApprovalModulePage module={module} token={token} />;
   }
 
   if (module.section === 'System Administration') {

@@ -24,7 +24,8 @@ const moduleFetchSkipList = new Set<string>([
   'contract-award',
   'contract-management',
   'inspection-acceptance',
-  'evaluation-report'
+  'evaluation-report',
+  'vendor-registration-approval'
 ]);
 
 const App = () => {

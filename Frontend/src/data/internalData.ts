@@ -358,6 +358,15 @@ export const internalModules: InternalModule[] = [
     allowedRoles: ['admin', 'ict_admin']
   },
   {
+    id: 'vendor-registration-approval',
+    title: 'Vendor Registration Approval',
+    section: 'System Administration',
+    description: 'Review vendor onboarding submissions, inspect compliance uploads, and activate approved suppliers.',
+    microservice: 'Vendor Sourcing Service',
+    controlPurpose: 'Controlled activation of external supplier accounts.',
+    allowedRoles: ['admin', 'ict_admin']
+  },
+  {
     id: 'workflow-configuration',
     title: 'Workflow Configuration',
     section: 'System Administration',
