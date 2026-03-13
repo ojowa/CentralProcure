@@ -8759,6 +8759,7 @@ const VendorRegistrationApprovalModulePage = ({
   const [decisionNotes, setDecisionNotes] = useState('');
   const [isDeciding, setIsDeciding] = useState(false);
   const [isDownloading, setIsDownloading] = useState<string | null>(null);
+  const [activeDecisionVendorId, setActiveDecisionVendorId] = useState<string | null>(null);
 
   const statusTone = (status?: string | null) => {
     switch ((status ?? '').toLowerCase()) {
@@ -8851,6 +8852,32 @@ const VendorRegistrationApprovalModulePage = ({
       setDetailError(err instanceof Error ? err.message : 'Unable to update vendor registration.');
     } finally {
       setIsDeciding(false);
+    }
+  };
+
+  const handleQuickDecision = async (vendorId: string, decision: VendorApprovalStatus) => {
+    if (!token) {
+      return;
+    }
+
+    setActiveDecisionVendorId(vendorId);
+    setError(null);
+    try {
+      await decideVendorApproval(token, vendorId, {
+        Decision: decision,
+        Notes: null
+      });
+
+      if (detailTarget?.VendorId === vendorId) {
+        const refreshed = await fetchVendorApprovalDetail(token, vendorId);
+        setDetailTarget(refreshed);
+      }
+
+      await refreshRecords();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to update vendor registration.');
+    } finally {
+      setActiveDecisionVendorId(null);
     }
   };
 
@@ -8986,9 +9013,21 @@ const VendorRegistrationApprovalModulePage = ({
                   </td>
                   <td>{formatDateTimeShort(record.LastComplianceUpdateAt ?? record.RegistrationDate)}</td>
                   <td>
-                    <button type="button" className="plan-link" onClick={() => openDetail(record.VendorId)}>
-                      Review
-                    </button>
+                    <div className="plan-actions">
+                      <button type="button" className="plan-link" onClick={() => openDetail(record.VendorId)}>
+                        Review
+                      </button>
+                      {record.VendorStatus === 'Pending Approval' ? (
+                        <button
+                          type="button"
+                          className="plan-link"
+                          onClick={() => handleQuickDecision(record.VendorId, 'Active')}
+                          disabled={activeDecisionVendorId === record.VendorId}
+                        >
+                          {activeDecisionVendorId === record.VendorId ? 'Approving...' : 'Approve'}
+                        </button>
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               ))

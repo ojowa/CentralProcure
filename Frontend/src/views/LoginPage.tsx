@@ -13,8 +13,6 @@ type LoginForm = {
   remember: boolean;
 };
 
-const defaultRole: RoleKey = 'requisitioning_officer';
-
 function isProbablyEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
@@ -91,10 +89,14 @@ export default function LoginPage() {
         throw new Error(response.ErrorMessage || 'Login successful, but no token received.');
       }
 
+      if (!response.Role) {
+        throw new Error('Login succeeded, but no internal role was returned for this account.');
+      }
+
       login({
         token: response.Token,
         email: response.Email ?? identifier,
-        role: response.Role ?? defaultRole
+        role: response.Role as RoleKey
       });
 
       router.push('/internal');
