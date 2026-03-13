@@ -1,14 +1,14 @@
 # Backend (.NET)
 
 ## Location
-- Root folder: `Backend/`
-- API host: `Backend/eProcurement.Api/`
-- Modules: `Backend/Modules/`
-- Shared library: `Backend/Shared/`
+- Repository root: `./`
+- API host: `eProcurement.Api.csproj`
+- Modules: `Modules/`
+- Shared library: `Shared/`
 
 ## Build
 ```powershell
-dotnet build "Backend\eProcurement.Api\eProcurement.Api.csproj"
+dotnet build ".\eProcurement.Api.csproj"
 ```
 
 ### Build Command (sandbox-safe)
@@ -16,20 +16,20 @@ dotnet build "Backend\eProcurement.Api\eProcurement.Api.csproj"
 $env:DOTNET_SKIP_FIRST_TIME_EXPERIENCE='1'
 $env:DOTNET_CLI_HOME='C:\Users\OJOWA\Documents\Project 4\CentralProcure\.dotnet'
 $env:MSBuildEnableWorkloadResolver='false'
-dotnet restore "Backend\eProcurement.Api\eProcurement.Api.csproj"
-dotnet build "Backend\eProcurement.Api\eProcurement.Api.csproj" -v:minimal --no-restore
+dotnet restore ".\eProcurement.Api.csproj"
+dotnet build ".\eProcurement.Api.csproj" -v:minimal --no-restore
 ```
 
 ## Run
 ```powershell
-dotnet run --project "Backend\eProcurement.Api\eProcurement.Api.csproj"
+dotnet run --project ".\eProcurement.Api.csproj"
 ```
 
 ## Docker
 Build the backend image from the repository root:
 
 ```powershell
-docker build -f Backend\Dockerfile -t centralprocure-backend Backend
+docker build -t centralprocure-backend .
 ```
 
 Run the backend container against an existing PostgreSQL instance:
@@ -38,30 +38,10 @@ Run the backend container against an existing PostgreSQL instance:
 docker run --rm -p 8080:8080 `
   -e ASPNETCORE_URLS=http://+:8080 `
   -e ConnectionStrings__Primary="Host=host.docker.internal;Port=5432;Database=NIS_EPROCUREMENT;Username=postgres;Password=postgres" `
-  -e Security__PasswordPepper="CHANGE_THIS_PEPPER" `
   -e Jwt__Key="CHANGE_THIS_TO_A_LONG_RANDOM_SECRET_AT_LEAST_32_CHARS" `
   -e Jwt__Issuer="nis-eproc-identity" `
   -e Jwt__Audience="nis-eproc-clients" `
   centralprocure-backend
-```
-
-Run the backend plus PostgreSQL together:
-
-```powershell
-docker compose -f compose.backend.yml up --build
-```
-
-The compose stack exposes:
-- Backend API: `http://localhost:8080`
-- PostgreSQL: `localhost:5432`
-
-The PostgreSQL image now initializes the schema, functions, procedures, and seed data automatically on the first startup of a fresh `postgres_data` volume.
-
-If you need to rebuild the database from scratch, remove the volume first:
-
-```powershell
-docker compose -f compose.backend.yml down -v
-docker compose -f compose.backend.yml up --build
 ```
 
 ## Render
@@ -71,7 +51,7 @@ Deploy flow:
 
 1. Create a new Blueprint service in Render from this repository.
 2. When Render reads `render.yaml`, set `ConnectionStrings__Primary` to your existing Render Postgres internal connection string.
-3. Set `Security__PasswordPepper` and `Jwt__Key` to strong secrets.
+3. Set `Jwt__Key` to a strong secret.
 
 If you prefer the dashboard, create a new Web Service from this repository and use the same environment variable names manually.
 

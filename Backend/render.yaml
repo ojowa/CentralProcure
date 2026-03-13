@@ -10,8 +10,6 @@ services:
         value: Production
       - key: ConnectionStrings__Primary
         sync: false
-      - key: Security__PasswordPepper
-        sync: false
       - key: Jwt__Key
         sync: false
       - key: Jwt__Issuer

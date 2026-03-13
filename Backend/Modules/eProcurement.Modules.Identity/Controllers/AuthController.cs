@@ -38,8 +38,6 @@ namespace eProcurement.Modules.Identity.Controllers
                 await using var conn = new NpgsqlConnection(connectionString);
                 await conn.OpenAsync(ct);
 
-                var pepper = Config["Security:PasswordPepper"] ?? "";
-
                 // Step 1: Fetch the stored hash for BCrypt verification
                 string? storedHash = null;
                 await using (var cmdHash = new NpgsqlCommand("SELECT password_hash FROM identity.vendors WHERE email = @email", conn))
@@ -48,7 +46,7 @@ namespace eProcurement.Modules.Identity.Controllers
                     storedHash = (string?)await cmdHash.ExecuteScalarAsync(ct);
                 }
 
-                if (!IsValidVendorPassword(request.Password, pepper, storedHash, request.Email))
+                if (!IsValidBcryptPassword(request.Password, storedHash, request.Email))
                 {
                     Logger.LogWarning("Invalid vendor credentials for {Email}", request.Email);
                     return Unauthorized(new { message = "Invalid credentials." });
@@ -109,7 +107,6 @@ namespace eProcurement.Modules.Identity.Controllers
                 await using var conn = new NpgsqlConnection(connectionString);
                 await conn.OpenAsync(ct);
 
-                var pepper = Config["Security:PasswordPepper"] ?? "";
                 string? storedPasswordHash = null;
 
                 // Step 1: Fetch the stored hash for BCrypt verification
@@ -120,7 +117,7 @@ namespace eProcurement.Modules.Identity.Controllers
                 }
 
                 // Assume invalid credentials if user not found or password hash is empty
-                var isPasswordValid = IsValidBcryptPassword(request.Password + pepper, storedPasswordHash, request.Email);
+                var isPasswordValid = IsValidBcryptPassword(request.Password, storedPasswordHash, request.Email);
 
                 // Call the stored procedure regardless of initial password validity to handle lockout logic
                 await using var tx = await conn.BeginTransactionAsync(ct);
@@ -185,8 +182,7 @@ namespace eProcurement.Modules.Identity.Controllers
 
             try
             {
-                var pepper = Config["Security:PasswordPepper"] ?? "";
-                var hash = BCrypt.Net.BCrypt.HashPassword(request.Password + pepper);
+                var hash = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
                 await using var conn = new NpgsqlConnection(connectionString);
                 await conn.OpenAsync(ct);
@@ -233,8 +229,7 @@ namespace eProcurement.Modules.Identity.Controllers
 
             try
             {
-                var pepper = Config["Security:PasswordPepper"] ?? "";
-                var hash = BCrypt.Net.BCrypt.HashPassword(request.Password + pepper);
+                var hash = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
                 await using var conn = new NpgsqlConnection(connectionString);
                 await conn.OpenAsync(ct);
@@ -401,22 +396,6 @@ namespace eProcurement.Modules.Identity.Controllers
                 Logger.LogError(ex, "BCrypt verification error for {Email}", email);
                 return false;
             }
-        }
-
-        private bool IsValidVendorPassword(string password, string pepper, string? storedHash, string email)
-        {
-            if (IsValidBcryptPassword(password + pepper, storedHash, email))
-            {
-                return true;
-            }
-
-            var isLegacyHashValid = IsValidBcryptPassword(password, storedHash, email);
-            if (isLegacyHashValid)
-            {
-                Logger.LogWarning("Vendor {Email} authenticated using legacy password hashing.", email);
-            }
-
-            return isLegacyHashValid;
         }
 
         private static string ResolveVendorLoginFailureMessage(string? errorMessage, string? vendorStatus)
