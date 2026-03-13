@@ -8749,6 +8749,7 @@ const VendorRegistrationApprovalModulePage = ({
   module,
   token
 }: Pick<ModulePageProps, 'module' | 'token'>) => {
+  const canApprove = hasModuleAction(module, 'admin.vendor_approval');
   const [records, setRecords] = useState<VendorApprovalSummary[]>([]);
   const [filters, setFilters] = useState({ status: 'Pending Approval', query: '' });
   const [isLoading, setIsLoading] = useState(false);
@@ -8834,7 +8835,7 @@ const VendorRegistrationApprovalModulePage = ({
   };
 
   const handleDecision = async (decision: VendorApprovalStatus) => {
-    if (!token || !detailTarget) {
+    if (!token || !detailTarget || !canApprove) {
       return;
     }
 
@@ -8856,7 +8857,7 @@ const VendorRegistrationApprovalModulePage = ({
   };
 
   const handleQuickDecision = async (vendorId: string, decision: VendorApprovalStatus) => {
-    if (!token) {
+    if (!token || !canApprove) {
       return;
     }
 
@@ -8967,6 +8968,9 @@ const VendorRegistrationApprovalModulePage = ({
       </div>
 
       {error ? <div className="portal-alert">{error}</div> : null}
+      {!canApprove ? (
+        <div className="portal-alert">Your current backend-issued module permissions allow review only. Approval actions are disabled.</div>
+      ) : null}
       {isLoading ? <div className="plan-muted">Loading vendor registrations...</div> : null}
 
       {!isLoading ? (
@@ -9017,7 +9021,7 @@ const VendorRegistrationApprovalModulePage = ({
                       <button type="button" className="plan-link" onClick={() => openDetail(record.VendorId)}>
                         Review
                       </button>
-                      {record.VendorStatus === 'Pending Approval' ? (
+                      {canApprove && record.VendorStatus === 'Pending Approval' ? (
                         <button
                           type="button"
                           className="plan-link"
@@ -9096,7 +9100,7 @@ const VendorRegistrationApprovalModulePage = ({
                       type="button"
                       className="plan-button"
                       onClick={() => handleDecision('Active')}
-                      disabled={isDeciding}
+                      disabled={isDeciding || !canApprove}
                     >
                       Approve Vendor
                     </button>
@@ -9104,7 +9108,7 @@ const VendorRegistrationApprovalModulePage = ({
                       type="button"
                       className="plan-button plan-button--secondary"
                       onClick={() => handleDecision('Pending Approval')}
-                      disabled={isDeciding}
+                      disabled={isDeciding || !canApprove}
                     >
                       Return To Pending
                     </button>
@@ -9112,7 +9116,7 @@ const VendorRegistrationApprovalModulePage = ({
                       type="button"
                       className="plan-button plan-button--danger"
                       onClick={() => handleDecision('Rejected')}
-                      disabled={isDeciding}
+                      disabled={isDeciding || !canApprove}
                     >
                       Reject Vendor
                     </button>

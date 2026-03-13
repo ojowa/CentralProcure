@@ -148,7 +148,13 @@ namespace eProcurement.Modules.Identity.Controllers
                     return Unauthorized(new { message = "Login failed." });
                 }
 
-                var role = string.IsNullOrWhiteSpace(result.Role) ? "internal" : result.Role;
+                if (string.IsNullOrWhiteSpace(result.Role))
+                {
+                    Logger.LogError("Internal login failed for {Email}: role is missing for authenticated internal user {InternalUserId}.", request.Email, result.InternalUserId);
+                    return Problem("Internal user role is not configured.", statusCode: 500);
+                }
+
+                var role = result.Role;
                 var token = GenerateToken(result.InternalUserId.Value, result.Email ?? request.Email, role);
                 return Ok(new AuthResponse(token, result.Email ?? request.Email, "Success"));
             }
@@ -419,6 +425,11 @@ namespace eProcurement.Modules.Identity.Controllers
 
         private string GenerateToken(Guid userId, string email, string role)
         {
+            if (string.IsNullOrWhiteSpace(role))
+            {
+                throw new InvalidOperationException("A role is required to issue an authentication token.");
+            }
+
             var jwtSettings = new JwtSettings();
             Config.GetSection("Jwt").Bind(jwtSettings);
 
