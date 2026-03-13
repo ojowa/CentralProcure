@@ -59,13 +59,13 @@ Render-specific notes:
 - The backend is proxy-aware and respects Render forwarded headers.
 - The app can bind to Render's injected `PORT` automatically.
 - Health check path is `/health`.
-- This repo now includes `database_schema/render-bootstrap.sql` plus its referenced migrations, procedures, and seed files for initializing a brand-new PostgreSQL database.
+- This repo now includes `../database_schema/render-bootstrap.sql` plus its referenced migrations, procedures, and seed files for initializing a brand-new PostgreSQL database.
 - Apply that bootstrap manually before first use of a new database.
 
 Bootstrap example:
 
 ```powershell
-psql "<render-internal-or-external-db-url>?sslmode=require" -f ".\\database_schema\\render-bootstrap.sql"
+psql "<render-internal-or-external-db-url>?sslmode=require" -f "..\\database_schema\\render-bootstrap.sql"
 ```
 
 ## Coding Standards & Naming Conventions
