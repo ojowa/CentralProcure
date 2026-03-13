@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 using NpgsqlTypes;
 using eProcurement.Modules.VendorSourcing.DTOs;
+using eProcurement.Shared.Workflow;
 
 namespace eProcurement.Modules.VendorSourcing.Controllers;
 
@@ -15,6 +16,7 @@ public class BidOpeningController : ControllerBase
 {
     private readonly IConfiguration _config;
     private readonly ILogger<BidOpeningController> _logger;
+    private readonly WorkflowRuntimeTracker _workflowRuntimeTracker;
 
     private static readonly string[] AllowedStatuses = { "Scheduled", "Open", "Closed", "Cancelled" };
     private static readonly HashSet<string> AllowedSortFields = new(StringComparer.OrdinalIgnoreCase)
@@ -55,10 +57,14 @@ public class BidOpeningController : ControllerBase
     private const int DefaultPageSize = 10;
     private const int MaxPageSize = 100;
 
-    public BidOpeningController(IConfiguration config, ILogger<BidOpeningController> logger)
+    public BidOpeningController(
+        IConfiguration config,
+        ILogger<BidOpeningController> logger,
+        WorkflowRuntimeTracker workflowRuntimeTracker)
     {
         _config = config;
         _logger = logger;
+        _workflowRuntimeTracker = workflowRuntimeTracker;
     }
 
     private sealed record TenderScheduleContext(Guid TenderId, string Status, DateTime? OpeningDate, DateTime? ClosingDate);
@@ -279,10 +285,15 @@ public class BidOpeningController : ControllerBase
             });
 
             var results = await ExecuteRefcursorAsync(cmd, MapDetail, ct);
-            await tx.CommitAsync(ct);
-
             var result = results.FirstOrDefault();
-            return result is null ? Problem("Bid opening session creation failed.") : Created($"/api/bid-opening/sessions/{result.SessionId}", result);
+            if (result is null)
+            {
+                return Problem("Bid opening session creation failed.");
+            }
+
+            await SyncWorkflowRuntimeAsync(conn, tx, result, "Bid opening session created.", ct);
+            await tx.CommitAsync(ct);
+            return Created($"/api/bid-opening/sessions/{result.SessionId}", result);
         }
         catch (PostgresException ex) when (ex.SqlState == "23514")
         {
@@ -368,10 +379,15 @@ public class BidOpeningController : ControllerBase
             });
 
             var results = await ExecuteRefcursorAsync(cmd, MapDetail, ct);
-            await tx.CommitAsync(ct);
-
             var result = results.FirstOrDefault();
-            return result is null ? NotFound() : Ok(result);
+            if (result is null)
+            {
+                return NotFound();
+            }
+
+            await SyncWorkflowRuntimeAsync(conn, tx, result, "Bid opening session updated.", ct);
+            await tx.CommitAsync(ct);
+            return Ok(result);
         }
         catch (PostgresException ex) when (ex.SqlState == "23514")
         {
@@ -460,6 +476,32 @@ public class BidOpeningController : ControllerBase
 
         normalized = match;
         return true;
+    }
+
+    private async Task SyncWorkflowRuntimeAsync(
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        BidOpeningSessionDetail session,
+        string reason,
+        CancellationToken ct)
+    {
+        await _workflowRuntimeTracker.SyncAsync(
+            conn,
+            tx,
+            new WorkflowRuntimeSyncRequest(
+                "bid_opening_session",
+                session.SessionId,
+                "bid_opening",
+                session.Status,
+                session.SessionTitle,
+                "tender",
+                session.TenderId,
+                null,
+                null,
+                null,
+                reason,
+                null),
+            ct);
     }
 
     private bool UserHasAnyRole(IReadOnlySet<string> allowedRoles)

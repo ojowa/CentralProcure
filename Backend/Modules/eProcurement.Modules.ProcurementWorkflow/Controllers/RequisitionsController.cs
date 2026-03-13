@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 using NpgsqlTypes;
 using eProcurement.Modules.ProcurementWorkflow.DTOs;
+using eProcurement.Shared.Workflow;
 
 namespace eProcurement.Modules.ProcurementWorkflow.Controllers;
 
@@ -13,6 +14,7 @@ public class RequisitionsController : ControllerBase
 {
     private readonly IConfiguration _config;
     private readonly ILogger<RequisitionsController> _logger;
+    private readonly WorkflowRuntimeTracker _workflowRuntimeTracker;
 
     private static readonly string[] AllowedStatuses =
     {
@@ -53,10 +55,14 @@ public class RequisitionsController : ControllerBase
         "desc"
     };
 
-    public RequisitionsController(IConfiguration config, ILogger<RequisitionsController> logger)
+    public RequisitionsController(
+        IConfiguration config,
+        ILogger<RequisitionsController> logger,
+        WorkflowRuntimeTracker workflowRuntimeTracker)
     {
         _config = config;
         _logger = logger;
+        _workflowRuntimeTracker = workflowRuntimeTracker;
     }
 
     private string GetConnectionString() => _config.GetConnectionString("Primary") ?? string.Empty;
@@ -263,9 +269,9 @@ public class RequisitionsController : ControllerBase
             }
 
             var lineItems = await GetLineItemsAsync(conn, tx, detail.RequisitionId, ct);
-            await tx.CommitAsync(ct);
-
             var response = detail with { LineItems = lineItems };
+            await SyncWorkflowRuntimeAsync(conn, tx, response, "Requisition created.", ct);
+            await tx.CommitAsync(ct);
             return Created($"/api/requisitions/{response.RequisitionId}", response);
         }
         catch (PostgresException ex) when (ex.SqlState == "P0001")
@@ -341,9 +347,11 @@ public class RequisitionsController : ControllerBase
             }
 
             var lineItems = await GetLineItemsAsync(conn, tx, requisitionId, ct);
+            var response = detail with { LineItems = lineItems };
+            await SyncWorkflowRuntimeAsync(conn, tx, response, "Requisition updated.", ct);
             await tx.CommitAsync(ct);
 
-            return Ok(detail with { LineItems = lineItems });
+            return Ok(response);
         }
         catch (PostgresException ex) when (ex.SqlState == "P0001")
         {
@@ -485,6 +493,46 @@ public class RequisitionsController : ControllerBase
         }
 
         return r.GetGuid(ordinal);
+    }
+
+    private async Task SyncWorkflowRuntimeAsync(
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        RequisitionDetail requisition,
+        string reason,
+        CancellationToken ct)
+    {
+        await _workflowRuntimeTracker.SyncAsync(
+            conn,
+            tx,
+            new WorkflowRuntimeSyncRequest(
+                "requisition",
+                requisition.RequisitionId,
+                ResolveWorkflowStage(requisition.Status),
+                requisition.Status,
+                requisition.Title,
+                requisition.AppItemId.HasValue ? "procurement_plan_item" : null,
+                requisition.AppItemId,
+                requisition.TotalEstimate,
+                requisition.ProcurementType,
+                null,
+                reason,
+                null),
+            ct);
+    }
+
+    private static string ResolveWorkflowStage(string status)
+    {
+        return status switch
+        {
+            "Draft" => "procurement_initiation",
+            "Submitted" => "threshold_resolution",
+            "Under Review" => "threshold_resolution",
+            "Evaluation" => "evaluation",
+            "Board Review" => "tenders_board_review",
+            "Approved" => "accounting_officer_review",
+            _ => "procurement_initiation"
+        };
     }
 
     private static async Task<long> GetRequisitionCountAsync(

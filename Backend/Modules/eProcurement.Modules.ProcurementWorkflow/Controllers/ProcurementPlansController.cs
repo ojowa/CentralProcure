@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 using NpgsqlTypes;
 using eProcurement.Modules.ProcurementWorkflow.DTOs;
+using eProcurement.Shared.Workflow;
 
 namespace eProcurement.Modules.ProcurementWorkflow.Controllers;
 
@@ -12,6 +13,7 @@ public class ProcurementPlansController : ControllerBase
 {
     private readonly IConfiguration _config;
     private readonly ILogger<ProcurementPlansController> _logger;
+    private readonly WorkflowRuntimeTracker _workflowRuntimeTracker;
 
     private static readonly string[] AllowedStatuses = { "Draft", "Submitted", "Approved", "Rejected", "Cancelled" };
     private const int MinTitleLength = 5;
@@ -34,10 +36,14 @@ public class ProcurementPlansController : ControllerBase
     };
     private static readonly HashSet<string> AllowedSortDirections = new(StringComparer.OrdinalIgnoreCase) { "asc", "desc" };
 
-    public ProcurementPlansController(IConfiguration config, ILogger<ProcurementPlansController> logger)
+    public ProcurementPlansController(
+        IConfiguration config,
+        ILogger<ProcurementPlansController> logger,
+        WorkflowRuntimeTracker workflowRuntimeTracker)
     {
         _config = config;
         _logger = logger;
+        _workflowRuntimeTracker = workflowRuntimeTracker;
     }
 
     private string GetConnectionString() => _config.GetConnectionString("Primary") ?? string.Empty;
@@ -177,10 +183,15 @@ public class ProcurementPlansController : ControllerBase
             });
 
             var results = await ExecuteRefcursorAsync(cmd, MapPlanDetail, ct);
-            await tx.CommitAsync(ct);
-
             var result = results.FirstOrDefault();
-            return result is null ? Problem("Procurement plan creation failed.") : Created($"/api/procurement-plans/{result.PlanId}", result);
+            if (result is null)
+            {
+                return Problem("Procurement plan creation failed.");
+            }
+
+            await SyncWorkflowRuntimeAsync(conn, tx, result, "Procurement plan created.", ct);
+            await tx.CommitAsync(ct);
+            return Created($"/api/procurement-plans/{result.PlanId}", result);
         }
         catch (Exception ex)
         {
@@ -234,10 +245,15 @@ public class ProcurementPlansController : ControllerBase
             });
 
             var results = await ExecuteRefcursorAsync(cmd, MapPlanDetail, ct);
-            await tx.CommitAsync(ct);
-
             var result = results.FirstOrDefault();
-            return result is null ? NotFound() : Ok(result);
+            if (result is null)
+            {
+                return NotFound();
+            }
+
+            await SyncWorkflowRuntimeAsync(conn, tx, result, "Procurement plan updated.", ct);
+            await tx.CommitAsync(ct);
+            return Ok(result);
         }
         catch (Exception ex)
         {
@@ -368,6 +384,42 @@ public class ProcurementPlansController : ControllerBase
 
         normalizedStatus = AllowedStatuses.FirstOrDefault(s => s.Equals(status.Trim(), StringComparison.OrdinalIgnoreCase));
         return normalizedStatus != null;
+    }
+
+    private async Task SyncWorkflowRuntimeAsync(
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        ProcurementPlanDetail plan,
+        string reason,
+        CancellationToken ct)
+    {
+        await _workflowRuntimeTracker.SyncAsync(
+            conn,
+            tx,
+            new WorkflowRuntimeSyncRequest(
+                "procurement_plan",
+                plan.PlanId,
+                ResolveWorkflowStage(plan.Status),
+                plan.Status,
+                plan.PlanTitle,
+                null,
+                null,
+                plan.TotalBudget,
+                null,
+                null,
+                reason,
+                null),
+            ct);
+    }
+
+    private static string ResolveWorkflowStage(string status)
+    {
+        return status switch
+        {
+            "Draft" => "department_need_capture",
+            "Submitted" => "planning_committee_review",
+            _ => "app_approval"
+        };
     }
 
     private string? ValidateCreateRequest(ProcurementPlanCreateRequest request, out string? normalizedStatus)

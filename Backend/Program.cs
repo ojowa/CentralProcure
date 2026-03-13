@@ -3,6 +3,7 @@ using IdentityModule = eProcurement.Modules.Identity.ModuleMarker;
 using PostAwardModule = eProcurement.Modules.PostAward.ModuleMarker;
 using ProcurementWorkflowModule = eProcurement.Modules.ProcurementWorkflow.ModuleMarker;
 using VendorSourcingModule = eProcurement.Modules.VendorSourcing.ModuleMarker;
+using eProcurement.Shared.Workflow;
 using eProcurement.Shared.Configurations;
 using eProcurement.Shared.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -41,6 +42,7 @@ mvcBuilder.AddApplicationPart(typeof(GovernanceModule).Assembly);
 
 builder.Services.AddHealthChecks();
 builder.Services.AddCors();
+builder.Services.AddScoped<WorkflowRuntimeTracker>();
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;

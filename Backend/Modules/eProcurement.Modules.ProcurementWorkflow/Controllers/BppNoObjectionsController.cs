@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 using NpgsqlTypes;
 using eProcurement.Modules.ProcurementWorkflow.DTOs;
+using eProcurement.Shared.Workflow;
 
 namespace eProcurement.Modules.ProcurementWorkflow.Controllers;
 
@@ -11,13 +12,18 @@ public class BppNoObjectionsController : ControllerBase
 {
     private readonly IConfiguration _config;
     private readonly ILogger<BppNoObjectionsController> _logger;
+    private readonly WorkflowRuntimeTracker _workflowRuntimeTracker;
 
     private static readonly string[] AllowedStatuses = { "Draft", "Submitted", "In Review", "Approved", "Rejected", "Cancelled" };
 
-    public BppNoObjectionsController(IConfiguration config, ILogger<BppNoObjectionsController> logger)
+    public BppNoObjectionsController(
+        IConfiguration config,
+        ILogger<BppNoObjectionsController> logger,
+        WorkflowRuntimeTracker workflowRuntimeTracker)
     {
         _config = config;
         _logger = logger;
+        _workflowRuntimeTracker = workflowRuntimeTracker;
     }
 
     private string GetConnectionString() => _config.GetConnectionString("Primary") ?? string.Empty;
@@ -180,7 +186,8 @@ RETURNING no_objection_id, requisition_id, tender_id, amount, procurement_type, 
         {
             await using var conn = new NpgsqlConnection(connectionString);
             await conn.OpenAsync(ct);
-            await using var cmd = new NpgsqlCommand(sql, conn);
+            await using var tx = await conn.BeginTransactionAsync(ct);
+            await using var cmd = new NpgsqlCommand(sql, conn, tx);
             cmd.Parameters.AddWithValue("p_requisition_id", NpgsqlDbType.Uuid, (object?)request.RequisitionId ?? DBNull.Value);
             cmd.Parameters.AddWithValue("p_tender_id", NpgsqlDbType.Uuid, (object?)request.TenderId ?? DBNull.Value);
             cmd.Parameters.AddWithValue("p_amount", NpgsqlDbType.Numeric, request.Amount);
@@ -194,6 +201,9 @@ RETURNING no_objection_id, requisition_id, tender_id, amount, procurement_type, 
             await reader.ReadAsync(ct);
 
             var result = MapNoObjection(reader);
+            await reader.CloseAsync();
+            await SyncWorkflowRuntimeAsync(conn, tx, result, "BPP no objection created.", ct);
+            await tx.CommitAsync(ct);
             return Created($"/api/bpp-no-objections/{result.NoObjectionId}", result);
         }
         catch (Exception ex)
@@ -234,7 +244,8 @@ RETURNING no_objection_id, requisition_id, tender_id, amount, procurement_type, 
         {
             await using var conn = new NpgsqlConnection(connectionString);
             await conn.OpenAsync(ct);
-            await using var cmd = new NpgsqlCommand(sql, conn);
+            await using var tx = await conn.BeginTransactionAsync(ct);
+            await using var cmd = new NpgsqlCommand(sql, conn, tx);
             cmd.Parameters.AddWithValue("p_no_objection_id", NpgsqlDbType.Uuid, noObjectionId);
             cmd.Parameters.AddWithValue("p_status", NpgsqlDbType.Varchar, (object?)normalizedStatus ?? DBNull.Value);
             cmd.Parameters.AddWithValue("p_decision_by", NpgsqlDbType.Varchar, (object?)request.DecisionBy ?? DBNull.Value);
@@ -249,6 +260,9 @@ RETURNING no_objection_id, requisition_id, tender_id, amount, procurement_type, 
             }
 
             var result = MapNoObjection(reader);
+            await reader.CloseAsync();
+            await SyncWorkflowRuntimeAsync(conn, tx, result, "BPP no objection updated.", ct);
+            await tx.CommitAsync(ct);
             return Ok(result);
         }
         catch (Exception ex)
@@ -276,6 +290,35 @@ RETURNING no_objection_id, requisition_id, tender_id, amount, procurement_type, 
             reader.GetDateTime(reader.GetOrdinal("created_at")),
             reader.GetDateTime(reader.GetOrdinal("updated_at"))
         );
+    }
+
+    private async Task SyncWorkflowRuntimeAsync(
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        BppNoObjectionDetail record,
+        string reason,
+        CancellationToken ct)
+    {
+        var parentEntityType = record.TenderId.HasValue ? "tender" : record.RequisitionId.HasValue ? "requisition" : null;
+        var parentEntityId = record.TenderId ?? record.RequisitionId;
+
+        await _workflowRuntimeTracker.SyncAsync(
+            conn,
+            tx,
+            new WorkflowRuntimeSyncRequest(
+                "bpp_no_objection",
+                record.NoObjectionId,
+                "bpp_no_objection",
+                record.Status,
+                record.ReferenceCode ?? "BPP No Objection",
+                parentEntityType,
+                parentEntityId,
+                record.Amount,
+                record.ProcurementType,
+                null,
+                reason,
+                record.DecisionBy ?? record.RequestedBy),
+            ct);
     }
 
     private string? ValidateCreateRequest(BppNoObjectionCreateRequest request, out string? normalizedStatus)

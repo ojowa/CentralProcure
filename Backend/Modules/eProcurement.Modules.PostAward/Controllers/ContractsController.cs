@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 using NpgsqlTypes;
 using eProcurement.Modules.PostAward.DTOs;
+using eProcurement.Shared.Workflow;
 
 namespace eProcurement.Modules.PostAward.Controllers;
 
@@ -12,15 +13,20 @@ public class ContractsController : ControllerBase
 {
     private readonly IConfiguration _config;
     private readonly ILogger<ContractsController> _logger;
+    private readonly WorkflowRuntimeTracker _workflowRuntimeTracker;
     private static readonly string[] AllowedContractStatuses = { "Active", "On Hold", "Completed", "Terminated" };
     private const int MaxMilestoneTitleLength = 180;
     private const int MaxContractManagerLength = 150;
     private const int MaxRecordedByLength = 255;
 
-    public ContractsController(IConfiguration config, ILogger<ContractsController> logger)
+    public ContractsController(
+        IConfiguration config,
+        ILogger<ContractsController> logger,
+        WorkflowRuntimeTracker workflowRuntimeTracker)
     {
         _config = config;
         _logger = logger;
+        _workflowRuntimeTracker = workflowRuntimeTracker;
     }
 
     [HttpGet]
@@ -177,10 +183,21 @@ public class ContractsController : ControllerBase
             });
 
             var results = await ExecuteRefcursorAsync(cmd, MapContract, ct);
-            await tx.CommitAsync(ct);
-
             var result = results.FirstOrDefault();
-            return result is null ? NotFound(new { message = "Contract not found." }) : Ok(result);
+            if (result is null)
+            {
+                return NotFound(new { message = "Contract not found." });
+            }
+
+            var contractEntityId = await GetContractEntityIdAsync(conn, tx, contractId, ct);
+            if (!contractEntityId.HasValue)
+            {
+                return NotFound(new { message = "Contract not found." });
+            }
+
+            await SyncContractWorkflowRuntimeAsync(conn, tx, contractEntityId.Value, result, "Contract milestone recorded.", ct);
+            await tx.CommitAsync(ct);
+            return Ok(result);
         }
         catch (PostgresException ex) when (ex.SqlState == "P0001")
         {
@@ -296,10 +313,21 @@ public class ContractsController : ControllerBase
             });
 
             var results = await ExecuteRefcursorAsync(cmd, MapContractAward, ct);
-            await tx.CommitAsync(ct);
-
             var result = results.FirstOrDefault();
-            return result is null ? NotFound(new { message = "Award not found." }) : Ok(result);
+            if (result is null)
+            {
+                return NotFound(new { message = "Award not found." });
+            }
+
+            var awardEntityId = await GetContractAwardEntityIdAsync(conn, tx, awardId, ct);
+            if (!awardEntityId.HasValue)
+            {
+                return NotFound(new { message = "Award not found." });
+            }
+
+            await SyncContractAwardWorkflowRuntimeAsync(conn, tx, awardEntityId.Value, result, "Contract award published.", ct);
+            await tx.CommitAsync(ct);
+            return Ok(result);
         }
         catch (Exception ex)
         {
@@ -372,6 +400,86 @@ public class ContractsController : ControllerBase
             reader.GetString(reader.GetOrdinal("recorded_by")),
             reader.GetDateTime(reader.GetOrdinal("recorded_at"))
         );
+    }
+
+    private async Task SyncContractAwardWorkflowRuntimeAsync(
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        Guid awardEntityId,
+        ContractAwardItem award,
+        string reason,
+        CancellationToken ct)
+    {
+        await _workflowRuntimeTracker.SyncAsync(
+            conn,
+            tx,
+            new WorkflowRuntimeSyncRequest(
+                "contract_award",
+                awardEntityId,
+                "award_and_publication",
+                award.Status,
+                award.TenderTitle,
+                null,
+                null,
+                award.AwardValue,
+                null,
+                null,
+                reason,
+                null),
+            ct);
+    }
+
+    private async Task SyncContractWorkflowRuntimeAsync(
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        Guid contractEntityId,
+        ContractManagementItem contract,
+        string reason,
+        CancellationToken ct)
+    {
+        await _workflowRuntimeTracker.SyncAsync(
+            conn,
+            tx,
+            new WorkflowRuntimeSyncRequest(
+                "contract",
+                contractEntityId,
+                "contract_execution",
+                contract.Status,
+                contract.TenderTitle,
+                null,
+                null,
+                contract.ContractValue,
+                null,
+                null,
+                reason,
+                contract.ContractManager),
+            ct);
+    }
+
+    private static async Task<Guid?> GetContractEntityIdAsync(
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        string contractCode,
+        CancellationToken ct)
+    {
+        const string sql = "SELECT contract_id FROM post_award.contracts WHERE contract_code = @p_contract_code;";
+        await using var cmd = new NpgsqlCommand(sql, conn, tx);
+        cmd.Parameters.AddWithValue("p_contract_code", NpgsqlDbType.Varchar, contractCode);
+        var result = await cmd.ExecuteScalarAsync(ct);
+        return result is Guid value ? value : null;
+    }
+
+    private static async Task<Guid?> GetContractAwardEntityIdAsync(
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        string awardCode,
+        CancellationToken ct)
+    {
+        const string sql = "SELECT award_id FROM post_award.contract_awards WHERE award_code = @p_award_code;";
+        await using var cmd = new NpgsqlCommand(sql, conn, tx);
+        cmd.Parameters.AddWithValue("p_award_code", NpgsqlDbType.Varchar, awardCode);
+        var result = await cmd.ExecuteScalarAsync(ct);
+        return result is Guid value ? value : null;
     }
 
     private static string? ValidateMilestoneRequest(

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 using NpgsqlTypes;
 using eProcurement.Modules.VendorSourcing.DTOs;
+using eProcurement.Shared.Workflow;
 
 namespace eProcurement.Modules.VendorSourcing.Controllers;
 
@@ -12,6 +13,7 @@ public class TendersController : ControllerBase
 {
     private readonly IConfiguration _config;
     private readonly ILogger<TendersController> _logger;
+    private readonly WorkflowRuntimeTracker _workflowRuntimeTracker;
 
     private static readonly string[] AllowedStatuses = { "Draft", "Published", "Closed", "Awarded", "Cancelled" };
     private static readonly HashSet<string> AllowedSortFields = new(StringComparer.OrdinalIgnoreCase)
@@ -30,10 +32,14 @@ public class TendersController : ControllerBase
     private const int MaxDepartmentLength = 150;
     private const int MaxBudgetCodeLength = 60;
 
-    public TendersController(IConfiguration config, ILogger<TendersController> logger)
+    public TendersController(
+        IConfiguration config,
+        ILogger<TendersController> logger,
+        WorkflowRuntimeTracker workflowRuntimeTracker)
     {
         _config = config;
         _logger = logger;
+        _workflowRuntimeTracker = workflowRuntimeTracker;
     }
 
     private string GetConnectionString() => _config.GetConnectionString("Primary") ?? string.Empty;
@@ -203,10 +209,15 @@ public class TendersController : ControllerBase
             });
 
             var results = await ExecuteRefcursorAsync(cmd, MapTenderDetail, ct);
-            await tx.CommitAsync(ct);
-
             var result = results.FirstOrDefault();
-            return result is null ? Problem("Tender creation failed.") : Created($"/api/tenders/{result.TenderId}", result);
+            if (result is null)
+            {
+                return Problem("Tender creation failed.");
+            }
+
+            await SyncWorkflowRuntimeAsync(conn, tx, result, "Tender created.", ct);
+            await tx.CommitAsync(ct);
+            return Created($"/api/tenders/{result.TenderId}", result);
         }
         catch (PostgresException ex) when (ex.SqlState == "P0001")
         {
@@ -266,10 +277,15 @@ public class TendersController : ControllerBase
             });
 
             var results = await ExecuteRefcursorAsync(cmd, MapTenderDetail, ct);
-            await tx.CommitAsync(ct);
-
             var result = results.FirstOrDefault();
-            return result is null ? NotFound() : Ok(result);
+            if (result is null)
+            {
+                return NotFound();
+            }
+
+            await SyncWorkflowRuntimeAsync(conn, tx, result, "Tender updated.", ct);
+            await tx.CommitAsync(ct);
+            return Ok(result);
         }
         catch (PostgresException ex) when (ex.SqlState == "P0001")
         {
@@ -317,10 +333,15 @@ public class TendersController : ControllerBase
             });
 
             var results = await ExecuteRefcursorAsync(cmd, MapTenderDetail, ct);
-            await tx.CommitAsync(ct);
-
             var result = results.FirstOrDefault();
-            return result is null ? NotFound() : Ok(result);
+            if (result is null)
+            {
+                return NotFound();
+            }
+
+            await SyncWorkflowRuntimeAsync(conn, tx, result, "Tender published.", ct);
+            await tx.CommitAsync(ct);
+            return Ok(result);
         }
         catch (PostgresException ex) when (ex.SqlState == "P0001")
         {
@@ -411,6 +432,44 @@ public class TendersController : ControllerBase
     {
         var ordinal = r.GetOrdinal(n);
         return r.IsDBNull(ordinal) ? null : r.GetInt32(ordinal);
+    }
+
+    private async Task SyncWorkflowRuntimeAsync(
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        TenderDetail tender,
+        string reason,
+        CancellationToken ct)
+    {
+        await _workflowRuntimeTracker.SyncAsync(
+            conn,
+            tx,
+            new WorkflowRuntimeSyncRequest(
+                "tender",
+                tender.TenderId,
+                ResolveWorkflowStage(tender.Status),
+                tender.Status,
+                tender.Title,
+                null,
+                null,
+                tender.Budget,
+                null,
+                null,
+                reason,
+                null),
+            ct);
+    }
+
+    private static string ResolveWorkflowStage(string status)
+    {
+        return status switch
+        {
+            "Draft" => "method_validation",
+            "Published" => "solicitation",
+            "Closed" => "bid_opening",
+            "Awarded" => "award_and_publication",
+            _ => "solicitation"
+        };
     }
 
     private static bool IsStatusValid(string? status, out string? normalized)
