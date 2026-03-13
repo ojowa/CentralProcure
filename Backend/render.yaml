@@ -9,7 +9,7 @@ services:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
       - key: ConnectionStrings__Primary
-        sync: false
+        value: Host=dpg-d6pq40ea2pns73bqoi50-a.oregon-postgres.render.com;Port=5432;Database=nis_eprocurement_z0p3;Username=nis_eprocurement_z0p3_user;Password=q6qbg27NUxpMYJT2Jrde2RN31SdMsLRO;SSL Mode=Require;Trust Server Certificate=true
       - key: Jwt__Key
         sync: false
       - key: Jwt__Issuer
