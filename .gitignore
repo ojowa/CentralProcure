@@ -1,43 +1,56 @@
-# Build folders
-[Bb]in/
-[Oo]bj/
-.next/
-**/.next/
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
 
+# Editor and IDE settings
+.idea/
+.vs/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
 
 # Logs
 *.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-# User-specific files
-*.user
-*.suo
-.dotnet
-.nuget
-.offline-nuget
-
-# VS Code
-.vscode/
-
-# Environment files
+# Environment and secrets
 .env
 .env.local
 .env.*.local
-Frontend/.env.local
+!.env.example
 
-# Frontend / package managers
+# .NET build output
+[Bb]in/
+[Oo]bj/
+TestResults/
+.dotnet/
+.nuget/
+.offline-nuget/
+
+# Node / Next.js
 node_modules/
-**/node_modules/
+.next/
+out/
+dist/
+.turbo/
 .vercel/
-Frontend/.vercel/
-internal-frontend/.next
-internal-frontend/node_modules
-public-frontend/.next
+
+# Coverage and temporary artifacts
+coverage/
+artifacts/
+tmp/
+temp/
+
+# Render and deployment-local folders
+.render/
+
+# Preserve tracked source folders that match ignored names
 !Frontend/src/public/
 !Frontend/src/public/**
-the-frontend/node_modules
-
-# Render / Docker deployment files
-.render/
-Backend/.render/
-!Backend/Dockerfile
-!Backend/.dockerignore
