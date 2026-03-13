@@ -48,7 +48,7 @@ artifacts/
 tmp/
 temp/
 
-scripts
+scripts/
 
 # Render and deployment-local folders
 .render/
