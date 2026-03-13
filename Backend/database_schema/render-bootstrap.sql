@@ -1,0 +1,99 @@
+\set ON_ERROR_STOP on
+
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+\echo Applying schema migrations...
+\ir migrations/001_identity_roles_internal_users.sql
+\ir migrations/002_add_user_login_security.sql
+\ir migrations/003_procurement_plans.sql
+\ir migrations/004_vendor_sourcing_tenders.sql
+\ir migrations/005_vendor_sourcing_bid_opening.sql
+\ir migrations/006_vendor_sourcing_bids.sql
+\ir migrations/007_requisitions.sql
+\ir migrations/008_post_award_contracts.sql
+\ir migrations/009_post_award_inspections.sql
+\ir migrations/010_evaluation_reports.sql
+\ir migrations/011_identity_vendors.sql
+\ir migrations/012_identity_vendor_functions_fix.sql
+\ir migrations/013_cleanup_duplicate_bids.sql
+\ir migrations/013_identity_update_vendor_profile.sql
+\ir migrations/013_vendor_sourcing_bid_unique.sql
+\ir migrations/014_evaluation_actions.sql
+\ir migrations/014_identity_compliance_history.sql
+\ir migrations/015_budget_ledger.sql
+\ir migrations/016_app_items_thresholds_bpp_and_tender_budget.sql
+\ir migrations/017_update_budget_and_workflow_functions.sql
+\ir migrations/018_fix_requisition_app_item_id.sql
+\ir migrations/019_reconcile_legacy_procurement_plan_items_and_tender_routines.sql
+\ir migrations/020_contract_milestones.sql
+\ir migrations/021_expand_identity_roles_for_ppa_alignment.sql
+\ir migrations/022_harden_bid_opening_session_state.sql
+\ir migrations/023_procurement_workflow_blueprint_tables.sql
+
+\echo Applying stored procedures and functions...
+\ir stored_procedures/BudgetLedger_Functions.sql
+\ir stored_procedures/CreateBidOpeningSession_SP.sql
+\ir stored_procedures/CreateProcurementPlan_SP.sql
+\ir stored_procedures/CreateProcurementPlanItem_SP.sql
+\ir stored_procedures/CreateRequisition_SP.sql
+\ir stored_procedures/CreateRole_SP.sql
+\ir stored_procedures/CreateTender_SP.sql
+\ir stored_procedures/DeactivateRole_SP.sql
+\ir stored_procedures/DeleteProcurementPlan_SP.sql
+\ir stored_procedures/DeleteProcurementPlanItem_SP.sql
+\ir stored_procedures/DeleteRole_SP.sql
+\ir stored_procedures/GetBidOpeningSessionDetails_SP.sql
+\ir stored_procedures/GetBidOpeningSessions_SP.sql
+\ir stored_procedures/GetComplianceDocumentHistory_SP.sql
+\ir stored_procedures/GetContractAwardDetails_SP.sql
+\ir stored_procedures/GetContractAwards_SP.sql
+\ir stored_procedures/GetContractDetails_SP.sql
+\ir stored_procedures/GetContractMilestones_SP.sql
+\ir stored_procedures/GetContracts_SP.sql
+\ir stored_procedures/GetEvaluationReportDetails_SP.sql
+\ir stored_procedures/GetEvaluationReports_SP.sql
+\ir stored_procedures/GetInspectionDetails_SP.sql
+\ir stored_procedures/GetInspections_SP.sql
+\ir stored_procedures/GetOpenTenders_SP.sql
+\ir stored_procedures/GetProcurementPlanItems_SP.sql
+\ir stored_procedures/GetProcurementPlans_SP.sql
+\ir stored_procedures/GetRequisitionDetails_SP.sql
+\ir stored_procedures/GetRequisitionLineItems_SP.sql
+\ir stored_procedures/GetRequisitions_SP.sql
+\ir stored_procedures/GetRoles_SP.sql
+\ir stored_procedures/GetSubmittedBids_SP.sql
+\ir stored_procedures/GetTenderDetails_SP.sql
+\ir stored_procedures/GetTenders_SP.sql
+\ir stored_procedures/GetVendorComplianceDocuments_SP.sql
+\ir stored_procedures/GetVendorProfile_SP.sql
+\ir stored_procedures/InternalLogin_SP.sql
+\ir stored_procedures/LogContractMilestone_SP.sql
+\ir stored_procedures/LoginVendor_SP.sql
+\ir stored_procedures/PublishContractAward_SP.sql
+\ir stored_procedures/PublishTender_SP.sql
+\ir stored_procedures/RegisterInternalUser_SP.sql
+\ir stored_procedures/RegisterVendor_SP.sql
+\ir stored_procedures/SubmitBid_SP.sql
+\ir stored_procedures/UpdateBidOpeningSession_SP.sql
+\ir stored_procedures/UpdateInternalUserRole_SP.sql
+\ir stored_procedures/UpdateProcurementPlan_SP.sql
+\ir stored_procedures/UpdateProcurementPlanItem_SP.sql
+\ir stored_procedures/UpdateRequisition_SP.sql
+\ir stored_procedures/UpdateRole_SP.sql
+\ir stored_procedures/UpdateTender_SP.sql
+\ir stored_procedures/UpdateVendorProfile_SP.sql
+\ir stored_procedures/UploadComplianceDocument_SP.sql
+
+\echo Applying seed data...
+\ir seed/001_roles.sql
+\ir seed/002_internal_admin.sql
+\ir seed/003_internal_users_departments.sql
+\ir seed/004_internal_users_remaining.sql
+\ir seed/005_vendors.sql
+\ir seed/006_procurement_plans.sql
+\ir seed/007_tenders.sql
+\ir seed/008_bid_opening_sessions.sql
+\ir seed/009_requisitions.sql
+\ir seed/010_post_award_contracts.sql
+\ir seed/011_post_award_inspections.sql
+\ir seed/012_evaluation_reports.sql

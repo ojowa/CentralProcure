@@ -1,0 +1,91 @@
+-- Function for Updating a Procurement Plan (PostgreSQL)
+CREATE OR REPLACE FUNCTION procurement_workflow.update_procurement_plan(
+    p_plan_id UUID,
+    p_plan_title VARCHAR(255),
+    p_department VARCHAR(150),
+    p_fiscal_year INT,
+    p_status VARCHAR(50),
+    p_total_budget DECIMAL(18, 2),
+    p_notes TEXT,
+    p_submitted_at TIMESTAMP WITHOUT TIME ZONE,
+    p_approved_at TIMESTAMP WITHOUT TIME ZONE
+)
+RETURNS TABLE (
+    plan_id UUID,
+    plan_title VARCHAR(255),
+    department VARCHAR(150),
+    fiscal_year INT,
+    status VARCHAR(50),
+    total_budget DECIMAL(18, 2),
+    notes TEXT,
+    submitted_at TIMESTAMP WITHOUT TIME ZONE,
+    approved_at TIMESTAMP WITHOUT TIME ZONE,
+    created_at TIMESTAMP WITHOUT TIME ZONE,
+    updated_at TIMESTAMP WITHOUT TIME ZONE
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    UPDATE procurement_workflow.procurement_plans
+    SET
+        plan_title = COALESCE(p_plan_title, plan_title),
+        department = COALESCE(p_department, department),
+        fiscal_year = COALESCE(p_fiscal_year, fiscal_year),
+        status = COALESCE(p_status, status),
+        total_budget = COALESCE(p_total_budget, total_budget),
+        notes = COALESCE(p_notes, notes),
+        submitted_at = COALESCE(p_submitted_at, submitted_at),
+        approved_at = COALESCE(p_approved_at, approved_at),
+        updated_at = NOW()
+    WHERE plan_id = p_plan_id;
+
+    RETURN QUERY
+    SELECT
+        p.plan_id,
+        p.plan_title,
+        p.department,
+        p.fiscal_year,
+        p.status,
+        p.total_budget,
+        p.notes,
+        p.submitted_at,
+        p.approved_at,
+        p.created_at,
+        p.updated_at
+    FROM
+        procurement_workflow.procurement_plans p
+    WHERE
+        p.plan_id = p_plan_id;
+END;
+$$;
+
+-- Procedure wrapper for update_procurement_plan (PostgreSQL)
+CREATE OR REPLACE PROCEDURE procurement_workflow.update_procurement_plan_sp(
+    IN p_plan_id UUID,
+    IN p_plan_title VARCHAR(255),
+    IN p_department VARCHAR(150),
+    IN p_fiscal_year INT,
+    IN p_status VARCHAR(50),
+    IN p_total_budget DECIMAL(18, 2),
+    IN p_notes TEXT,
+    IN p_submitted_at TIMESTAMP WITHOUT TIME ZONE,
+    IN p_approved_at TIMESTAMP WITHOUT TIME ZONE,
+    OUT p_result refcursor
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    OPEN p_result FOR
+    SELECT * FROM procurement_workflow.update_procurement_plan(
+        p_plan_id,
+        p_plan_title,
+        p_department,
+        p_fiscal_year,
+        p_status,
+        p_total_budget,
+        p_notes,
+        p_submitted_at,
+        p_approved_at
+    );
+END;
+$$;
