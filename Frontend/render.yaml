@@ -7,6 +7,6 @@ services:
     startCommand: npm start
     envVars:
       - key: NEXT_PUBLIC_BACKEND_URL
-        sync: false
+        value: https://centralprocure-backend.onrender.com
       - key: NEXT_PUBLIC_APP_BASE_PATH
         sync: false
