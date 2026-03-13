@@ -39,10 +39,5 @@ the-frontend/node_modules
 # Render / Docker deployment files
 .render/
 Backend/.render/
-!render.yaml
-!Dockerfile
-!.dockerignore
 !Backend/Dockerfile
 !Backend/.dockerignore
-!compose.backend.yml
-!database_schema/render-bootstrap.sql
