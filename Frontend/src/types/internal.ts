@@ -531,6 +531,59 @@ export interface BppNoObjectionUpdateRequest {
     ReferenceCode?: string | null;
 }
 
+export interface AdministrativeReviewSummary {
+    ComplaintId: string;
+    ComplaintReference: string;
+    EntityType: string;
+    EntityId: string;
+    StageKeyAtFiling: string;
+    Status: string;
+    Subject: string;
+    FiledBy?: string | null;
+    AssignedTo?: string | null;
+    FiledAt: string;
+    ResolutionOutcome?: string | null;
+    ResolvedAt?: string | null;
+    ParentRecordTitle?: string | null;
+    ParentCurrentStageKey?: string | null;
+    ParentCurrentStageTitle?: string | null;
+    ParentCurrentStatus?: string | null;
+}
+
+export interface AdministrativeReviewDetail extends AdministrativeReviewSummary {
+    Summary: string;
+    Details: string;
+    ComplaintChannel?: string | null;
+    RequestedRemedy?: string | null;
+    ReviewedBy?: string | null;
+    ResolutionStageKey?: string | null;
+    ResolutionNotes?: string | null;
+    ReviewedAt?: string | null;
+    CreatedAt: string;
+    UpdatedAt: string;
+}
+
+export interface AdministrativeReviewCreateRequest {
+    EntityType: string;
+    EntityId: string;
+    Subject: string;
+    Summary: string;
+    Details: string;
+    ComplaintChannel?: string | null;
+    RequestedRemedy?: string | null;
+    FiledBy?: string | null;
+    AssignedTo?: string | null;
+}
+
+export interface AdministrativeReviewUpdateRequest {
+    Status?: string | null;
+    AssignedTo?: string | null;
+    ReviewedBy?: string | null;
+    ResolutionOutcome?: string | null;
+    ResolutionStageKey?: string | null;
+    ResolutionNotes?: string | null;
+}
+
 export interface RequisitionLineItem {
     ItemId?: string | null;
     Description: string;
@@ -554,6 +607,7 @@ export interface RequisitionSummary {
 export interface RequisitionDetail extends RequisitionSummary {
     ProcurementType?: string | null;
     BudgetCode?: string | null;
+    AppItemId?: string | null;
     ProjectCode?: string | null;
     DeliveryLocation?: string | null;
     Justification?: string | null;
@@ -570,6 +624,7 @@ export interface RequisitionCreateRequest {
     Priority?: string | null;
     FundingSource?: string | null;
     BudgetCode?: string | null;
+    AppItemId?: string | null;
     ProjectCode?: string | null;
     RequiredBy?: string | null;
     DeliveryLocation?: string | null;
@@ -586,6 +641,7 @@ export interface RequisitionUpdateRequest {
     Priority?: string | null;
     FundingSource?: string | null;
     BudgetCode?: string | null;
+    AppItemId?: string | null;
     ProjectCode?: string | null;
     RequiredBy?: string | null;
     DeliveryLocation?: string | null;
@@ -654,6 +710,180 @@ export interface InspectionItem {
     Outcome?: string | null;
     Location: string;
     Notes?: string | null;
+}
+
+export interface InspectionUpdateRequest {
+    Status?: string | null;
+    Outcome?: string | null;
+    CompletedDate?: string | null;
+    InspectorName?: string | null;
+    Location?: string | null;
+    Notes?: string | null;
+}
+
+export interface PaymentTrackingItem {
+    ContractId: string;
+    ContractCode: string;
+    TenderTitle: string;
+    VendorName: string;
+    ContractValue: number;
+    ContractStatus: string;
+    ContractProgress: number;
+    CurrentStageKey?: string | null;
+    CurrentStageTitle?: string | null;
+    WorkflowStatus?: string | null;
+    InspectionCode?: string | null;
+    InspectionStatus?: string | null;
+    InspectionOutcome?: string | null;
+    InspectionCompletedDate?: string | null;
+    FinalAcceptanceCompleted: boolean;
+    FinalPaymentRecorded: boolean;
+    CloseoutEligible: boolean;
+    PaymentStage: string;
+    CloseoutId?: string | null;
+    CloseoutReference?: string | null;
+    CloseoutStatus?: string | null;
+    ArchivedAt?: string | null;
+}
+
+export interface AuditEventItem {
+    HistoryId: string;
+    EntityType: string;
+    EntityId: string;
+    FromStageKey?: string | null;
+    ToStageKey: string;
+    ToStageTitle: string;
+    StageStatus?: string | null;
+    TransitionSource: string;
+    Actor?: string | null;
+    CreatedAt: string;
+}
+
+export interface AuditSummaryResponse {
+    ActiveWorkflowItems: number;
+    AdministrativeReviewsOpen: number;
+    CloseoutsArchived: number;
+    RecentTransitions: number;
+    RecentEvents: AuditEventItem[];
+}
+
+export interface AuditHistoryItem {
+    HistoryId: string;
+    EntityType: string;
+    EntityId: string;
+    RecordTitle?: string | null;
+    CurrentStageKey?: string | null;
+    CurrentStageTitle?: string | null;
+    FromStageKey?: string | null;
+    FromStageTitle?: string | null;
+    ToStageKey: string;
+    ToStageTitle: string;
+    StageStatus?: string | null;
+    TransitionSource: string;
+    TransitionReason?: string | null;
+    Actor?: string | null;
+    CreatedAt: string;
+}
+
+export interface WorkflowGrantedAction {
+    ActionKey: string;
+    StageKey: string;
+    DisplayName: string;
+    TaskDescription: string;
+}
+
+export interface WorkflowRuntimeTransitionSummary {
+    ToStageKey: string;
+    StageTitle: string;
+    TransitionCondition: string;
+}
+
+export interface WorkflowRuntimeSnapshot {
+    InstanceId: string;
+    EntityType: string;
+    EntityId: string;
+    CurrentStageKey: string;
+    CurrentStageTitle: string;
+    CurrentPhaseKey: string;
+    CurrentStatus?: string | null;
+    RecordTitle?: string | null;
+    ParentEntityType?: string | null;
+    ParentEntityId?: string | null;
+    Amount?: number | null;
+    ProcurementType?: string | null;
+    ThresholdId?: string | null;
+    LastTransitionReason?: string | null;
+    CreatedAt: string;
+    UpdatedAt: string;
+    NextTransitions: WorkflowRuntimeTransitionSummary[];
+}
+
+export interface WorkflowRouteDecision {
+    EntityType: string;
+    EntityId: string;
+    CurrentStageKey: string;
+    ThresholdId?: string | null;
+    ApprovalRoute?: string | null;
+    RequiresBoard: boolean;
+    RequiresBpp: boolean;
+    Amount?: number | null;
+    ProcurementType?: string | null;
+    Notes?: string | null;
+}
+
+export interface WorkflowRuntimeHistoryEntry {
+    HistoryId: string;
+    FromStageKey?: string | null;
+    ToStageKey: string;
+    ToStageTitle: string;
+    StageStatus?: string | null;
+    TransitionSource: string;
+    TransitionReason?: string | null;
+    Actor?: string | null;
+    CreatedAt: string;
+}
+
+export interface AuditTransitionDiagnostic {
+    RequestedStageKey: string;
+    RequestedStageTitle: string;
+    TransitionCondition: string;
+    IsAllowed: boolean;
+    Message?: string | null;
+}
+
+export interface AuditWorkflowDiagnosticsResponse {
+    Runtime: WorkflowRuntimeSnapshot;
+    RouteDecision?: WorkflowRouteDecision | null;
+    RoleKey?: string | null;
+    GrantedActions: WorkflowGrantedAction[];
+    RecentHistory: WorkflowRuntimeHistoryEntry[];
+    TransitionChecks: AuditTransitionDiagnostic[];
+}
+
+export interface AuditCloseoutItem {
+    CloseoutId: string;
+    CloseoutReference: string;
+    EntityType: string;
+    EntityId: string;
+    Status: string;
+    RecordTitle?: string | null;
+    Summary: string;
+    ArchiveLocation?: string | null;
+    FinalAcceptanceCompleted: boolean;
+    FinalPaymentCompleted: boolean;
+    ArchivedBy?: string | null;
+    ArchivedAt?: string | null;
+    CreatedAt: string;
+}
+
+export interface AuditCloseoutCreateRequest {
+    EntityType: string;
+    EntityId: string;
+    Summary: string;
+    ArchiveLocation?: string | null;
+    FinalAcceptanceCompleted: boolean;
+    FinalPaymentCompleted: boolean;
+    ArchivedBy?: string | null;
 }
 
 export interface EvaluationReportItem {

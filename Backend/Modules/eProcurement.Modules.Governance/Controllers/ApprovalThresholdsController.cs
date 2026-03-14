@@ -89,7 +89,36 @@ ORDER BY min_amount ASC;";
             return Problem("Connection string 'Primary' is not configured.", statusCode: 500);
         }
 
-        const string sql = "SELECT * FROM procurement_workflow.get_threshold_for_amount(@p_procurement_type, @p_amount);";
+        const string sql = @"
+SELECT
+    threshold_id,
+    procurement_type,
+    min_amount,
+    max_amount,
+    approval_route,
+    requires_board,
+    requires_bpp,
+    status,
+    notes,
+    created_at,
+    updated_at
+FROM procurement_workflow.approval_thresholds
+WHERE status = 'Active'
+  AND min_amount <= @p_amount
+  AND (max_amount IS NULL OR max_amount >= @p_amount)
+  AND (
+        @p_procurement_type IS NULL
+        OR procurement_type IS NULL
+        OR lower(procurement_type) = lower(@p_procurement_type)
+      )
+ORDER BY
+    CASE
+        WHEN @p_procurement_type IS NOT NULL AND procurement_type IS NOT NULL AND lower(procurement_type) = lower(@p_procurement_type) THEN 0
+        WHEN procurement_type IS NULL THEN 1
+        ELSE 2
+    END,
+    min_amount DESC
+LIMIT 1;";
 
         try
         {

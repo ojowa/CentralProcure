@@ -1,0 +1,25 @@
+namespace eProcurement.Modules.PostAward.DTOs;
+
+public record PaymentTrackingItem(
+    Guid ContractId,
+    string ContractCode,
+    string TenderTitle,
+    string VendorName,
+    decimal ContractValue,
+    string ContractStatus,
+    int ContractProgress,
+    string? CurrentStageKey,
+    string? CurrentStageTitle,
+    string? WorkflowStatus,
+    string? InspectionCode,
+    string? InspectionStatus,
+    string? InspectionOutcome,
+    DateTime? InspectionCompletedDate,
+    bool FinalAcceptanceCompleted,
+    bool FinalPaymentRecorded,
+    bool CloseoutEligible,
+    string PaymentStage,
+    Guid? CloseoutId,
+    string? CloseoutReference,
+    string? CloseoutStatus,
+    DateTime? ArchivedAt);

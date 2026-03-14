@@ -20,6 +20,7 @@ What already exists in the repo:
 - complaint and closeout schema artifacts in [025_administrative_reviews_and_closeouts.sql](C:\Users\OJOWA\Documents\Project 4\CentralProcure\database_schema\migrations\025_administrative_reviews_and_closeouts.sql)
 - workflow runtime API plus controller-level transition checks and runtime sync in procurement plan, requisition, tender, BPP no-objection, contract award, and contract milestone flows
 - administrative review endpoint support for complaint filing/resolution and governance audit/closeout endpoints
+- a repeatable Phase 9 verification pack in [verify-phase9-workflow.ps1](C:\Users\OJOWA\Documents\Project 4\CentralProcure\scripts\verify-phase9-workflow.ps1) and [ppa_2007_phase9_verification_pack.md](C:\Users\OJOWA\Documents\Project 4\CentralProcure\design notes\ppa_2007_phase9_verification_pack.md)
 
 What is still incomplete:
 - explicit runtime enforcement of workflow stage transitions across every operational API
@@ -39,10 +40,10 @@ Current implementation level by phase:
 | 3 | Implemented | Transition validation now covers procurement plan, requisition, tender, evaluation action, BPP no-objection, award publication, contract milestone, inspection update, complaint resolution, and closeout movement. |
 | 4 | Implemented | Threshold resolution now drives live route decisions through the shared workflow policy guard, and workflow routing can be queried from backend runtime state. |
 | 5 | Implemented | Backend-issued workflow actions are now derived from role-task mappings and used for internal module action issuance plus key workflow-moving API endpoints. |
-| 6 | Partial | Complaint schema and API are now present, and complaints can move parent records into and out of `administrative_review`. |
-| 7 | Partial | Award publication, contract execution, and closeout state movement exist, but full post-award verification and portal visibility remain incomplete. |
-| 8 | Partial | Runtime history and audit summary endpoints exist, but richer diagnostics and admin history views are still pending. |
-| 9 | Missing | There is still no repeatable end-to-end verification pack covering all branches. |
+| 6 | Implemented | Complaint filing, parent workflow suspension into `administrative_review`, resolution branching, and internal administrative review workspace coverage are now in place. |
+| 7 | Implemented | Inspection updates, payment readiness visibility, explicit closeout actions, and audit dashboard closeout visibility are now wired into live backend and internal portal flows. |
+| 8 | Implemented | Audit history search, per-entity workflow diagnostics, live audit trail views, and compliance reporting now expose runtime history and actionable transition diagnostics without DB inspection. |
+| 9 | Implemented | A repeatable verification pack now covers seeded scenario checks for threshold routing, runtime state, complaint action availability, post-award closeout readiness, audit diagnostics, and optional mutation evidence. |
 
 ## Rules
 
@@ -248,6 +249,7 @@ Recommended implementation sequence:
 
 ## Immediate Next Step
 
-Continue with the remaining auditability and verification work:
-- add the missing state coverage matrix for auditability of `state -> table -> endpoint -> UI -> enforcement`
-- add end-to-end verification coverage for threshold routing, complaints, and closeout
+Continue with operational cleanup:
+- execute the Phase 9 pack against the active local backend and, when ready, the Render deployment
+- commit the current workflow, post-award, audit, and verification artifacts after reviewing any intentionally local-only files
+1

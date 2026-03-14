@@ -61,9 +61,9 @@ public sealed class WorkflowActionGrantService
             ["bpp_no_objection"] = ["bpp.create", "bpp.review"],
             ["award_and_publication"] = ["contract_award.publish", "contract_award.view"],
             ["contract_execution"] = ["contract_management.manage"],
-            ["inspection_and_payment"] = ["inspection.view", "payment_tracking.view"],
+            ["inspection_and_payment"] = ["inspection.view", "inspection.update", "payment_tracking.view", "closeout.create"],
             ["closeout_and_audit"] = ["audit_dashboard.view", "audit_trail.view", "compliance_reports.view"],
-            ["administrative_review"] = ["administrative_review.view"]
+            ["administrative_review"] = ["administrative_review.view", "administrative_review.update", "administrative_review.resolve"]
         };
 
     public static string? ResolveRoleKey(ClaimsPrincipal user)

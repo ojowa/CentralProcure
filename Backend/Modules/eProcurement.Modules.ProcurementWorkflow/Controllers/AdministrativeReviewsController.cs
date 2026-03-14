@@ -65,33 +65,42 @@ public class AdministrativeReviewsController : BaseModuleController
 
         const string sql = @"
 SELECT
-    complaint_id,
-    complaint_reference,
-    entity_type,
-    entity_id,
-    stage_key_at_filing,
-    status,
-    subject,
-    summary,
-    details,
-    complaint_channel,
-    requested_remedy,
-    filed_by,
-    assigned_to,
-    reviewed_by,
-    resolution_outcome,
-    resolution_stage_key,
-    resolution_notes,
-    filed_at,
-    reviewed_at,
-    resolved_at,
-    created_at,
-    updated_at
-FROM procurement_workflow.procurement_complaints
-WHERE (@p_entity_type IS NULL OR entity_type = @p_entity_type)
-  AND (@p_entity_id IS NULL OR entity_id = @p_entity_id)
-  AND (@p_status IS NULL OR status = @p_status)
-ORDER BY filed_at DESC;";
+    pc.complaint_id,
+    pc.complaint_reference,
+    pc.entity_type,
+    pc.entity_id,
+    pc.stage_key_at_filing,
+    pc.status,
+    pc.subject,
+    pc.summary,
+    pc.details,
+    pc.complaint_channel,
+    pc.requested_remedy,
+    pc.filed_by,
+    pc.assigned_to,
+    pc.reviewed_by,
+    pc.resolution_outcome,
+    pc.resolution_stage_key,
+    pc.resolution_notes,
+    pc.filed_at,
+    pc.reviewed_at,
+    pc.resolved_at,
+    pc.created_at,
+    pc.updated_at,
+    wi.record_title AS parent_record_title,
+    wi.current_stage_key AS parent_current_stage_key,
+    wsc.stage_title AS parent_current_stage_title,
+    wi.current_status AS parent_current_status
+FROM procurement_workflow.procurement_complaints pc
+LEFT JOIN procurement_workflow.workflow_instances wi
+  ON wi.entity_type = pc.entity_type
+ AND wi.entity_id = pc.entity_id
+LEFT JOIN procurement_workflow.workflow_stage_catalog wsc
+  ON wsc.stage_key = wi.current_stage_key
+WHERE (@p_entity_type IS NULL OR pc.entity_type = @p_entity_type)
+  AND (@p_entity_id IS NULL OR pc.entity_id = @p_entity_id)
+  AND (@p_status IS NULL OR pc.status = @p_status)
+ORDER BY pc.filed_at DESC;";
 
         try
         {
@@ -129,30 +138,39 @@ ORDER BY filed_at DESC;";
 
         const string sql = @"
 SELECT
-    complaint_id,
-    complaint_reference,
-    entity_type,
-    entity_id,
-    stage_key_at_filing,
-    status,
-    subject,
-    summary,
-    details,
-    complaint_channel,
-    requested_remedy,
-    filed_by,
-    assigned_to,
-    reviewed_by,
-    resolution_outcome,
-    resolution_stage_key,
-    resolution_notes,
-    filed_at,
-    reviewed_at,
-    resolved_at,
-    created_at,
-    updated_at
-FROM procurement_workflow.procurement_complaints
-WHERE complaint_id = @p_complaint_id;";
+    pc.complaint_id,
+    pc.complaint_reference,
+    pc.entity_type,
+    pc.entity_id,
+    pc.stage_key_at_filing,
+    pc.status,
+    pc.subject,
+    pc.summary,
+    pc.details,
+    pc.complaint_channel,
+    pc.requested_remedy,
+    pc.filed_by,
+    pc.assigned_to,
+    pc.reviewed_by,
+    pc.resolution_outcome,
+    pc.resolution_stage_key,
+    pc.resolution_notes,
+    pc.filed_at,
+    pc.reviewed_at,
+    pc.resolved_at,
+    pc.created_at,
+    pc.updated_at,
+    wi.record_title AS parent_record_title,
+    wi.current_stage_key AS parent_current_stage_key,
+    wsc.stage_title AS parent_current_stage_title,
+    wi.current_status AS parent_current_status
+FROM procurement_workflow.procurement_complaints pc
+LEFT JOIN procurement_workflow.workflow_instances wi
+  ON wi.entity_type = pc.entity_type
+ AND wi.entity_id = pc.entity_id
+LEFT JOIN procurement_workflow.workflow_stage_catalog wsc
+  ON wsc.stage_key = wi.current_stage_key
+WHERE pc.complaint_id = @p_complaint_id;";
 
         try
         {
@@ -427,7 +445,11 @@ WHERE complaint_id = @p_complaint_id;";
             GetNullableString(reader, "assigned_to"),
             reader.GetDateTime(reader.GetOrdinal("filed_at")),
             GetNullableString(reader, "resolution_outcome"),
-            GetNullableDateTime(reader, "resolved_at"));
+            GetNullableDateTime(reader, "resolved_at"),
+            GetNullableString(reader, "parent_record_title"),
+            GetNullableString(reader, "parent_current_stage_key"),
+            GetNullableString(reader, "parent_current_stage_title"),
+            GetNullableString(reader, "parent_current_status"));
     }
 
     private static AdministrativeReviewDetail MapDetail(NpgsqlDataReader reader)
@@ -454,7 +476,11 @@ WHERE complaint_id = @p_complaint_id;";
             GetNullableDateTime(reader, "reviewed_at"),
             GetNullableDateTime(reader, "resolved_at"),
             reader.GetDateTime(reader.GetOrdinal("created_at")),
-            reader.GetDateTime(reader.GetOrdinal("updated_at")));
+            reader.GetDateTime(reader.GetOrdinal("updated_at")),
+            GetNullableString(reader, "parent_record_title"),
+            GetNullableString(reader, "parent_current_stage_key"),
+            GetNullableString(reader, "parent_current_stage_title"),
+            GetNullableString(reader, "parent_current_status"));
     }
 
     private static string? ValidateCreateRequest(AdministrativeReviewCreateRequest? request)
@@ -648,28 +674,7 @@ VALUES (
     @p_assigned_to
 )
 RETURNING
-    complaint_id,
-    complaint_reference,
-    entity_type,
-    entity_id,
-    stage_key_at_filing,
-    status,
-    subject,
-    summary,
-    details,
-    complaint_channel,
-    requested_remedy,
-    filed_by,
-    assigned_to,
-    reviewed_by,
-    resolution_outcome,
-    resolution_stage_key,
-    resolution_notes,
-    filed_at,
-    reviewed_at,
-    resolved_at,
-    created_at,
-    updated_at;";
+    complaint_id;";
 
         await using var cmd = new NpgsqlCommand(sql, conn, tx);
         cmd.Parameters.AddWithValue("p_entity_type", NpgsqlDbType.Varchar, request.EntityType.Trim().ToLowerInvariant());
@@ -683,9 +688,9 @@ RETURNING
         cmd.Parameters.AddWithValue("p_filed_by", NpgsqlDbType.Varchar, (object?)NormalizeNullable(request.FiledBy) ?? DBNull.Value);
         cmd.Parameters.AddWithValue("p_assigned_to", NpgsqlDbType.Varchar, (object?)NormalizeNullable(request.AssignedTo) ?? DBNull.Value);
 
-        await using var reader = await cmd.ExecuteReaderAsync(ct);
-        await reader.ReadAsync(ct);
-        return MapDetail(reader);
+        var complaintId = (Guid?)await cmd.ExecuteScalarAsync(ct);
+        return (await GetComplaintAsync(conn, tx, complaintId ?? Guid.Empty, ct))
+            ?? throw new InvalidOperationException("Inserted complaint could not be reloaded.");
     }
 
     private async Task<AdministrativeReviewDetail> UpdateComplaintAsync(
@@ -720,28 +725,7 @@ SET
     updated_at = NOW()
 WHERE complaint_id = @p_complaint_id
 RETURNING
-    complaint_id,
-    complaint_reference,
-    entity_type,
-    entity_id,
-    stage_key_at_filing,
-    status,
-    subject,
-    summary,
-    details,
-    complaint_channel,
-    requested_remedy,
-    filed_by,
-    assigned_to,
-    reviewed_by,
-    resolution_outcome,
-    resolution_stage_key,
-    resolution_notes,
-    filed_at,
-    reviewed_at,
-    resolved_at,
-    created_at,
-    updated_at;";
+    complaint_id;";
 
         await using var cmd = new NpgsqlCommand(sql, conn, tx);
         cmd.Parameters.AddWithValue("p_complaint_id", NpgsqlDbType.Uuid, complaintId);
@@ -752,9 +736,9 @@ RETURNING
         cmd.Parameters.AddWithValue("p_resolution_stage_key", NpgsqlDbType.Varchar, (object?)resolutionStageKey ?? DBNull.Value);
         cmd.Parameters.AddWithValue("p_resolution_notes", NpgsqlDbType.Text, (object?)NormalizeNullable(request.ResolutionNotes) ?? DBNull.Value);
 
-        await using var reader = await cmd.ExecuteReaderAsync(ct);
-        await reader.ReadAsync(ct);
-        return MapDetail(reader);
+        var updatedComplaintId = (Guid?)await cmd.ExecuteScalarAsync(ct);
+        return (await GetComplaintAsync(conn, tx, updatedComplaintId ?? complaintId, ct))
+            ?? throw new InvalidOperationException("Updated complaint could not be reloaded.");
     }
 
     private static async Task<AdministrativeReviewDetail?> GetComplaintAsync(
@@ -765,30 +749,39 @@ RETURNING
     {
         const string sql = @"
 SELECT
-    complaint_id,
-    complaint_reference,
-    entity_type,
-    entity_id,
-    stage_key_at_filing,
-    status,
-    subject,
-    summary,
-    details,
-    complaint_channel,
-    requested_remedy,
-    filed_by,
-    assigned_to,
-    reviewed_by,
-    resolution_outcome,
-    resolution_stage_key,
-    resolution_notes,
-    filed_at,
-    reviewed_at,
-    resolved_at,
-    created_at,
-    updated_at
-FROM procurement_workflow.procurement_complaints
-WHERE complaint_id = @p_complaint_id
+    pc.complaint_id,
+    pc.complaint_reference,
+    pc.entity_type,
+    pc.entity_id,
+    pc.stage_key_at_filing,
+    pc.status,
+    pc.subject,
+    pc.summary,
+    pc.details,
+    pc.complaint_channel,
+    pc.requested_remedy,
+    pc.filed_by,
+    pc.assigned_to,
+    pc.reviewed_by,
+    pc.resolution_outcome,
+    pc.resolution_stage_key,
+    pc.resolution_notes,
+    pc.filed_at,
+    pc.reviewed_at,
+    pc.resolved_at,
+    pc.created_at,
+    pc.updated_at,
+    wi.record_title AS parent_record_title,
+    wi.current_stage_key AS parent_current_stage_key,
+    wsc.stage_title AS parent_current_stage_title,
+    wi.current_status AS parent_current_status
+FROM procurement_workflow.procurement_complaints pc
+LEFT JOIN procurement_workflow.workflow_instances wi
+  ON wi.entity_type = pc.entity_type
+ AND wi.entity_id = pc.entity_id
+LEFT JOIN procurement_workflow.workflow_stage_catalog wsc
+  ON wsc.stage_key = wi.current_stage_key
+WHERE pc.complaint_id = @p_complaint_id
 FOR UPDATE;";
 
         await using var cmd = new NpgsqlCommand(sql, conn, tx);

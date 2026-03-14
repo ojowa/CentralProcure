@@ -26,11 +26,15 @@ internal static class InternalModuleCatalog
         "contract_award.view",
         "contract_management.manage",
         "inspection.view",
+        "inspection.update",
         "payment_tracking.view",
+        "closeout.create",
         "audit_dashboard.view",
         "audit_trail.view",
         "compliance_reports.view",
-        "administrative_review.view"
+        "administrative_review.view",
+        "administrative_review.update",
+        "administrative_review.resolve"
     };
 
     private static readonly IReadOnlySet<string> AllInternalRoles = RoleSet(
@@ -90,12 +94,12 @@ internal static class InternalModuleCatalog
         new("final-approval", "Final Approval", "Accounting Officer", "Issue final approval for eligible procurements.", "Approval Workflow Service", "Final statutory authority checkpoint.", ActionSet("final_approval.decide"), RoleSet("AccountingOfficer")),
         new("bpp-escalation", "BPP Escalation", "Accounting Officer", "Escalate required cases for no-objection workflows.", "BPP Integration Service", "Regulatory compliance and external traceability.", ActionSet("bpp.create"), RoleSet("AccountingOfficer", "BPPLiaison")),
         new("bpp-escalation", "BPP Escalation", "Accounting Officer", "Escalate required cases for no-objection workflows.", "BPP Integration Service", "Regulatory compliance and external traceability.", ActionSet("bpp.review"), RoleSet("BPPReviewer")),
-        new("administrative-review", "Administrative Review", "Administrative Review", "Track complaints, review petitions, and challenge resolution records.", "Audit and Compliance Service", "Section 54 bidder review visibility and accountable resolution.", ActionSet("administrative_review.view"), RoleSet("ComplaintsReviewOfficer", "AccountingOfficer", "BPPReviewer", "AuditOfficer")),
+        new("administrative-review", "Administrative Review", "Administrative Review", "Track complaints, review petitions, and challenge resolution records.", "Audit and Compliance Service", "Section 54 bidder review visibility and accountable resolution.", ActionSet("administrative_review.view", "administrative_review.update", "administrative_review.resolve"), RoleSet("ComplaintsReviewOfficer", "AccountingOfficer", "BPPReviewer", "AuditOfficer")),
         new("contract-award", "Contract Award", "Post-Award Management", "Publish award notices and transition to delivery controls.", "Contract Management Service", "Award legality and contract traceability.", ActionSet("contract_award.publish"), RoleSet("ProcurementOfficer", "ProcurementManager", "AccountingOfficer")),
         new("contract-award", "Contract Award", "Post-Award Management", "Publish award notices and transition to delivery controls.", "Contract Management Service", "Award legality and contract traceability.", ActionSet("contract_award.view"), RoleSet("ContractManager")),
         new("contract-management", "Contract Management", "Post-Award Management", "Track milestones, variations, and completion status.", "Contract Management Service", "Lifecycle governance and change discipline.", ActionSet("contract_management.manage"), RoleSet("ProcurementOfficer", "ProcurementManager", "AccountingOfficer", "ContractManager")),
-        new("inspection-acceptance", "Inspection and Acceptance", "Post-Award Management", "Record delivery verification before payment release.", "Inspection Service", "Delivery verification and accountability.", ActionSet("inspection.view"), RoleSet("ProcurementOfficer", "InspectionOfficer", "AuditOfficer")),
-        new("payment-tracking", "Payment Tracking", "Post-Award Management", "Monitor payment milestones against acceptance outcomes.", "Payment Tracking Service", "Financial transparency and spend monitoring.", ActionSet("payment_tracking.view"), RoleSet("AccountingOfficer", "PaymentOfficer", "AuditOfficer")),
+        new("inspection-acceptance", "Inspection and Acceptance", "Post-Award Management", "Record delivery verification before payment release.", "Inspection Service", "Delivery verification and accountability.", ActionSet("inspection.view", "inspection.update"), RoleSet("ProcurementOfficer", "InspectionOfficer", "AuditOfficer")),
+        new("payment-tracking", "Payment Tracking", "Post-Award Management", "Monitor payment milestones against acceptance outcomes.", "Payment Tracking Service", "Financial transparency and spend monitoring.", ActionSet("payment_tracking.view", "closeout.create"), RoleSet("AccountingOfficer", "PaymentOfficer", "AuditOfficer")),
         new("audit-dashboard", "Audit Dashboard", "Audit and Oversight", "Monitor compliance indicators across procurement lifecycle.", "Audit and Compliance Service", "Oversight and investigation visibility.", ActionSet("audit_dashboard.view"), RoleSet("Admin", "ComplaintsReviewOfficer", "AuditOfficer")),
         new("audit-trail-viewer", "Audit Trail Viewer", "Audit and Oversight", "Review immutable event logs and user action trails.", "Audit and Compliance Service", "Immutable evidence for accountability.", ActionSet("audit_trail.view"), RoleSet("Admin", "BPPLiaison", "BPPReviewer", "ComplaintsReviewOfficer", "AuditOfficer")),
         new("compliance-reports", "Compliance Reports", "Audit and Oversight", "Generate compliance packs for management and regulators.", "Audit and Compliance Service", "Formal governance reporting.", ActionSet("compliance_reports.view"), RoleSet("Admin", "BPPLiaison", "BPPReviewer", "ComplaintsReviewOfficer", "AuditOfficer")),

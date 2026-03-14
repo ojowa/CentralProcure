@@ -14,6 +14,15 @@
   <ItemGroup>
     <Compile Remove="Modules\**\*.cs" />
     <Compile Remove="Shared\**\*.cs" />
+    <Content Remove="Modules\**" />
+    <Content Remove="Shared\**" />
+    <Content Remove="artifacts\**" />
+    <None Remove="Modules\**" />
+    <None Remove="Shared\**" />
+    <None Remove="artifacts\**" />
+    <EmbeddedResource Remove="Modules\**" />
+    <EmbeddedResource Remove="Shared\**" />
+    <EmbeddedResource Remove="artifacts\**" />
   </ItemGroup>
 
   <ItemGroup>

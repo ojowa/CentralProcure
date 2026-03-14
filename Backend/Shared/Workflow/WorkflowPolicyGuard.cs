@@ -178,7 +178,23 @@ SELECT
     min_amount,
     max_amount,
     notes
-FROM procurement_workflow.get_threshold_for_amount(@p_procurement_type, @p_amount);";
+FROM procurement_workflow.approval_thresholds
+WHERE status = 'Active'
+  AND min_amount <= @p_amount
+  AND (max_amount IS NULL OR max_amount >= @p_amount)
+  AND (
+        @p_procurement_type IS NULL
+        OR procurement_type IS NULL
+        OR lower(procurement_type) = lower(@p_procurement_type)
+      )
+ORDER BY
+    CASE
+        WHEN @p_procurement_type IS NOT NULL AND procurement_type IS NOT NULL AND lower(procurement_type) = lower(@p_procurement_type) THEN 0
+        WHEN procurement_type IS NULL THEN 1
+        ELSE 2
+    END,
+    min_amount DESC
+LIMIT 1;";
 
         await using var cmd = new NpgsqlCommand(sql, conn, tx);
         cmd.Parameters.AddWithValue("p_procurement_type", NpgsqlDbType.Varchar, (object?)NormalizeNullable(procurementType) ?? DBNull.Value);

@@ -96,11 +96,4 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHealthChecks("/health");
 
-app.MapGet("/api/_migration/status", () => Results.Ok(new
-{
-    service = "e-procurement-backend",
-    phase = "merged",
-    message = "Unified backend host online."
-}));
-
 app.Run();

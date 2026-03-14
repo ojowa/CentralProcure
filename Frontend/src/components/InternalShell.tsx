@@ -88,6 +88,12 @@ import {
   fetchVendorApprovalDetail,
   fetchVendorApprovals
 } from '../services/vendorApprovalService';
+import { AdministrativeReviewModulePage } from './AdministrativeReviewModulePage';
+import { AuditDashboardWorkspace } from './AuditDashboardWorkspace';
+import { AuditTrailWorkspace } from './AuditTrailWorkspace';
+import { ComplianceReportsWorkspace } from './ComplianceReportsWorkspace';
+import { PaymentTrackingModulePage } from './PaymentTrackingModulePage';
+import { PostAwardInspectionModulePage } from './PostAwardInspectionModulePage';
 import { WorkflowConfigurationModulePage } from './WorkflowConfigurationModulePage';
 
 interface HeaderProps {
@@ -101,6 +107,14 @@ const toTitle = (value: string) =>
     .split(' ')
     .map((part) => (part ? part[0].toUpperCase() + part.slice(1) : part))
     .join(' ');
+
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 
 const readField = (row: Record<string, unknown>, keys: string[]) => {
   for (const key of keys) {
@@ -1143,6 +1157,98 @@ const resolveStageKey = (detail?: RequisitionDetail | null): RoleKey => {
     }
   }
   return requisitionStageMap[detail.Status] ?? 'requisitioning_officer';
+};
+
+type RequisitionFormState = {
+  title: string;
+  department: string;
+  procurementType: string;
+  priority: string;
+  fundingSource: string;
+  appLineItemId: string;
+  budgetCode: string;
+  projectCode: string;
+  requiredBy: string;
+  deliveryLocation: string;
+  justification: string;
+  riskNotes: string;
+};
+
+type RequisitionLineItemInput = {
+  id: string;
+  description: string;
+  unit: string;
+  quantity: string;
+  unitCost: string;
+};
+
+const editableRequisitionStatuses = new Set(['Draft', 'Rejected']);
+
+const createEmptyRequisitionForm = (): RequisitionFormState => ({
+  title: '',
+  department: '',
+  procurementType: requisitionTypes[0],
+  priority: requisitionPriorities[0],
+  fundingSource: requisitionFundingSources[0],
+  appLineItemId: '',
+  budgetCode: '',
+  projectCode: '',
+  requiredBy: '',
+  deliveryLocation: '',
+  justification: '',
+  riskNotes: ''
+});
+
+const createLineItemId = () => `LI-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+
+const createEmptyLineItem = (): RequisitionLineItemInput => ({
+  id: createLineItemId(),
+  description: '',
+  unit: '',
+  quantity: '1',
+  unitCost: ''
+});
+
+const toDateInputValue = (value?: string | null) => {
+  if (!value) {
+    return '';
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return '';
+  }
+
+  return parsed.toISOString().slice(0, 10);
+};
+
+const mapDetailToFormState = (detail: RequisitionDetail): RequisitionFormState => ({
+  title: detail.Title ?? '',
+  department: detail.Department ?? '',
+  procurementType: detail.ProcurementType ?? requisitionTypes[0],
+  priority: detail.Priority ?? requisitionPriorities[0],
+  fundingSource: detail.FundingSource ?? requisitionFundingSources[0],
+  appLineItemId: detail.AppItemId ?? '',
+  budgetCode: detail.BudgetCode ?? '',
+  projectCode: detail.ProjectCode ?? '',
+  requiredBy: toDateInputValue(detail.RequiredBy),
+  deliveryLocation: detail.DeliveryLocation ?? '',
+  justification: detail.Justification ?? '',
+  riskNotes: detail.RiskNotes ?? ''
+});
+
+const mapDetailToLineItems = (detail: RequisitionDetail): RequisitionLineItemInput[] => {
+  if (!detail.LineItems.length) {
+    return [createEmptyLineItem()];
+  }
+
+  return detail.LineItems.map((item) => ({
+    id: item.ItemId || createLineItemId(),
+    description: item.Description ?? '',
+    unit: item.Unit ?? '',
+    quantity: item.Quantity ? String(item.Quantity) : '1',
+    unitCost: item.UnitCost ? String(item.UnitCost) : ''
+  }));
 };
 
 const RequisitionModulePage = ({
@@ -9210,7 +9316,11 @@ const ModulePage = ({ module, moduleData, moduleError, isLoading, token, role, u
   }
 
   if (module.id === 'inspection-acceptance') {
-    return <InspectionAcceptanceModulePage module={module} token={token} />;
+    return <PostAwardInspectionModulePage module={module} token={token} />;
+  }
+
+  if (module.id === 'payment-tracking') {
+    return <PaymentTrackingModulePage module={module} token={token} userEmail={userEmail} />;
   }
 
   if (module.id === 'evaluation-report') {
@@ -9249,16 +9359,20 @@ const ModulePage = ({ module, moduleData, moduleError, isLoading, token, role, u
     return <BppEscalationModulePage module={module} token={token} userEmail={userEmail} />;
   }
 
+  if (module.id === 'administrative-review') {
+    return <AdministrativeReviewModulePage module={module} token={token} role={role} userEmail={userEmail} />;
+  }
+
   if (module.id === 'audit-dashboard') {
-    return <AuditDashboardModulePage module={module} />;
+    return <AuditDashboardWorkspace module={module} token={token} />;
   }
 
   if (module.id === 'audit-trail-viewer') {
-    return <AuditTrailModulePage module={module} />;
+    return <AuditTrailWorkspace module={module} token={token} />;
   }
 
   if (module.id === 'compliance-reports') {
-    return <ComplianceReportsModulePage module={module} />;
+    return <ComplianceReportsWorkspace module={module} token={token} />;
   }
 
   if (module.id === 'vendor-registration-approval') {

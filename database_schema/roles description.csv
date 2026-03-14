@@ -1,0 +1,22 @@
+role_name,description,is_active
+Admin,System administrator,TRUE
+RequisitioningOfficer,Initiates and tracks requisitions,TRUE
+DepartmentHead,Approves departmental requisitions,TRUE
+ProcurementOfficer,"Maintains APP, creates and publishes tenders, manages bid opening",TRUE
+ProcurementManager,Oversees procurement operations and compliance,TRUE
+TechnicalEvaluator,Performs technical evaluation only,TRUE
+FinancialEvaluator,Performs financial evaluation only,TRUE
+TendersBoardMember,Reviews evaluation outcomes and approves/rejects,TRUE
+TendersBoardSecretary,Manages board records and submissions,TRUE
+AccountingOfficer,Final approval for high-value procurements,TRUE
+BPPLiaison,Manages BPP No-Objection submissions,TRUE
+ContractManager,Manages awards and contract administration,TRUE
+InspectionOfficer,Records inspection and acceptance,TRUE
+PaymentOfficer,Tracks payment status post-acceptance,TRUE
+AuditOfficer,Read-only audit and compliance access,TRUE
+SystemAdministrator,"User, role, and system configuration management",TRUE
+PlanningStatisticsOfficer,Reviews procurement planning assumptions and annual plan coherence,TRUE
+FinancialUnitOfficer,Validates budget readiness and financial control requirements,TRUE
+LegalReviewer,"Reviews legal compliance, bidding documents, and contract terms",TRUE
+BPPReviewer,Reviews no-objection submissions and regulatory escalations,TRUE
+ComplaintsReviewOfficer,Handles administrative review and bidder complaints,TRUE

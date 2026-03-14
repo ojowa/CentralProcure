@@ -12,7 +12,11 @@ public record AdministrativeReviewSummary(
     string? AssignedTo,
     DateTime FiledAt,
     string? ResolutionOutcome,
-    DateTime? ResolvedAt);
+    DateTime? ResolvedAt,
+    string? ParentRecordTitle,
+    string? ParentCurrentStageKey,
+    string? ParentCurrentStageTitle,
+    string? ParentCurrentStatus);
 
 public record AdministrativeReviewDetail(
     Guid ComplaintId,
@@ -36,7 +40,11 @@ public record AdministrativeReviewDetail(
     DateTime? ReviewedAt,
     DateTime? ResolvedAt,
     DateTime CreatedAt,
-    DateTime UpdatedAt);
+    DateTime UpdatedAt,
+    string? ParentRecordTitle,
+    string? ParentCurrentStageKey,
+    string? ParentCurrentStageTitle,
+    string? ParentCurrentStatus);
 
 public record AdministrativeReviewCreateRequest(
     string EntityType,

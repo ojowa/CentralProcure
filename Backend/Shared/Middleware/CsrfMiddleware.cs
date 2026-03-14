@@ -21,7 +21,7 @@ public sealed class CsrfMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
-        if (IsSafeMethod(context.Request.Method))
+        if (IsSafeMethod(context.Request.Method) || IsExemptPath(context.Request.Path))
         {
             await _next(context);
             return;
@@ -48,6 +48,19 @@ public sealed class CsrfMiddleware
     private static bool IsSafeMethod(string method)
     {
         return HttpMethods.IsGet(method) || HttpMethods.IsHead(method) || HttpMethods.IsOptions(method);
+    }
+
+    private static bool IsExemptPath(PathString path)
+    {
+        if (!path.HasValue)
+        {
+            return false;
+        }
+
+        return path.StartsWithSegments("/api/Auth/login", StringComparison.OrdinalIgnoreCase)
+               || path.StartsWithSegments("/api/Auth/internal/login", StringComparison.OrdinalIgnoreCase)
+               || path.StartsWithSegments("/api/Auth/register", StringComparison.OrdinalIgnoreCase)
+               || path.StartsWithSegments("/api/Auth/internal/register", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool TokensMatch(string cookieToken, string headerToken)

@@ -34,8 +34,9 @@ const resolveModuleUrl = (moduleId: string): string => {
     case 'final-approval':
       return `${serviceBaseUrls.workflow}/api/approvals`;
     case 'bpp-escalation':
-    case 'administrative-review':
       return `${serviceBaseUrls.workflow}/api/bpp-no-objections`;
+    case 'administrative-review':
+      return `${serviceBaseUrls.workflow}/api/administrative-reviews`;
 
     // Post-Award Service
     case 'contract-award':

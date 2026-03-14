@@ -151,6 +151,8 @@ SELECT
     entity_id,
     status,
     record_title,
+    summary,
+    archive_location,
     final_acceptance_completed,
     final_payment_completed,
     archived_by,
@@ -180,6 +182,173 @@ ORDER BY archived_at DESC NULLS LAST, created_at DESC;";
         {
             Logger.LogError(ex, "Error retrieving closeouts.");
             return Problem("Internal server error retrieving closeouts.");
+        }
+    }
+
+    [HttpGet("history")]
+    public async Task<IActionResult> GetHistory(
+        [FromQuery] string? entityType,
+        [FromQuery] Guid? entityId,
+        [FromQuery] string? actor,
+        [FromQuery] string? transitionSource,
+        [FromQuery] string? query,
+        [FromQuery] DateTime? dateFrom,
+        [FromQuery] DateTime? dateTo,
+        [FromQuery] int limit = 200,
+        CancellationToken ct = default)
+    {
+        if (limit <= 0 || limit > 500)
+        {
+            return BadRequest("Limit must be between 1 and 500.");
+        }
+
+        var connectionString = GetConnectionString();
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            return Problem("Connection string 'Primary' is not configured.", statusCode: 500);
+        }
+
+        const string sql = @"
+SELECT
+    h.history_id,
+    wi.entity_type,
+    wi.entity_id,
+    wi.record_title,
+    wi.current_stage_key,
+    current_sc.stage_title AS current_stage_title,
+    h.from_stage_key,
+    from_sc.stage_title AS from_stage_title,
+    h.to_stage_key,
+    to_sc.stage_title AS to_stage_title,
+    h.stage_status,
+    h.transition_source,
+    h.transition_reason,
+    h.actor,
+    h.created_at
+FROM procurement_workflow.workflow_instance_history h
+JOIN procurement_workflow.workflow_instances wi
+  ON wi.instance_id = h.instance_id
+LEFT JOIN procurement_workflow.workflow_stage_catalog current_sc
+  ON current_sc.stage_key = wi.current_stage_key
+LEFT JOIN procurement_workflow.workflow_stage_catalog from_sc
+  ON from_sc.stage_key = h.from_stage_key
+JOIN procurement_workflow.workflow_stage_catalog to_sc
+  ON to_sc.stage_key = h.to_stage_key
+WHERE (@p_entity_type IS NULL OR wi.entity_type = @p_entity_type)
+  AND (@p_entity_id IS NULL OR wi.entity_id = @p_entity_id)
+  AND (@p_actor IS NULL OR h.actor ILIKE '%' || @p_actor || '%')
+  AND (@p_transition_source IS NULL OR h.transition_source = @p_transition_source)
+  AND (
+      @p_query IS NULL
+      OR wi.record_title ILIKE '%' || @p_query || '%'
+      OR wi.entity_type ILIKE '%' || @p_query || '%'
+      OR CAST(wi.entity_id AS TEXT) ILIKE '%' || @p_query || '%'
+      OR COALESCE(h.transition_reason, '') ILIKE '%' || @p_query || '%'
+      OR COALESCE(h.actor, '') ILIKE '%' || @p_query || '%'
+      OR to_sc.stage_title ILIKE '%' || @p_query || '%'
+      OR COALESCE(from_sc.stage_title, '') ILIKE '%' || @p_query || '%'
+  )
+  AND (@p_date_from IS NULL OR h.created_at >= @p_date_from)
+  AND (@p_date_to IS NULL OR h.created_at <= @p_date_to)
+ORDER BY h.created_at DESC
+LIMIT @p_limit;";
+
+        try
+        {
+            await using var conn = new NpgsqlConnection(connectionString);
+            await conn.OpenAsync(ct);
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("p_entity_type", NpgsqlDbType.Varchar, (object?)NormalizeNullable(entityType)?.ToLowerInvariant() ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("p_entity_id", NpgsqlDbType.Uuid, (object?)entityId ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("p_actor", NpgsqlDbType.Varchar, (object?)NormalizeNullable(actor) ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("p_transition_source", NpgsqlDbType.Varchar, (object?)NormalizeNullable(transitionSource) ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("p_query", NpgsqlDbType.Text, (object?)NormalizeNullable(query) ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("p_date_from", NpgsqlDbType.Timestamp, (object?)dateFrom ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("p_date_to", NpgsqlDbType.Timestamp, (object?)dateTo ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("p_limit", NpgsqlDbType.Integer, limit);
+
+            var results = new List<AuditHistoryItem>();
+            await using var reader = await cmd.ExecuteReaderAsync(ct);
+            while (await reader.ReadAsync(ct))
+            {
+                results.Add(new AuditHistoryItem(
+                    reader.GetGuid(reader.GetOrdinal("history_id")),
+                    reader.GetString(reader.GetOrdinal("entity_type")),
+                    reader.GetGuid(reader.GetOrdinal("entity_id")),
+                    GetNullableString(reader, "record_title"),
+                    GetNullableString(reader, "current_stage_key"),
+                    GetNullableString(reader, "current_stage_title"),
+                    GetNullableString(reader, "from_stage_key"),
+                    GetNullableString(reader, "from_stage_title"),
+                    reader.GetString(reader.GetOrdinal("to_stage_key")),
+                    reader.GetString(reader.GetOrdinal("to_stage_title")),
+                    GetNullableString(reader, "stage_status"),
+                    reader.GetString(reader.GetOrdinal("transition_source")),
+                    GetNullableString(reader, "transition_reason"),
+                    GetNullableString(reader, "actor"),
+                    reader.GetDateTime(reader.GetOrdinal("created_at"))));
+            }
+
+            return Ok(results);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error retrieving audit history.");
+            return Problem("Internal server error retrieving audit history.");
+        }
+    }
+
+    [HttpGet("diagnostics/{entityType}/{entityId:guid}")]
+    public async Task<IActionResult> GetWorkflowDiagnostics(string entityType, Guid entityId, CancellationToken ct)
+    {
+        var connectionString = GetConnectionString();
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            return Problem("Connection string 'Primary' is not configured.", statusCode: 500);
+        }
+
+        var runtime = await _workflowRuntimeTracker.GetAsync(connectionString, entityType, entityId, ct);
+        if (runtime is null)
+        {
+            return NotFound();
+        }
+
+        var history = await _workflowRuntimeTracker.GetHistoryAsync(connectionString, entityType, entityId, ct);
+        var actionSnapshot = await _workflowActionGrantService.GetSnapshotAsync(connectionString, User, entityType, entityId, ct);
+
+        try
+        {
+            await using var conn = new NpgsqlConnection(connectionString);
+            await conn.OpenAsync(ct);
+            await using var tx = await conn.BeginTransactionAsync(ct);
+
+            var routeDecision = await _workflowPolicyGuard.ResolveRouteDecisionAsync(conn, tx, entityType, entityId, ct);
+            var checks = new List<AuditTransitionDiagnostic>();
+            foreach (var transition in runtime.NextTransitions)
+            {
+                var result = await _workflowPolicyGuard.EvaluateTransitionAsync(conn, tx, entityType, entityId, transition.ToStageKey, ct);
+                checks.Add(new AuditTransitionDiagnostic(
+                    transition.ToStageKey,
+                    transition.StageTitle,
+                    transition.TransitionCondition,
+                    result.IsAllowed,
+                    result.Message));
+            }
+
+            await tx.CommitAsync(ct);
+
+            return Ok(new AuditWorkflowDiagnosticsResponse(
+                runtime,
+                routeDecision,
+                actionSnapshot?.RoleKey,
+                actionSnapshot?.Actions ?? Array.Empty<WorkflowGrantedAction>(),
+                history.Take(20).ToArray(),
+                checks));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error retrieving workflow diagnostics for {EntityType} {EntityId}.", entityType, entityId);
+            return Problem("Internal server error retrieving workflow diagnostics.");
         }
     }
 
@@ -288,6 +457,8 @@ ORDER BY archived_at DESC NULLS LAST, created_at DESC;";
             reader.GetGuid(reader.GetOrdinal("entity_id")),
             reader.GetString(reader.GetOrdinal("status")),
             GetNullableString(reader, "record_title"),
+            reader.GetString(reader.GetOrdinal("summary")),
+            GetNullableString(reader, "archive_location"),
             reader.GetBoolean(reader.GetOrdinal("final_acceptance_completed")),
             reader.GetBoolean(reader.GetOrdinal("final_payment_completed")),
             GetNullableString(reader, "archived_by"),
@@ -361,6 +532,8 @@ RETURNING
     entity_id,
     status,
     record_title,
+    summary,
+    archive_location,
     final_acceptance_completed,
     final_payment_completed,
     archived_by,
