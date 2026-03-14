@@ -1,0 +1,5 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<SoftwareIdentity tagId="wix:bundle/9D3FC73F-1CF4-412C-A1C9-D2AD28CCBD62" name="Microsoft .NET Runtime - 6.0.36 (x64)" version="6.0.36.34214" versionScheme="multipartnumeric" xmlns="http://standards.iso.org/iso/19770/-2/2015/schema.xsd">
+  <Entity name="Microsoft Corporation" regid="microsoft.com" role="softwareCreator tagCreator" />
+  <Meta persistentId="wix:bundle.upgrade/B19A028F-5C89-7AF4-5102-0F8ED67CCACA" />
+</SoftwareIdentity>

@@ -1,13 +1,20 @@
-// Hardcoded data extracted from InternalShell.tsx for easier maintenance
+'use client';
 
-// import type { 
-//   BudgetLineItem, 
-//   BudgetAuditEvent, 
-//   ThresholdBand,
-//   RoleDefinition 
-// } from '../types/internal';
+import type { RoleDefinition, RoleKey } from '../types/internal';
 
-export interface BudgetLineItem {
+export type ThresholdBand = {
+  id: string;
+  label: string;
+  min: number;
+  max: number;
+  approvalLevel: string;
+  timeline: string;
+  requiresBpp: boolean;
+  escalation: string;
+  steps: string[];
+};
+
+export type BudgetLineItem = {
   id: string;
   title: string;
   planRef: string;
@@ -18,66 +25,172 @@ export interface BudgetLineItem {
   committed: number;
   reserved: number;
   procurementCategory: string;
-}
+};
 
-export interface BudgetAuditEvent {
-  id: string;
-  timestamp: string;
-  action: string;
-  status: string;
-  budgetCode: string;
-  appLineItemId: string;
-  amount: number;
-  actor: string;
-  reference: string;
-  notes: string;
-}
-
-export interface ThresholdBand {
-  id: string;
-  label: string;
-  min: number;
-  max: number;
-  approvalLevel: string;
-  timeline: string;
-  requiresBpp: boolean;
-  escalation: string;
-  steps: string[];
-}
-
-export interface RoleDefinition {
-  roleName: string;
-  description: string;
-  isActive: boolean;
-}
-
-export const budgetLineItems: BudgetLineItem[] = [
+export const roles: RoleDefinition[] = [
   {
-    id: 'APP-ICT-2026-01',
-    title: 'Data Center Power Upgrade',
-    planRef: 'APP-ICT-2026',
-    budgetCode: 'CAP-ICT-2026-04',
-    department: 'Infrastructure & ICT',
-    fiscalYear: 2026,
-    allocated: 150_000_000,
-    committed: 60_000_000,
-    reserved: 15_000_000,
-    procurementCategory: 'Infrastructure'
+    key: 'requisitioning_officer',
+    name: 'Requisitioning Officer',
+    description: 'Originates requisitions and confirms APP and budget alignment.'
   },
-  // ... (remaining items preserved exactly from original)
   {
-    id: 'APP-SEC-2026-05',
-    title: 'Security Screening Equipment',
-    planRef: 'APP-SEC-2026',
-    budgetCode: 'CAP-SEC-2026-01',
-    department: 'Security',
-    fiscalYear: 2026,
-    allocated: 260_000_000,
-    committed: 140_000_000,
-    reserved: 35_000_000,
-    procurementCategory: 'Security'
+    key: 'department_head',
+    name: 'Department Head',
+    description: 'Confirms business need, scope, and readiness.'
+  },
+  {
+    key: 'procurement_officer',
+    name: 'Procurement Officer',
+    description: 'Reviews method, market approach, and procedural compliance.'
+  },
+  {
+    key: 'evaluation_committee',
+    name: 'Evaluation Committee',
+    description: 'Runs technical and commercial evaluation steps.'
+  },
+  {
+    key: 'tenders_board',
+    name: 'Tenders Board',
+    description: 'Reviews submissions and issues board decisions.'
+  },
+  {
+    key: 'accounting_officer',
+    name: 'Accounting Officer',
+    description: 'Approves high-value awards and delegated controls.'
+  },
+  {
+    key: 'audit_oversight',
+    name: 'Audit Oversight',
+    description: 'Monitors compliance, traceability, and exceptions.'
+  },
+  {
+    key: 'ict_admin',
+    name: 'ICT Admin',
+    description: 'Maintains platform access, routing, and technical integrity.'
   }
 ];
+
+export const requisitionTypes = ['Goods', 'Works', 'Services'];
+export const requisitionPriorities = ['Normal', 'Urgent', 'Strategic'];
+export const requisitionFundingSources = [
+  'Capital Budget',
+  'Recurrent Budget',
+  'Donor Grant',
+  'Special Intervention'
+];
+export const requisitionStatuses = [
+  'Draft',
+  'Submitted',
+  'Under Review',
+  'Evaluation',
+  'Board Review',
+  'Approved',
+  'Rejected'
+];
+export const editableRequisitionStatuses = new Set(['Draft', 'Rejected']);
+
+export const requisitionSteps: Array<{
+  key: RoleKey;
+  title: string;
+  status: string;
+  detail: string;
+}> = [
+  {
+    key: 'requisitioning_officer',
+    title: 'Requisitioning Officer',
+    status: 'Draft',
+    detail: 'Capture need, scope, APP linkage, and budget basis.'
+  },
+  {
+    key: 'procurement_officer',
+    title: 'Procurement Unit',
+    status: 'Pending Review',
+    detail: 'Validate specifications, method, and threshold routing.'
+  },
+  {
+    key: 'evaluation_committee',
+    title: 'Evaluation Committee',
+    status: 'Queued',
+    detail: 'Prepare or execute evaluation based on workflow stage.'
+  },
+  {
+    key: 'tenders_board',
+    title: 'Tenders Board',
+    status: 'Awaiting',
+    detail: 'Review recommendation and approve board-level decisions.'
+  },
+  {
+    key: 'accounting_officer',
+    title: 'Accounting Officer',
+    status: 'Conditional',
+    detail: 'Confirm delegated or escalated approvals.'
+  },
+  {
+    key: 'audit_oversight',
+    title: 'Audit and Oversight',
+    status: 'Monitor',
+    detail: 'Observe traceability and compliance after movement.'
+  }
+];
+
+export const requisitionRoleGuidance: Partial<
+  Record<
+    RoleKey,
+    {
+      focus: string;
+      checks: string[];
+    }
+  >
+> = {
+  requisitioning_officer: {
+    focus: 'Frame the need clearly and anchor it to the approved plan and budget.',
+    checks: [
+      'Use a live APP line item.',
+      'Match the budget code to the selected APP item.',
+      'Capture delivery timing, justification, and risk notes.'
+    ]
+  },
+  procurement_officer: {
+    focus: 'Check completeness, routing basis, and procurement method readiness.',
+    checks: [
+      'Validate specifications and scope clarity.',
+      'Confirm threshold route and approval path.',
+      'Return incomplete drafts with actionable comments.'
+    ]
+  },
+  evaluation_committee: {
+    focus: 'Prepare evaluation criteria that are defensible and aligned to scope.',
+    checks: [
+      'Review scope and technical requirements.',
+      'Confirm evaluation inputs are complete.',
+      'Document committee decisions clearly.'
+    ]
+  },
+  tenders_board: {
+    focus: 'Exercise approval oversight on board-routed cases.',
+    checks: [
+      'Check completeness of supporting documentation.',
+      'Confirm recommendation basis.',
+      'Record decision outcomes clearly.'
+    ]
+  },
+  accounting_officer: {
+    focus: 'Confirm financial authority and escalated approval readiness.',
+    checks: [
+      'Validate budget basis and threshold route.',
+      'Confirm supporting approvals are complete.',
+      'Record final decision traceably.'
+    ]
+  },
+  audit_oversight: {
+    focus: 'Monitor compliance, traceability, and stage movement.',
+    checks: [
+      'Check audit trail completeness.',
+      'Review turnaround times and exceptions.',
+      'Flag non-compliant routing or actions.'
+    ]
+  }
+};
 
 export const thresholdBands: ThresholdBand[] = [
   {
@@ -85,13 +198,34 @@ export const thresholdBands: ThresholdBand[] = [
     label: 'Below NGN 50M',
     min: 0,
     max: 50_000_000,
-    approvalLevel: 'Departmental Tenders Committee',
+    approvalLevel: 'Departmental / Internal Threshold',
     timeline: '30 - 45 days',
     requiresBpp: false,
-    escalation: 'Escalate to Immigration Tender Board if above departmental delegation.',
-    steps: ['Evaluation Committee Review', 'Departmental Tenders Committee', 'Accounting Officer Sign-off']
+    escalation: 'Escalates to board route if amount exceeds delegated authority.',
+    steps: ['Requisition Review', 'Procurement Processing', 'Approval']
   },
-  // ... (all 4 bands preserved exactly)
+  {
+    id: '50m-100m',
+    label: 'NGN 50M - 100M',
+    min: 50_000_000,
+    max: 100_000_000,
+    approvalLevel: 'Immigration Tender Board',
+    timeline: '45 - 60 days',
+    requiresBpp: false,
+    escalation: 'Board review required before award publication.',
+    steps: ['Requisition Review', 'Evaluation', 'Tender Board Review']
+  },
+  {
+    id: '100m-250m',
+    label: 'NGN 100M - 250M',
+    min: 100_000_000,
+    max: 250_000_000,
+    approvalLevel: 'Accounting Officer + BPP',
+    timeline: '60 - 90 days',
+    requiresBpp: true,
+    escalation: 'No-objection review required before final approval.',
+    steps: ['Requisition Review', 'Evaluation', 'Board Review', 'BPP No Objection']
+  },
   {
     id: '250m-plus',
     label: 'NGN 250M+',
@@ -100,33 +234,7 @@ export const thresholdBands: ThresholdBand[] = [
     approvalLevel: 'Federal Executive Council',
     timeline: '90 - 120 days',
     requiresBpp: true,
-    escalation: 'BPP no-objection and FEC approval required.',
-    steps: ['Evaluation Committee Review', 'Immigration Tender Board Review', 'Accounting Officer Review', 'BPP No Objection', 'FEC Approval']
+    escalation: 'BPP no-objection and FEC escalation required.',
+    steps: ['Requisition Review', 'Evaluation', 'Board Review', 'BPP No Objection', 'FEC Approval']
   }
 ];
-
-export const budgetAuditEvents: BudgetAuditEvent[] = [
-  // ... (all 12 events preserved exactly from original)
-  {
-    id: 'AUD-2026-0297',
-    timestamp: '2026-02-04T15:48:00Z',
-    action: 'Override',
-    status: 'Rejected',
-    budgetCode: 'CAP-FIN-2026-02',
-    appLineItemId: 'APP-FIN-2026-03',
-    amount: 18_000_000,
-    actor: 'Accounting Officer',
-    reference: 'OVR-FIN-091',
-    notes: 'Override rejected due to insufficient release.'
-  }
-];
-
-export const fallbackRoles: RoleDefinition[] = fallbackRoles.map(r => ({
-  roleName: r.roleName as any,
-  description: r.description,
-  isActive: r.isActive
-})) as RoleDefinition[]; // Temporary type bridge
-  // ... (all 20 roles preserved)
-  { roleName: 'audit_oversight', description: 'Compliance and oversight reviews.', isActive: true }
-];
-
