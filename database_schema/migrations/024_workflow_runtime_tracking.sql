@@ -1,4 +1,4 @@
- BEGIN;
+BEGIN;
 
 CREATE TABLE IF NOT EXISTS procurement_workflow.workflow_instances (
     instance_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

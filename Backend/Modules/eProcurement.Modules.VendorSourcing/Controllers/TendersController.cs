@@ -13,7 +13,9 @@ public class TendersController : ControllerBase
 {
     private readonly IConfiguration _config;
     private readonly ILogger<TendersController> _logger;
+    private readonly WorkflowPolicyGuard _workflowPolicyGuard;
     private readonly WorkflowRuntimeTracker _workflowRuntimeTracker;
+    private readonly WorkflowActionGrantService _workflowActionGrantService;
 
     private static readonly string[] AllowedStatuses = { "Draft", "Published", "Closed", "Awarded", "Cancelled" };
     private static readonly HashSet<string> AllowedSortFields = new(StringComparer.OrdinalIgnoreCase)
@@ -35,11 +37,15 @@ public class TendersController : ControllerBase
     public TendersController(
         IConfiguration config,
         ILogger<TendersController> logger,
-        WorkflowRuntimeTracker workflowRuntimeTracker)
+        WorkflowPolicyGuard workflowPolicyGuard,
+        WorkflowRuntimeTracker workflowRuntimeTracker,
+        WorkflowActionGrantService workflowActionGrantService)
     {
         _config = config;
         _logger = logger;
+        _workflowPolicyGuard = workflowPolicyGuard;
         _workflowRuntimeTracker = workflowRuntimeTracker;
+        _workflowActionGrantService = workflowActionGrantService;
     }
 
     private string GetConnectionString() => _config.GetConnectionString("Primary") ?? string.Empty;
@@ -251,6 +257,37 @@ public class TendersController : ControllerBase
             await using var conn = new NpgsqlConnection(connectionString);
             await conn.OpenAsync(ct);
             await using var tx = await conn.BeginTransactionAsync(ct);
+
+            var hasAction = await _workflowActionGrantService.HasRequiredActionAsync(
+                conn,
+                tx,
+                User,
+                "tender",
+                tenderId,
+                "tender.manage",
+                ct);
+
+            if (!hasAction)
+            {
+                return Forbid();
+            }
+
+            if (!string.IsNullOrWhiteSpace(normalizedStatus))
+            {
+                var transition = await _workflowPolicyGuard.EvaluateTransitionAsync(
+                    conn,
+                    tx,
+                    "tender",
+                    tenderId,
+                    ResolveWorkflowStage(normalizedStatus),
+                    ct);
+
+                if (!transition.IsAllowed)
+                {
+                    return BadRequest(transition.Message);
+                }
+            }
+
             await using var cmd = new NpgsqlCommand("vendor_sourcing.update_tender_sp", conn, tx)
             {
                 CommandType = CommandType.StoredProcedure
@@ -318,6 +355,34 @@ public class TendersController : ControllerBase
             await using var conn = new NpgsqlConnection(connectionString);
             await conn.OpenAsync(ct);
             await using var tx = await conn.BeginTransactionAsync(ct);
+
+            var hasAction = await _workflowActionGrantService.HasRequiredActionAsync(
+                conn,
+                tx,
+                User,
+                "tender",
+                tenderId,
+                "tender.publish",
+                ct);
+
+            if (!hasAction)
+            {
+                return Forbid();
+            }
+
+            var transition = await _workflowPolicyGuard.EvaluateTransitionAsync(
+                conn,
+                tx,
+                "tender",
+                tenderId,
+                "solicitation",
+                ct);
+
+            if (!transition.IsAllowed)
+            {
+                return BadRequest(transition.Message);
+            }
+
             await using var cmd = new NpgsqlCommand("vendor_sourcing.publish_tender_sp", conn, tx)
             {
                 CommandType = CommandType.StoredProcedure
@@ -441,6 +506,13 @@ public class TendersController : ControllerBase
         string reason,
         CancellationToken ct)
     {
+        var threshold = await _workflowPolicyGuard.ResolveThresholdAsync(
+            conn,
+            tx,
+            tender.Category,
+            tender.Budget,
+            ct);
+
         await _workflowRuntimeTracker.SyncAsync(
             conn,
             tx,
@@ -453,8 +525,8 @@ public class TendersController : ControllerBase
                 null,
                 null,
                 tender.Budget,
-                null,
-                null,
+                tender.Category,
+                threshold?.ThresholdId,
                 reason,
                 null),
             ct);

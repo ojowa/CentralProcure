@@ -22,7 +22,7 @@ namespace eProcurement.Modules.Identity.DTOs
     public record CreateRoleRequest(string RoleName, string? Description);
     public record UpdateInternalUserRoleRequest(Guid InternalUserId, string Role);
 
-    public record AuthResponse(string Token, string Email, string Status);
+    public record AuthResponse(string Token, string Email, string Status, string? Role = null);
 
     public record VendorRegistrationResult(Guid VendorId, string CompanyName, string Email);
 

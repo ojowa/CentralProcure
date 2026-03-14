@@ -13,7 +13,9 @@ public class ContractsController : ControllerBase
 {
     private readonly IConfiguration _config;
     private readonly ILogger<ContractsController> _logger;
+    private readonly WorkflowPolicyGuard _workflowPolicyGuard;
     private readonly WorkflowRuntimeTracker _workflowRuntimeTracker;
+    private readonly WorkflowActionGrantService _workflowActionGrantService;
     private static readonly string[] AllowedContractStatuses = { "Active", "On Hold", "Completed", "Terminated" };
     private const int MaxMilestoneTitleLength = 180;
     private const int MaxContractManagerLength = 150;
@@ -22,11 +24,15 @@ public class ContractsController : ControllerBase
     public ContractsController(
         IConfiguration config,
         ILogger<ContractsController> logger,
-        WorkflowRuntimeTracker workflowRuntimeTracker)
+        WorkflowPolicyGuard workflowPolicyGuard,
+        WorkflowRuntimeTracker workflowRuntimeTracker,
+        WorkflowActionGrantService workflowActionGrantService)
     {
         _config = config;
         _logger = logger;
+        _workflowPolicyGuard = workflowPolicyGuard;
         _workflowRuntimeTracker = workflowRuntimeTracker;
+        _workflowActionGrantService = workflowActionGrantService;
     }
 
     [HttpGet]
@@ -165,6 +171,41 @@ public class ContractsController : ControllerBase
             await using var conn = new NpgsqlConnection(connectionString);
             await conn.OpenAsync(ct);
             await using var tx = await conn.BeginTransactionAsync(ct);
+
+            var targetStageKey = ResolveContractWorkflowStage(normalizedStatus);
+            var contractEntityId = await GetContractEntityIdAsync(conn, tx, contractId, ct);
+            if (!contractEntityId.HasValue)
+            {
+                return NotFound(new { message = "Contract not found." });
+            }
+
+            var hasAction = await _workflowActionGrantService.HasRequiredActionAsync(
+                conn,
+                tx,
+                User,
+                "contract",
+                contractEntityId.Value,
+                "contract_management.manage",
+                ct);
+
+            if (!hasAction)
+            {
+                return Forbid();
+            }
+
+            var transition = await _workflowPolicyGuard.EvaluateTransitionAsync(
+                conn,
+                tx,
+                "contract",
+                contractEntityId.Value,
+                targetStageKey,
+                ct);
+
+            if (!transition.IsAllowed)
+            {
+                return BadRequest(transition.Message);
+            }
+
             await using var cmd = new NpgsqlCommand("post_award.log_contract_milestone_sp", conn, tx)
             {
                 CommandType = CommandType.StoredProcedure
@@ -185,12 +226,6 @@ public class ContractsController : ControllerBase
             var results = await ExecuteRefcursorAsync(cmd, MapContract, ct);
             var result = results.FirstOrDefault();
             if (result is null)
-            {
-                return NotFound(new { message = "Contract not found." });
-            }
-
-            var contractEntityId = await GetContractEntityIdAsync(conn, tx, contractId, ct);
-            if (!contractEntityId.HasValue)
             {
                 return NotFound(new { message = "Contract not found." });
             }
@@ -301,6 +336,40 @@ public class ContractsController : ControllerBase
             await using var conn = new NpgsqlConnection(connectionString);
             await conn.OpenAsync(ct);
             await using var tx = await conn.BeginTransactionAsync(ct);
+
+            var awardEntityId = await GetContractAwardEntityIdAsync(conn, tx, awardId, ct);
+            if (!awardEntityId.HasValue)
+            {
+                return NotFound(new { message = "Award not found." });
+            }
+
+            var hasAction = await _workflowActionGrantService.HasRequiredActionAsync(
+                conn,
+                tx,
+                User,
+                "contract_award",
+                awardEntityId.Value,
+                "contract_award.publish",
+                ct);
+
+            if (!hasAction)
+            {
+                return Forbid();
+            }
+
+            var transition = await _workflowPolicyGuard.EvaluateTransitionAsync(
+                conn,
+                tx,
+                "contract_award",
+                awardEntityId.Value,
+                "award_and_publication",
+                ct);
+
+            if (!transition.IsAllowed)
+            {
+                return BadRequest(transition.Message);
+            }
+
             await using var cmd = new NpgsqlCommand("post_award.publish_contract_award_sp", conn, tx)
             {
                 CommandType = CommandType.StoredProcedure
@@ -315,12 +384,6 @@ public class ContractsController : ControllerBase
             var results = await ExecuteRefcursorAsync(cmd, MapContractAward, ct);
             var result = results.FirstOrDefault();
             if (result is null)
-            {
-                return NotFound(new { message = "Award not found." });
-            }
-
-            var awardEntityId = await GetContractAwardEntityIdAsync(conn, tx, awardId, ct);
-            if (!awardEntityId.HasValue)
             {
                 return NotFound(new { message = "Award not found." });
             }
@@ -443,7 +506,7 @@ public class ContractsController : ControllerBase
             new WorkflowRuntimeSyncRequest(
                 "contract",
                 contractEntityId,
-                "contract_execution",
+                ResolveContractWorkflowStage(contract.Status),
                 contract.Status,
                 contract.TenderTitle,
                 null,
@@ -455,6 +518,11 @@ public class ContractsController : ControllerBase
                 contract.ContractManager),
             ct);
     }
+
+    private static string ResolveContractWorkflowStage(string status)
+        => string.Equals(status, "Completed", StringComparison.OrdinalIgnoreCase)
+            ? "inspection_and_payment"
+            : "contract_execution";
 
     private static async Task<Guid?> GetContractEntityIdAsync(
         NpgsqlConnection conn,

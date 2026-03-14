@@ -4,6 +4,35 @@ namespace eProcurement.Modules.Identity.Services;
 
 internal static class InternalModuleCatalog
 {
+    private static readonly IReadOnlySet<string> WorkflowScopedActions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "procurement_plan.manage",
+        "requisition.create",
+        "requisition.view",
+        "requisition.track",
+        "planning_committee.view",
+        "approval.review",
+        "tender.manage",
+        "bid_opening.manage",
+        "bid_opening.view_detail",
+        "evaluation.actions",
+        "evaluation_report.view",
+        "approval.decide",
+        "high_value_tenders.review",
+        "final_approval.decide",
+        "bpp.create",
+        "bpp.review",
+        "contract_award.publish",
+        "contract_award.view",
+        "contract_management.manage",
+        "inspection.view",
+        "payment_tracking.view",
+        "audit_dashboard.view",
+        "audit_trail.view",
+        "compliance_reports.view",
+        "administrative_review.view"
+    };
+
     private static readonly IReadOnlySet<string> AllInternalRoles = RoleSet(
         "Admin",
         "SystemAdministrator",
@@ -76,12 +105,16 @@ internal static class InternalModuleCatalog
         new("system-monitoring", "System Monitoring and Health", "System Administration", "Track service health, integration failures, and alerts.", "Monitoring Service", "Operational oversight and resilience.", ActionSet("admin.monitor"), RoleSet("Admin", "SystemAdministrator"))
     ];
 
-    public static IReadOnlyList<InternalModuleResult> GetModulesForRole(string? role)
+    public static IReadOnlyList<InternalModuleResult> GetModulesForRole(string? role, IReadOnlyList<string>? additionalActions = null)
     {
         if (string.IsNullOrWhiteSpace(role))
         {
             return [];
         }
+
+        var additionalActionSet = additionalActions is null
+            ? null
+            : new HashSet<string>(additionalActions, StringComparer.OrdinalIgnoreCase);
 
         return Modules
             .Where(module => module.AllowedRoles.Contains(role))
@@ -91,6 +124,12 @@ internal static class InternalModuleCatalog
                 var first = group.First();
                 var actions = group
                     .SelectMany(module => module.Actions)
+                    .Where(action =>
+                        additionalActionSet is null ||
+                        additionalActionSet.Count == 0 ||
+                        !WorkflowScopedActions.Contains(action) ||
+                        additionalActionSet.Contains(action) ||
+                        action.StartsWith("admin.", StringComparison.OrdinalIgnoreCase))
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .OrderBy(action => action, StringComparer.OrdinalIgnoreCase)
                     .ToArray();

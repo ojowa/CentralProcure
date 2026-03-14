@@ -1,4 +1,3 @@
-import { generateSHA256Hash } from '../utils/auth';
 import {
   RoleKey,
   InternalLoginData,
@@ -105,15 +104,28 @@ const ROLE_ALIASES: Record<string, RoleKey> = {
   requisitioning_officer: 'requisitioning_officer',
   department_user: 'requisitioning_officer',
   department_head: 'department_head',
+  procurement_officer: 'procurement_officer',
   procurement_manager: 'procurement_manager',
   procurement_planning_committee: 'planning_statistics_officer',
+  planning_statistics_officer: 'planning_statistics_officer',
+  financial_unit_officer: 'financial_unit_officer',
+  legal_reviewer: 'legal_reviewer',
+  technical_evaluator: 'technical_evaluator',
+  financial_evaluator: 'financial_evaluator',
+  evaluation_committee: 'evaluation_committee',
   tenders_board_member: 'tenders_board',
+  tenders_board: 'tenders_board',
   tenders_board_secretary: 'tenders_board_secretary',
-  audit_officer: 'audit_oversight',
+  accounting_officer: 'accounting_officer',
   bpp_liaison: 'bpp_liaison',
   bppliaison: 'bpp_liaison',
   bpp_reviewer: 'bpp_reviewer',
-  bppreviewer: 'bpp_reviewer'
+  bppreviewer: 'bpp_reviewer',
+  complaints_review_officer: 'complaints_review_officer',
+  contract_manager: 'contract_manager',
+  inspection_officer: 'inspection_officer',
+  payment_officer: 'payment_officer',
+  audit_officer: 'audit_oversight'
 };
 
 const resolveRole = (claim: unknown): RoleKey | undefined => {
@@ -184,8 +196,10 @@ export const loginInternalUser = async (
 
   const token = payload?.Token as string | undefined;
   const jwtPayload = token ? parseJwtPayload(token) : null;
-  const role = resolveRole(jwtPayload?.role);
-  const internalUserId = typeof jwtPayload?.sub === 'string' ? jwtPayload.sub : undefined;
+  const role = resolveRole(payload?.Role) ?? resolveRole(jwtPayload?.role);
+  const internalUserId =
+    (typeof payload?.InternalUserId === 'string' ? payload.InternalUserId : undefined) ??
+    (typeof jwtPayload?.sub === 'string' ? jwtPayload.sub : undefined);
 
   return {
     Email: payload?.Email ?? credentials.Email,

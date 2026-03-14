@@ -13,6 +13,7 @@ public class ProcurementPlansController : ControllerBase
 {
     private readonly IConfiguration _config;
     private readonly ILogger<ProcurementPlansController> _logger;
+    private readonly WorkflowPolicyGuard _workflowPolicyGuard;
     private readonly WorkflowRuntimeTracker _workflowRuntimeTracker;
 
     private static readonly string[] AllowedStatuses = { "Draft", "Submitted", "Approved", "Rejected", "Cancelled" };
@@ -39,10 +40,12 @@ public class ProcurementPlansController : ControllerBase
     public ProcurementPlansController(
         IConfiguration config,
         ILogger<ProcurementPlansController> logger,
+        WorkflowPolicyGuard workflowPolicyGuard,
         WorkflowRuntimeTracker workflowRuntimeTracker)
     {
         _config = config;
         _logger = logger;
+        _workflowPolicyGuard = workflowPolicyGuard;
         _workflowRuntimeTracker = workflowRuntimeTracker;
     }
 
@@ -225,6 +228,23 @@ public class ProcurementPlansController : ControllerBase
             await using var conn = new NpgsqlConnection(connectionString);
             await conn.OpenAsync(ct);
             await using var tx = await conn.BeginTransactionAsync(ct);
+
+            if (!string.IsNullOrWhiteSpace(normalizedStatus))
+            {
+                var transition = await _workflowPolicyGuard.EvaluateTransitionAsync(
+                    conn,
+                    tx,
+                    "procurement_plan",
+                    planId,
+                    ResolveWorkflowStage(normalizedStatus),
+                    ct);
+
+                if (!transition.IsAllowed)
+                {
+                    return BadRequest(transition.Message);
+                }
+            }
+
             await using var cmd = new NpgsqlCommand("procurement_workflow.update_procurement_plan_sp", conn, tx)
             {
                 CommandType = CommandType.StoredProcedure

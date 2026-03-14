@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Linq;
 using Npgsql;
+using NpgsqlTypes;
 using eProcurement.Modules.ProcurementWorkflow.DTOs;
+using eProcurement.Shared.Workflow;
 
 namespace eProcurement.Modules.ProcurementWorkflow.Controllers;
 
@@ -11,11 +13,22 @@ public class EvaluationsController : ControllerBase
 {
     private readonly IConfiguration _config;
     private readonly ILogger<EvaluationsController> _logger;
+    private readonly WorkflowPolicyGuard _workflowPolicyGuard;
+    private readonly WorkflowRuntimeTracker _workflowRuntimeTracker;
+    private readonly WorkflowActionGrantService _workflowActionGrantService;
 
-    public EvaluationsController(IConfiguration config, ILogger<EvaluationsController> logger)
+    public EvaluationsController(
+        IConfiguration config,
+        ILogger<EvaluationsController> logger,
+        WorkflowPolicyGuard workflowPolicyGuard,
+        WorkflowRuntimeTracker workflowRuntimeTracker,
+        WorkflowActionGrantService workflowActionGrantService)
     {
         _config = config;
         _logger = logger;
+        _workflowPolicyGuard = workflowPolicyGuard;
+        _workflowRuntimeTracker = workflowRuntimeTracker;
+        _workflowActionGrantService = workflowActionGrantService;
     }
 
     [HttpGet("assigned-tenders/{assignmentKey?}")]
@@ -89,6 +102,11 @@ ORDER BY r.submitted_at DESC;";
     [HttpPost("actions")]
     public async Task<IActionResult> LogEvaluationAction([FromBody] EvaluationActionRequest request, CancellationToken ct)
     {
+        if (request is null)
+        {
+            return BadRequest(new { message = "Request body is required." });
+        }
+
         if (string.IsNullOrWhiteSpace(request.ActionType))
         {
             return BadRequest(new { message = "ActionType is required." });
@@ -177,18 +195,82 @@ RETURNING action_id;";
         {
             await using var conn = new NpgsqlConnection(connectionString);
             await conn.OpenAsync(ct);
-            await using var cmd = new NpgsqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("action_type", actionType);
-            cmd.Parameters.AddWithValue("report_code", (object?)request.ReportCode ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("tender_id", request.TenderId);
-            cmd.Parameters.AddWithValue("notes", (object?)request.Notes ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("reason", (object?)request.Reason ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("justification", (object?)request.Justification ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("recommendation", (object?)request.Recommendation ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("threshold_note", (object?)request.ThresholdNote ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("requested_by", (object?)request.RequestedBy ?? DBNull.Value);
+            await using var tx = await conn.BeginTransactionAsync(ct);
+
+            var workflowMovement = ResolveWorkflowMovement(actionType);
+            WorkflowInstanceState? currentTenderWorkflow = null;
+            if (workflowMovement is not null)
+            {
+                var hasAction = await _workflowActionGrantService.HasRequiredActionAsync(
+                    conn,
+                    tx,
+                    User,
+                    "tender",
+                    request.TenderId,
+                    "evaluation.actions",
+                    ct);
+
+                if (!hasAction)
+                {
+                    return Forbid();
+                }
+
+                currentTenderWorkflow = await GetWorkflowInstanceAsync(conn, tx, "tender", request.TenderId, ct);
+                if (currentTenderWorkflow is null)
+                {
+                    return NotFound(new { message = "Tender workflow record was not found." });
+                }
+
+                var transition = await _workflowPolicyGuard.EvaluateTransitionAsync(
+                    conn,
+                    tx,
+                    "tender",
+                    request.TenderId,
+                    workflowMovement.StageKey,
+                    ct);
+
+                if (!transition.IsAllowed)
+                {
+                    return BadRequest(new { message = transition.Message });
+                }
+            }
+
+            await using var cmd = new NpgsqlCommand(sql, conn, tx);
+            cmd.Parameters.AddWithValue("action_type", NpgsqlDbType.Varchar, actionType);
+            cmd.Parameters.AddWithValue("report_code", NpgsqlDbType.Varchar, (object?)request.ReportCode ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("tender_id", NpgsqlDbType.Uuid, request.TenderId);
+            cmd.Parameters.AddWithValue("notes", NpgsqlDbType.Text, (object?)request.Notes ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("reason", NpgsqlDbType.Text, (object?)request.Reason ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("justification", NpgsqlDbType.Text, (object?)request.Justification ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("recommendation", NpgsqlDbType.Varchar, (object?)request.Recommendation ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("threshold_note", NpgsqlDbType.Text, (object?)request.ThresholdNote ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("requested_by", NpgsqlDbType.Varchar, (object?)request.RequestedBy ?? DBNull.Value);
 
             var actionId = (Guid?)await cmd.ExecuteScalarAsync(ct);
+
+            if (workflowMovement is not null && currentTenderWorkflow is not null)
+            {
+                await _workflowRuntimeTracker.SyncAsync(
+                    conn,
+                    tx,
+                    new WorkflowRuntimeSyncRequest(
+                        currentTenderWorkflow.EntityType,
+                        currentTenderWorkflow.EntityId,
+                        workflowMovement.StageKey,
+                        currentTenderWorkflow.CurrentStatus,
+                        currentTenderWorkflow.RecordTitle,
+                        currentTenderWorkflow.ParentEntityType,
+                        currentTenderWorkflow.ParentEntityId,
+                        currentTenderWorkflow.Amount,
+                        currentTenderWorkflow.ProcurementType,
+                        currentTenderWorkflow.ThresholdId,
+                        workflowMovement.Reason,
+                        NormalizeNullable(request.RequestedBy),
+                        "evaluation_action"),
+                    ct);
+            }
+
+            await tx.CommitAsync(ct);
 
             return Ok(new { actionId, status = "logged" });
         }
@@ -198,4 +280,79 @@ RETURNING action_id;";
             return Problem("Internal server error logging evaluation action.");
         }
     }
+
+    private static WorkflowMovement? ResolveWorkflowMovement(string actionType)
+    {
+        return actionType switch
+        {
+            "StartEvaluation" => new WorkflowMovement("evaluation", "Evaluation started from bid opening."),
+            "EscalateToBoard" => new WorkflowMovement("tenders_board_review", "Evaluation escalated to Tenders Board review."),
+            "RecommendAward" => new WorkflowMovement("tenders_board_review", "Evaluation recommendation submitted for Tenders Board review."),
+            _ => null
+        };
+    }
+
+    private static async Task<WorkflowInstanceState?> GetWorkflowInstanceAsync(
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        string entityType,
+        Guid entityId,
+        CancellationToken ct)
+    {
+        const string sql = @"
+SELECT
+    entity_type,
+    entity_id,
+    current_stage_key,
+    current_status,
+    record_title,
+    parent_entity_type,
+    parent_entity_id,
+    amount,
+    procurement_type,
+    threshold_id
+FROM procurement_workflow.workflow_instances
+WHERE entity_type = @p_entity_type
+  AND entity_id = @p_entity_id
+FOR UPDATE;";
+
+        await using var cmd = new NpgsqlCommand(sql, conn, tx);
+        cmd.Parameters.AddWithValue("p_entity_type", NpgsqlDbType.Varchar, entityType);
+        cmd.Parameters.AddWithValue("p_entity_id", NpgsqlDbType.Uuid, entityId);
+
+        await using var reader = await cmd.ExecuteReaderAsync(ct);
+        if (!await reader.ReadAsync(ct))
+        {
+            return null;
+        }
+
+        return new WorkflowInstanceState(
+            reader.GetString(reader.GetOrdinal("entity_type")),
+            reader.GetGuid(reader.GetOrdinal("entity_id")),
+            reader.GetString(reader.GetOrdinal("current_stage_key")),
+            reader.IsDBNull(reader.GetOrdinal("current_status")) ? null : reader.GetString(reader.GetOrdinal("current_status")),
+            reader.IsDBNull(reader.GetOrdinal("record_title")) ? null : reader.GetString(reader.GetOrdinal("record_title")),
+            reader.IsDBNull(reader.GetOrdinal("parent_entity_type")) ? null : reader.GetString(reader.GetOrdinal("parent_entity_type")),
+            reader.IsDBNull(reader.GetOrdinal("parent_entity_id")) ? null : reader.GetGuid(reader.GetOrdinal("parent_entity_id")),
+            reader.IsDBNull(reader.GetOrdinal("amount")) ? null : reader.GetFieldValue<decimal>(reader.GetOrdinal("amount")),
+            reader.IsDBNull(reader.GetOrdinal("procurement_type")) ? null : reader.GetString(reader.GetOrdinal("procurement_type")),
+            reader.IsDBNull(reader.GetOrdinal("threshold_id")) ? null : reader.GetGuid(reader.GetOrdinal("threshold_id")));
+    }
+
+    private static string? NormalizeNullable(string? value)
+        => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private sealed record WorkflowMovement(string StageKey, string Reason);
+
+    private sealed record WorkflowInstanceState(
+        string EntityType,
+        Guid EntityId,
+        string CurrentStageKey,
+        string? CurrentStatus,
+        string? RecordTitle,
+        string? ParentEntityType,
+        Guid? ParentEntityId,
+        decimal? Amount,
+        string? ProcurementType,
+        Guid? ThresholdId);
 }

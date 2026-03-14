@@ -16,13 +16,33 @@ What already exists in the repo:
 - workflow configuration console for thresholds, stages, transitions, and role tasks
 - core operational modules for requisitions, tenders, bid opening, evaluations, BPP no-objection, contract award, contracts, inspections
 - workflow blueprint schema artifacts in [023_procurement_workflow_blueprint_tables.sql](C:\Users\OJOWA\Documents\Project 4\CentralProcure\database_schema\migrations\023_procurement_workflow_blueprint_tables.sql)
+- runtime workflow instance and history tables in [024_workflow_runtime_tracking.sql](C:\Users\OJOWA\Documents\Project 4\CentralProcure\database_schema\migrations\024_workflow_runtime_tracking.sql)
+- complaint and closeout schema artifacts in [025_administrative_reviews_and_closeouts.sql](C:\Users\OJOWA\Documents\Project 4\CentralProcure\database_schema\migrations\025_administrative_reviews_and_closeouts.sql)
+- workflow runtime API plus controller-level transition checks and runtime sync in procurement plan, requisition, tender, BPP no-objection, contract award, and contract milestone flows
+- administrative review endpoint support for complaint filing/resolution and governance audit/closeout endpoints
 
 What is still incomplete:
-- explicit runtime enforcement of workflow stage transitions across operational APIs
-- single source of truth linking live records to workflow stages
-- complaint branch and closeout path integrated into real record progression
+- explicit runtime enforcement of workflow stage transitions across every operational API
 - full backend-issued action gating across all internal modules
-- consistent bootstrap and verification that live databases carry all workflow blueprint artifacts
+- UI integration for complaint review, closeout, and audit views
+- consistent local/Render verification that live databases carry all workflow blueprint artifacts
+
+## Status Check (2026-03-14)
+
+Current implementation level by phase:
+
+| Phase | Status | Notes |
+| --- | --- | --- |
+| 0 | Partial | The codebase now exposes enough modules to build the matrix, but the matrix itself is not yet documented in this file. |
+| 1 | Implemented | Blueprint tables, runtime tracking, complaint/closeout migrations, and bootstrap ordering are in place. |
+| 2 | Implemented | Live workflow state is persisted through `workflow_instances` and `workflow_instance_history`. |
+| 3 | Implemented | Transition validation now covers procurement plan, requisition, tender, evaluation action, BPP no-objection, award publication, contract milestone, inspection update, complaint resolution, and closeout movement. |
+| 4 | Implemented | Threshold resolution now drives live route decisions through the shared workflow policy guard, and workflow routing can be queried from backend runtime state. |
+| 5 | Implemented | Backend-issued workflow actions are now derived from role-task mappings and used for internal module action issuance plus key workflow-moving API endpoints. |
+| 6 | Partial | Complaint schema and API are now present, and complaints can move parent records into and out of `administrative_review`. |
+| 7 | Partial | Award publication, contract execution, and closeout state movement exist, but full post-award verification and portal visibility remain incomplete. |
+| 8 | Partial | Runtime history and audit summary endpoints exist, but richer diagnostics and admin history views are still pending. |
+| 9 | Missing | There is still no repeatable end-to-end verification pack covering all branches. |
 
 ## Rules
 
@@ -228,10 +248,6 @@ Recommended implementation sequence:
 
 ## Immediate Next Step
 
-Start with Phase 0 and produce the state coverage matrix:
-- `blueprint state`
-- `existing table(s)`
-- `existing backend endpoint(s)`
-- `existing frontend module/page`
-- `runtime enforcement status`
-- `missing work`
+Continue with the remaining auditability and verification work:
+- add the missing state coverage matrix for auditability of `state -> table -> endpoint -> UI -> enforcement`
+- add end-to-end verification coverage for threshold routing, complaints, and closeout

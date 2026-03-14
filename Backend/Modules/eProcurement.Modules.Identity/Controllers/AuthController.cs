@@ -5,6 +5,7 @@ using System.Text;
 using eProcurement.Shared.Configurations;
 using eProcurement.Modules.Identity.DTOs;
 using eProcurement.Modules.Identity.Services;
+using eProcurement.Shared.Workflow;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
@@ -18,9 +19,15 @@ namespace eProcurement.Modules.Identity.Controllers
     [Route("api/[controller]")]
     public class AuthController : BaseModuleController
     {
-        public AuthController(IConfiguration config, ILogger<AuthController> logger)
+        private readonly WorkflowActionGrantService _workflowActionGrantService;
+
+        public AuthController(
+            IConfiguration config,
+            ILogger<AuthController> logger,
+            WorkflowActionGrantService workflowActionGrantService)
             : base(config, logger)
         {
+            _workflowActionGrantService = workflowActionGrantService;
         }
 
         [HttpPost("login")]
@@ -107,14 +114,9 @@ namespace eProcurement.Modules.Identity.Controllers
                 await using var conn = new NpgsqlConnection(connectionString);
                 await conn.OpenAsync(ct);
 
-                string? storedPasswordHash = null;
-
-                // Step 1: Fetch the stored hash for BCrypt verification
-                await using (var cmdFetchHash = new NpgsqlCommand("SELECT password_hash FROM identity.internal_users WHERE email = @email", conn))
-                {
-                    cmdFetchHash.Parameters.AddWithValue("email", request.Email);
-                    storedPasswordHash = (string?)await cmdFetchHash.ExecuteScalarAsync(ct);
-                }
+                var credentials = await ResolveInternalUserCredentialsAsync(conn, request.Email, ct);
+                var storedPasswordHash = credentials.PasswordHash;
+                var resolvedEmail = credentials.Email;
 
                 // Assume invalid credentials if user not found or password hash is empty
                 var isPasswordValid = IsValidBcryptPassword(request.Password, storedPasswordHash, request.Email);
@@ -126,7 +128,7 @@ namespace eProcurement.Modules.Identity.Controllers
                     CommandType = CommandType.StoredProcedure
                 };
 
-                cmd.Parameters.AddWithValue("p_email", NpgsqlDbType.Varchar, request.Email);
+                cmd.Parameters.AddWithValue("p_email", NpgsqlDbType.Varchar, resolvedEmail ?? request.Email);
                 // Pass the actual stored hash if password is valid, otherwise pass a dummy value to trigger failure logic in SP
                 cmd.Parameters.AddWithValue("p_password_hash", NpgsqlDbType.Varchar, isPasswordValid ? storedPasswordHash! : "INVALID_HASH_TO_TRIGGER_SP_FAILURE");
                 cmd.Parameters.Add(new NpgsqlParameter("p_result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.Output });
@@ -155,8 +157,8 @@ namespace eProcurement.Modules.Identity.Controllers
                 }
 
                 var role = result.Role;
-                var token = GenerateToken(result.InternalUserId.Value, result.Email ?? request.Email, role);
-                return Ok(new AuthResponse(token, result.Email ?? request.Email, "Success"));
+                var token = GenerateToken(result.InternalUserId.Value, result.Email ?? resolvedEmail ?? request.Email, role);
+                return Ok(new AuthResponse(token, result.Email ?? resolvedEmail ?? request.Email, result.Status ?? "Success", role));
             }
             catch (Exception ex)
             {
@@ -257,7 +259,7 @@ namespace eProcurement.Modules.Identity.Controllers
                 if (result is null) return Problem("Failed to register internal user.");
 
                 var token = GenerateToken(result.InternalUserId, result.Email, result.Role);
-                return Ok(new AuthResponse(token, result.Email, "Success"));
+                return Ok(new AuthResponse(token, result.Email, "Success", result.Role));
             }
             catch (Exception ex)
             {
@@ -337,7 +339,7 @@ namespace eProcurement.Modules.Identity.Controllers
 
         [Authorize]
         [HttpGet("internal/modules")]
-        public IActionResult GetInternalModules()
+        public async Task<IActionResult> GetInternalModules(CancellationToken ct)
         {
             var role = User.FindFirstValue("role") ?? User.FindFirstValue(ClaimTypes.Role);
             if (string.IsNullOrWhiteSpace(role))
@@ -345,7 +347,12 @@ namespace eProcurement.Modules.Identity.Controllers
                 return Unauthorized(new { message = "Authenticated role is missing." });
             }
 
-            return Ok(InternalModuleCatalog.GetModulesForRole(role));
+            var connectionString = GetConnectionString();
+            var workflowActions = string.IsNullOrWhiteSpace(connectionString)
+                ? Array.Empty<string>()
+                : await _workflowActionGrantService.GetRoleModuleActionsAsync(connectionString, role, ct);
+
+            return Ok(InternalModuleCatalog.GetModulesForRole(role, workflowActions));
         }
 
         [HttpPut("internal/users/role")]
@@ -402,6 +409,35 @@ namespace eProcurement.Modules.Identity.Controllers
                 Logger.LogError(ex, "BCrypt verification error for {Email}", email);
                 return false;
             }
+        }
+
+        private static async Task<(string? Email, string? PasswordHash)> ResolveInternalUserCredentialsAsync(
+            NpgsqlConnection conn,
+            string identifier,
+            CancellationToken ct)
+        {
+            await using var cmd = new NpgsqlCommand(
+                """
+                SELECT iu.email, iu.password_hash
+                FROM identity.internal_users iu
+                WHERE lower(iu.email) = lower(@identifier)
+                   OR lower(split_part(iu.email, '@', 1)) = lower(@identifier)
+                ORDER BY CASE WHEN lower(iu.email) = lower(@identifier) THEN 0 ELSE 1 END
+                LIMIT 1
+                """,
+                conn);
+
+            cmd.Parameters.AddWithValue("identifier", NpgsqlDbType.Varchar, identifier.Trim());
+
+            await using var reader = await cmd.ExecuteReaderAsync(ct);
+            if (!await reader.ReadAsync(ct))
+            {
+                return (null, null);
+            }
+
+            return (
+                GetNullableString(reader, "email"),
+                GetNullableString(reader, "password_hash"));
         }
 
         private static string ResolveVendorLoginFailureMessage(string? errorMessage, string? vendorStatus)

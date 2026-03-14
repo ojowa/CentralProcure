@@ -12,18 +12,24 @@ public class BppNoObjectionsController : ControllerBase
 {
     private readonly IConfiguration _config;
     private readonly ILogger<BppNoObjectionsController> _logger;
+    private readonly WorkflowPolicyGuard _workflowPolicyGuard;
     private readonly WorkflowRuntimeTracker _workflowRuntimeTracker;
+    private readonly WorkflowActionGrantService _workflowActionGrantService;
 
     private static readonly string[] AllowedStatuses = { "Draft", "Submitted", "In Review", "Approved", "Rejected", "Cancelled" };
 
     public BppNoObjectionsController(
         IConfiguration config,
         ILogger<BppNoObjectionsController> logger,
-        WorkflowRuntimeTracker workflowRuntimeTracker)
+        WorkflowPolicyGuard workflowPolicyGuard,
+        WorkflowRuntimeTracker workflowRuntimeTracker,
+        WorkflowActionGrantService workflowActionGrantService)
     {
         _config = config;
         _logger = logger;
+        _workflowPolicyGuard = workflowPolicyGuard;
         _workflowRuntimeTracker = workflowRuntimeTracker;
+        _workflowActionGrantService = workflowActionGrantService;
     }
 
     private string GetConnectionString() => _config.GetConnectionString("Primary") ?? string.Empty;
@@ -187,6 +193,23 @@ RETURNING no_objection_id, requisition_id, tender_id, amount, procurement_type, 
             await using var conn = new NpgsqlConnection(connectionString);
             await conn.OpenAsync(ct);
             await using var tx = await conn.BeginTransactionAsync(ct);
+
+            var parentEntityType = request.TenderId.HasValue ? "tender" : "requisition";
+            var parentEntityId = request.TenderId ?? request.RequisitionId!.Value;
+            var hasAction = await _workflowActionGrantService.HasRequiredActionAsync(
+                conn,
+                tx,
+                User,
+                parentEntityType,
+                parentEntityId,
+                "bpp.create",
+                ct);
+
+            if (!hasAction)
+            {
+                return Forbid();
+            }
+
             await using var cmd = new NpgsqlCommand(sql, conn, tx);
             cmd.Parameters.AddWithValue("p_requisition_id", NpgsqlDbType.Uuid, (object?)request.RequisitionId ?? DBNull.Value);
             cmd.Parameters.AddWithValue("p_tender_id", NpgsqlDbType.Uuid, (object?)request.TenderId ?? DBNull.Value);
@@ -245,6 +268,30 @@ RETURNING no_objection_id, requisition_id, tender_id, amount, procurement_type, 
             await using var conn = new NpgsqlConnection(connectionString);
             await conn.OpenAsync(ct);
             await using var tx = await conn.BeginTransactionAsync(ct);
+
+            if (await GetNoObjectionRuntimeParentAsync(conn, tx, noObjectionId, ct) is null)
+            {
+                return NotFound();
+            }
+
+            var requiredAction = request.DecisionBy is not null || normalizedStatus is "Approved" or "Rejected"
+                ? "bpp.decide"
+                : "bpp.review";
+
+            var hasAction = await _workflowActionGrantService.HasRequiredActionAsync(
+                conn,
+                tx,
+                User,
+                "bpp_no_objection",
+                noObjectionId,
+                requiredAction,
+                ct);
+
+            if (!hasAction)
+            {
+                return Forbid();
+            }
+
             await using var cmd = new NpgsqlCommand(sql, conn, tx);
             cmd.Parameters.AddWithValue("p_no_objection_id", NpgsqlDbType.Uuid, noObjectionId);
             cmd.Parameters.AddWithValue("p_status", NpgsqlDbType.Varchar, (object?)normalizedStatus ?? DBNull.Value);
@@ -301,6 +348,12 @@ RETURNING no_objection_id, requisition_id, tender_id, amount, procurement_type, 
     {
         var parentEntityType = record.TenderId.HasValue ? "tender" : record.RequisitionId.HasValue ? "requisition" : null;
         var parentEntityId = record.TenderId ?? record.RequisitionId;
+        var threshold = await _workflowPolicyGuard.ResolveThresholdAsync(
+            conn,
+            tx,
+            record.ProcurementType,
+            record.Amount,
+            ct);
 
         await _workflowRuntimeTracker.SyncAsync(
             conn,
@@ -315,7 +368,7 @@ RETURNING no_objection_id, requisition_id, tender_id, amount, procurement_type, 
                 parentEntityId,
                 record.Amount,
                 record.ProcurementType,
-                null,
+                threshold?.ThresholdId,
                 reason,
                 record.DecisionBy ?? record.RequestedBy),
             ct);
@@ -373,5 +426,37 @@ RETURNING no_objection_id, requisition_id, tender_id, amount, procurement_type, 
         }
 
         return null;
+    }
+
+    private static async Task<(string ParentEntityType, Guid ParentEntityId)?> GetNoObjectionRuntimeParentAsync(
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        Guid noObjectionId,
+        CancellationToken ct)
+    {
+        const string sql = @"
+SELECT
+    CASE
+        WHEN tender_id IS NOT NULL THEN 'tender'
+        WHEN requisition_id IS NOT NULL THEN 'requisition'
+        ELSE NULL
+    END AS parent_entity_type,
+    COALESCE(tender_id, requisition_id) AS parent_entity_id
+FROM procurement_workflow.bpp_no_objections
+WHERE no_objection_id = @p_no_objection_id;";
+
+        await using var cmd = new NpgsqlCommand(sql, conn, tx);
+        cmd.Parameters.AddWithValue("p_no_objection_id", NpgsqlDbType.Uuid, noObjectionId);
+        await using var reader = await cmd.ExecuteReaderAsync(ct);
+        if (!await reader.ReadAsync(ct) ||
+            reader.IsDBNull(reader.GetOrdinal("parent_entity_type")) ||
+            reader.IsDBNull(reader.GetOrdinal("parent_entity_id")))
+        {
+            return null;
+        }
+
+        return (
+            reader.GetString(reader.GetOrdinal("parent_entity_type")),
+            reader.GetGuid(reader.GetOrdinal("parent_entity_id")));
     }
 }

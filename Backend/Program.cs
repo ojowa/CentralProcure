@@ -42,7 +42,9 @@ mvcBuilder.AddApplicationPart(typeof(GovernanceModule).Assembly);
 
 builder.Services.AddHealthChecks();
 builder.Services.AddCors();
+builder.Services.AddScoped<WorkflowPolicyGuard>();
 builder.Services.AddScoped<WorkflowRuntimeTracker>();
+builder.Services.AddScoped<WorkflowActionGrantService>();
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;

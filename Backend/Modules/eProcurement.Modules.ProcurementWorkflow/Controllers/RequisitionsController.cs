@@ -14,6 +14,7 @@ public class RequisitionsController : ControllerBase
 {
     private readonly IConfiguration _config;
     private readonly ILogger<RequisitionsController> _logger;
+    private readonly WorkflowPolicyGuard _workflowPolicyGuard;
     private readonly WorkflowRuntimeTracker _workflowRuntimeTracker;
 
     private static readonly string[] AllowedStatuses =
@@ -58,10 +59,12 @@ public class RequisitionsController : ControllerBase
     public RequisitionsController(
         IConfiguration config,
         ILogger<RequisitionsController> logger,
+        WorkflowPolicyGuard workflowPolicyGuard,
         WorkflowRuntimeTracker workflowRuntimeTracker)
     {
         _config = config;
         _logger = logger;
+        _workflowPolicyGuard = workflowPolicyGuard;
         _workflowRuntimeTracker = workflowRuntimeTracker;
     }
 
@@ -312,6 +315,22 @@ public class RequisitionsController : ControllerBase
             await conn.OpenAsync(ct);
             await using var tx = await conn.BeginTransactionAsync(ct);
 
+            if (!string.IsNullOrWhiteSpace(normalizedStatus))
+            {
+                var transition = await _workflowPolicyGuard.EvaluateTransitionAsync(
+                    conn,
+                    tx,
+                    "requisition",
+                    requisitionId,
+                    ResolveWorkflowStage(normalizedStatus),
+                    ct);
+
+                if (!transition.IsAllowed)
+                {
+                    return BadRequest(transition.Message);
+                }
+            }
+
             await using var cmd = new NpgsqlCommand("procurement_workflow.update_requisition_sp", conn, tx)
             {
                 CommandType = CommandType.StoredProcedure
@@ -502,6 +521,13 @@ public class RequisitionsController : ControllerBase
         string reason,
         CancellationToken ct)
     {
+        var threshold = await _workflowPolicyGuard.ResolveThresholdAsync(
+            conn,
+            tx,
+            requisition.ProcurementType,
+            requisition.TotalEstimate,
+            ct);
+
         await _workflowRuntimeTracker.SyncAsync(
             conn,
             tx,
@@ -515,7 +541,7 @@ public class RequisitionsController : ControllerBase
                 requisition.AppItemId,
                 requisition.TotalEstimate,
                 requisition.ProcurementType,
-                null,
+                threshold?.ThresholdId,
                 reason,
                 null),
             ct);

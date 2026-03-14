@@ -30,11 +30,55 @@ const normalizeStoredRole = (role: string | null): RoleKey | null => {
     return null;
   }
 
-  if (role === 'department_user') {
-    return 'requisitioning_officer';
+  switch (role) {
+    case 'department_user':
+    case 'RequisitioningOfficer':
+      return 'requisitioning_officer';
+    case 'DepartmentHead':
+      return 'department_head';
+    case 'ProcurementOfficer':
+      return 'procurement_officer';
+    case 'ProcurementManager':
+      return 'procurement_manager';
+    case 'PlanningStatisticsOfficer':
+      return 'planning_statistics_officer';
+    case 'FinancialUnitOfficer':
+      return 'financial_unit_officer';
+    case 'LegalReviewer':
+      return 'legal_reviewer';
+    case 'TechnicalEvaluator':
+      return 'technical_evaluator';
+    case 'FinancialEvaluator':
+      return 'financial_evaluator';
+    case 'EvaluationCommittee':
+      return 'evaluation_committee';
+    case 'TendersBoardMember':
+      return 'tenders_board';
+    case 'TendersBoardSecretary':
+      return 'tenders_board_secretary';
+    case 'AccountingOfficer':
+      return 'accounting_officer';
+    case 'BPPLiaison':
+      return 'bpp_liaison';
+    case 'BPPReviewer':
+      return 'bpp_reviewer';
+    case 'ComplaintsReviewOfficer':
+      return 'complaints_review_officer';
+    case 'ContractManager':
+      return 'contract_manager';
+    case 'InspectionOfficer':
+      return 'inspection_officer';
+    case 'PaymentOfficer':
+      return 'payment_officer';
+    case 'AuditOfficer':
+      return 'audit_oversight';
+    case 'SystemAdministrator':
+      return 'ict_admin';
+    case 'Admin':
+      return 'admin';
+    default:
+      return role as RoleKey;
   }
-
-  return role as RoleKey;
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {

@@ -30,6 +30,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 \ir migrations/022_harden_bid_opening_session_state.sql
 \ir migrations/023_procurement_workflow_blueprint_tables.sql
 \ir migrations/024_workflow_runtime_tracking.sql
+\ir migrations/025_administrative_reviews_and_closeouts.sql
 
 \echo Applying stored procedures and functions...
 \ir stored_procedures/BudgetLedger_Functions.sql
