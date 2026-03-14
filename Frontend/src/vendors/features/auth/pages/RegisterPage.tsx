@@ -7,6 +7,33 @@ import { useRouter } from 'next/navigation';
 import { VendorRegistrationData } from '../../vendor/types/vendor';
 import { checkVendorAvailability, registerVendor } from '../../vendor/services/vendorService';
 
+const passwordRequirements = [
+    'At least 8 characters',
+    'One uppercase and one lowercase letter',
+    'At least one number',
+    'At least one special character'
+];
+
+const validateVendorPassword = (password: string) => {
+    if (password.length < 8) {
+        return 'Password must be at least 8 characters.';
+    }
+
+    if (!/[A-Z]/.test(password) || !/[a-z]/.test(password)) {
+        return 'Password must include both uppercase and lowercase letters.';
+    }
+
+    if (!/[0-9]/.test(password)) {
+        return 'Password must include at least one number.';
+    }
+
+    if (!/[^a-zA-Z0-9]/.test(password)) {
+        return 'Password must include at least one special character.';
+    }
+
+    return true;
+};
+
 const RegisterPage: React.FC = () => {
     const router = useRouter();
     const [serverError, setServerError] = useState<string | null>(null);
@@ -200,14 +227,25 @@ const RegisterPage: React.FC = () => {
 
                     <div className="mb-4">
                         <label htmlFor="password" className="block text-gray-700 text-sm font-bold mb-2">Password</label>
-                        <input id="password" type="password" {...register('Password', { required: 'Password is required' })}
+                        <input id="password" type="password" {...register('Password', {
+                            required: 'Password is required',
+                            validate: validateVendorPassword
+                        })}
                                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" />
                         {errors.Password && <p className="text-red-500 text-xs italic">{String(errors.Password.message)}</p>}
+                        {!errors.Password ? (
+                            <p className="text-xs text-slate-500 mt-2">
+                                Password must include: {passwordRequirements.join(', ')}.
+                            </p>
+                        ) : null}
                     </div>
 
                     <div className="mb-6">
                         <label htmlFor="confirmPassword" className="block text-gray-700 text-sm font-bold mb-2">Confirm Password</label>
-                        <input id="confirmPassword" type="password" {...register('ConfirmPassword', { required: 'Please confirm your password' })}
+                        <input id="confirmPassword" type="password" {...register('ConfirmPassword', {
+                            required: 'Please confirm your password',
+                            validate: (value, values) => value === values.Password || 'Passwords do not match.'
+                        })}
                                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" />
                         {errors.ConfirmPassword && <p className="text-red-500 text-xs italic">{String(errors.ConfirmPassword.message)}</p>}
                     </div>

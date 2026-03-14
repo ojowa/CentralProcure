@@ -141,13 +141,21 @@ export const registerVendor = async (data: VendorRegistrationData): Promise<Vend
         return response.data;
     } catch (error: any) {
         console.error("Vendor registration failed:", error);
-        if (error.response?.data) {
-            // Backend returns VendorRegistrationResult: Guid VendorId, string CompanyName, string Email
-            if (typeof error.response.data === 'string') {
-                 throw new Error(error.response.data);
+        const responseData = error.response?.data;
+
+        if (responseData) {
+            if (typeof responseData === 'string') {
+                throw new Error(responseData);
             }
-            return error.response.data;
+
+            throw new Error(
+                responseData.ErrorMessage ||
+                responseData.message ||
+                responseData.detail ||
+                'Registration failed. Please review the form and try again.'
+            );
         }
+
         throw new Error("Registration failed. Please try again later.");
     }
 };

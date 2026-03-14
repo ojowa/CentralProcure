@@ -187,7 +187,7 @@ export default function LoginPage() {
                   <span>Remember Me</span>
                 </label>
 
-                <Link className="nis-link" href="/forgot-password">Forgot Password?</Link>
+                <Link className="nis-link" href="/internal/forgot-password">Forgot Password?</Link>
               </div>
 
               {errorMessage ? <div className="nis-alert">{errorMessage}</div> : null}

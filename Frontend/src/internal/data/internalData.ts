@@ -188,6 +188,14 @@ export const requisitionRoleGuidance: Partial<
       'Capture delivery timing, justification, and risk notes.'
     ]
   },
+  department_head: {
+    focus: 'Confirm the departmental need is complete, defensible, and ready to enter procurement control.',
+    checks: [
+      'Validate that scope, timing, and justification are clear enough for procurement processing.',
+      'Confirm APP linkage and budget coding before endorsing the request.',
+      'Review live routing implications and record a traceable departmental note.'
+    ]
+  },
   procurement_officer: {
     focus: 'Check completeness, routing basis, and procurement method readiness.',
     checks: [

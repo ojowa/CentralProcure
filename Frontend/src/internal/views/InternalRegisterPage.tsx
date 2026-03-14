@@ -12,6 +12,26 @@ const formatRoleLabel = (roleName: string): string =>
         .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
         .trim();
 
+const validatePassword = (value: string): string | null => {
+    if (value.length < 8) {
+        return 'Password must be at least 8 characters.';
+    }
+
+    if (!/[A-Z]/.test(value) || !/[a-z]/.test(value)) {
+        return 'Password must include uppercase and lowercase letters.';
+    }
+
+    if (!/[0-9]/.test(value)) {
+        return 'Password must include at least one number.';
+    }
+
+    if (!/[^a-zA-Z0-9]/.test(value)) {
+        return 'Password must include at least one special character.';
+    }
+
+    return null;
+};
+
 const InternalRegisterPage: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -62,6 +82,13 @@ const InternalRegisterPage: React.FC = () => {
 
         if (password !== confirmPassword) {
             setError('Passwords do not match.');
+            setIsLoading(false);
+            return;
+        }
+
+        const passwordError = validatePassword(password);
+        if (passwordError) {
+            setError(passwordError);
             setIsLoading(false);
             return;
         }
@@ -120,6 +147,9 @@ const InternalRegisterPage: React.FC = () => {
                             placeholder="********"
                             required
                         />
+                        <p className="text-xs text-gray-500">
+                            Use 8+ characters with uppercase, lowercase, number, and special character.
+                        </p>
                     </div>
 
                     <div className="mb-6">

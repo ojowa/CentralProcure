@@ -793,6 +793,16 @@ export interface WorkflowGrantedAction {
     TaskDescription: string;
 }
 
+export interface WorkflowActionSnapshotResponse {
+    EntityType: string;
+    EntityId: string;
+    CurrentStageKey: string;
+    CurrentStageTitle: string;
+    RoleKey: string;
+    Actions: WorkflowGrantedAction[];
+    RouteDecision?: WorkflowRouteDecision | null;
+}
+
 export interface WorkflowRuntimeTransitionSummary {
     ToStageKey: string;
     StageTitle: string;
