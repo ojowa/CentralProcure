@@ -42,7 +42,7 @@ export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShel
   const [activeModuleId, setActiveModuleId] = useState<string>('dashboard');
 
   const selectedRole = userRole ?? defaultRole;
-  const activeRoleDefinition = [...roles, ...fallbackRoles].find((role) => role.roleName === selectedRole) ?? fallbackRoles[0];
+  const activeRoleDefinition = fallbackRoles.find((role) => role.roleName === selectedRole) ?? fallbackRoles[0];
 
   const activeModule = accessibleModules.find((module) => module.id === activeModuleId) ?? accessibleModules[0];
 
@@ -130,7 +130,7 @@ export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShel
   const ModulePageComponent = React.lazy(() => {
     // Map module.id to component (expand as modules extracted)
     const componentMap: Record<string, () => Promise<{ default: React.ComponentType<any> }>> = {
-      // 'requisition-create': () => import('./RequisitionModulePage'), // Phase 3
+      // requisition modules handled by ModulePage dynamic loader
       // Add more as Phase 3 progresses
     };
     return componentMap[activeModule?.id ?? '']?.() ?? Promise.resolve({ default: () => <div>Module {activeModuleId} loading...</div> });
