@@ -31,6 +31,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 \ir migrations/023_procurement_workflow_blueprint_tables.sql
 \ir migrations/024_workflow_runtime_tracking.sql
 \ir migrations/025_administrative_reviews_and_closeouts.sql
+\ir migrations/026_reset_demo_auth_credentials.sql
 
 \echo Applying stored procedures and functions...
 \ir stored_procedures/BudgetLedger_Functions.sql

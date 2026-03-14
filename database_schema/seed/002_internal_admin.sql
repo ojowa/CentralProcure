@@ -19,6 +19,7 @@ BEGIN
     INSERT INTO identity.internal_users (email, password_hash, role_id, status)
     VALUES (v_email, v_password_hash, v_role_id, 'Active')
     ON CONFLICT (email) DO UPDATE
-    SET password_hash = v_password_hash;
+    SET password_hash = v_password_hash,
+        status = 'Active';
 END;
 $$;

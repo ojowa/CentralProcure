@@ -17,6 +17,8 @@ BEGIN
     VALUES
         ('Global Supplies Ltd', 'RC123456', 'TIN987654', '123 Business Way, Lagos', 'John Doe', 'vendor1@example.com', v_password_hash, 'Active'),
         ('Tech Solutions Inc', 'RC654321', 'TIN456789', '45 Tech Plaza, Abuja', 'Jane Smith', 'vendor2@example.com', v_password_hash, 'Active')
-    ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash;
+    ON CONFLICT (email) DO UPDATE
+    SET password_hash = EXCLUDED.password_hash,
+        vendor_status = 'Active';
 END;
 $$;
