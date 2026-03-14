@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { AuthProvider } from '../../hooks/useAuth';
+import { AuthProvider } from '../../internal/hooks/useAuth';
 
 export const metadata: Metadata = {
   title: 'NIS ePROCUREMENT',

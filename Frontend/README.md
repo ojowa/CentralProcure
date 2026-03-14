@@ -1,6 +1,6 @@
 # Frontend (Nigeria Immigration Service)
 
-This directory hosts the combined public and internal user interfaces for the Nigeria Immigration Service (NIS).
+This directory hosts the combined vendor-facing and internal user interfaces for the Nigeria Immigration Service (NIS).
 
 This application will be built using Next.js 16 (React + TypeScript) and will provide functionalities for:
 
@@ -15,7 +15,7 @@ This application will be built using Next.js 16 (React + TypeScript) and will pr
 -   Audit and Compliance Monitoring
 -   User and Role Management
 
-... and other internal administrative tasks as outlined in the project documentation, plus the public vendor-facing portal.
+... and other internal administrative tasks as outlined in the project documentation, plus the vendor-facing portal.
 
 ## Render
 
