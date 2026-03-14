@@ -4,6 +4,35 @@ namespace eProcurement.Modules.Identity.Services;
 
 internal static class InternalModuleCatalog
 {
+    private static readonly IReadOnlyDictionary<string, string> RoleAliases =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["system_administrator"] = "ict_admin",
+            ["tenders_board_member"] = "tenders_board",
+            ["audit_officer"] = "audit_oversight",
+            ["department_user"] = "requisitioning_officer",
+            ["procurement_planning_committee"] = "planning_statistics_officer",
+            ["bppliaison"] = "bpp_liaison",
+            ["bppreviewer"] = "bpp_reviewer",
+            ["requisitioningofficer"] = "requisitioning_officer",
+            ["departmenthead"] = "department_head",
+            ["procurementofficer"] = "procurement_officer",
+            ["procurementmanager"] = "procurement_manager",
+            ["planningstatisticsofficer"] = "planning_statistics_officer",
+            ["financialunitofficer"] = "financial_unit_officer",
+            ["legalreviewer"] = "legal_reviewer",
+            ["technicalevaluator"] = "technical_evaluator",
+            ["financialevaluator"] = "financial_evaluator",
+            ["evaluationcommittee"] = "evaluation_committee",
+            ["tendersboardmember"] = "tenders_board",
+            ["tendersboardsecretary"] = "tenders_board_secretary",
+            ["accountingofficer"] = "accounting_officer",
+            ["complaintsreviewofficer"] = "complaints_review_officer",
+            ["contractmanager"] = "contract_manager",
+            ["inspectionofficer"] = "inspection_officer",
+            ["paymentofficer"] = "payment_officer"
+        };
+
     private static readonly IReadOnlySet<string> WorkflowScopedActions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         "procurement_plan.manage",
@@ -111,7 +140,8 @@ internal static class InternalModuleCatalog
 
     public static IReadOnlyList<InternalModuleResult> GetModulesForRole(string? role, IReadOnlyList<string>? additionalActions = null)
     {
-        if (string.IsNullOrWhiteSpace(role))
+        var normalizedRole = NormalizeRoleKey(role);
+        if (string.IsNullOrWhiteSpace(normalizedRole))
         {
             return [];
         }
@@ -121,11 +151,18 @@ internal static class InternalModuleCatalog
             : new HashSet<string>(additionalActions, StringComparer.OrdinalIgnoreCase);
 
         return Modules
-            .Where(module => module.AllowedRoles.Contains(role))
+            .Where(module => module.AllowedRoles.Any(allowedRole =>
+                string.Equals(NormalizeRoleKey(allowedRole), normalizedRole, StringComparison.OrdinalIgnoreCase)))
             .GroupBy(module => module.Id, StringComparer.OrdinalIgnoreCase)
             .Select(group =>
             {
                 var first = group.First();
+                var catalogActions = group
+                    .SelectMany(module => module.Actions)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(action => action, StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+
                 var actions = group
                     .SelectMany(module => module.Actions)
                     .Where(action =>
@@ -138,6 +175,14 @@ internal static class InternalModuleCatalog
                     .OrderBy(action => action, StringComparer.OrdinalIgnoreCase)
                     .ToArray();
 
+                var allowedRoles = group
+                    .SelectMany(module => module.AllowedRoles)
+                    .Select(NormalizeRoleKey)
+                    .OfType<string>()
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(roleKey => roleKey, StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+
                 return new InternalModuleResult(
                     first.Id,
                     first.Title,
@@ -145,7 +190,9 @@ internal static class InternalModuleCatalog
                     first.Description,
                     first.Microservice,
                     first.ControlPurpose,
-                    actions);
+                    actions,
+                    catalogActions,
+                    allowedRoles);
             })
             .ToArray();
     }
@@ -154,4 +201,21 @@ internal static class InternalModuleCatalog
 
     private static IReadOnlySet<string> RoleSet(params string[] roles) =>
         new HashSet<string>(roles, StringComparer.OrdinalIgnoreCase);
+
+    private static string? NormalizeRoleKey(string? role)
+    {
+        if (string.IsNullOrWhiteSpace(role))
+        {
+            return null;
+        }
+
+        var trimmed = role.Trim();
+        var withUnderscores = trimmed.Replace("-", "_").Replace(" ", "_");
+        var snakeCase = System.Text.RegularExpressions.Regex.Replace(withUnderscores, "([a-z0-9])([A-Z])", "$1_$2");
+        var normalized = snakeCase.ToLowerInvariant();
+
+        return RoleAliases.TryGetValue(normalized, out var alias)
+            ? alias
+            : normalized;
+    }
 }

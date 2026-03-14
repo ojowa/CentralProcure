@@ -52,5 +52,7 @@ namespace eProcurement.Modules.Identity.DTOs
         string Description,
         string Microservice,
         string ControlPurpose,
-        IReadOnlyList<string> Actions);
+        IReadOnlyList<string> Actions,
+        IReadOnlyList<string> CatalogActions,
+        IReadOnlyList<string> AllowedRoles);
 }

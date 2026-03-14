@@ -128,6 +128,14 @@ const ROLE_ALIASES: Record<string, RoleKey> = {
   audit_officer: 'audit_oversight'
 };
 
+const normalizeAllowedRole = (value: unknown): RoleKey | null => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  return resolveRole(value) ?? null;
+};
+
 const resolveRole = (claim: unknown): RoleKey | undefined => {
   if (typeof claim !== 'string') {
     return undefined;
@@ -293,7 +301,17 @@ export const fetchInternalModules = async (token: string): Promise<InternalModul
       description: module.Description,
       microservice: module.Microservice,
       controlPurpose: module.ControlPurpose,
-      actions: module.Actions.filter((action: unknown): action is string => typeof action === 'string')
+      actions: Array.isArray(module.Actions)
+        ? module.Actions.filter((action: unknown): action is string => typeof action === 'string')
+        : [],
+      catalogActions: Array.isArray(module.CatalogActions)
+        ? module.CatalogActions.filter((action: unknown): action is string => typeof action === 'string')
+        : [],
+      allowedRoles: Array.isArray(module.AllowedRoles)
+        ? module.AllowedRoles
+            .map((roleValue: unknown) => normalizeAllowedRole(roleValue))
+            .filter((roleValue: RoleKey | null): roleValue is RoleKey => Boolean(roleValue))
+        : []
     }));
 };
 

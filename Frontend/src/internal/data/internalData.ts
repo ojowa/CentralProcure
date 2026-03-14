@@ -1,6 +1,6 @@
 'use client';
 
-import type { RoleDefinition, RoleKey } from '../types/internal';
+import type { InternalModule, RoleDefinition, RoleKey } from '../types/internal';
 
 export type ThresholdBand = {
   id: string;
@@ -69,6 +69,44 @@ export const roles: RoleDefinition[] = [
     description: 'Maintains platform access, routing, and technical integrity.'
   }
 ];
+
+const requisitionDepartmentModules: InternalModule[] = [
+  {
+    id: 'create-requisition',
+    title: 'Create Requisition',
+    section: 'Requisitioning Departments',
+    description: 'Submit procurement requests with budget and justification metadata.',
+    microservice: 'Requisition Service',
+    controlPurpose: 'Controlled initiation of procurement.',
+    actions: ['requisition.create'],
+    allowedRoles: ['requisitioning_officer', 'department_head']
+  },
+  {
+    id: 'requisition-history',
+    title: 'Requisition History',
+    section: 'Requisitioning Departments',
+    description: 'View historical department requests and current workflow states.',
+    microservice: 'Requisition Service',
+    controlPurpose: 'Visibility without unauthorized control.',
+    actions: ['requisition.view'],
+    allowedRoles: ['requisitioning_officer', 'department_head']
+  },
+  {
+    id: 'requisition-tracking',
+    title: 'Requisition Tracking',
+    section: 'Requisitioning Departments',
+    description: 'Track routing progress across procurement, evaluation, and approvals.',
+    microservice: 'Audit and Compliance Service',
+    controlPurpose: 'Read-only timeline for accountable traceability.',
+    actions: ['requisition.track'],
+    allowedRoles: ['requisitioning_officer', 'department_head', 'complaints_review_officer', 'audit_oversight', 'admin']
+  }
+];
+
+export const roleModuleFallbacks: Partial<Record<RoleKey, InternalModule[]>> = {
+  requisitioning_officer: requisitionDepartmentModules,
+  department_head: requisitionDepartmentModules
+};
 
 export const requisitionTypes = ['Goods', 'Works', 'Services'];
 export const requisitionPriorities = ['Normal', 'Urgent', 'Strategic'];

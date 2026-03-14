@@ -36,6 +36,7 @@ export interface InternalModule {
   microservice: string;
   controlPurpose: string;
   actions?: string[];
+  catalogActions?: string[];
   allowedRoles?: RoleKey[];
 }
 
