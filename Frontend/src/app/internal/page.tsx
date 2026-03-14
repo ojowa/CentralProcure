@@ -1,7 +1,5 @@
-'use client';
+import { permanentRedirect } from 'next/navigation';
 
-import App from '../../internal/App';
-
-export default function Page() {
-  return <App />;
+export default function InternalIndexPage() {
+  permanentRedirect('/internal/dashboard');
 }

@@ -2,8 +2,10 @@ import type { Metadata } from 'next';
 import './globals.css';
 import './login.css';
 import './portal.css';
+import { metadataBase } from './seo';
 
 export const metadata: Metadata = {
+  metadataBase,
   title: 'CentralProcure',
   description: 'NIS procurement portals'
 };

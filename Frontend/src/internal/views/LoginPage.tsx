@@ -99,7 +99,7 @@ export default function LoginPage() {
         role: response.Role as RoleKey
       });
 
-      router.push('/internal');
+      router.push('/internal/dashboard');
     } catch (err: any) {
       setErrorMessage(err?.message ?? 'Unable to sign in. Try again.');
     } finally {

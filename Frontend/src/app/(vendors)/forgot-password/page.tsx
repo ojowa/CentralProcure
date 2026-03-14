@@ -1,3 +1,8 @@
+import type { Metadata } from 'next';
+import { createCanonicalMetadata } from '../../seo';
+
+export const metadata: Metadata = createCanonicalMetadata('/forgot-password');
+
 export default function Page() {
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-8rem)] bg-gray-100 p-4">

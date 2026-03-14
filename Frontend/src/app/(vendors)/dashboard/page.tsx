@@ -1,5 +1,9 @@
-import { redirect } from 'next/navigation';
+import type { Metadata } from 'next';
+import { permanentRedirect } from 'next/navigation';
+import { createCanonicalMetadata } from '../../seo';
+
+export const metadata: Metadata = createCanonicalMetadata('/dashboard/profile-management');
 
 export default function Page() {
-  redirect('/dashboard/profile-management');
+  permanentRedirect('/dashboard/profile-management');
 }
