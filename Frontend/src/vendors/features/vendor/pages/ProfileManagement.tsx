@@ -8,14 +8,13 @@ import { VendorProfile, VendorProfileUpdateRequest } from '../types/vendor';
 
 const ProfileManagementPage: React.FC = () => {
     const router = useRouter();
-    const { isAuthenticated, isReady } = useAuth();
+    const { isAuthenticated, isReady, user } = useAuth();
     const [profile, setProfile] = useState<VendorProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isEditing, setIsEditing] = useState(false);
     const [saving, setSaving] = useState(false);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
-    const [vendorId, setVendorId] = useState<string | null>(null);
     const [formData, setFormData] = useState<VendorProfileUpdateRequest>({
         CompanyName: '',
         CompanyAddress: '',
@@ -29,14 +28,13 @@ const ProfileManagementPage: React.FC = () => {
             return;
         }
 
-        const token = localStorage.getItem('vendorAuthToken');
-        const storedVendorId = localStorage.getItem('vendorId');
-        if (!token || !isAuthenticated) {
+        if (!isAuthenticated) {
             router.replace('/login?next=%2Fdashboard%2Fprofile-management');
             return;
         }
 
-        if (!storedVendorId) {
+        const currentVendorId = user?.UserId;
+        if (!currentVendorId) {
             setError('Vendor session is missing. Please log in again.');
             setLoading(false);
             return;
@@ -46,10 +44,9 @@ const ProfileManagementPage: React.FC = () => {
         const loadProfile = async () => {
             setLoading(true);
             try {
-                const data = await getVendorProfile(storedVendorId);
+                const data = await getVendorProfile(currentVendorId);
                 if (active) {
                     setProfile(data);
-                    setVendorId(storedVendorId);
                     setFormData({
                         CompanyName: data.CompanyName,
                         CompanyAddress: data.CompanyAddress,
@@ -73,7 +70,7 @@ const ProfileManagementPage: React.FC = () => {
         return () => {
             active = false;
         };
-    }, [isAuthenticated, isReady, router]);
+    }, [isAuthenticated, isReady, router, user?.UserId]);
 
     const handleEdit = () => {
         if (!profile) return;
@@ -108,7 +105,7 @@ const ProfileManagementPage: React.FC = () => {
     };
 
     const handleSave = async () => {
-        if (!vendorId) {
+        if (!user?.UserId) {
             setError('Vendor session is missing. Please log in again.');
             return;
         }
@@ -118,7 +115,7 @@ const ProfileManagementPage: React.FC = () => {
         setSuccessMessage(null);
 
         try {
-            const updated = await updateVendorProfile(vendorId, formData);
+            const updated = await updateVendorProfile(user.UserId, formData);
             setProfile(updated);
             setIsEditing(false);
             setSuccessMessage('Profile updated successfully.');

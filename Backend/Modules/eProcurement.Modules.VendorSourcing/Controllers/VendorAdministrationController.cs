@@ -253,94 +253,71 @@ ORDER BY created_at DESC, document_type ASC;";
             return Problem("Connection string 'Primary' is not configured.", statusCode: 500);
         }
 
-        const string sql = @"
-UPDATE identity.vendors
-SET
-    vendor_status = @p_vendor_status,
-    is_active = CASE WHEN @p_vendor_status = 'Rejected' THEN FALSE ELSE TRUE END,
-    updated_by = @p_updated_by,
-    updated_at = NOW()
-WHERE vendor_id = @p_vendor_id
-RETURNING
-    vendor_id,
-    company_name,
-    registration_number,
-    tax_id,
-    contact_person,
-    phone_number,
-    email,
-    COALESCE(registration_date, created_at) AS registration_date,
-    vendor_status,
-    COALESCE(is_active, TRUE) AS is_active;";
+        const string spSql = "SELECT identity.approve_vendor_registration(@p_vendor_id, @p_vendor_status, @p_updated_by, @p_notes);";
 
-        const string countsSql = @"
+        const string summarySql = @"
 SELECT
-    COUNT(document_id)::int AS compliance_documents_count,
-    COUNT(*) FILTER (WHERE verification_status = 'Approved')::int AS approved_documents_count,
-    COUNT(*) FILTER (WHERE verification_status = 'Rejected')::int AS rejected_documents_count,
+    v.vendor_id,
+    v.company_name,
+    v.registration_number,
+    v.tax_id,
+    v.contact_person,
+    v.phone_number,
+    v.email,
+    COALESCE(v.registration_date, v.created_at) AS registration_date,
+    v.vendor_status,
+    COALESCE(v.is_active, TRUE) AS is_active,
+    COUNT(d.document_id)::int AS compliance_documents_count,
+    COUNT(*) FILTER (WHERE d.verification_status = 'Approved')::int AS approved_documents_count,
+    COUNT(*) FILTER (WHERE d.verification_status = 'Rejected')::int AS rejected_documents_count,
     COUNT(*) FILTER (
-        WHERE document_id IS NOT NULL
-          AND COALESCE(verification_status, 'Pending') NOT IN ('Approved', 'Rejected')
+        WHERE d.document_id IS NOT NULL
+          AND COALESCE(d.verification_status, 'Pending') NOT IN ('Approved', 'Rejected')
     )::int AS pending_documents_count,
-    MAX(COALESCE(updated_at, created_at)) AS last_compliance_update_at
-FROM identity.compliance_documents
-WHERE vendor_id = @p_vendor_id;";
+    MAX(COALESCE(d.updated_at, d.created_at)) AS last_compliance_update_at
+FROM identity.vendors v
+LEFT JOIN identity.compliance_documents d ON d.vendor_id = v.vendor_id
+WHERE v.vendor_id = @p_vendor_id
+GROUP BY
+    v.vendor_id,
+    v.company_name,
+    v.registration_number,
+    v.tax_id,
+    v.contact_person,
+    v.phone_number,
+    v.email,
+    COALESCE(v.registration_date, v.created_at),
+    v.vendor_status,
+    COALESCE(v.is_active, TRUE);";
 
         try
         {
             await using var conn = new NpgsqlConnection(connectionString);
             await conn.OpenAsync(ct);
 
-            VendorApprovalSummary? summary = null;
-
-            await using (var cmd = new NpgsqlCommand(sql, conn))
+            // Execute Stored Procedure for write operation
+            await using (var cmd = new NpgsqlCommand(spSql, conn))
             {
                 cmd.Parameters.AddWithValue("p_vendor_id", NpgsqlDbType.Uuid, vendorId);
                 cmd.Parameters.AddWithValue("p_vendor_status", NpgsqlDbType.Varchar, normalizedStatus);
                 cmd.Parameters.AddWithValue("p_updated_by", NpgsqlDbType.Varchar, GetDecisionActor());
+                cmd.Parameters.AddWithValue("p_notes", NpgsqlDbType.Text, (object?)request.Notes ?? DBNull.Value);
 
+                await cmd.ExecuteNonQueryAsync(ct);
+            }
+
+            // Fetch updated summary
+            await using (var cmd = new NpgsqlCommand(summarySql, conn))
+            {
+                cmd.Parameters.AddWithValue("p_vendor_id", NpgsqlDbType.Uuid, vendorId);
                 await using var reader = await cmd.ExecuteReaderAsync(ct);
                 if (!await reader.ReadAsync(ct))
                 {
                     return NotFound();
                 }
 
-                summary = new VendorApprovalSummary(
-                    reader.GetGuid(reader.GetOrdinal("vendor_id")),
-                    reader.GetString(reader.GetOrdinal("company_name")),
-                    reader.GetString(reader.GetOrdinal("registration_number")),
-                    reader.GetString(reader.GetOrdinal("tax_id")),
-                    reader.GetString(reader.GetOrdinal("contact_person")),
-                    GetNullableString(reader, "phone_number"),
-                    reader.GetString(reader.GetOrdinal("email")),
-                    reader.GetDateTime(reader.GetOrdinal("registration_date")),
-                    reader.GetString(reader.GetOrdinal("vendor_status")),
-                    reader.GetBoolean(reader.GetOrdinal("is_active")),
-                    0,
-                    0,
-                    0,
-                    0,
-                    null);
-                }
-
-            await using (var countsCmd = new NpgsqlCommand(countsSql, conn))
-            {
-                countsCmd.Parameters.AddWithValue("p_vendor_id", NpgsqlDbType.Uuid, vendorId);
-                await using var reader = await countsCmd.ExecuteReaderAsync(ct);
-                if (await reader.ReadAsync(ct))
-                {
-                    summary = summary! with
-                    {
-                        ComplianceDocumentsCount = reader.GetInt32(reader.GetOrdinal("compliance_documents_count")),
-                        ApprovedDocumentsCount = reader.GetInt32(reader.GetOrdinal("approved_documents_count")),
-                        PendingDocumentsCount = reader.GetInt32(reader.GetOrdinal("pending_documents_count")),
-                        RejectedDocumentsCount = reader.GetInt32(reader.GetOrdinal("rejected_documents_count")),
-                        LastComplianceUpdateAt = GetNullableDateTime(reader, "last_compliance_update_at")
-                    };
-                }
+                return Ok(MapSummary(reader));
             }
-
-            return Ok(summary);
         }
         catch (Exception ex)
         {

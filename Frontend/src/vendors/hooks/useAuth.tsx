@@ -1,12 +1,14 @@
 'use client';
 
 import { createContext, useContext, useEffect, useRef, useState, type FC, type ReactNode } from 'react';
+import { getCurrentUser, logoutVendor } from '../features/vendor/services/vendorService';
 
 interface AuthContextType {
     isAuthenticated: boolean;
     isReady: boolean;
     login: () => void;
     logout: () => void;
+    user: { UserId: string; Email: string; Role: string } | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -18,6 +20,7 @@ const LAST_ACTIVE_KEY = 'vendorLastActiveAt';
 export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
     const [isReady, setIsReady] = useState<boolean>(false);
+    const [user, setUser] = useState<{ UserId: string; Email: string; Role: string } | null>(null);
     const [warningRemainingMs, setWarningRemainingMs] = useState<number | null>(null);
     const idleTimerRef = useRef<number | null>(null);
     const warningTimerRef = useRef<number | null>(null);
@@ -25,31 +28,36 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     const keepAliveRef = useRef<(() => void) | null>(null);
 
     useEffect(() => {
-        const syncAuth = () => {
-            const hasToken = Boolean(localStorage.getItem('vendorAuthToken'));
-            setIsAuthenticated(hasToken);
+        const syncAuth = async () => {
+            const currentUser = await getCurrentUser();
+            if (currentUser) {
+                setIsAuthenticated(true);
+                setUser(currentUser);
+            } else {
+                setIsAuthenticated(false);
+                setUser(null);
+            }
             setIsReady(true);
         };
 
         syncAuth();
 
-        const handleStorage = (event: StorageEvent) => {
-            if (event.key === 'vendorAuthToken') {
-                syncAuth();
-            }
-        };
-
-        window.addEventListener('storage', handleStorage);
-        return () => window.removeEventListener('storage', handleStorage);
+        // Storage event no longer syncs token since it's HttpOnly cookie
+        // But we can still keep it for LAST_ACTIVE_KEY if we want sync across tabs
     }, []);
 
-    const login = () => {
-        setIsAuthenticated(true);
+    const login = async () => {
+        const currentUser = await getCurrentUser();
+        if (currentUser) {
+            setIsAuthenticated(true);
+            setUser(currentUser);
+        }
     };
 
-    const logout = () => {
+    const logout = async () => {
+        await logoutVendor();
         setIsAuthenticated(false);
-        localStorage.removeItem('vendorAuthToken');
+        setUser(null);
         localStorage.removeItem('vendorId');
         localStorage.removeItem('vendorCompanyName');
         localStorage.removeItem('vendorEmail');
@@ -168,7 +176,7 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     const warningSeconds = warningRemainingMs ? Math.max(1, Math.ceil(warningRemainingMs / 1000)) : null;
 
     return (
-        <AuthContext.Provider value={{ isAuthenticated, isReady, login, logout }}>
+        <AuthContext.Provider value={{ isAuthenticated, isReady, login, logout, user }}>
             {children}
             {isReady && isAuthenticated && warningSeconds !== null && (
                 <div className="fixed inset-x-4 bottom-4 z-50 mx-auto max-w-3xl">

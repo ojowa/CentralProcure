@@ -121,7 +121,7 @@ const getDaysLeft = (value?: string) => {
 
 const ComplianceDocumentsPage: React.FC = () => {
   const router = useRouter();
-  const { isAuthenticated, isReady } = useAuth();
+  const { isAuthenticated, isReady, user } = useAuth();
   const [requirements, setRequirements] = useState<Requirement[]>(fallbackRequirements);
   const [documents, setDocuments] = useState<ComplianceDocumentEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -144,8 +144,7 @@ const ComplianceDocumentsPage: React.FC = () => {
       return;
     }
 
-    const token = localStorage.getItem('vendorAuthToken');
-    if (!token || !isAuthenticated) {
+    if (!isAuthenticated || !user?.UserId) {
       router.replace('/login?next=%2Fdashboard%2Fcompliance-documents');
       return;
     }

@@ -56,14 +56,22 @@ The project documentation is organized into logical categories within the `desig
 - **API Style**: RESTful APIs with JWT authentication.
 - **Workflow**: WorkflowRuntimeTracker (integrated into domain services).
 
-## 5. Instructions for AI Assistants
+## 5. Engineering Standards
+
+To ensure long-term maintainability and context efficiency for both human developers and AI assistants, the following standards are **mandatory**:
+
+- **File Size Limit**: **MAXIMUM 400 LINES PER FILE.** Any file approaching or exceeding this limit must be refactored into smaller, logical sub-components, partial classes, or dedicated services immediately.
+- **Stored Procedures**: All write operations (INSERT, UPDATE, DELETE) MUST be performed via stored procedures (or PL/pgSQL functions for PostgreSQL). Inline write SQL is prohibited.
+- **Casing & Serialization**:
+    - **Backend & DTOs**: Use `PascalCase` for all properties to ensure seamless serialization with the frontend.
+    - **Database**: Use `snake_case` for all table and column names.
+- **Compliance by Design**: All logic must explicitly check against the **Public Procurement Act 2007** mandates (thresholds, timelines, and roles).
+
+## 6. Instructions for AI Assistants
 
 When asked to analyze or generate code for this project, please adhere to:
 
 1. **Prioritize `architecture/system_design.md`** as the single source of truth.
-2. **Follow "Compliance by Design"**: All logic must align with the PPA 2007 workflow.
-3. **Respect Casing Mandates**:
-   - **Frontend/Backend:** `PascalCase` for code identifiers and API payloads.
-   - **Database:** `snake_case` for tables and columns.
-4. **Adhere to the 400-Line Limit**: Refactor files that exceed 400 lines into logical sub-components.
-5. **Use Stored Procedures**: All write operations (Create/Update) MUST use stored procedures.
+2. **Enforce the 400-Line Limit**: Never generate or allow files to exceed 400 lines.
+3. **Verify Stored Procedure Usage**: Ensure all state-changing operations are backed by database-level procedures.
+4. **Adhere to Casing Mandates**: Maintain `PascalCase` for DTOs and `snake_case` for DB schema.

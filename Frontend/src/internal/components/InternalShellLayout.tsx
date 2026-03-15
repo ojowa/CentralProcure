@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import type { InternalModule, InternalRoleRecord, RoleDefinition, RoleKey } from '../types/internal';
 import { InternalHeader } from './InternalHeader';
 import { SidebarNav } from './SidebarNav';
@@ -19,9 +20,15 @@ import { TendersBoardApprovalModule } from './TendersBoardApprovalModule';
 import { ContractManagementModule } from './ContractManagementModule';
 import { BppEscalationModule } from './BppEscalationModule';
 import { AdministrativeReviewModule } from './AdministrativeReviewModule';
+import { VendorRegistrationApprovalModule } from './VendorRegistrationApprovalModule';
 import { fetchInternalModules, fetchInternalRoles, resolveRole } from '../services/internalAuthService';
 import { fetchModuleData } from '../services/moduleService';
 import { roleModuleFallbacks, roles } from '../data/internalData';
+import {
+  getInternalDashboardPath,
+  getInternalDashboardRouteSegment,
+  resolveModuleIdFromRouteSegment
+} from '../utils/internalRoutes';
 
 const defaultRole: RoleKey = 'requisitioning_officer';
 const moduleFetchSkipList = new Set<string>([
@@ -148,6 +155,14 @@ const moduleRenderers: Partial<Record<string, (props: InternalModuleRendererProp
       moduleError={props.moduleError}
       token={props.token}
     />
+  ),
+  'vendor-registration-approval': (props) => (
+    <VendorRegistrationApprovalModule
+      module={props.module}
+      token={props.token}
+      role={props.role}
+      userEmail={props.userEmail}
+    />
   )
 };
 
@@ -176,14 +191,16 @@ const mapRoleRecordToDefinition = (roleRecord: InternalRoleRecord): RoleDefiniti
 };
 
 export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShellProps) => {
+  const pathname = usePathname();
+  const router = useRouter();
   const [accessibleModules, setAccessibleModules] = useState<InternalModule[]>([]);
   const [availableRoles, setAvailableRoles] = useState<RoleDefinition[]>(roles);
   const [modulesLoading, setModulesLoading] = useState(false);
+  const [hasResolvedModules, setHasResolvedModules] = useState(false);
   const [modulesError, setModulesError] = useState<string | null>(null);
   const [moduleData, setModuleData] = useState<unknown>(null);
   const [moduleError, setModuleError] = useState<string | null>(null);
   const [isModuleLoading, setIsModuleLoading] = useState(false);
-  const [activeModuleId, setActiveModuleId] = useState<string>('dashboard');
 
   const selectedRole = userRole ?? defaultRole;
   const activeRoleDefinition =
@@ -191,7 +208,28 @@ export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShel
     roleFallbackByKey.get(selectedRole) ??
     roles[0];
 
-  const activeModule = accessibleModules.find((module) => module.id === activeModuleId) ?? accessibleModules[0];
+  const routeSegment = useMemo(
+    () => getInternalDashboardRouteSegment(pathname),
+    [pathname]
+  );
+  const activeModuleId = useMemo(
+    () => resolveModuleIdFromRouteSegment(accessibleModules.map((module) => module.id), routeSegment),
+    [accessibleModules, routeSegment]
+  );
+  const activeModule = useMemo(() => {
+    if (!activeModuleId || activeModuleId === 'dashboard') {
+      return null;
+    }
+
+    return accessibleModules.find((module) => module.id === activeModuleId) ?? null;
+  }, [accessibleModules, activeModuleId]);
+
+  const handleModuleChange = useCallback(
+    (moduleId: string) => {
+      router.push(getInternalDashboardPath(moduleId));
+    },
+    [router]
+  );
 
   const handleSignOut = useCallback(() => {
     window.location.href = '/internal/login';
@@ -243,11 +281,13 @@ export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShel
   useEffect(() => {
     if (!token) {
       setAccessibleModules([]);
+      setHasResolvedModules(false);
       return;
     }
 
     let isMounted = true;
     setModulesLoading(true);
+    setHasResolvedModules(false);
     setModulesError(null);
 
     fetchInternalModules(token)
@@ -265,6 +305,7 @@ export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShel
       .finally(() => {
         if (isMounted) {
           setModulesLoading(false);
+          setHasResolvedModules(true);
         }
       });
 
@@ -274,7 +315,7 @@ export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShel
   }, [selectedRole, token]);
 
   useEffect(() => {
-    if (!token || moduleFetchSkipList.has(activeModuleId)) {
+    if (!token || !activeModuleId || moduleFetchSkipList.has(activeModuleId)) {
       setIsModuleLoading(false);
       setModuleError(null);
       setModuleData(null);
@@ -309,12 +350,14 @@ export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShel
   }, [activeModuleId, token]);
 
   useEffect(() => {
-    if (activeModuleId === 'dashboard') return;
-    const moduleStillAccessible = accessibleModules.some((module) => module.id === activeModuleId);
-    if (!moduleStillAccessible) {
-      setActiveModuleId('dashboard');
+    if (!token || !routeSegment || modulesLoading || !hasResolvedModules) {
+      return;
     }
-  }, [accessibleModules, activeModuleId]);
+
+    if (!resolveModuleIdFromRouteSegment(accessibleModules.map((module) => module.id), routeSegment)) {
+      router.replace(getInternalDashboardPath());
+    }
+  }, [accessibleModules, hasResolvedModules, modulesLoading, routeSegment, router, token]);
 
   const activeModuleRenderer = activeModule ? moduleRenderers[activeModule.id] : null;
 
@@ -325,14 +368,14 @@ export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShel
       <div className="portal-content">
         <SidebarNav
           modules={accessibleModules}
-          activeModuleId={activeModuleId}
-          onModuleChange={setActiveModuleId}
+          activeModuleId={activeModuleId ?? 'dashboard'}
+          onModuleChange={handleModuleChange}
         />
         <main className="portal-main">
           {modulesError ? <div className="portal-alert">{modulesError}</div> : null}
           {modulesLoading ? <div className="plan-loading">Loading role workspace...</div> : null}
           {activeModuleId === 'dashboard' ? <DashboardPage modules={accessibleModules} /> : null}
-          {activeModuleId !== 'dashboard' && activeModule ? (
+          {activeModuleId && activeModuleId !== 'dashboard' && activeModule ? (
             <>
               {(activeModuleRenderer ?? renderGenericModuleWorkspace)({
                 module: activeModule,
@@ -342,7 +385,7 @@ export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShel
                 token,
                 role: selectedRole,
                 userEmail,
-                onModuleChange: setActiveModuleId
+                onModuleChange: handleModuleChange
               })}
             </>
           ) : null}

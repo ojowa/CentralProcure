@@ -100,6 +100,7 @@ namespace eProcurement.Modules.Identity.Controllers
                 }
 
                 var token = GenerateToken(result.VendorId.Value, result.Email ?? resolvedEmail ?? request.Email, "vendor");
+                SetAuthCookie(token);
                 return Ok(new AuthResponse(token, result.Email ?? resolvedEmail ?? request.Email, "Success"));
             }
             catch (Exception ex)
@@ -107,6 +108,34 @@ namespace eProcurement.Modules.Identity.Controllers
                 Logger.LogError(ex, "Error during login for {Email}", request.Email);
                 return Problem("Internal server error during login.");
             }
+        }
+
+        [Authorize]
+        [HttpGet("me")]
+        public IActionResult Me()
+        {
+            var userId = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+            var email = User.FindFirst(JwtRegisteredClaimNames.Email)?.Value;
+            var role = User.FindFirst("role")?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
+            return Ok(new
+            {
+                UserId = userId,
+                Email = email,
+                Role = role
+            });
+        }
+
+        [HttpPost("logout")]
+        public IActionResult Logout()
+        {
+            Response.Cookies.Delete("vendorAuthToken");
+            return Ok(new { message = "Logged out successfully" });
         }
 
         [HttpPost("internal/login")]
@@ -171,6 +200,7 @@ namespace eProcurement.Modules.Identity.Controllers
 
                 var role = result.Role;
                 var token = GenerateToken(result.InternalUserId.Value, result.Email ?? resolvedEmail ?? request.Email, role);
+                SetAuthCookie(token);
                 return Ok(new AuthResponse(token, result.Email ?? resolvedEmail ?? request.Email, result.Status ?? "Success", role));
             }
             catch (Exception ex)
@@ -237,6 +267,7 @@ namespace eProcurement.Modules.Identity.Controllers
                 if (result is null) return Problem("Failed to register vendor.");
 
                 var token = GenerateToken(result.VendorId, result.Email, "vendor");
+                SetAuthCookie(token);
                 return Ok(new AuthResponse(token, result.Email, "Success"));
             }
             catch (Exception ex)
@@ -245,6 +276,19 @@ namespace eProcurement.Modules.Identity.Controllers
                 return Problem("Internal server error during registration.");
             }
         }
+
+        private void SetAuthCookie(string token)
+        {
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true, // Set to true in production
+                SameSite = SameSiteMode.Strict,
+                Expires = DateTime.UtcNow.AddHours(24)
+            };
+            Response.Cookies.Append("vendorAuthToken", token, cookieOptions);
+        }
+
 
         [HttpPost("internal/register")]
         public async Task<IActionResult> InternalRegister([FromBody] InternalUserRegistrationRequest request, CancellationToken ct)

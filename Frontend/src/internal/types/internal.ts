@@ -48,6 +48,7 @@ export interface VendorApprovalSummary {
   RegistrationNumber: string;
   TaxId: string;
   ContactPerson: string;
+  PhoneNumber?: string | null;
   Email: string;
   RegistrationDate: string;
   VendorStatus: string;

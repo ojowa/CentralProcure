@@ -9,7 +9,7 @@ import { useAuth } from '../../../hooks/useAuth';
 
 const SubmittedBidsStatusPage: React.FC = () => {
     const router = useRouter();
-    const { isAuthenticated, isReady } = useAuth();
+    const { isAuthenticated, isReady, user } = useAuth();
     const [bids, setBids] = useState<SubmittedBid[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
@@ -19,23 +19,15 @@ const SubmittedBidsStatusPage: React.FC = () => {
             return;
         }
 
-        const token = localStorage.getItem('vendorAuthToken');
-        const storedVendorId = localStorage.getItem('vendorId');
-        if (!token || !isAuthenticated) {
+        if (!isAuthenticated || !user?.UserId) {
             router.replace('/login?next=%2Fdashboard%2Fsubmitted-bids');
-            return;
-        }
-
-        if (!storedVendorId) {
-            setLoading(false);
-            setError('Vendor session is missing. Please log in again.');
             return;
         }
 
         const fetchBids = async () => {
             try {
                 // Pass the authenticated vendor's ID to the service call
-                const bidData = await getSubmittedBids(storedVendorId);
+                const bidData = await getSubmittedBids(user.UserId);
                 setBids(bidData);
             } catch (err: any) {
                 setError(err.message || 'Failed to fetch submitted bids.');
@@ -45,7 +37,7 @@ const SubmittedBidsStatusPage: React.FC = () => {
         };
 
         fetchBids();
-    }, [isAuthenticated, isReady, router]);
+    }, [isAuthenticated, isReady, router, user?.UserId]);
 
     if (loading) {
         return <div className="text-center p-4">Loading submitted bids...</div>;

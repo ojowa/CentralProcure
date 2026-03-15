@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { getSubmittedBids, submitBid } from '../services/bidService';
 import type { BidSubmission } from '../types/bid';
+import { useAuth } from '../../../hooks/useAuth';
 
 interface BidSubmissionFormProps {
   tenderId: string;
@@ -11,6 +12,7 @@ interface BidSubmissionFormProps {
 }
 
 const BidSubmissionForm: React.FC<BidSubmissionFormProps> = ({ tenderId, onBack, onClose }) => {
+  const { user } = useAuth();
   const [financialBid, setFinancialBid] = useState<number>(0);
   const [technicalProposal, setTechnicalProposal] = useState<string>('');
   const [technicalProposalFile, setTechnicalProposalFile] = useState<File | null>(null);
@@ -21,23 +23,9 @@ const BidSubmissionForm: React.FC<BidSubmissionFormProps> = ({ tenderId, onBack,
   const [existingBidId, setExistingBidId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successBidId, setSuccessBidId] = useState<string | null>(null);
-  const [vendorId, setVendorId] = useState<string | null>(null);
-  const [tokenVendorId, setTokenVendorId] = useState<string | null>(null);
 
   useEffect(() => {
-    const storedVendorId = localStorage.getItem('vendorId');
-    setVendorId(storedVendorId);
-
-    const token = localStorage.getItem('vendorAuthToken');
-    if (token) {
-      const payload = parseJwtPayload(token);
-      const sub = typeof payload?.sub === 'string' ? payload.sub : null;
-      setTokenVendorId(sub);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!vendorId || !tenderId) {
+    if (!user?.UserId || !tenderId) {
       return;
     }
 
@@ -45,7 +33,7 @@ const BidSubmissionForm: React.FC<BidSubmissionFormProps> = ({ tenderId, onBack,
     const checkExisting = async () => {
       setCheckingExisting(true);
       try {
-        const bids = await getSubmittedBids(vendorId);
+        const bids = await getSubmittedBids(user.UserId);
         const existingBid = bids.find((bid) => bid.TenderId === tenderId);
         const exists = Boolean(existingBid);
         if (active) {
@@ -67,7 +55,7 @@ const BidSubmissionForm: React.FC<BidSubmissionFormProps> = ({ tenderId, onBack,
     return () => {
       active = false;
     };
-  }, [tenderId, vendorId]);
+  }, [tenderId, user?.UserId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,13 +66,8 @@ const BidSubmissionForm: React.FC<BidSubmissionFormProps> = ({ tenderId, onBack,
       return;
     }
 
-    if (!vendorId) {
+    if (!user?.UserId) {
       setError('Vendor session is missing. Please log in again.');
-      return;
-    }
-
-    if (!tokenVendorId || tokenVendorId !== vendorId) {
-      setError('Vendor session could not be verified. Please log in again.');
       return;
     }
 
@@ -97,7 +80,7 @@ const BidSubmissionForm: React.FC<BidSubmissionFormProps> = ({ tenderId, onBack,
     try {
       const bidData: BidSubmission = {
         TenderId: tenderId,
-        VendorId: vendorId,
+        VendorId: user.UserId,
         FinancialBid: financialBid,
         TechnicalProposal: technicalProposalFile ? '' : technicalProposal,
         ValidityPeriodDays: validityPeriod
@@ -287,22 +270,6 @@ const BidSubmissionForm: React.FC<BidSubmissionFormProps> = ({ tenderId, onBack,
       </form>
     </div>
   );
-};
-
-const parseJwtPayload = (token: string): Record<string, unknown> | null => {
-  try {
-    const payload = token.split('.')[1];
-    if (!payload) {
-      return null;
-    }
-
-    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
-    const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
-    const json = atob(padded);
-    return JSON.parse(json) as Record<string, unknown>;
-  } catch {
-    return null;
-  }
 };
 
 export default BidSubmissionForm;

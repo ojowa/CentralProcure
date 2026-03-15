@@ -34,10 +34,6 @@ apiClient.interceptors.request.use(
             }
         }
 
-        const token = localStorage.getItem('vendorAuthToken');
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
         return config;
     },
     (error) => {

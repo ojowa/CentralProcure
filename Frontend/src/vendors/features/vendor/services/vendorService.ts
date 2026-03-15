@@ -13,6 +13,8 @@ import {
 
 const API_ENDPOINTS = {
     VENDOR_LOGIN: '/api/Auth/login',
+    VENDOR_LOGOUT: '/api/Auth/logout',
+    VENDOR_ME: '/api/Auth/me',
     VENDOR_REGISTER: '/api/Auth/register',
     VENDOR_COMPLIANCE_UPLOAD: '/api/Vendor/compliance/upload',
     VENDOR_COMPLIANCE_LIST: '/api/Vendor/compliance',
@@ -300,5 +302,30 @@ export const updateVendorProfile = async (
             throw new Error(error.response.data.message);
         }
         throw new Error("Unable to update vendor profile right now.");
+    }
+};
+
+/**
+ * Logs out the current vendor by calling the backend logout endpoint.
+ */
+export const logoutVendor = async (): Promise<void> => {
+    try {
+        await apiClient.post(API_ENDPOINTS.VENDOR_LOGOUT);
+    } catch (error) {
+        console.error("Failed to logout vendor:", error);
+        // Still proceed with frontend logout if backend fails
+    }
+};
+
+/**
+ * Fetches the current authenticated user's information.
+ */
+export const getCurrentUser = async (): Promise<{ UserId: string; Email: string; Role: string } | null> => {
+    try {
+        const response = await apiClient.get(API_ENDPOINTS.VENDOR_ME);
+        return response.data;
+    } catch (error) {
+        // Not authenticated
+        return null;
     }
 };

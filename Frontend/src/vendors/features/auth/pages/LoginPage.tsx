@@ -29,14 +29,13 @@ const LoginPage: React.FC = () => {
                 return;
             }
 
-            // Store vendor info in localStorage for session management
+            // Store vendor info in localStorage for display (non-sensitive)
             localStorage.setItem('vendorId', response.VendorId);
             localStorage.setItem('vendorCompanyName', response.CompanyName);
             localStorage.setItem('vendorEmail', response.Email);
-            localStorage.setItem('vendorAuthToken', response.Token);
             
-            // Set authenticated state
-            login();
+            // Set authenticated state (this will call getCurrentUser)
+            await login();
             
             // Redirect to dashboard on successful login
             router.push('/dashboard');
