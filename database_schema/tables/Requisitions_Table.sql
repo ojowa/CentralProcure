@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS procurement_workflow.requisitions (
     requisition_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title VARCHAR(255) NOT NULL,
     department VARCHAR(150) NOT NULL,
+    unit_id UUID NULL REFERENCES identity.organizational_units(unit_id) ON DELETE SET NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'Draft',
     priority VARCHAR(50) NULL,
     procurement_type VARCHAR(50) NULL,

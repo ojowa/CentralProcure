@@ -7,6 +7,7 @@ import {
   thresholdBands,
   type BudgetLineItem
 } from '../../data/internalData';
+import { fetchInternalUnits } from '../../services/internalAuthService';
 import { fetchBudgetSummary } from '../../services/budgetService';
 import { fetchProcurementPlanItems } from '../../services/procurementPlanItemService';
 import { fetchProcurementPlans } from '../../services/procurementPlanService';
@@ -18,6 +19,7 @@ import {
 } from '../../services/workflowContextService';
 import type {
   BudgetSummaryResponse,
+  InternalOrganizationalUnitRecord,
   InternalModule,
   RequisitionDetail,
   RequisitionLineItem,
@@ -97,6 +99,8 @@ export const RequisitionOfficerWorkspace = ({
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [catalog, setCatalog] = useState<BudgetLineItem[]>([]);
+  const [units, setUnits] = useState<InternalOrganizationalUnitRecord[]>([]);
+  const [unitsError, setUnitsError] = useState('');
   const [catalogError, setCatalogError] = useState('');
   const [isCatalogLoading, setIsCatalogLoading] = useState(false);
   const [budgetSummary, setBudgetSummary] = useState<BudgetSummaryResponse | null>(null);
@@ -155,6 +159,10 @@ export const RequisitionOfficerWorkspace = ({
   const departmentHeadQueue = useMemo(
     () => requisitions.filter((record) => DEPARTMENT_HEAD_QUEUE_STATUSES.has(record.Status)),
     [requisitions]
+  );
+  const assignableUnits = useMemo(
+    () => units.filter((unit) => unit.IsAssignable),
+    [units]
   );
 
   const summary = useMemo(() => {
@@ -216,6 +224,51 @@ export const RequisitionOfficerWorkspace = ({
   useEffect(() => {
     void loadRequisitions();
   }, [token, filters.query, filters.status, filters.priority, filters.dateFrom, filters.dateTo, filters.page, pageSize, mode]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadUnits = async () => {
+      try {
+        const fetchedUnits = await fetchInternalUnits();
+        if (isMounted) {
+          setUnits(fetchedUnits);
+          setUnitsError('');
+        }
+      } catch (error) {
+        if (isMounted) {
+          setUnits([]);
+          setUnitsError(error instanceof Error ? error.message : 'Unable to load organizational units.');
+        }
+      }
+    };
+
+    void loadUnits();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (form.UnitId || !form.Department.trim() || !assignableUnits.length) {
+      return;
+    }
+
+    const matchedUnit = assignableUnits.find(
+      (unit) => unit.UnitName.toLowerCase() === form.Department.trim().toLowerCase()
+    );
+
+    if (!matchedUnit) {
+      return;
+    }
+
+    setForm((previous) => ({
+      ...previous,
+      UnitId: matchedUnit.UnitId,
+      Department: matchedUnit.UnitName
+    }));
+  }, [assignableUnits, form.Department, form.UnitId]);
 
   useEffect(() => {
     if (!token) {
@@ -418,6 +471,19 @@ export const RequisitionOfficerWorkspace = ({
   };
 
   const updateFormField = <K extends keyof RequisitionFormState>(key: K, value: RequisitionFormState[K]) => {
+    if (key === 'UnitId') {
+      const nextUnitId = value as string;
+      const selectedUnit = assignableUnits.find((unit) => unit.UnitId === nextUnitId);
+      setForm((previous) => ({
+        ...previous,
+        UnitId: nextUnitId,
+        Department: selectedUnit?.UnitName ?? previous.Department
+      }));
+      setFormError('');
+      setFeedback('');
+      return;
+    }
+
     setForm((previous) => ({
       ...previous,
       [key]: value
@@ -473,10 +539,12 @@ export const RequisitionOfficerWorkspace = ({
 
   const handleAppItemSelect = (nextItemId: string) => {
     const match = catalog.find((item) => item.id === nextItemId);
+    const matchedUnit = assignableUnits.find((unit) => unit.UnitName === (match?.department ?? ''));
     setForm((previous) => ({
       ...previous,
       AppItemId: nextItemId,
       BudgetCode: match?.budgetCode ?? previous.BudgetCode,
+      UnitId: previous.UnitId || matchedUnit?.UnitId || '',
       Department: previous.Department || match?.department || '',
       ProcurementType: previous.ProcurementType || match?.procurementCategory || previous.ProcurementType
     }));
@@ -679,6 +747,7 @@ export const RequisitionOfficerWorkspace = ({
           <RequisitionCreateView
             editingId={editingId}
             form={form}
+            units={assignableUnits}
             catalog={catalog}
             selectedAppItem={selectedAppItem}
             budgetCheck={budgetCheck}
@@ -694,7 +763,7 @@ export const RequisitionOfficerWorkspace = ({
             isCatalogLoading={isCatalogLoading}
             isBudgetLoading={isBudgetLoading}
             budgetError={budgetError}
-            catalogError={catalogError}
+            catalogError={[unitsError, catalogError].filter(Boolean).join(' ')}
             filters={filters}
             requisitions={requisitions}
             guidance={guidance}

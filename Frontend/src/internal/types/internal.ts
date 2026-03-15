@@ -89,6 +89,12 @@ export interface InternalLoginData {
 }
 
 export interface InternalRegistrationData {
+    Username: string;
+    FirstName: string;
+    MiddleName: string;
+    Surname: string;
+    ServiceNumber: string;
+    UnitId: string;
     Email: string;
     Password: string;
     ConfirmPassword: string; // For frontend validation
@@ -102,6 +108,12 @@ export interface InternalLoginRequestBackend {
 }
 
 export interface InternalRegistrationRequestBackend {
+    Username: string;
+    FirstName: string;
+    MiddleName?: string;
+    Surname: string;
+    ServiceNumber: string;
+    UnitId: string;
     Email: string;
     Password: string;
     Role: string;
@@ -121,6 +133,8 @@ export interface InternalRegistrationResponse {
     InternalUserId: string;
     Email: string;
     Role: string;
+    UnitId?: string | null;
+    UnitName?: string | null;
 }
 
 export interface InternalRoleRecord {
@@ -128,6 +142,17 @@ export interface InternalRoleRecord {
     RoleName: string;
     Description?: string | null;
     IsActive: boolean;
+}
+
+export interface InternalOrganizationalUnitRecord {
+    UnitId: string;
+    UnitName: string;
+    UnitCode: string;
+    UnitType: string;
+    ParentUnitId?: string | null;
+    ParentUnitName?: string | null;
+    SortOrder: number;
+    IsAssignable: boolean;
 }
 
 export interface ProcurementPlanSummary {
@@ -276,8 +301,13 @@ export interface ApprovalThresholdDetail {
     MinAmount: number;
     MaxAmount?: number | null;
     ApprovalRoute: string;
+    ApprovalAuthorityCode: string;
+    ApprovalAuthorityLabel: string;
+    RequiresCgisApproval: boolean;
     RequiresBoard: boolean;
     RequiresBpp: boolean;
+    GovernanceBodyId?: string | null;
+    GovernanceBodyName?: string | null;
     Status: string;
     Notes?: string | null;
     CreatedAt: string;
@@ -324,8 +354,13 @@ export interface WorkflowBlueprintThreshold {
     MinAmount: number;
     MaxAmount?: number | null;
     ApprovalRoute: string;
+    ApprovalAuthorityCode: string;
+    ApprovalAuthorityLabel: string;
+    RequiresCgisApproval: boolean;
     RequiresBoard: boolean;
     RequiresBpp: boolean;
+    GovernanceBodyId?: string | null;
+    GovernanceBodyName?: string | null;
     Notes: string;
 }
 
@@ -380,8 +415,13 @@ export interface WorkflowConfigurationThreshold {
     MinAmount: number;
     MaxAmount?: number | null;
     ApprovalRoute: string;
+    ApprovalAuthorityCode: string;
+    ApprovalAuthorityLabel: string;
+    RequiresCgisApproval: boolean;
     RequiresBoard: boolean;
     RequiresBpp: boolean;
+    GovernanceBodyId?: string | null;
+    GovernanceBodyName?: string | null;
     Status: string;
     Notes?: string | null;
     UpdatedAt?: string | null;
@@ -393,6 +433,14 @@ export interface WorkflowConfigurationRole {
     IsActive: boolean;
 }
 
+export interface WorkflowConfigurationGovernanceBody {
+    BodyId: string;
+    BodyCode: string;
+    BodyName: string;
+    BodyType: string;
+    IsActive: boolean;
+}
+
 export interface WorkflowConfiguration {
     Title: string;
     Summary: string;
@@ -401,6 +449,7 @@ export interface WorkflowConfiguration {
     RoleTasks: WorkflowConfigurationRoleTask[];
     Thresholds: WorkflowConfigurationThreshold[];
     Roles: WorkflowConfigurationRole[];
+    GovernanceBodies: WorkflowConfigurationGovernanceBody[];
 }
 
 export interface WorkflowStageUpdateRequest {
@@ -434,8 +483,12 @@ export interface WorkflowThresholdCreateRequest {
     MinAmount: number;
     MaxAmount?: number | null;
     ApprovalRoute: string;
+    ApprovalAuthorityCode: string;
+    ApprovalAuthorityLabel: string;
+    RequiresCgisApproval: boolean;
     RequiresBoard: boolean;
     RequiresBpp: boolean;
+    GovernanceBodyId?: string | null;
     Status?: string | null;
     Notes?: string | null;
 }
@@ -445,8 +498,12 @@ export interface WorkflowThresholdUpdateRequest {
     MinAmount?: number | null;
     MaxAmount?: number | null;
     ApprovalRoute?: string | null;
+    ApprovalAuthorityCode?: string | null;
+    ApprovalAuthorityLabel?: string | null;
+    RequiresCgisApproval?: boolean | null;
     RequiresBoard?: boolean | null;
     RequiresBpp?: boolean | null;
+    GovernanceBodyId?: string | null;
     Status?: string | null;
     Notes?: string | null;
 }
@@ -597,6 +654,7 @@ export interface RequisitionSummary {
     RequisitionId: string;
     Title: string;
     Department: string;
+    UnitId?: string | null;
     Status: string;
     Priority?: string | null;
     FundingSource?: string | null;
@@ -621,6 +679,7 @@ export interface RequisitionDetail extends RequisitionSummary {
 export interface RequisitionCreateRequest {
     Title: string;
     Department: string;
+    UnitId?: string | null;
     ProcurementType?: string | null;
     Priority?: string | null;
     FundingSource?: string | null;
@@ -638,6 +697,7 @@ export interface RequisitionCreateRequest {
 export interface RequisitionUpdateRequest {
     Title?: string | null;
     Department?: string | null;
+    UnitId?: string | null;
     ProcurementType?: string | null;
     Priority?: string | null;
     FundingSource?: string | null;
@@ -665,8 +725,9 @@ export interface ContractAwardItem {
     Notes: string;
 }
 
-export interface ContractManagementItem {
+export interface ContractSummary {
     ContractId: string;
+    ContractCode: string;
     TenderTitle: string;
     VendorName: string;
     ContractValue: number;
@@ -675,20 +736,24 @@ export interface ContractManagementItem {
     EndDate: string;
     Progress: number;
     ContractManager: string;
-    Notes: string;
+    Notes?: string | null;
 }
 
-export interface ContractMilestoneItem {
+export interface ContractManagementItem extends ContractSummary {}
+
+export interface ContractMilestone {
     MilestoneId: string;
-    ContractId: string;
+    ContractCode: string;
     MilestoneTitle: string;
-    Status: string;
-    Progress: number;
+    StatusAfter: string;
+    ProgressAfter: number;
     Notes: string;
     ContractManager: string;
     RecordedBy: string;
     RecordedAt: string;
 }
+
+export interface ContractMilestoneItem extends ContractMilestone {}
 
 export interface ContractMilestoneCreateRequest {
     MilestoneTitle: string;
@@ -835,8 +900,13 @@ export interface WorkflowRouteDecision {
     CurrentStageKey: string;
     ThresholdId?: string | null;
     ApprovalRoute?: string | null;
+    ApprovalAuthorityCode?: string | null;
+    ApprovalAuthorityLabel?: string | null;
+    RequiresCgisApproval: boolean;
     RequiresBoard: boolean;
     RequiresBpp: boolean;
+    GovernanceBodyId?: string | null;
+    GovernanceBodyName?: string | null;
     Amount?: number | null;
     ProcurementType?: string | null;
     Notes?: string | null;
@@ -899,6 +969,7 @@ export interface AuditCloseoutCreateRequest {
 
 export interface EvaluationReportItem {
     ReportId: string;
+    ReportCode: string;
     TenderId: string;
     TenderTitle: string;
     CommitteeLead: string;

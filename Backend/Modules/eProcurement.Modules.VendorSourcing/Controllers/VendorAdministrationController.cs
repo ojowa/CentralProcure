@@ -61,6 +61,7 @@ SELECT
     v.registration_number,
     v.tax_id,
     v.contact_person,
+    v.phone_number,
     v.email,
     COALESCE(v.registration_date, v.created_at) AS registration_date,
     v.vendor_status,
@@ -83,6 +84,7 @@ WHERE
         OR v.registration_number ILIKE '%' || @p_query || '%'
         OR v.tax_id ILIKE '%' || @p_query || '%'
         OR v.contact_person ILIKE '%' || @p_query || '%'
+        OR COALESCE(v.phone_number, '') ILIKE '%' || @p_query || '%'
         OR v.email ILIKE '%' || @p_query || '%'
     )
 GROUP BY
@@ -91,6 +93,7 @@ GROUP BY
     v.registration_number,
     v.tax_id,
     v.contact_person,
+    v.phone_number,
     v.email,
     COALESCE(v.registration_date, v.created_at),
     v.vendor_status,
@@ -143,6 +146,7 @@ SELECT
     v.tax_id,
     v.company_address,
     v.contact_person,
+    v.phone_number,
     v.email,
     COALESCE(v.registration_date, v.created_at) AS registration_date,
     v.last_login,
@@ -166,6 +170,7 @@ GROUP BY
     v.tax_id,
     v.company_address,
     v.contact_person,
+    v.phone_number,
     v.email,
     COALESCE(v.registration_date, v.created_at),
     v.last_login,
@@ -262,6 +267,7 @@ RETURNING
     registration_number,
     tax_id,
     contact_person,
+    phone_number,
     email,
     COALESCE(registration_date, created_at) AS registration_date,
     vendor_status,
@@ -305,6 +311,7 @@ WHERE vendor_id = @p_vendor_id;";
                     reader.GetString(reader.GetOrdinal("registration_number")),
                     reader.GetString(reader.GetOrdinal("tax_id")),
                     reader.GetString(reader.GetOrdinal("contact_person")),
+                    GetNullableString(reader, "phone_number"),
                     reader.GetString(reader.GetOrdinal("email")),
                     reader.GetDateTime(reader.GetOrdinal("registration_date")),
                     reader.GetString(reader.GetOrdinal("vendor_status")),
@@ -461,6 +468,7 @@ WHERE document_id = @p_document_id;";
             reader.GetString(reader.GetOrdinal("registration_number")),
             reader.GetString(reader.GetOrdinal("tax_id")),
             reader.GetString(reader.GetOrdinal("contact_person")),
+            GetNullableString(reader, "phone_number"),
             reader.GetString(reader.GetOrdinal("email")),
             reader.GetDateTime(reader.GetOrdinal("registration_date")),
             reader.GetString(reader.GetOrdinal("vendor_status")),
@@ -479,6 +487,7 @@ WHERE document_id = @p_document_id;";
             reader.GetString(reader.GetOrdinal("tax_id")),
             reader.GetString(reader.GetOrdinal("company_address")),
             reader.GetString(reader.GetOrdinal("contact_person")),
+            GetNullableString(reader, "phone_number"),
             reader.GetString(reader.GetOrdinal("email")),
             reader.GetDateTime(reader.GetOrdinal("registration_date")),
             GetNullableDateTime(reader, "last_login"),

@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS identity.vendors (
     tax_id VARCHAR(100) UNIQUE NOT NULL,
     company_address TEXT NOT NULL,
     contact_person VARCHAR(255) NOT NULL,
+    phone_number VARCHAR(50) NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     registration_date TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW(),
@@ -41,6 +42,7 @@ CREATE OR REPLACE FUNCTION identity.register_vendor(
     p_tax_id VARCHAR(100),
     p_company_address TEXT,
     p_contact_person VARCHAR(255),
+    p_phone_number VARCHAR(50),
     p_email VARCHAR(255),
     p_password_hash VARCHAR(255)
 )
@@ -59,6 +61,7 @@ BEGIN
         tax_id,
         company_address,
         contact_person,
+        phone_number,
         email,
         password_hash,
         vendor_status
@@ -69,6 +72,7 @@ BEGIN
         p_tax_id,
         p_company_address,
         p_contact_person,
+        NULLIF(p_phone_number, ''),
         p_email,
         p_password_hash,
         'Pending Approval'
@@ -83,6 +87,7 @@ CREATE OR REPLACE PROCEDURE identity.register_vendor_sp(
     IN p_tax_id VARCHAR(100),
     IN p_company_address TEXT,
     IN p_contact_person VARCHAR(255),
+    IN p_phone_number VARCHAR(50),
     IN p_email VARCHAR(255),
     IN p_password_hash VARCHAR(255),
     OUT p_result refcursor
@@ -97,6 +102,7 @@ BEGIN
         p_tax_id,
         p_company_address,
         p_contact_person,
+        p_phone_number,
         p_email,
         p_password_hash
     );
@@ -193,6 +199,7 @@ RETURNS TABLE (
     tax_id VARCHAR(100),
     company_address TEXT,
     contact_person VARCHAR(255),
+    phone_number VARCHAR(50),
     email VARCHAR(255),
     registration_date TIMESTAMP WITHOUT TIME ZONE,
     last_login TIMESTAMP WITHOUT TIME ZONE,
@@ -209,6 +216,7 @@ BEGIN
         v.tax_id,
         v.company_address,
         v.contact_person,
+        v.phone_number,
         v.email,
         v.registration_date,
         v.last_login,

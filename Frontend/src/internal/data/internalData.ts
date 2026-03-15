@@ -51,12 +51,12 @@ export const roles: RoleDefinition[] = [
   {
     key: 'tenders_board',
     name: 'Tenders Board',
-    description: 'Reviews submissions and issues board decisions.'
+    description: 'DCG-led NIS Tenders Board that reviews and decides board-routed submissions.'
   },
   {
     key: 'accounting_officer',
-    name: 'Accounting Officer',
-    description: 'Approves high-value awards and delegated controls.'
+    name: 'CGIS',
+    description: 'Exercises direct low-value approval authority and accountable executive controls.'
   },
   {
     key: 'audit_oversight',
@@ -103,9 +103,137 @@ const requisitionDepartmentModules: InternalModule[] = [
   }
 ];
 
+const procurementPlanningModules: InternalModule[] = [
+  {
+    id: 'annual-procurement-plan',
+    title: 'Annual Procurement Plan (APP)',
+    section: 'Procurement Planning',
+    description: 'Manage departmental and agency-wide procurement plans and item ledgers.',
+    microservice: 'Procurement Workflow Service',
+    controlPurpose: 'Mandatory PPA 2007 baseline for all spending.',
+    actions: ['plan.create', 'plan.view', 'plan.update'],
+    allowedRoles: ['planning_statistics_officer', 'procurement_officer', 'accounting_officer']
+  }
+];
+
+const tenderManagementModules: InternalModule[] = [
+  {
+    id: 'create-tender',
+    title: 'Tender Creation',
+    section: 'Tendering & Sourcing',
+    description: 'Initialize procurement advertisements and bidding documents.',
+    microservice: 'Vendor Sourcing Service',
+    controlPurpose: 'Controlled creation of bidding opportunities.',
+    actions: ['tender.create'],
+    allowedRoles: ['procurement_officer']
+  },
+  {
+    id: 'publish-tender',
+    title: 'Publish Tenders',
+    section: 'Tendering & Sourcing',
+    description: 'Manage advertisement deadlines and push tenders to the public portal.',
+    microservice: 'Vendor Sourcing Service',
+    controlPurpose: 'Compliance with mandatory advertising periods.',
+    actions: ['tender.publish'],
+    allowedRoles: ['procurement_officer']
+  },
+  {
+    id: 'bid-opening-session',
+    title: 'Bid Opening',
+    section: 'Tendering & Sourcing',
+    description: 'Control and monitor public bid opening sessions in real-time.',
+    microservice: 'Vendor Sourcing Service',
+    controlPurpose: 'PPA compliance for transparent bid unlocking.',
+    actions: ['bidopening.control', 'bidopening.view'],
+    allowedRoles: ['procurement_officer', 'ict_admin']
+  }
+];
+
+const evaluationModules: InternalModule[] = [
+  {
+    id: 'technical-evaluation',
+    title: 'Technical Evaluation',
+    section: 'Evaluation Committee',
+    description: 'Score vendor technical bids against eligibility and quality criteria.',
+    microservice: 'Procurement Workflow Service',
+    controlPurpose: 'Ensure technical compliance before financial opening.',
+    actions: ['evaluation.technical.score', 'evaluation.actions'],
+    allowedRoles: ['technical_evaluator', 'evaluation_committee']
+  },
+  {
+    id: 'financial-evaluation',
+    title: 'Financial Evaluation',
+    section: 'Evaluation Committee',
+    description: 'Review commercial bids and rank by lowest evaluated responsive cost.',
+    microservice: 'Procurement Workflow Service',
+    controlPurpose: 'Finalize value-for-money recommendations.',
+    actions: ['evaluation.financial.score', 'evaluation.actions'],
+    allowedRoles: ['financial_evaluator', 'evaluation_committee']
+  }
+];
+
+const approvalModules: InternalModule[] = [
+  {
+    id: 'tenders-board-approval',
+    title: 'Tenders Board Approvals',
+    section: 'Governance & Approval',
+    description: 'Run CGIS direct approvals, DCG-led board decisions, and escalation-ready award reviews.',
+    microservice: 'Procurement Workflow Service',
+    controlPurpose: 'Statutory oversight and final spending authorization.',
+    actions: ['approval.requisition', 'approval.award'],
+    allowedRoles: ['tenders_board', 'accounting_officer']
+  }
+];
+
+const postAwardModules: InternalModule[] = [
+  {
+    id: 'contract-management',
+    title: 'Contracts & Milestones',
+    section: 'Post-Award & Execution',
+    description: 'Track project execution, log field milestones, and monitor performance.',
+    microservice: 'Post-Award Service',
+    controlPurpose: 'Ensure value-for-money through physical progress tracking.',
+    actions: ['contract.view', 'milestone.log'],
+    allowedRoles: ['procurement_officer', 'department_head', 'accounting_officer']
+  }
+];
+
+const oversightModules: InternalModule[] = [
+  {
+    id: 'bpp-escalation',
+    title: 'BPP No-Objection',
+    section: 'External Oversight',
+    description: 'Manage board-endorsed projects that exceed agency thresholds and require BPP prior review.',
+    microservice: 'Procurement Workflow Service',
+    controlPurpose: 'PPA 2007 mandatory external validation for high-value projects.',
+    actions: ['bpp.escalate', 'bpp.view'],
+    allowedRoles: ['procurement_officer', 'bpp_liaison']
+  },
+  {
+    id: 'administrative-review',
+    title: 'Complaint Handling',
+    section: 'Legal & Dispute',
+    description: 'Process and resolve formal vendor protests and administrative reviews.',
+    microservice: 'Procurement Workflow Service',
+    controlPurpose: 'Section 54 compliance for statutory dispute resolution.',
+    actions: ['complaint.review', 'complaint.resolve'],
+    allowedRoles: ['legal_reviewer', 'complaints_review_officer', 'accounting_officer']
+  }
+];
+
 export const roleModuleFallbacks: Partial<Record<RoleKey, InternalModule[]>> = {
   requisitioning_officer: requisitionDepartmentModules,
-  department_head: requisitionDepartmentModules
+  department_head: [...requisitionDepartmentModules, ...postAwardModules],
+  planning_statistics_officer: procurementPlanningModules,
+  procurement_officer: [...procurementPlanningModules, ...tenderManagementModules, ...postAwardModules, ...oversightModules],
+  technical_evaluator: evaluationModules,
+  financial_evaluator: evaluationModules,
+  evaluation_committee: evaluationModules,
+  tenders_board: approvalModules,
+  accounting_officer: [...approvalModules, ...postAwardModules, ...oversightModules],
+  bpp_liaison: oversightModules,
+  legal_reviewer: oversightModules,
+  complaints_review_officer: oversightModules,
 };
 
 export const requisitionTypes = ['Goods', 'Works', 'Services'];
@@ -155,13 +283,13 @@ export const requisitionSteps: Array<{
     key: 'tenders_board',
     title: 'Tenders Board',
     status: 'Awaiting',
-    detail: 'Review recommendation and approve board-level decisions.'
+    detail: 'DCG-led NIS Tenders Board reviews and decides board-routed recommendations.'
   },
   {
     key: 'accounting_officer',
-    title: 'Accounting Officer',
+    title: 'CGIS Approval',
     status: 'Conditional',
-    detail: 'Confirm delegated or escalated approvals.'
+    detail: 'Exercise direct low-value approval authority before award publication.'
   },
   {
     key: 'audit_oversight',
@@ -213,19 +341,19 @@ export const requisitionRoleGuidance: Partial<
     ]
   },
   tenders_board: {
-    focus: 'Exercise approval oversight on board-routed cases.',
+    focus: 'Exercise DCG-led board oversight on cases that fall within NIS Tenders Board authority.',
     checks: [
       'Check completeness of supporting documentation.',
-      'Confirm recommendation basis.',
-      'Record decision outcomes clearly.'
+      'Confirm that the recommendation basis is defensible.',
+      'Record the board decision and any BPP escalation clearly.'
     ]
   },
   accounting_officer: {
-    focus: 'Confirm financial authority and escalated approval readiness.',
+    focus: 'Exercise CGIS direct approval on low-value cases and keep the executive decision traceable.',
     checks: [
-      'Validate budget basis and threshold route.',
-      'Confirm supporting approvals are complete.',
-      'Record final decision traceably.'
+      'Validate that the threshold route resolves to CGIS direct approval.',
+      'Confirm the supporting pack is complete before approval.',
+      'Record the executive decision traceably.'
     ]
   },
   audit_oversight: {
@@ -240,47 +368,36 @@ export const requisitionRoleGuidance: Partial<
 
 export const thresholdBands: ThresholdBand[] = [
   {
-    id: 'below-50m',
+    id: 'cgis-direct',
     label: 'Below NGN 50M',
     min: 0,
     max: 50_000_000,
-    approvalLevel: 'Departmental / Internal Threshold',
+    approvalLevel: 'CGIS Direct Approval',
     timeline: '30 - 45 days',
     requiresBpp: false,
-    escalation: 'Escalates to board route if amount exceeds delegated authority.',
-    steps: ['Requisition Review', 'Procurement Processing', 'Approval']
+    escalation: 'Low-value cases move from evaluation to CGIS approval before award publication.',
+    steps: ['Requisition Review', 'Evaluation', 'CGIS Approval', 'Award Publication']
   },
   {
-    id: '50m-100m',
+    id: 'nis-board',
     label: 'NGN 50M - 100M',
     min: 50_000_000,
     max: 100_000_000,
-    approvalLevel: 'Immigration Tender Board',
+    approvalLevel: 'NIS Tenders Board',
     timeline: '45 - 60 days',
     requiresBpp: false,
-    escalation: 'Board review required before award publication.',
-    steps: ['Requisition Review', 'Evaluation', 'Tender Board Review']
+    escalation: 'Board-routed cases are decided by the DCG heads of directorates sitting as the NIS Tenders Board.',
+    steps: ['Requisition Review', 'Evaluation', 'Tenders Board Review', 'Award Publication']
   },
   {
-    id: '100m-250m',
-    label: 'NGN 100M - 250M',
+    id: 'bpp-prior-review',
+    label: 'NGN 100M+',
     min: 100_000_000,
-    max: 250_000_000,
-    approvalLevel: 'Accounting Officer + BPP',
+    max: Number.POSITIVE_INFINITY,
+    approvalLevel: 'NIS Tenders Board + BPP',
     timeline: '60 - 90 days',
     requiresBpp: true,
-    escalation: 'No-objection review required before final approval.',
-    steps: ['Requisition Review', 'Evaluation', 'Board Review', 'BPP No Objection']
-  },
-  {
-    id: '250m-plus',
-    label: 'NGN 250M+',
-    min: 250_000_000,
-    max: Number.POSITIVE_INFINITY,
-    approvalLevel: 'Federal Executive Council',
-    timeline: '90 - 120 days',
-    requiresBpp: true,
-    escalation: 'BPP no-objection and FEC escalation required.',
-    steps: ['Requisition Review', 'Evaluation', 'Board Review', 'BPP No Objection', 'FEC Approval']
+    escalation: 'High-value cases require board endorsement before BPP no-objection and award publication.',
+    steps: ['Requisition Review', 'Evaluation', 'Tenders Board Review', 'BPP No Objection', 'Award Publication']
   }
 ];

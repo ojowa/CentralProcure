@@ -1,4 +1,7 @@
 -- Function for Getting Requisition Detail (PostgreSQL)
+DROP PROCEDURE IF EXISTS procurement_workflow.get_requisition_detail_sp(UUID);
+DROP FUNCTION IF EXISTS procurement_workflow.get_requisition_detail(UUID);
+
 CREATE OR REPLACE FUNCTION procurement_workflow.get_requisition_detail(
     p_requisition_id UUID
 )
@@ -6,6 +9,7 @@ RETURNS TABLE (
     requisition_id UUID,
     title VARCHAR(255),
     department VARCHAR(150),
+    unit_id UUID,
     status VARCHAR(50),
     priority VARCHAR(50),
     funding_source VARCHAR(120),
@@ -30,6 +34,7 @@ BEGIN
         r.requisition_id,
         r.title,
         r.department,
+        r.unit_id,
         r.status,
         r.priority,
         r.funding_source,

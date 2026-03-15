@@ -11,6 +11,7 @@ public record RequisitionSummary(
     Guid RequisitionId,
     string Title,
     string Department,
+    Guid? UnitId,
     string Status,
     string? Priority,
     string? FundingSource,
@@ -22,6 +23,7 @@ public record RequisitionDetail(
     Guid RequisitionId,
     string Title,
     string Department,
+    Guid? UnitId,
     string Status,
     string? Priority,
     string? FundingSource,
@@ -42,6 +44,7 @@ public record RequisitionDetail(
 public record RequisitionCreateRequest(
     string Title,
     string Department,
+    Guid? UnitId,
     string? ProcurementType,
     string? Priority,
     string? FundingSource,
@@ -58,6 +61,7 @@ public record RequisitionCreateRequest(
 public record RequisitionUpdateRequest(
     string? Title,
     string? Department,
+    Guid? UnitId,
     string? ProcurementType,
     string? Priority,
     string? FundingSource,

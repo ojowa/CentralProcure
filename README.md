@@ -8,71 +8,62 @@ The core principle of this project is **"Compliance by Design,"** meaning the sy
 
 ## 2. Documentation Guide
 
-This project is documented across several markdown files, each tailored for a specific audience and purpose. For a complete understanding, it is recommended to start with the comprehensive design document.
+The project documentation is organized into logical categories within the `design notes/` directory.
 
-### Primary Document
+### 2.1. Compliance Documentation
+*Focus: Statutory adherence to the PPA 2007, workflows, and state tracking.*
 
--   **`comprehensive_system_design_and_architecture.md`**: This is the master document. It integrates all aspects of the system design, from the legal framework and workflow to the detailed microservices architecture and technology stack. **All stakeholders should start here.**
+- [**PPA2007.md**](./design%20notes/compliance/PPA2007.md): The full text of the Public Procurement Act, 2007.
+- [**Workflow Blueprint**](./design%20notes/compliance/workflow_blueprint.md): The canonical BPMN-style process flow and state machine.
+- [**Implementation TODO**](./design%20notes/compliance/implementation_todo.md): Pragmatic execution checklist for workflow enforcement.
+- [**State Coverage Matrix**](./design%20notes/compliance/state_matrix.md): Baseline audit of implemented vs. missing workflow states.
+- [**Phase 9 Verification Pack**](./design%20notes/compliance/phase9_verification.md): Repeatable evidence set for workflow implementation.
+- [**Budget Gaps Analysis**](./design%20notes/compliance/budget_gaps_analysis.md): Analysis of budget implementation and PPA 2007 alignment.
 
-### Appendices & Supporting Documents
+### 2.2. Architecture Documentation
+*Focus: System design, technology stack, and backend consolidation.*
 
-These documents provide deeper dives into specific areas and were used to create the comprehensive document.
+- [**System Design (Master Doc)**](./design%20notes/architecture/system_design.md): The integrated master document for system architecture. **Start here.**
+- [**Workflow Architecture**](./design%20notes/architecture/workflow_architecture.md): Plain-language explanation of the system architecture.
+- [**Technology Implementation**](./design%20notes/architecture/technology_implementation.md): Overview of implementation phases and standards.
+- [**Microservices Stack**](./design%20notes/architecture/microservices_stack.md): Detailed 5-service consolidated technology stack.
+- [**Microservices Proposal**](./design%20notes/architecture/microservices_proposal.md): Production-grade technology stack proposal.
+- [**Backend Consolidation**](./design%20notes/architecture/backend_consolidation.md): Mapping for consolidating into the 5-service model.
+- [**Diagram References**](./design%20notes/architecture/diagram_references.md): Formal descriptions of architecture and workflow diagrams.
 
--   **`electronic_procurement_system_proposal_nigeria_immigration_service.md`**: The original high-level proposal outlining the project's objectives, scope, and benefits.
-    -   *Audience: Management, Decision-Makers*
+### 2.3. UI-UX & Modules
+*Focus: User interface mapping and feature-specific designs.*
 
--   **`appendix_a_procurement_workflow_and_system_architecture_explanation.md`**: A plain-language explanation of the procurement workflow and system architecture, aligned with the PPA 2007.
-    -   *Audience: Management, Tenders Boards, Oversight Bodies*
+- [**Sitemap & Wireframes**](./design%20notes/ui-ux/sitemap_and_wireframes.md): UI structure and navigation flow.
+- [**UI-to-Backend Mapping**](./design%20notes/ui-ux/ui_mapping.md): Table mapping UI screens to governing microservices.
+- [**Module Designs**](./design%20notes/modules/): Directory containing specific designs for Tender Management, Evaluation, Bid Opening, etc.
 
--   **`appendix_b_technology_phase.md`**: A high-level overview of the technology implementation phase, focusing on governance, security, and reliability.
-    -   *Audience: Management, ICT Leadership*
+### 2.4. Proposals
+*Focus: High-level executive summaries and proposals.*
 
--   **`appendix_c_detailed_microservices_technology_stack.md`** & **`appendix_d_full_microservices_based_technology_stack_proposal.md`**: Detailed proposals for the production-grade microservices technology stack.
-    -   *Audience: Architects, Technical Leads, ICT Leadership*
-
--   **`appendix_e_ui_to_microservice_mapping_table.md`**: A crucial table that maps user interface screens to their governing backend microservices, demonstrating the enforcement of separation of duties.
-    -   *Audience: Architects, Developers, Auditors*
-
--   **`appendix_f_ui_wireframe_list_and_sitemap.md`**: A sitemap and list of UI wireframes, illustrating user navigation and the role-based structure of the application.
-    -   *Audience: UI/UX Designers, Frontend Developers, Product Managers*
-
--   **`workflow_and_architecture_diagram_references.md`**: Formal descriptions of the workflow and architecture diagrams used throughout the documentation.
-    -   *Audience: All stakeholders needing to understand the diagrams.*
+- [**Executive Proposal**](./design%20notes/proposals/executive_proposal.md): The original project proposal for NIS management.
 
 ## 3. Core Architectural Concepts
 
--   **Layered Architecture**: The system is separated into Presentation, Application, Data, and Integration layers to ensure a clear separation of concerns.
--   **Microservices**: The backend is decomposed into small, independent services, each responsible for a specific business capability (e.g., Bidding, Evaluation, Approvals). This enhances security, scalability, and maintainability.
+- **Layered Architecture**: The system is separated into Presentation, Application, Data, and Integration layers to ensure a clear separation of concerns.
+- **Consolidated Microservices**: The backend is organized into five domain-aligned services (`identity`, `vendor-sourcing`, `procurement-workflow`, `post-award`, and `governance`).
 
 ## 4. Technology Stack Summary
 
--   **Frontend**: The project has two separate frontend applications:
-    -   `public-frontend`: A React (TypeScript) application for vendors.
-    -   `internal-frontend`: A placeholder for the internal NIS staff UI, also to be built with React (TypeScript).
--   **Backend**: C#/.NET
--   **API Gateway**: Kong
--   **Database**: PostgreSQL (Primary)
--   **Authentication**: JWT (for backend statelessness)
--   **Workflow**: Camunda BPMN Engine
--   **Messaging**: RabbitMQ
--   **Containerization**: Docker & Kubernetes
--   **Monitoring & Logging**: Prometheus, Grafana, ELK Stack
+- **Frontend**: Next.js (TypeScript) with React.
+- **Backend**: .NET 10 (ASP.NET Core).
+- **Database**: Microsoft SQL Server (strictly enforced for persistence).
+- **API Style**: RESTful APIs with JWT authentication.
+- **Workflow**: WorkflowRuntimeTracker (integrated into domain services).
 
-## 5. Instructions for Gemini (and other AI Assistants)
+## 5. Instructions for AI Assistants
 
-When asked to analyze, summarize, or generate code for this project, please adhere to the following:
+When asked to analyze or generate code for this project, please adhere to:
 
-1.  **Prioritize `comprehensive_system_design_and_architecture.md`** as the single source of truth for the overall design.
-2.  Use the appendices (`appendix_*.md` files) for more granular detail on specific topics when required.
-3.  Recognize the strict "Compliance by Design" principle. All generated code, workflows, or suggestions must align with the PPA-compliant workflow described in the documents.
-4.  The technology stack is explicitly defined. Do not suggest alternative technologies unless specifically asked to.
-5.  Maintain the principle of separation of duties in any proposed architecture or code, referencing the UI-to-Microservice mapping in `appendix_e_ui_to_microservice_mapping_table.md` as a guide.
-6.  **Distinguish clearly between the Public (Vendor) UI and the Internal (NIS) UI.** Focus on the Public UI unless explicitly directed otherwise.
-
-### 5.1. Coding Standards & Naming Conventions
-
-To maintain consistency across the project, the following standards are mandatory:
-
--   **Frontend (React/TypeScript):** Use **PascalCase** for all components, variables, properties, and types.
--   **Backend (.NET/C#):** Use **PascalCase** for all classes, methods, variables, and properties.
--   **Database (PostgreSQL):** Use **snake_case** for all schemas, tables, and columns.
+1. **Prioritize `architecture/system_design.md`** as the single source of truth.
+2. **Follow "Compliance by Design"**: All logic must align with the PPA 2007 workflow.
+3. **Respect Casing Mandates**:
+   - **Frontend/Backend:** `PascalCase` for code identifiers and API payloads.
+   - **Database:** `snake_case` for tables and columns.
+4. **Adhere to the 400-Line Limit**: Refactor files that exceed 400 lines into logical sub-components.
+5. **Use Stored Procedures**: All write operations (Create/Update) MUST use stored procedures.

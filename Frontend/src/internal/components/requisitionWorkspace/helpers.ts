@@ -34,6 +34,7 @@ export type WorkspaceMode = 'create' | 'history' | 'tracking';
 export type RequisitionFormState = {
   Title: string;
   Department: string;
+  UnitId: string;
   ProcurementType: string;
   Priority: string;
   FundingSource: string;
@@ -66,6 +67,7 @@ export const createLineItem = (): RequisitionLineItem => ({
 export const buildEmptyForm = (): RequisitionFormState => ({
   Title: '',
   Department: '',
+  UnitId: '',
   ProcurementType: requisitionTypes[0],
   Priority: requisitionPriorities[0],
   FundingSource: requisitionFundingSources[0],
@@ -95,6 +97,7 @@ const toInputDate = (value?: string | null): string => {
 export const buildFormFromDetail = (detail: RequisitionDetail): RequisitionFormState => ({
   Title: detail.Title ?? '',
   Department: detail.Department ?? '',
+  UnitId: detail.UnitId ?? '',
   ProcurementType: detail.ProcurementType ?? requisitionTypes[0],
   Priority: detail.Priority ?? requisitionPriorities[0],
   FundingSource: detail.FundingSource ?? requisitionFundingSources[0],
@@ -175,6 +178,7 @@ export const buildPayload = (
 ): RequisitionCreateRequest => ({
   Title: form.Title.trim(),
   Department: form.Department.trim(),
+  UnitId: form.UnitId || undefined,
   ProcurementType: form.ProcurementType || undefined,
   Priority: form.Priority || undefined,
   FundingSource: form.FundingSource || undefined,

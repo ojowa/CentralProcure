@@ -20,6 +20,7 @@ const ProfileManagementPage: React.FC = () => {
         CompanyName: '',
         CompanyAddress: '',
         ContactPerson: '',
+        PhoneNumber: '',
         Email: ''
     });
 
@@ -53,6 +54,7 @@ const ProfileManagementPage: React.FC = () => {
                         CompanyName: data.CompanyName,
                         CompanyAddress: data.CompanyAddress,
                         ContactPerson: data.ContactPerson,
+                        PhoneNumber: data.PhoneNumber ?? '',
                         Email: data.Email
                     });
                 }
@@ -79,6 +81,7 @@ const ProfileManagementPage: React.FC = () => {
             CompanyName: profile.CompanyName,
             CompanyAddress: profile.CompanyAddress,
             ContactPerson: profile.ContactPerson,
+            PhoneNumber: profile.PhoneNumber ?? '',
             Email: profile.Email
         });
         setSuccessMessage(null);
@@ -92,6 +95,7 @@ const ProfileManagementPage: React.FC = () => {
             CompanyName: profile.CompanyName,
             CompanyAddress: profile.CompanyAddress,
             ContactPerson: profile.ContactPerson,
+            PhoneNumber: profile.PhoneNumber ?? '',
             Email: profile.Email
         });
         setError(null);
@@ -175,6 +179,7 @@ const ProfileManagementPage: React.FC = () => {
                                 <p className="text-gray-600"><strong>Company Name:</strong> <span className="font-medium text-gray-800">{profile.CompanyName}</span></p>
                                 <p className="text-gray-600"><strong>Address:</strong> <span className="font-medium text-gray-800">{profile.CompanyAddress}</span></p>
                                 <p className="text-gray-600"><strong>Contact Person:</strong> <span className="font-medium text-gray-800">{profile.ContactPerson}</span></p>
+                                <p className="text-gray-600"><strong>Phone Number:</strong> <span className="font-medium text-gray-800">{profile.PhoneNumber || 'N/A'}</span></p>
                                 <p className="text-gray-600"><strong>Contact Email:</strong> <span className="font-medium text-gray-800">{profile.Email}</span></p>
                             </>
                         ) : (
@@ -203,6 +208,15 @@ const ProfileManagementPage: React.FC = () => {
                                         type="text"
                                         value={formData.ContactPerson ?? ''}
                                         onChange={(e) => handleChange('ContactPerson', e.target.value)}
+                                        className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Phone Number</label>
+                                    <input
+                                        type="tel"
+                                        value={formData.PhoneNumber ?? ''}
+                                        onChange={(e) => handleChange('PhoneNumber', e.target.value)}
                                         className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                                     />
                                 </div>

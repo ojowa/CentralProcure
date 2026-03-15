@@ -3,8 +3,8 @@
 This pack is the repeatable evidence set for the PPA 2007 workflow implementation.
 
 Artifacts:
-- [verify-phase9-workflow.ps1](C:\Users\OJOWA\Documents\Project 4\CentralProcure\scripts\verify-phase9-workflow.ps1)
-- [phase9-workflow-scenarios.json](C:\Users\OJOWA\Documents\Project 4\CentralProcure\scripts\phase9-workflow-scenarios.json)
+- [verify-phase9-workflow.ps1](../../scripts/verify-phase9-workflow.ps1)
+- [phase9-workflow-scenarios.json](../../scripts/phase9-workflow-scenarios.json)
 
 ## Scope
 

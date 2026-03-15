@@ -12,11 +12,18 @@ namespace eProcurement.Modules.Identity.DTOs
         string? RegistrationNumber = null,
         string? TaxID = null,
         string? CompanyAddress = "",
-        string? ContactPerson = "");
+        string? ContactPerson = "",
+        string? PhoneNumber = "");
 
     public record InternalUserRegistrationRequest(
         string Email,
         string Password,
+        string Username,
+        string FirstName,
+        string? MiddleName,
+        string Surname,
+        string ServiceNumber,
+        Guid? UnitId,
         string? Role = "Internal");
 
     public record CreateRoleRequest(string RoleName, string? Description);
@@ -40,10 +47,19 @@ namespace eProcurement.Modules.Identity.DTOs
         string? Status,
         string? ErrorMessage);
 
-    public record InternalUserRegistrationResult(Guid InternalUserId, string Email, string Role);
+    public record InternalUserRegistrationResult(Guid InternalUserId, string Email, string Role, Guid? UnitId = null, string? UnitName = null);
     public record InternalUserRoleResult(Guid InternalUserId, string Email, string Role);
 
     public record RoleResult(Guid RoleId, string RoleName, string? Description, bool IsActive);
+    public record InternalOrganizationalUnitResult(
+        Guid UnitId,
+        string UnitName,
+        string UnitCode,
+        string UnitType,
+        Guid? ParentUnitId,
+        string? ParentUnitName,
+        int SortOrder,
+        bool IsAssignable);
 
     public record InternalModuleResult(
         string Id,

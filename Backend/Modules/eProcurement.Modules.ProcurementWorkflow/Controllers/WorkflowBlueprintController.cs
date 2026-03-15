@@ -41,10 +41,17 @@ SELECT
     min_amount,
     max_amount,
     approval_route,
+    approval_authority_code,
+    approval_authority_label,
+    requires_cgis_approval,
     requires_board,
     requires_bpp,
+    governance_body_id,
+    body.body_name AS governance_body_name,
     COALESCE(notes, '') AS notes
 FROM procurement_workflow.approval_thresholds
+LEFT JOIN procurement_workflow.governance_bodies body
+    ON body.body_id = procurement_workflow.approval_thresholds.governance_body_id
 WHERE status = 'Active'
 ORDER BY procurement_type NULLS FIRST, min_amount ASC;";
 
@@ -63,8 +70,13 @@ ORDER BY procurement_type NULLS FIRST, min_amount ASC;";
                     reader.GetDecimal(reader.GetOrdinal("min_amount")),
                     reader.IsDBNull(reader.GetOrdinal("max_amount")) ? null : reader.GetDecimal(reader.GetOrdinal("max_amount")),
                     reader.GetString(reader.GetOrdinal("approval_route")),
+                    reader.GetString(reader.GetOrdinal("approval_authority_code")),
+                    reader.GetString(reader.GetOrdinal("approval_authority_label")),
+                    reader.GetBoolean(reader.GetOrdinal("requires_cgis_approval")),
                     reader.GetBoolean(reader.GetOrdinal("requires_board")),
                     reader.GetBoolean(reader.GetOrdinal("requires_bpp")),
+                    reader.IsDBNull(reader.GetOrdinal("governance_body_id")) ? null : reader.GetGuid(reader.GetOrdinal("governance_body_id")),
+                    reader.IsDBNull(reader.GetOrdinal("governance_body_name")) ? null : reader.GetString(reader.GetOrdinal("governance_body_name")),
                     reader.GetString(reader.GetOrdinal("notes"))));
             }
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import type { InternalModule, RoleKey } from '../types/internal';
+import type { InternalModule, InternalRoleRecord, RoleDefinition, RoleKey } from '../types/internal';
 import { InternalHeader } from './InternalHeader';
 import { SidebarNav } from './SidebarNav';
 import { DashboardPage } from './DashboardPage';
@@ -11,7 +11,15 @@ import { PaymentTrackingModulePage } from './PaymentTrackingModulePage';
 import { PostAwardInspectionModulePage } from './PostAwardInspectionModulePage';
 import { RequisitionOfficerWorkspace } from './RequisitionOfficerWorkspace';
 import { WorkflowConfigurationModulePage } from './WorkflowConfigurationModulePage';
-import { fetchInternalModules } from '../services/internalAuthService';
+import { ProcurementPlanModule } from './ProcurementPlanModule';
+import { TenderManagementModule } from './TenderManagementModule';
+import { EvaluationScoringModule } from './EvaluationScoringModule';
+import { BidOpeningModule } from './BidOpeningModule';
+import { TendersBoardApprovalModule } from './TendersBoardApprovalModule';
+import { ContractManagementModule } from './ContractManagementModule';
+import { BppEscalationModule } from './BppEscalationModule';
+import { AdministrativeReviewModule } from './AdministrativeReviewModule';
+import { fetchInternalModules, fetchInternalRoles, resolveRole } from '../services/internalAuthService';
 import { fetchModuleData } from '../services/moduleService';
 import { roleModuleFallbacks, roles } from '../data/internalData';
 
@@ -45,8 +53,8 @@ type InternalModuleRendererProps = {
   moduleData: unknown;
   moduleError: string | null;
   isLoading: boolean;
-  token?: string | null;
-  role?: RoleKey | null;
+  token: string | null;
+  role: RoleKey | null;
   userEmail?: string | null;
   onModuleChange: (moduleId: string) => void;
 };
@@ -118,12 +126,21 @@ const moduleRenderers: Partial<Record<string, (props: InternalModuleRendererProp
   'create-requisition': (props) => <RequisitionOfficerWorkspace module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} onModuleChange={props.onModuleChange} />,
   'requisition-history': (props) => <RequisitionOfficerWorkspace module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} onModuleChange={props.onModuleChange} />,
   'requisition-tracking': (props) => <RequisitionOfficerWorkspace module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} onModuleChange={props.onModuleChange} />,
-  'administrative-review': (props) => <AdministrativeReviewModulePage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} />,
   'audit-dashboard': (props) => <AuditDashboardWorkspace module={props.module} token={props.token} />,
   'audit-trail-viewer': (props) => <AuditTrailWorkspace module={props.module} token={props.token} />,
   'compliance-reports': (props) => <ComplianceReportsWorkspace module={props.module} token={props.token} />,
   'inspection-acceptance': (props) => <PostAwardInspectionModulePage module={props.module} token={props.token} />,
   'payment-tracking': (props) => <PaymentTrackingModulePage module={props.module} token={props.token} userEmail={props.userEmail} />,
+  'contract-management': (props) => <ContractManagementModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
+  'bpp-escalation': (props) => <BppEscalationModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
+  'administrative-review': (props) => <AdministrativeReviewModulePage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} />,
+  'annual-procurement-plan': (props) => <ProcurementPlanModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
+  'create-tender': (props) => <TenderManagementModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
+  'publish-tender': (props) => <TenderManagementModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
+  'technical-evaluation': (props) => <EvaluationScoringModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
+  'financial-evaluation': (props) => <EvaluationScoringModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
+  'bid-opening-session': (props) => <BidOpeningModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
+  'tenders-board-approval': (props) => <TendersBoardApprovalModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
   'workflow-configuration': (props) => (
     <WorkflowConfigurationModulePage
       module={props.module}
@@ -134,8 +151,33 @@ const moduleRenderers: Partial<Record<string, (props: InternalModuleRendererProp
   )
 };
 
+const formatRoleName = (value: string): string =>
+  value
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .trim();
+
+const roleFallbackByKey = new Map<RoleKey, RoleDefinition>(roles.map((role) => [role.key, role]));
+
+const mapRoleRecordToDefinition = (roleRecord: InternalRoleRecord): RoleDefinition | null => {
+  const key = resolveRole(roleRecord.RoleName);
+  if (!key) {
+    return null;
+  }
+
+  const fallbackRole = roleFallbackByKey.get(key);
+
+  return {
+    key,
+    name: formatRoleName(roleRecord.RoleName),
+    description: roleRecord.Description?.trim() || fallbackRole?.description || ''
+  };
+};
+
 export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShellProps) => {
   const [accessibleModules, setAccessibleModules] = useState<InternalModule[]>([]);
+  const [availableRoles, setAvailableRoles] = useState<RoleDefinition[]>(roles);
   const [modulesLoading, setModulesLoading] = useState(false);
   const [modulesError, setModulesError] = useState<string | null>(null);
   const [moduleData, setModuleData] = useState<unknown>(null);
@@ -144,12 +186,58 @@ export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShel
   const [activeModuleId, setActiveModuleId] = useState<string>('dashboard');
 
   const selectedRole = userRole ?? defaultRole;
-  const activeRoleDefinition = roles.find((role) => role.key === selectedRole) ?? roles[0];
+  const activeRoleDefinition =
+    availableRoles.find((role) => role.key === selectedRole) ??
+    roleFallbackByKey.get(selectedRole) ??
+    roles[0];
 
   const activeModule = accessibleModules.find((module) => module.id === activeModuleId) ?? accessibleModules[0];
 
   const handleSignOut = useCallback(() => {
     window.location.href = '/internal/login';
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    fetchInternalRoles()
+      .then((roleRecords) => {
+        if (!isMounted) {
+          return;
+        }
+
+        const mappedRoles = roleRecords
+          .filter((roleRecord) => roleRecord.IsActive)
+          .map(mapRoleRecordToDefinition)
+          .filter((role): role is RoleDefinition => Boolean(role));
+
+        if (!mappedRoles.length) {
+          setAvailableRoles(roles);
+          return;
+        }
+
+        const dedupedRoles = Array.from(
+          mappedRoles.reduce((map, role) => {
+            if (!map.has(role.key)) {
+              map.set(role.key, role);
+            }
+
+            return map;
+          }, new Map<RoleKey, RoleDefinition>())
+            .values()
+        );
+
+        setAvailableRoles(dedupedRoles);
+      })
+      .catch(() => {
+        if (isMounted) {
+          setAvailableRoles(roles);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {

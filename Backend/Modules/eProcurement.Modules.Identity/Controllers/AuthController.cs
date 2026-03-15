@@ -26,6 +26,10 @@ namespace eProcurement.Modules.Identity.Controllers
         private static readonly Regex HasLowercase = new("[a-z]", RegexOptions.Compiled);
         private static readonly Regex HasDigit = new("[0-9]", RegexOptions.Compiled);
         private static readonly Regex HasSymbol = new("[^a-zA-Z0-9]", RegexOptions.Compiled);
+        private static readonly Regex UsernamePattern = new("^[A-Za-z0-9._-]{3,100}$", RegexOptions.Compiled);
+        private static readonly Regex NamePattern = new("^[A-Za-z][A-Za-z' -]{0,99}$", RegexOptions.Compiled);
+        private static readonly Regex ServiceNumberPattern = new("^[A-Za-z0-9/-]{3,100}$", RegexOptions.Compiled);
+        private static readonly Regex PhoneNumberPattern = new(@"^\+?[0-9 ()-]{7,20}$", RegexOptions.Compiled);
         private readonly WorkflowActionGrantService _workflowActionGrantService;
 
         public AuthController(
@@ -189,11 +193,12 @@ namespace eProcurement.Modules.Identity.Controllers
             if (string.IsNullOrWhiteSpace(request.RegistrationNumber) ||
                 string.IsNullOrWhiteSpace(request.TaxID) ||
                 string.IsNullOrWhiteSpace(request.CompanyAddress) ||
-                string.IsNullOrWhiteSpace(request.ContactPerson))
+                string.IsNullOrWhiteSpace(request.ContactPerson) ||
+                string.IsNullOrWhiteSpace(request.PhoneNumber))
             {
                 return BadRequest(new
                 {
-                    message = "Registration number, tax ID, company address, and contact person are required."
+                    message = "Registration number, tax ID, company address, contact person, and phone number are required."
                 });
             }
 
@@ -220,6 +225,7 @@ namespace eProcurement.Modules.Identity.Controllers
                 cmd.Parameters.AddWithValue("p_tax_id", NpgsqlDbType.Varchar, request.TaxID);
                 cmd.Parameters.AddWithValue("p_company_address", NpgsqlDbType.Text, request.CompanyAddress);
                 cmd.Parameters.AddWithValue("p_contact_person", NpgsqlDbType.Varchar, request.ContactPerson);
+                cmd.Parameters.AddWithValue("p_phone_number", NpgsqlDbType.Varchar, request.PhoneNumber);
                 cmd.Parameters.AddWithValue("p_email", NpgsqlDbType.Varchar, request.Email);
                 cmd.Parameters.AddWithValue("p_password_hash", NpgsqlDbType.Varchar, hash);
                 cmd.Parameters.Add(new NpgsqlParameter("p_result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.Output });
@@ -268,9 +274,15 @@ namespace eProcurement.Modules.Identity.Controllers
                     CommandType = CommandType.StoredProcedure
                 };
 
-                cmd.Parameters.AddWithValue("p_email", NpgsqlDbType.Varchar, request.Email);
+                cmd.Parameters.AddWithValue("p_email", NpgsqlDbType.Varchar, request.Email.Trim());
+                cmd.Parameters.AddWithValue("p_username", NpgsqlDbType.Varchar, request.Username.Trim());
+                cmd.Parameters.AddWithValue("p_first_name", NpgsqlDbType.Varchar, request.FirstName.Trim());
+                cmd.Parameters.AddWithValue("p_middle_name", NpgsqlDbType.Varchar, (object?)request.MiddleName?.Trim() ?? string.Empty);
+                cmd.Parameters.AddWithValue("p_surname", NpgsqlDbType.Varchar, request.Surname.Trim());
+                cmd.Parameters.AddWithValue("p_service_number", NpgsqlDbType.Varchar, request.ServiceNumber.Trim());
+                cmd.Parameters.AddWithValue("p_unit_id", NpgsqlDbType.Uuid, request.UnitId!.Value);
                 cmd.Parameters.AddWithValue("p_password_hash", NpgsqlDbType.Varchar, hash);
-                cmd.Parameters.AddWithValue("p_role", NpgsqlDbType.Varchar, request.Role ?? "Internal");
+                cmd.Parameters.AddWithValue("p_role_name", NpgsqlDbType.Varchar, request.Role ?? "Internal");
                 cmd.Parameters.Add(new NpgsqlParameter("p_result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.Output });
 
                 var results = await ExecuteRefcursorAsync(cmd, MapInternalUserRegistrationResult, ct);
@@ -374,6 +386,55 @@ namespace eProcurement.Modules.Identity.Controllers
                 : await _workflowActionGrantService.GetRoleModuleActionsAsync(connectionString, role, ct);
 
             return Ok(InternalModuleCatalog.GetModulesForRole(role, workflowActions));
+        }
+
+        [HttpGet("internal/units")]
+        public async Task<IActionResult> GetInternalUnits(CancellationToken ct)
+        {
+            var connectionString = GetConnectionString();
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                return Problem("Connection string 'Primary' is not configured.", statusCode: 500);
+            }
+
+            try
+            {
+                await using var conn = new NpgsqlConnection(connectionString);
+                await conn.OpenAsync(ct);
+
+                const string sql =
+                    """
+                    SELECT
+                        ou.unit_id,
+                        ou.unit_name,
+                        ou.unit_code,
+                        ou.unit_type,
+                        ou.parent_unit_id,
+                        parent.unit_name AS parent_unit_name,
+                        ou.sort_order,
+                        ou.is_assignable
+                    FROM identity.organizational_units ou
+                    LEFT JOIN identity.organizational_units parent ON parent.unit_id = ou.parent_unit_id
+                    WHERE ou.is_active = TRUE
+                    ORDER BY ou.sort_order ASC, ou.unit_name ASC
+                    """;
+
+                await using var cmd = new NpgsqlCommand(sql, conn);
+                await using var reader = await cmd.ExecuteReaderAsync(ct);
+
+                var results = new List<InternalOrganizationalUnitResult>();
+                while (await reader.ReadAsync(ct))
+                {
+                    results.Add(MapInternalOrganizationalUnitResult(reader));
+                }
+
+                return Ok(results);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error fetching internal organizational units.");
+                return Problem("Internal server error fetching internal organizational units.");
+            }
         }
 
         [HttpPut("internal/users/role")]
@@ -614,6 +675,56 @@ namespace eProcurement.Modules.Identity.Controllers
                 return "Role is required.";
             }
 
+            if (string.IsNullOrWhiteSpace(request.Username))
+            {
+                return "Username is required.";
+            }
+
+            if (!UsernamePattern.IsMatch(request.Username.Trim()))
+            {
+                return "Username must be 3-100 characters and use only letters, numbers, dot, underscore, or hyphen.";
+            }
+
+            if (string.IsNullOrWhiteSpace(request.FirstName))
+            {
+                return "First name is required.";
+            }
+
+            if (!NamePattern.IsMatch(request.FirstName.Trim()))
+            {
+                return "First name contains invalid characters.";
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.MiddleName) && !NamePattern.IsMatch(request.MiddleName.Trim()))
+            {
+                return "Middle name contains invalid characters.";
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Surname))
+            {
+                return "Surname is required.";
+            }
+
+            if (!NamePattern.IsMatch(request.Surname.Trim()))
+            {
+                return "Surname contains invalid characters.";
+            }
+
+            if (string.IsNullOrWhiteSpace(request.ServiceNumber))
+            {
+                return "Service number is required.";
+            }
+
+            if (!ServiceNumberPattern.IsMatch(request.ServiceNumber.Trim()))
+            {
+                return "Service number must be 3-100 characters and use only letters, numbers, slash, or hyphen.";
+            }
+
+            if (!request.UnitId.HasValue || request.UnitId.Value == Guid.Empty)
+            {
+                return "Organizational unit is required.";
+            }
+
             return ValidateInternalPassword(request.Password);
         }
 
@@ -632,6 +743,16 @@ namespace eProcurement.Modules.Identity.Controllers
             if (string.IsNullOrWhiteSpace(request.CompanyName))
             {
                 return "Company name is required.";
+            }
+
+            if (string.IsNullOrWhiteSpace(request.PhoneNumber))
+            {
+                return "Phone number is required.";
+            }
+
+            if (!PhoneNumberPattern.IsMatch(request.PhoneNumber.Trim()))
+            {
+                return "Phone number must be 7-20 characters and may include digits, spaces, parentheses, hyphen, or leading +.";
             }
 
             return ValidateInternalPassword(request.Password);
@@ -677,8 +798,15 @@ namespace eProcurement.Modules.Identity.Controllers
                 SELECT iu.email, iu.password_hash
                 FROM identity.internal_users iu
                 WHERE lower(iu.email) = lower(@identifier)
+                   OR lower(iu.username) = lower(@identifier)
+                   OR lower(iu.service_number) = lower(@identifier)
                    OR lower(split_part(iu.email, '@', 1)) = lower(@identifier)
-                ORDER BY CASE WHEN lower(iu.email) = lower(@identifier) THEN 0 ELSE 1 END
+                ORDER BY CASE
+                    WHEN lower(iu.email) = lower(@identifier) THEN 0
+                    WHEN lower(iu.username) = lower(@identifier) THEN 1
+                    WHEN lower(iu.service_number) = lower(@identifier) THEN 2
+                    ELSE 3
+                END
                 LIMIT 1
                 """,
                 conn);
@@ -808,7 +936,9 @@ namespace eProcurement.Modules.Identity.Controllers
             return new InternalUserRegistrationResult(
                 r.GetGuid(r.GetOrdinal("internal_user_id")),
                 r.GetString(r.GetOrdinal("email")),
-                r.GetString(r.GetOrdinal("role")));
+                r.GetString(r.GetOrdinal("role")),
+                GetNullableGuid(r, "unit_id"),
+                GetNullableString(r, "unit_name"));
         }
 
         private static InternalUserRoleResult MapInternalUserRoleResult(NpgsqlDataReader r)
@@ -826,6 +956,19 @@ namespace eProcurement.Modules.Identity.Controllers
                 r.GetString(r.GetOrdinal("role_name")),
                 GetNullableString(r, "description"),
                 r.GetBoolean(r.GetOrdinal("is_active")));
+        }
+
+        private static InternalOrganizationalUnitResult MapInternalOrganizationalUnitResult(NpgsqlDataReader r)
+        {
+            return new InternalOrganizationalUnitResult(
+                r.GetGuid(r.GetOrdinal("unit_id")),
+                r.GetString(r.GetOrdinal("unit_name")),
+                r.GetString(r.GetOrdinal("unit_code")),
+                r.GetString(r.GetOrdinal("unit_type")),
+                GetNullableGuid(r, "parent_unit_id"),
+                GetNullableString(r, "parent_unit_name"),
+                r.GetInt32(r.GetOrdinal("sort_order")),
+                r.GetBoolean(r.GetOrdinal("is_assignable")));
         }
     }
 }

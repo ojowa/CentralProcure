@@ -16,10 +16,43 @@ BEGIN
         RAISE EXCEPTION 'Admin role not found. Run 001_roles.sql first.';
     END IF;
 
-    INSERT INTO identity.internal_users (email, password_hash, role_id, status)
-    VALUES (v_email, v_password_hash, v_role_id, 'Active')
+    INSERT INTO identity.internal_users (
+        email,
+        username,
+        first_name,
+        middle_name,
+        surname,
+        service_number,
+        password_hash,
+        role_id,
+        status
+    )
+    VALUES (
+        v_email,
+        'admin',
+        'System',
+        NULL,
+        'Administrator',
+        'NIS-00001',
+        v_password_hash,
+        v_role_id,
+        'Active'
+    )
     ON CONFLICT (email) DO UPDATE
     SET password_hash = v_password_hash,
+        username = 'admin',
+        first_name = 'System',
+        middle_name = NULL,
+        surname = 'Administrator',
+        service_number = 'NIS-00001',
         status = 'Active';
 END;
 $$;
+
+UPDATE identity.internal_users iu
+SET
+    unit_id = ou.unit_id,
+    updated_at = NOW()
+FROM identity.organizational_units ou
+WHERE iu.email = 'admin@nis.gov.ng'
+  AND ou.unit_name = 'ICT and Cyber Security';

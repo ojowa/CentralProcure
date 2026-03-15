@@ -6,6 +6,7 @@ namespace eProcurement.Modules.VendorSourcing.DTOs
         string TaxId,
         string CompanyAddress,
         string ContactPerson,
+        string PhoneNumber,
         string Email,
         string Password);
 
@@ -27,6 +28,7 @@ namespace eProcurement.Modules.VendorSourcing.DTOs
         string TaxId,
         string CompanyAddress,
         string ContactPerson,
+        string? PhoneNumber,
         string Email,
         DateTime? RegistrationDate,
         DateTime? LastLogin,
@@ -36,6 +38,7 @@ namespace eProcurement.Modules.VendorSourcing.DTOs
         string? CompanyName,
         string? CompanyAddress,
         string? ContactPerson,
+        string? PhoneNumber,
         string? Email);
 
     public record UploadComplianceDocumentRequest(
@@ -69,6 +72,7 @@ namespace eProcurement.Modules.VendorSourcing.DTOs
         string RegistrationNumber,
         string TaxId,
         string ContactPerson,
+        string? PhoneNumber,
         string Email,
         DateTime RegistrationDate,
         string VendorStatus,
@@ -97,6 +101,7 @@ namespace eProcurement.Modules.VendorSourcing.DTOs
         string TaxId,
         string CompanyAddress,
         string ContactPerson,
+        string? PhoneNumber,
         string Email,
         DateTime RegistrationDate,
         DateTime? LastLogin,

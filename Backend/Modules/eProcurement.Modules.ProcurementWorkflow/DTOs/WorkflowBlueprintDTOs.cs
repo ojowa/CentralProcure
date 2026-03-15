@@ -48,6 +48,11 @@ public record WorkflowThresholdBandResult(
     decimal MinAmount,
     decimal? MaxAmount,
     string ApprovalRoute,
+    string ApprovalAuthorityCode,
+    string ApprovalAuthorityLabel,
+    bool RequiresCgisApproval,
     bool RequiresBoard,
     bool RequiresBpp,
+    Guid? GovernanceBodyId,
+    string? GovernanceBodyName,
     string Notes);

@@ -6,6 +6,7 @@ import {
   InternalRegistrationData,
   InternalRegistrationRequestBackend,
   InternalRegistrationResponse,
+  InternalOrganizationalUnitRecord,
   InternalRoleRecord,
   InternalModule
 } from '../types/internal';
@@ -28,6 +29,7 @@ const API_ENDPOINTS = {
   INTERNAL_LOGIN: withBasePath('/api/Auth/internal/login'),
   INTERNAL_REGISTER: withBasePath('/api/Auth/internal/register'),
   INTERNAL_ROLES: withBasePath('/api/Auth/roles'),
+  INTERNAL_UNITS: withBasePath('/api/Auth/internal/units'),
   INTERNAL_MODULES: withBasePath('/api/Auth/internal/modules'),
 };
 
@@ -87,7 +89,7 @@ const parseJwtPayload = (token: string): Record<string, unknown> | null => {
   }
 };
 
-const normalizeRoleValue = (value: string): string => {
+export const normalizeRoleValue = (value: string): string => {
   const trimmed = value.trim();
   if (!trimmed) {
     return '';
@@ -136,7 +138,7 @@ const normalizeAllowedRole = (value: unknown): RoleKey | null => {
   return resolveRole(value) ?? null;
 };
 
-const resolveRole = (claim: unknown): RoleKey | undefined => {
+export const resolveRole = (claim: unknown): RoleKey | undefined => {
   if (typeof claim !== 'string') {
     return undefined;
   }
@@ -223,6 +225,12 @@ export const registerInternalUser = async (
   data: InternalRegistrationData
 ): Promise<InternalRegistrationResponse> => {
   const requestPayload: InternalRegistrationRequestBackend = {
+    Username: data.Username.trim(),
+    FirstName: data.FirstName.trim(),
+    MiddleName: data.MiddleName.trim() || undefined,
+    Surname: data.Surname.trim(),
+    ServiceNumber: data.ServiceNumber.trim(),
+    UnitId: data.UnitId,
     Email: data.Email,
     Password: data.Password,
     Role: data.Role,
@@ -244,6 +252,8 @@ export const registerInternalUser = async (
     InternalUserId: payload.InternalUserId,
     Email: payload.Email,
     Role: payload?.Role ?? data.Role,
+    UnitId: payload?.UnitId,
+    UnitName: payload?.UnitName,
   } as InternalRegistrationResponse;
 };
 
@@ -261,6 +271,29 @@ export const fetchInternalRoles = async (): Promise<InternalRoleRecord[]> => {
 
   return payload.filter((role): role is InternalRoleRecord => {
     return Boolean(role) && typeof role.RoleName === 'string';
+  });
+};
+
+export const fetchInternalUnits = async (): Promise<InternalOrganizationalUnitRecord[]> => {
+  const response = await fetch(API_ENDPOINTS.INTERNAL_UNITS, {
+    method: 'GET',
+    credentials: 'include'
+  });
+
+  const payload = await parseResponse<any>(response, 'Unable to load internal organizational units.');
+
+  if (!Array.isArray(payload)) {
+    return [];
+  }
+
+  return payload.filter((unit): unit is InternalOrganizationalUnitRecord => {
+    return Boolean(unit) &&
+      typeof unit.UnitId === 'string' &&
+      typeof unit.UnitName === 'string' &&
+      typeof unit.UnitCode === 'string' &&
+      typeof unit.UnitType === 'string' &&
+      typeof unit.SortOrder === 'number' &&
+      typeof unit.IsAssignable === 'boolean';
   });
 };
 

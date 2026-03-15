@@ -8,6 +8,7 @@ export interface VendorProfile {
     TaxId: string;
     CompanyAddress: string;
     ContactPerson: string;
+    PhoneNumber?: string;
     Email: string;
     RegistrationDate?: string;
     LastLogin?: string;
@@ -42,6 +43,7 @@ export interface VendorRegistrationData {
     TaxId: string;
     CompanyAddress: string;
     ContactPerson: string;
+    PhoneNumber: string;
     Email: string;
     Password: string; // Frontend gets plain password
     ConfirmPassword: string; // For client-side validation
@@ -73,6 +75,7 @@ export interface VendorRegistrationRequestBackend {
     TaxID: string; // Backend expects 'TaxID' (uppercase ID)
     CompanyAddress: string;
     ContactPerson: string;
+    PhoneNumber: string;
     Email: string;
     Password: string;
 }
@@ -111,5 +114,6 @@ export interface VendorProfileUpdateRequest {
     CompanyName?: string;
     CompanyAddress?: string;
     ContactPerson?: string;
+    PhoneNumber?: string;
     Email?: string;
 }

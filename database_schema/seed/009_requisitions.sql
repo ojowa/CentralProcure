@@ -331,3 +331,27 @@ AND NOT EXISTS (
     WHERE li.requisition_id = seed_rows.requisition_id
       AND li.description = seed_rows.description
 );
+
+UPDATE procurement_workflow.requisitions r
+SET
+    unit_id = ou.unit_id,
+    department = ou.unit_name,
+    updated_at = NOW()
+FROM identity.organizational_units ou
+WHERE LOWER(ou.unit_name) = LOWER(
+    CASE
+        WHEN LOWER(r.department) = 'operations command' THEN 'Border Management'
+        WHEN LOWER(r.department) = 'ict directorate' THEN 'ICT and Cyber Security'
+        WHEN LOWER(r.department) = 'border intelligence' THEN 'Border Management'
+        WHEN LOWER(r.department) = 'facilities management' THEN 'Works and Logistics'
+        WHEN LOWER(r.department) = 'training and capacity building' THEN 'Human Resources Management'
+        ELSE r.department
+    END
+)
+AND r.requisition_id IN (
+    'b3f5a4d1-3c2a-4f8b-9f1a-01f2c3d4e501'::UUID,
+    'c4e7b2f0-7d39-4b1c-9e2d-02a3b4c5d602'::UUID,
+    'd5a8c3e1-8e4a-4d2b-8f3e-03b4c5d6e703'::UUID,
+    'e6b9d4f2-9f5b-4e3c-7a4f-04c5d6e7f804'::UUID,
+    'f7c0e5a3-a06c-4f4d-6b5a-05d6e7f8a905'::UUID
+);

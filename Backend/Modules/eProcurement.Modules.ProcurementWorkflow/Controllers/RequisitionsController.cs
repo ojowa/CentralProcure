@@ -1,16 +1,16 @@
 using System.Data;
 using System.Text.Json;
+using eProcurement.Modules.ProcurementWorkflow.DTOs;
+using eProcurement.Shared.Workflow;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 using NpgsqlTypes;
-using eProcurement.Modules.ProcurementWorkflow.DTOs;
-using eProcurement.Shared.Workflow;
 
 namespace eProcurement.Modules.ProcurementWorkflow.Controllers;
 
 [ApiController]
 [Route("api/requisitions")]
-public class RequisitionsController : ControllerBase
+public partial class RequisitionsController : ControllerBase
 {
     private readonly IConfiguration _config;
     private readonly ILogger<RequisitionsController> _logger;
@@ -39,6 +39,7 @@ public class RequisitionsController : ControllerBase
     private const int MaxProjectCodeLength = 60;
     private const int DefaultPageSize = 10;
     private const int MaxPageSize = 100;
+
     private static readonly HashSet<string> AllowedSortFields = new(StringComparer.OrdinalIgnoreCase)
     {
         "title",
@@ -146,10 +147,7 @@ public class RequisitionsController : ControllerBase
             cmd.Parameters.AddWithValue("p_sort_dir", NpgsqlDbType.Varchar, sortDir);
             cmd.Parameters.AddWithValue("p_limit", NpgsqlDbType.Integer, pageSize);
             cmd.Parameters.AddWithValue("p_offset", NpgsqlDbType.Integer, (page - 1) * pageSize);
-            cmd.Parameters.Add(new NpgsqlParameter("p_result", NpgsqlDbType.Refcursor)
-            {
-                Direction = ParameterDirection.Output
-            });
+            cmd.Parameters.Add(new NpgsqlParameter("p_result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.Output });
 
             var results = await ExecuteRefcursorAsync(cmd, MapSummary, ct);
             await tx.CommitAsync(ct);
@@ -190,10 +188,7 @@ public class RequisitionsController : ControllerBase
             };
 
             cmd.Parameters.AddWithValue("p_requisition_id", NpgsqlDbType.Uuid, requisitionId);
-            cmd.Parameters.Add(new NpgsqlParameter("p_result", NpgsqlDbType.Refcursor)
-            {
-                Direction = ParameterDirection.Output
-            });
+            cmd.Parameters.Add(new NpgsqlParameter("p_result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.Output });
 
             var details = await ExecuteRefcursorAsync(cmd, MapDetailWithoutItems, ct);
             var detail = details.FirstOrDefault();
@@ -246,7 +241,8 @@ public class RequisitionsController : ControllerBase
             };
 
             cmd.Parameters.AddWithValue("p_title", NpgsqlDbType.Varchar, request.Title);
-            cmd.Parameters.AddWithValue("p_department", NpgsqlDbType.Varchar, request.Department);
+            cmd.Parameters.AddWithValue("p_department", NpgsqlDbType.Varchar, (object?)request.Department ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("p_unit_id", NpgsqlDbType.Uuid, (object?)request.UnitId ?? DBNull.Value);
             cmd.Parameters.AddWithValue("p_status", NpgsqlDbType.Varchar, (object?)normalizedStatus ?? DBNull.Value);
             cmd.Parameters.AddWithValue("p_priority", NpgsqlDbType.Varchar, (object?)request.Priority ?? DBNull.Value);
             cmd.Parameters.AddWithValue("p_procurement_type", NpgsqlDbType.Varchar, (object?)request.ProcurementType ?? DBNull.Value);
@@ -259,10 +255,7 @@ public class RequisitionsController : ControllerBase
             cmd.Parameters.AddWithValue("p_justification", NpgsqlDbType.Text, (object?)request.Justification ?? DBNull.Value);
             cmd.Parameters.AddWithValue("p_risk_notes", NpgsqlDbType.Text, (object?)request.RiskNotes ?? DBNull.Value);
             cmd.Parameters.AddWithValue("p_line_items", NpgsqlDbType.Jsonb, JsonSerializer.Serialize(request.LineItems));
-            cmd.Parameters.Add(new NpgsqlParameter("p_result", NpgsqlDbType.Refcursor)
-            {
-                Direction = ParameterDirection.Output
-            });
+            cmd.Parameters.Add(new NpgsqlParameter("p_result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.Output });
 
             var results = await ExecuteRefcursorAsync(cmd, MapDetailWithoutItems, ct);
             var detail = results.FirstOrDefault();
@@ -317,12 +310,13 @@ public class RequisitionsController : ControllerBase
 
             if (!string.IsNullOrWhiteSpace(normalizedStatus))
             {
+                var threshold = await ResolveThresholdForRequestAsync(conn, tx, requisitionId, request, ct);
                 var transition = await _workflowPolicyGuard.EvaluateTransitionAsync(
                     conn,
                     tx,
                     "requisition",
                     requisitionId,
-                    ResolveWorkflowStage(normalizedStatus),
+                    ResolveWorkflowStage(normalizedStatus, threshold),
                     ct);
 
                 if (!transition.IsAllowed)
@@ -339,6 +333,7 @@ public class RequisitionsController : ControllerBase
             cmd.Parameters.AddWithValue("p_requisition_id", NpgsqlDbType.Uuid, requisitionId);
             cmd.Parameters.AddWithValue("p_title", NpgsqlDbType.Varchar, (object?)request.Title ?? DBNull.Value);
             cmd.Parameters.AddWithValue("p_department", NpgsqlDbType.Varchar, (object?)request.Department ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("p_unit_id", NpgsqlDbType.Uuid, (object?)request.UnitId ?? DBNull.Value);
             cmd.Parameters.AddWithValue("p_status", NpgsqlDbType.Varchar, (object?)normalizedStatus ?? DBNull.Value);
             cmd.Parameters.AddWithValue("p_priority", NpgsqlDbType.Varchar, (object?)request.Priority ?? DBNull.Value);
             cmd.Parameters.AddWithValue("p_procurement_type", NpgsqlDbType.Varchar, (object?)request.ProcurementType ?? DBNull.Value);
@@ -350,13 +345,8 @@ public class RequisitionsController : ControllerBase
             cmd.Parameters.AddWithValue("p_delivery_location", NpgsqlDbType.Text, (object?)request.DeliveryLocation ?? DBNull.Value);
             cmd.Parameters.AddWithValue("p_justification", NpgsqlDbType.Text, (object?)request.Justification ?? DBNull.Value);
             cmd.Parameters.AddWithValue("p_risk_notes", NpgsqlDbType.Text, (object?)request.RiskNotes ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("p_line_items", NpgsqlDbType.Jsonb, (object?)request.LineItems is null
-                ? DBNull.Value
-                : JsonSerializer.Serialize(request.LineItems));
-            cmd.Parameters.Add(new NpgsqlParameter("p_result", NpgsqlDbType.Refcursor)
-            {
-                Direction = ParameterDirection.Output
-            });
+            cmd.Parameters.AddWithValue("p_line_items", NpgsqlDbType.Jsonb, (object?)request.LineItems is null ? DBNull.Value : JsonSerializer.Serialize(request.LineItems));
+            cmd.Parameters.Add(new NpgsqlParameter("p_result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.Output });
 
             var results = await ExecuteRefcursorAsync(cmd, MapDetailWithoutItems, ct);
             var detail = results.FirstOrDefault();
@@ -382,343 +372,5 @@ public class RequisitionsController : ControllerBase
             _logger.LogError(ex, "Error updating requisition {RequisitionId}.", requisitionId);
             return Problem("Internal server error updating requisition.");
         }
-    }
-
-    private static async Task<List<T>> ExecuteRefcursorAsync<T>(NpgsqlCommand cmd, Func<NpgsqlDataReader, T> map, CancellationToken ct)
-    {
-        await cmd.ExecuteNonQueryAsync(ct);
-        var cursorName = (string)cmd.Parameters["p_result"].Value!;
-        await using var fetch = new NpgsqlCommand($"FETCH ALL IN \"{cursorName}\"", cmd.Connection!, cmd.Transaction);
-        await using var reader = await fetch.ExecuteReaderAsync(ct);
-
-        var results = new List<T>();
-        while (await reader.ReadAsync(ct))
-        {
-            results.Add(map(reader));
-        }
-
-        return results;
-    }
-
-    private static RequisitionSummary MapSummary(NpgsqlDataReader r)
-    {
-        return new RequisitionSummary(
-            r.GetGuid(r.GetOrdinal("requisition_id")),
-            r.GetString(r.GetOrdinal("title")),
-            r.GetString(r.GetOrdinal("department")),
-            r.GetString(r.GetOrdinal("status")),
-            GetNullableString(r, "priority"),
-            GetNullableString(r, "funding_source"),
-            r.GetFieldValue<decimal>(r.GetOrdinal("total_estimate")),
-            GetNullableDateTime(r, "required_by"),
-            r.GetDateTime(r.GetOrdinal("created_at")));
-    }
-
-    private static RequisitionDetail MapDetailWithoutItems(NpgsqlDataReader r)
-    {
-        return new RequisitionDetail(
-            r.GetGuid(r.GetOrdinal("requisition_id")),
-            r.GetString(r.GetOrdinal("title")),
-            r.GetString(r.GetOrdinal("department")),
-            r.GetString(r.GetOrdinal("status")),
-            GetNullableString(r, "priority"),
-            GetNullableString(r, "funding_source"),
-            r.GetFieldValue<decimal>(r.GetOrdinal("total_estimate")),
-            GetNullableDateTime(r, "required_by"),
-            r.GetDateTime(r.GetOrdinal("created_at")),
-            GetNullableString(r, "procurement_type"),
-            GetNullableString(r, "budget_code"),
-            GetNullableGuid(r, "app_item_id"),
-            GetNullableString(r, "project_code"),
-            GetNullableString(r, "delivery_location"),
-            GetNullableString(r, "justification"),
-            GetNullableString(r, "risk_notes"),
-            new List<RequisitionLineItemDto>(),
-            r.GetDateTime(r.GetOrdinal("updated_at")),
-            GetNullableString(r, "current_stage"));
-    }
-
-    private static RequisitionLineItemDto MapLineItem(NpgsqlDataReader r)
-    {
-        return new RequisitionLineItemDto(
-            GetNullableString(r, "item_code"),
-            r.GetString(r.GetOrdinal("description")),
-            r.GetString(r.GetOrdinal("unit")),
-            r.GetFieldValue<decimal>(r.GetOrdinal("quantity")),
-            r.GetFieldValue<decimal>(r.GetOrdinal("unit_cost")));
-    }
-
-    private static async Task<List<RequisitionLineItemDto>> GetLineItemsAsync(
-        NpgsqlConnection conn,
-        NpgsqlTransaction tx,
-        Guid requisitionId,
-        CancellationToken ct)
-    {
-        await using var cmd = new NpgsqlCommand("procurement_workflow.get_requisition_line_items_sp", conn, tx)
-        {
-            CommandType = CommandType.StoredProcedure
-        };
-
-        cmd.Parameters.AddWithValue("p_requisition_id", NpgsqlDbType.Uuid, requisitionId);
-        cmd.Parameters.Add(new NpgsqlParameter("p_result", NpgsqlDbType.Refcursor)
-        {
-            Direction = ParameterDirection.Output
-        });
-
-        return await ExecuteRefcursorAsync(cmd, MapLineItem, ct);
-    }
-
-    private static int GetOptionalOrdinal(NpgsqlDataReader r, string n)
-    {
-        for (var i = 0; i < r.FieldCount; i++)
-        {
-            if (string.Equals(r.GetName(i), n, StringComparison.OrdinalIgnoreCase))
-            {
-                return i;
-            }
-        }
-
-        return -1;
-    }
-
-    private static string? GetNullableString(NpgsqlDataReader r, string n)
-    {
-        var ordinal = GetOptionalOrdinal(r, n);
-        if (ordinal < 0 || r.IsDBNull(ordinal))
-        {
-            return null;
-        }
-
-        return r.GetString(ordinal);
-    }
-
-    private static DateTime? GetNullableDateTime(NpgsqlDataReader r, string n)
-    {
-        var ordinal = GetOptionalOrdinal(r, n);
-        if (ordinal < 0 || r.IsDBNull(ordinal))
-        {
-            return null;
-        }
-
-        return r.GetDateTime(ordinal);
-    }
-
-    private static Guid? GetNullableGuid(NpgsqlDataReader r, string n)
-    {
-        var ordinal = GetOptionalOrdinal(r, n);
-        if (ordinal < 0 || r.IsDBNull(ordinal))
-        {
-            return null;
-        }
-
-        return r.GetGuid(ordinal);
-    }
-
-    private async Task SyncWorkflowRuntimeAsync(
-        NpgsqlConnection conn,
-        NpgsqlTransaction tx,
-        RequisitionDetail requisition,
-        string reason,
-        CancellationToken ct)
-    {
-        var threshold = await _workflowPolicyGuard.ResolveThresholdAsync(
-            conn,
-            tx,
-            requisition.ProcurementType,
-            requisition.TotalEstimate,
-            ct);
-
-        await _workflowRuntimeTracker.SyncAsync(
-            conn,
-            tx,
-            new WorkflowRuntimeSyncRequest(
-                "requisition",
-                requisition.RequisitionId,
-                ResolveWorkflowStage(requisition.Status),
-                requisition.Status,
-                requisition.Title,
-                requisition.AppItemId.HasValue ? "procurement_plan_item" : null,
-                requisition.AppItemId,
-                requisition.TotalEstimate,
-                requisition.ProcurementType,
-                threshold?.ThresholdId,
-                reason,
-                null),
-            ct);
-    }
-
-    private static string ResolveWorkflowStage(string status)
-    {
-        return status switch
-        {
-            "Draft" => "procurement_initiation",
-            "Submitted" => "threshold_resolution",
-            "Under Review" => "threshold_resolution",
-            "Evaluation" => "evaluation",
-            "Board Review" => "tenders_board_review",
-            "Approved" => "accounting_officer_review",
-            _ => "procurement_initiation"
-        };
-    }
-
-    private static async Task<long> GetRequisitionCountAsync(
-        NpgsqlConnection conn,
-        NpgsqlTransaction tx,
-        string? status,
-        string? department,
-        string? priority,
-        string? query,
-        DateTime? dateFrom,
-        DateTime? dateTo,
-        CancellationToken ct)
-    {
-        const string sql = "SELECT procurement_workflow.get_requisitions_count(@p_status, @p_department, @p_priority, @p_query, @p_date_from, @p_date_to);";
-        await using var cmd = new NpgsqlCommand(sql, conn, tx);
-        cmd.Parameters.AddWithValue("p_status", NpgsqlDbType.Varchar, (object?)status ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("p_department", NpgsqlDbType.Varchar, (object?)department ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("p_priority", NpgsqlDbType.Varchar, (object?)priority ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("p_query", NpgsqlDbType.Text, (object?)query ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("p_date_from", NpgsqlDbType.Timestamp, (object?)dateFrom ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("p_date_to", NpgsqlDbType.Timestamp, (object?)dateTo ?? DBNull.Value);
-
-        var result = await cmd.ExecuteScalarAsync(ct);
-        return result is null ? 0 : Convert.ToInt64(result);
-    }
-
-    private static bool IsStatusValid(string? status, out string? normalizedStatus)
-    {
-        if (string.IsNullOrWhiteSpace(status))
-        {
-            normalizedStatus = null;
-            return true;
-        }
-
-        normalizedStatus = AllowedStatuses.FirstOrDefault(s => s.Equals(status.Trim(), StringComparison.OrdinalIgnoreCase));
-        return normalizedStatus != null;
-    }
-
-    private static bool IsPriorityValid(string? priority, out string? normalizedPriority)
-    {
-        if (string.IsNullOrWhiteSpace(priority))
-        {
-            normalizedPriority = null;
-            return true;
-        }
-
-        normalizedPriority = AllowedPriorities.FirstOrDefault(p => p.Equals(priority.Trim(), StringComparison.OrdinalIgnoreCase));
-        return normalizedPriority != null;
-    }
-
-    private static bool IsProcurementTypeValid(string? procurementType, out string? normalizedType)
-    {
-        if (string.IsNullOrWhiteSpace(procurementType))
-        {
-            normalizedType = null;
-            return true;
-        }
-
-        normalizedType = AllowedProcurementTypes.FirstOrDefault(p => p.Equals(procurementType.Trim(), StringComparison.OrdinalIgnoreCase));
-        return normalizedType != null;
-    }
-
-    private string? ValidateCreateRequest(RequisitionCreateRequest request, out string? normalizedStatus)
-    {
-        normalizedStatus = "Draft";
-
-        if (string.IsNullOrWhiteSpace(request.Title) || request.Title.Trim().Length < MinTitleLength || request.Title.Trim().Length > MaxTitleLength)
-            return $"Title must be between {MinTitleLength} and {MaxTitleLength} characters.";
-
-        if (string.IsNullOrWhiteSpace(request.Department) || request.Department.Trim().Length < MinDepartmentLength || request.Department.Trim().Length > MaxDepartmentLength)
-            return $"Department must be between {MinDepartmentLength} and {MaxDepartmentLength} characters.";
-
-        if (!string.IsNullOrWhiteSpace(request.BudgetCode) && request.BudgetCode.Trim().Length > MaxBudgetCodeLength)
-            return $"BudgetCode must be {MaxBudgetCodeLength} characters or fewer.";
-
-        if (request.AppItemId.HasValue && request.AppItemId.Value == Guid.Empty)
-            return "AppItemId must be a valid GUID.";
-
-        if (!string.IsNullOrWhiteSpace(request.ProjectCode) && request.ProjectCode.Trim().Length > MaxProjectCodeLength)
-            return $"ProjectCode must be {MaxProjectCodeLength} characters or fewer.";
-
-        if (!string.IsNullOrWhiteSpace(request.Status) && !IsStatusValid(request.Status, out normalizedStatus))
-            return $"Status must be one of: {string.Join(", ", AllowedStatuses)}.";
-
-        if (!string.IsNullOrWhiteSpace(request.Priority) && !IsPriorityValid(request.Priority, out _))
-            return $"Priority must be one of: {string.Join(", ", AllowedPriorities)}.";
-
-        if (!string.IsNullOrWhiteSpace(request.ProcurementType) && !IsProcurementTypeValid(request.ProcurementType, out _))
-            return $"ProcurementType must be one of: {string.Join(", ", AllowedProcurementTypes)}.";
-
-        if (request.LineItems is null || request.LineItems.Count == 0)
-            return "At least one line item is required.";
-
-        foreach (var item in request.LineItems)
-        {
-            if (string.IsNullOrWhiteSpace(item.Description))
-                return "Line item description is required.";
-
-            if (string.IsNullOrWhiteSpace(item.Unit))
-                return "Line item unit is required.";
-
-            if (item.Quantity <= 0)
-                return "Line item quantity must be greater than 0.";
-
-            if (item.UnitCost <= 0)
-                return "Line item unit cost must be greater than 0.";
-        }
-
-        return null;
-    }
-
-    private string? ValidateUpdateRequest(RequisitionUpdateRequest request, out string? normalizedStatus)
-    {
-        normalizedStatus = null;
-
-        if (request.Title is not null && (request.Title.Trim().Length < MinTitleLength || request.Title.Trim().Length > MaxTitleLength))
-            return $"Title must be between {MinTitleLength} and {MaxTitleLength} characters.";
-
-        if (request.Department is not null && (request.Department.Trim().Length < MinDepartmentLength || request.Department.Trim().Length > MaxDepartmentLength))
-            return $"Department must be between {MinDepartmentLength} and {MaxDepartmentLength} characters.";
-
-        if (request.BudgetCode is not null && request.BudgetCode.Trim().Length > MaxBudgetCodeLength)
-            return $"BudgetCode must be {MaxBudgetCodeLength} characters or fewer.";
-
-        if (request.AppItemId.HasValue && request.AppItemId.Value == Guid.Empty)
-            return "AppItemId must be a valid GUID.";
-
-        if (request.ProjectCode is not null && request.ProjectCode.Trim().Length > MaxProjectCodeLength)
-            return $"ProjectCode must be {MaxProjectCodeLength} characters or fewer.";
-
-        if (!string.IsNullOrWhiteSpace(request.Status) && !IsStatusValid(request.Status, out normalizedStatus))
-            return $"Status must be one of: {string.Join(", ", AllowedStatuses)}.";
-
-        if (!string.IsNullOrWhiteSpace(request.Priority) && !IsPriorityValid(request.Priority, out _))
-            return $"Priority must be one of: {string.Join(", ", AllowedPriorities)}.";
-
-        if (!string.IsNullOrWhiteSpace(request.ProcurementType) && !IsProcurementTypeValid(request.ProcurementType, out _))
-            return $"ProcurementType must be one of: {string.Join(", ", AllowedProcurementTypes)}.";
-
-        if (request.LineItems is not null)
-        {
-            if (request.LineItems.Count == 0)
-                return "Line items cannot be empty.";
-
-            foreach (var item in request.LineItems)
-            {
-                if (string.IsNullOrWhiteSpace(item.Description))
-                    return "Line item description is required.";
-
-                if (string.IsNullOrWhiteSpace(item.Unit))
-                    return "Line item unit is required.";
-
-                if (item.Quantity <= 0)
-                    return "Line item quantity must be greater than 0.";
-
-                if (item.UnitCost <= 0)
-                    return "Line item unit cost must be greater than 0.";
-            }
-        }
-
-        return null;
     }
 }

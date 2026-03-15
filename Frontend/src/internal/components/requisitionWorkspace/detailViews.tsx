@@ -174,7 +174,7 @@ export const DepartmentHeadPanel = ({
           </div>
           <div>
             <span>Approval route</span>
-            <strong>{routeDecision?.ApprovalRoute || 'Route not resolved'}</strong>
+            <strong>{routeDecision?.ApprovalAuthorityLabel || routeDecision?.ApprovalRoute || 'Route not resolved'}</strong>
           </div>
         </div>
 
@@ -192,6 +192,9 @@ export const DepartmentHeadPanel = ({
         </div>
 
         <div className="budget-check__meta" style={{ marginTop: '12px' }}>
+          <span>Authority code: {routeDecision?.ApprovalAuthorityCode || 'Not resolved'}</span>
+          <span>Governance body: {routeDecision?.GovernanceBodyName || 'Direct executive route'}</span>
+          <span>CGIS required: {routeDecision?.RequiresCgisApproval ? 'Yes' : 'No'}</span>
           <span>Board route: {routeDecision?.RequiresBoard ? 'Yes' : 'No'}</span>
           <span>BPP required: {routeDecision?.RequiresBpp ? 'Yes' : 'No'}</span>
           <span>Granted actions: {grantedActions.length ? grantedActions.map((action) => action.ActionKey).join(', ') : 'None at this stage'}</span>

@@ -134,6 +134,7 @@ export const registerVendor = async (data: VendorRegistrationData): Promise<Vend
             TaxID: data.TaxId,
             CompanyAddress: data.CompanyAddress,
             ContactPerson: data.ContactPerson,
+            PhoneNumber: data.PhoneNumber,
             Email: data.Email,
             Password: data.Password
         };

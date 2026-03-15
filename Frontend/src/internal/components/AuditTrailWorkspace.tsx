@@ -299,10 +299,11 @@ export const AuditTrailWorkspace = ({ module, token }: Props) => {
                   </div>
                   <div className="requisition-card">
                     <h4>Approval Route</h4>
-                    <p>{diagnostics.RouteDecision?.ApprovalRoute || 'Not resolved'}</p>
+                    <p>{diagnostics.RouteDecision?.ApprovalAuthorityLabel || diagnostics.RouteDecision?.ApprovalRoute || 'Not resolved'}</p>
                     <p className="plan-muted">
-                      Board: {diagnostics.RouteDecision?.RequiresBoard ? 'Yes' : 'No'} · BPP: {diagnostics.RouteDecision?.RequiresBpp ? 'Yes' : 'No'}
+                      CGIS: {diagnostics.RouteDecision?.RequiresCgisApproval ? 'Yes' : 'No'} · Board: {diagnostics.RouteDecision?.RequiresBoard ? 'Yes' : 'No'} · BPP: {diagnostics.RouteDecision?.RequiresBpp ? 'Yes' : 'No'}
                     </p>
+                    <p className="plan-muted">{diagnostics.RouteDecision?.GovernanceBodyName || 'Direct executive route'}</p>
                   </div>
                   <div className="requisition-card">
                     <h4>Role Context</h4>

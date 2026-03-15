@@ -1,4 +1,37 @@
 -- Function for Creating a Requisition (PostgreSQL)
+DROP PROCEDURE IF EXISTS procurement_workflow.create_requisition_sp(
+    VARCHAR(255),
+    VARCHAR(150),
+    VARCHAR(50),
+    VARCHAR(50),
+    VARCHAR(50),
+    VARCHAR(120),
+    VARCHAR(60),
+    UUID,
+    VARCHAR(60),
+    TIMESTAMP WITHOUT TIME ZONE,
+    TEXT,
+    TEXT,
+    TEXT,
+    JSONB
+);
+DROP FUNCTION IF EXISTS procurement_workflow.create_requisition(
+    VARCHAR(255),
+    VARCHAR(150),
+    VARCHAR(50),
+    VARCHAR(50),
+    VARCHAR(50),
+    VARCHAR(120),
+    VARCHAR(60),
+    UUID,
+    VARCHAR(60),
+    TIMESTAMP WITHOUT TIME ZONE,
+    TEXT,
+    TEXT,
+    TEXT,
+    JSONB
+);
+
 CREATE OR REPLACE FUNCTION procurement_workflow.resolve_requisition_stage(p_status VARCHAR(50))
 RETURNS VARCHAR(60)
 LANGUAGE plpgsql
@@ -20,6 +53,7 @@ $$;
 CREATE OR REPLACE FUNCTION procurement_workflow.create_requisition(
     p_title VARCHAR(255),
     p_department VARCHAR(150),
+    p_unit_id UUID,
     p_status VARCHAR(50),
     p_priority VARCHAR(50),
     p_procurement_type VARCHAR(50),
@@ -37,6 +71,7 @@ RETURNS TABLE (
     requisition_id UUID,
     title VARCHAR(255),
     department VARCHAR(150),
+    unit_id UUID,
     status VARCHAR(50),
     priority VARCHAR(50),
     funding_source VARCHAR(120),
@@ -65,8 +100,40 @@ DECLARE
     v_plan_department VARCHAR(150);
     v_item_budget_code VARCHAR(60);
     v_item_status VARCHAR(30);
+    v_department VARCHAR(150);
+    v_unit_id UUID;
 BEGIN
+    v_unit_id := p_unit_id;
     v_budget_code := p_budget_code;
+
+    IF v_unit_id IS NOT NULL THEN
+        SELECT ou.unit_id, ou.unit_name
+        INTO v_unit_id, v_department
+        FROM identity.organizational_units ou
+        WHERE ou.unit_id = p_unit_id
+          AND ou.is_active = TRUE
+          AND ou.is_assignable = TRUE;
+
+        IF v_department IS NULL THEN
+            RAISE EXCEPTION USING ERRCODE = 'P0001', MESSAGE = 'Organizational unit is invalid or inactive.';
+        END IF;
+    ELSIF p_department IS NOT NULL AND btrim(p_department) <> '' THEN
+        SELECT ou.unit_id, ou.unit_name
+        INTO v_unit_id, v_department
+        FROM identity.organizational_units ou
+        WHERE LOWER(ou.unit_name) = LOWER(btrim(p_department))
+          AND ou.is_active = TRUE
+          AND ou.is_assignable = TRUE
+        LIMIT 1;
+
+        v_department := COALESCE(v_department, btrim(p_department));
+    END IF;
+
+    v_department := COALESCE(v_department, NULLIF(btrim(p_department), ''));
+
+    IF v_department IS NULL THEN
+        RAISE EXCEPTION USING ERRCODE = 'P0001', MESSAGE = 'Department or organizational unit is required.';
+    END IF;
 
     IF p_app_item_id IS NOT NULL THEN
         SELECT p.status, p.department, i.budget_code, i.status
@@ -87,7 +154,7 @@ BEGIN
             RAISE EXCEPTION USING ERRCODE = 'P0001', MESSAGE = 'Procurement plan must be approved for this APP item.';
         END IF;
 
-        IF v_plan_department IS NOT NULL AND p_department IS NOT NULL AND v_plan_department <> p_department THEN
+        IF v_plan_department IS NOT NULL AND v_department IS NOT NULL AND v_plan_department <> v_department THEN
             RAISE EXCEPTION USING ERRCODE = 'P0001', MESSAGE = 'Department does not match procurement plan.';
         END IF;
 
@@ -101,6 +168,7 @@ BEGIN
     INSERT INTO procurement_workflow.requisitions (
         title,
         department,
+        unit_id,
         status,
         priority,
         procurement_type,
@@ -116,7 +184,8 @@ BEGIN
     )
     VALUES (
         p_title,
-        p_department,
+        v_department,
+        v_unit_id,
         COALESCE(p_status, 'Draft'),
         p_priority,
         p_procurement_type,
@@ -169,7 +238,7 @@ BEGIN
         PERFORM procurement_workflow.reserve_budget_for_requisition(
             v_requisition_id,
             v_budget_code,
-            p_department,
+            v_department,
             v_fiscal_year,
             v_total_estimate
         );
@@ -184,6 +253,7 @@ BEGIN
         r.requisition_id,
         r.title,
         r.department,
+        r.unit_id,
         r.status,
         r.priority,
         r.funding_source,
@@ -208,6 +278,7 @@ $$;
 CREATE OR REPLACE PROCEDURE procurement_workflow.create_requisition_sp(
     IN p_title VARCHAR(255),
     IN p_department VARCHAR(150),
+    IN p_unit_id UUID,
     IN p_status VARCHAR(50),
     IN p_priority VARCHAR(50),
     IN p_procurement_type VARCHAR(50),
@@ -229,6 +300,7 @@ BEGIN
     SELECT * FROM procurement_workflow.create_requisition(
         p_title,
         p_department,
+        p_unit_id,
         p_status,
         p_priority,
         p_procurement_type,

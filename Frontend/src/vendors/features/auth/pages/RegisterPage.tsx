@@ -34,6 +34,14 @@ const validateVendorPassword = (password: string) => {
     return true;
 };
 
+const validatePhoneNumber = (value: string) => {
+    if (!/^\+?[0-9 ()-]{7,20}$/.test(value.trim())) {
+        return 'Phone number must be 7-20 characters and may include digits, spaces, parentheses, hyphen, or leading +.';
+    }
+
+    return true;
+};
+
 const RegisterPage: React.FC = () => {
     const router = useRouter();
     const [serverError, setServerError] = useState<string | null>(null);
@@ -198,6 +206,20 @@ const RegisterPage: React.FC = () => {
                         <input id="contactPerson" type="text" {...register('ContactPerson', { required: 'Contact person is required' })}
                                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" />
                         {errors.ContactPerson && <p className="text-red-500 text-xs italic">{String(errors.ContactPerson.message)}</p>}
+                    </div>
+
+                    <div className="mb-4">
+                        <label htmlFor="phoneNumber" className="block text-gray-700 text-sm font-bold mb-2">Phone Number</label>
+                        <input
+                            id="phoneNumber"
+                            type="tel"
+                            {...register('PhoneNumber', {
+                                required: 'Phone number is required',
+                                validate: validatePhoneNumber
+                            })}
+                            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                        />
+                        {errors.PhoneNumber && <p className="text-red-500 text-xs italic">{String(errors.PhoneNumber.message)}</p>}
                     </div>
 
                     <div className="mb-4">

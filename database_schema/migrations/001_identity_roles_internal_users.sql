@@ -20,6 +20,11 @@ CREATE TABLE IF NOT EXISTS identity.roles (
 CREATE TABLE IF NOT EXISTS identity.internal_users (
     internal_user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(255) UNIQUE NOT NULL,
+    username VARCHAR(100) UNIQUE NOT NULL,
+    first_name VARCHAR(100) NOT NULL,
+    middle_name VARCHAR(100) NULL,
+    surname VARCHAR(100) NOT NULL,
+    service_number VARCHAR(100) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     role_id UUID NOT NULL REFERENCES identity.roles(role_id),
     status VARCHAR(50) NOT NULL DEFAULT 'Active',
@@ -235,6 +240,11 @@ $$;
 -- register_internal_user function
 CREATE OR REPLACE FUNCTION identity.register_internal_user(
     p_email VARCHAR(255),
+    p_username VARCHAR(100),
+    p_first_name VARCHAR(100),
+    p_middle_name VARCHAR(100),
+    p_surname VARCHAR(100),
+    p_service_number VARCHAR(100),
     p_password_hash VARCHAR(255),
     p_role_name VARCHAR(100)
 )
@@ -259,8 +269,28 @@ BEGIN
         RAISE EXCEPTION 'Role not found or inactive';
     END IF;
 
-    INSERT INTO identity.internal_users (email, password_hash, role_id, status)
-    VALUES (p_email, p_password_hash, v_role_id, 'Active')
+    INSERT INTO identity.internal_users (
+        email,
+        username,
+        first_name,
+        middle_name,
+        surname,
+        service_number,
+        password_hash,
+        role_id,
+        status
+    )
+    VALUES (
+        p_email,
+        p_username,
+        p_first_name,
+        NULLIF(p_middle_name, ''),
+        p_surname,
+        p_service_number,
+        p_password_hash,
+        v_role_id,
+        'Active'
+    )
     RETURNING internal_users.internal_user_id INTO v_internal_user_id;
 
     RETURN QUERY
@@ -277,6 +307,11 @@ $$;
 -- register_internal_user stored procedure
 CREATE OR REPLACE PROCEDURE identity.register_internal_user_sp(
     IN p_email VARCHAR(255),
+    IN p_username VARCHAR(100),
+    IN p_first_name VARCHAR(100),
+    IN p_middle_name VARCHAR(100),
+    IN p_surname VARCHAR(100),
+    IN p_service_number VARCHAR(100),
     IN p_password_hash VARCHAR(255),
     IN p_role_name VARCHAR(100),
     OUT p_result refcursor
@@ -287,6 +322,11 @@ BEGIN
     OPEN p_result FOR
     SELECT * FROM identity.register_internal_user(
         p_email,
+        p_username,
+        p_first_name,
+        p_middle_name,
+        p_surname,
+        p_service_number,
         p_password_hash,
         p_role_name
     );

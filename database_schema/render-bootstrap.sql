@@ -32,6 +32,11 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 \ir migrations/024_workflow_runtime_tracking.sql
 \ir migrations/025_administrative_reviews_and_closeouts.sql
 \ir migrations/026_reset_demo_auth_credentials.sql
+\ir migrations/027_add_internal_user_profile_fields.sql
+\ir migrations/028_normalize_seeded_internal_user_profiles.sql
+\ir migrations/029_add_vendor_phone_number.sql
+\ir migrations/030_add_nis_organizational_units.sql
+\ir migrations/031_align_threshold_routing_to_cgis_board_bpp.sql
 
 \echo Applying stored procedures and functions...
 \ir stored_procedures/BudgetLedger_Functions.sql

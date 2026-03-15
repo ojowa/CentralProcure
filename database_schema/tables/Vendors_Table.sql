@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS identity.vendors (
     tax_id VARCHAR(100) UNIQUE NOT NULL, -- TIN
     company_address TEXT NOT NULL,
     contact_person VARCHAR(255) NOT NULL,
+    phone_number VARCHAR(50) NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     registration_date TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW(),

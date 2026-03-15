@@ -40,7 +40,7 @@ export default function LoginPage() {
     const identifier = values.usernameOrEmail.trim();
 
     if (!identifier) {
-      return 'Email or username is required.';
+      return 'Email, username, or service number is required.';
     }
 
     if (identifier.includes('@') && !isProbablyEmail(identifier)) {
@@ -48,7 +48,7 @@ export default function LoginPage() {
     }
 
     if (!identifier.includes('@') && identifier.length < 3) {
-      return 'Username must be at least 3 characters.';
+      return 'Username or service number must be at least 3 characters.';
     }
 
     if (!values.password) {
@@ -143,13 +143,13 @@ export default function LoginPage() {
 
             <form className="nis-form" onSubmit={onSubmit} noValidate>
               <label className="nis-field">
-                <span className="nis-field__label">Email / Username</span>
+                <span className="nis-field__label">Email / Username / Service Number</span>
                 <input
                   className="nis-input"
                   type="text"
                   name="usernameOrEmail"
                   autoComplete="username"
-                  placeholder="Enter email or username"
+                  placeholder="Enter email, username, or service number"
                   value={form.usernameOrEmail}
                   onChange={(e) => update('usernameOrEmail', e.target.value)}
                 />
@@ -215,7 +215,7 @@ export default function LoginPage() {
             <div className="nis-sidecard">
               <h2 className="nis-sidecard__title">Login Tips</h2>
               <ul className="nis-sidecard__list">
-                <li>Use your official NIS email or username.</li>
+                <li>Use your official NIS email, username, or service number.</li>
                 <li>Passwords are case sensitive.</li>
                 <li>If locked out, use Forgot Password or contact Support.</li>
               </ul>

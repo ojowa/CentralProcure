@@ -9,7 +9,12 @@ import {
   type BudgetLineItem,
   type ThresholdBand
 } from '../../data/internalData';
-import type { RequisitionDetail, RequisitionLineItem, RequisitionSummary } from '../../types/internal';
+import type {
+  InternalOrganizationalUnitRecord,
+  RequisitionDetail,
+  RequisitionLineItem,
+  RequisitionSummary
+} from '../../types/internal';
 import { formatCurrency, formatDate, getBudgetCheck, requisitionStatusTone } from '../../utils/procureUtils';
 import { toNumber, type FiltersState, type RequisitionFormState } from './helpers';
 
@@ -19,6 +24,7 @@ type FormFieldChangeHandler = <K extends keyof RequisitionFormState>(key: K, val
 interface RequisitionCreateViewProps {
   editingId: string | null;
   form: RequisitionFormState;
+  units: InternalOrganizationalUnitRecord[];
   catalog: BudgetLineItem[];
   selectedAppItem: BudgetLineItem | null;
   budgetCheck: ReturnType<typeof getBudgetCheck>;
@@ -56,6 +62,7 @@ interface RequisitionCreateViewProps {
 export const RequisitionCreateView = ({
   editingId,
   form,
+  units,
   catalog,
   selectedAppItem,
   budgetCheck,
@@ -102,7 +109,17 @@ export const RequisitionCreateView = ({
 
         <div className="requisition-form-grid">
           <label className="plan-field"><span>Title</span><input className="plan-input" value={form.Title} onChange={(event) => onFormFieldChange('Title', event.target.value)} /></label>
-          <label className="plan-field"><span>Department</span><input className="plan-input" value={form.Department} onChange={(event) => onFormFieldChange('Department', event.target.value)} /></label>
+          <label className="plan-field">
+            <span>Organizational Unit</span>
+            <select className="plan-select" value={form.UnitId} onChange={(event) => onFormFieldChange('UnitId', event.target.value)}>
+              <option value="">{form.Department ? `Legacy department: ${form.Department}` : 'Select organizational unit'}</option>
+              {units.map((unit) => (
+                <option key={unit.UnitId} value={unit.UnitId}>
+                  {unit.ParentUnitName ? `${unit.UnitName} (${unit.ParentUnitName})` : unit.UnitName}
+                </option>
+              ))}
+            </select>
+          </label>
           <label className="plan-field"><span>Required By</span><input className="plan-input" type="date" value={form.RequiredBy} onChange={(event) => onFormFieldChange('RequiredBy', event.target.value)} /></label>
           <label className="plan-field">
             <span>Procurement Type</span>

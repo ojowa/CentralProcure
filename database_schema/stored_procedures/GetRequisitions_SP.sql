@@ -1,4 +1,29 @@
 -- Function for Getting Requisitions (PostgreSQL)
+DROP PROCEDURE IF EXISTS procurement_workflow.get_requisitions_sp(
+    VARCHAR(50),
+    VARCHAR(150),
+    VARCHAR(50),
+    TEXT,
+    TIMESTAMP WITHOUT TIME ZONE,
+    TIMESTAMP WITHOUT TIME ZONE,
+    VARCHAR(50),
+    VARCHAR(4),
+    INT,
+    INT
+);
+DROP FUNCTION IF EXISTS procurement_workflow.get_requisitions(
+    VARCHAR(50),
+    VARCHAR(150),
+    VARCHAR(50),
+    TEXT,
+    TIMESTAMP WITHOUT TIME ZONE,
+    TIMESTAMP WITHOUT TIME ZONE,
+    VARCHAR(50),
+    VARCHAR(4),
+    INT,
+    INT
+);
+
 CREATE OR REPLACE FUNCTION procurement_workflow.get_requisitions(
     p_status VARCHAR(50) DEFAULT NULL,
     p_department VARCHAR(150) DEFAULT NULL,
@@ -15,6 +40,7 @@ RETURNS TABLE (
     requisition_id UUID,
     title VARCHAR(255),
     department VARCHAR(150),
+    unit_id UUID,
     status VARCHAR(50),
     priority VARCHAR(50),
     funding_source VARCHAR(120),
@@ -30,6 +56,7 @@ BEGIN
         r.requisition_id,
         r.title,
         r.department,
+        r.unit_id,
         r.status,
         r.priority,
         r.funding_source,

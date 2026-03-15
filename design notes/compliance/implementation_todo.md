@@ -1,7 +1,7 @@
 # PPA 2007 Implementation TODO
 
 This file is the execution checklist for implementing the workflow described in
-[ppa_2007_holistic_workflow_blueprint.md](C:\Users\OJOWA\Documents\Project 4\CentralProcure\design notes\ppa_2007_holistic_workflow_blueprint.md).
+[workflow_blueprint.md](./workflow_blueprint.md).
 
 It is intentionally pragmatic:
 - each phase has a concrete output
@@ -15,12 +15,12 @@ What already exists in the repo:
 - workflow blueprint endpoint and frontend blueprint module
 - workflow configuration console for thresholds, stages, transitions, and role tasks
 - core operational modules for requisitions, tenders, bid opening, evaluations, BPP no-objection, contract award, contracts, inspections
-- workflow blueprint schema artifacts in [023_procurement_workflow_blueprint_tables.sql](C:\Users\OJOWA\Documents\Project 4\CentralProcure\database_schema\migrations\023_procurement_workflow_blueprint_tables.sql)
-- runtime workflow instance and history tables in [024_workflow_runtime_tracking.sql](C:\Users\OJOWA\Documents\Project 4\CentralProcure\database_schema\migrations\024_workflow_runtime_tracking.sql)
-- complaint and closeout schema artifacts in [025_administrative_reviews_and_closeouts.sql](C:\Users\OJOWA\Documents\Project 4\CentralProcure\database_schema\migrations\025_administrative_reviews_and_closeouts.sql)
+- workflow blueprint schema artifacts in [023_procurement_workflow_blueprint_tables.sql](../../database_schema/migrations/023_procurement_workflow_blueprint_tables.sql)
+- runtime workflow instance and history tables in [024_workflow_runtime_tracking.sql](../../database_schema/migrations/024_workflow_runtime_tracking.sql)
+- complaint and closeout schema artifacts in [025_administrative_reviews_and_closeouts.sql](../../database_schema/migrations/025_administrative_reviews_and_closeouts.sql)
 - workflow runtime API plus controller-level transition checks and runtime sync in procurement plan, requisition, tender, BPP no-objection, contract award, and contract milestone flows
 - administrative review endpoint support for complaint filing/resolution and governance audit/closeout endpoints
-- a repeatable Phase 9 verification pack in [verify-phase9-workflow.ps1](C:\Users\OJOWA\Documents\Project 4\CentralProcure\scripts\verify-phase9-workflow.ps1) and [ppa_2007_phase9_verification_pack.md](C:\Users\OJOWA\Documents\Project 4\CentralProcure\design notes\ppa_2007_phase9_verification_pack.md)
+- a repeatable Phase 9 verification pack in [verify-phase9-workflow.ps1](../../scripts/verify-phase9-workflow.ps1) and [phase9_verification.md](./phase9_verification.md)
 
 What is still incomplete:
 - explicit runtime enforcement of workflow stage transitions across every operational API
@@ -77,7 +77,7 @@ Goal:
 - make the workflow blueprint tables complete, seeded, and reliable in every environment
 
 Tasks:
-- [ ] verify [023_procurement_workflow_blueprint_tables.sql](C:\Users\OJOWA\Documents\Project 4\CentralProcure\database_schema\migrations\023_procurement_workflow_blueprint_tables.sql) exactly matches the blueprint note
+- [ ] verify [023_procurement_workflow_blueprint_tables.sql](../../database_schema/migrations/023_procurement_workflow_blueprint_tables.sql) exactly matches the blueprint note
 - [ ] add any missing columns needed for runtime enforcement, ownership, or auditability
 - [ ] ensure workflow stage rows, transitions, and role tasks are seeded idempotently
 - [ ] ensure `render-bootstrap.sql` includes all required workflow migrations in the correct order

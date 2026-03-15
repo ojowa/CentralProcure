@@ -7,7 +7,7 @@ internal static class WorkflowBlueprintCatalog
     private static readonly WorkflowPhaseResult[] Phases =
     [
         new("app_planning", "APP Planning", "Need capture, committee review, budget confirmation, and APP approval.", 1),
-        new("threshold_control", "Threshold Control", "Approval route, BPP gate, and procurement method validation.", 2),
+        new("threshold_control", "Threshold Control", "CGIS, Tenders Board, BPP gate, and procurement method validation.", 2),
         new("procurement_execution", "Procurement Execution", "Solicitation, opening, evaluation, and approval routing.", 3),
         new("post_award", "Post-Award", "Award publication, contract delivery, inspection, and payment controls.", 4),
         new("review_and_oversight", "Review and Oversight", "Complaints, closeout, and audit traceability.", 5)
@@ -20,13 +20,13 @@ internal static class WorkflowBlueprintCatalog
         new("budget_confirmation", "app_planning", "Budget Confirmation", "Confirm appropriation, affordability, and funding readiness.", 3, true, false, false, "PPA 2007 s.16, s.18", ["financial_unit_officer"], ["budget.confirm"]),
         new("app_approval", "app_planning", "APP Approval", "Approve the annual procurement plan and release it for execution.", 4, true, false, false, "PPA 2007 s.16, s.18", ["procurement_manager", "accounting_officer"], ["app.approve"]),
         new("procurement_initiation", "threshold_control", "Procurement Initiation", "Create a live procurement package from an approved APP line.", 5, false, false, false, "PPA 2007 s.16, s.19", ["requisitioning_officer", "procurement_officer"], ["procurement.initiate"]),
-        new("threshold_resolution", "threshold_control", "Threshold Resolution", "Resolve the approval path, board gate, and BPP prior-review trigger.", 6, true, false, false, "PPA 2007 s.16, s.17", ["procurement_officer", "procurement_manager"], ["threshold.resolve"]),
+        new("threshold_resolution", "threshold_control", "Threshold Resolution", "Resolve the CGIS, Board, or BPP approval path for the procurement package.", 6, true, false, false, "PPA 2007 s.16, s.17", ["procurement_officer", "procurement_manager"], ["threshold.resolve"]),
         new("method_validation", "threshold_control", "Method Validation", "Validate open bidding by default and record any lawful exception.", 7, true, false, false, "PPA 2007 s.24-s.52", ["procurement_officer", "legal_reviewer"], ["method.validate"]),
         new("solicitation", "procurement_execution", "Solicitation", "Publish advert, invitation, EOI, or RFP in the lawful format.", 8, false, false, false, "PPA 2007 s.19, s.25, s.44-s.48", ["procurement_officer"], ["solicitation.publish"]),
         new("bid_opening", "procurement_execution", "Bid Opening", "Record public opening, attendance, and bid totals.", 9, false, false, false, "PPA 2007 s.30", ["procurement_officer", "evaluation_committee"], ["bid_opening.record"]),
         new("evaluation", "procurement_execution", "Evaluation", "Evaluate only against the published criteria and issue recommendation.", 10, false, false, false, "PPA 2007 s.31-s.33, s.49-s.52", ["technical_evaluator", "financial_evaluator", "evaluation_committee"], ["evaluation.score", "evaluation.report"]),
-        new("tenders_board_review", "procurement_execution", "Tenders Board Review", "Review the recommendation within the relevant threshold authority.", 11, true, false, false, "PPA 2007 s.17, s.19, s.22", ["tenders_board", "tenders_board_secretary"], ["approval.review", "approval.decide"]),
-        new("accounting_officer_review", "procurement_execution", "Accounting Officer Review", "Exercise the final accountable internal decision gate.", 12, true, false, false, "PPA 2007 s.16, s.20", ["accounting_officer"], ["accounting_officer.decide"]),
+        new("tenders_board_review", "procurement_execution", "Tenders Board Review", "NIS Tenders Board review led by DCG heads of directorates, with the board secretary maintaining the decision record.", 11, true, false, false, "PPA 2007 s.17, s.19, s.22", ["tenders_board", "tenders_board_secretary"], ["approval.review", "approval.decide"]),
+        new("accounting_officer_review", "procurement_execution", "CGIS Approval", "CGIS exercises the direct low-value approval authority before award publication.", 12, true, false, false, "PPA 2007 s.16, s.20", ["accounting_officer"], ["accounting_officer.decide"]),
         new("bpp_no_objection", "procurement_execution", "BPP No Objection", "Submit and track the prior-review no-objection process when required.", 13, true, false, false, "PPA 2007 s.16, s.19", ["bpp_liaison", "bpp_reviewer"], ["bpp.submit", "bpp.review"]),
         new("award_and_publication", "post_award", "Award and Publication", "Notify outcome, debrief on request, and publish award.", 14, false, false, false, "PPA 2007 s.19, s.33", ["procurement_officer", "procurement_manager"], ["award.publish"]),
         new("contract_execution", "post_award", "Contract Execution", "Track contract signing, security, mobilisation, milestones, and variations.", 15, false, false, false, "PPA 2007 s.35-s.37", ["contract_manager", "procurement_officer"], ["contract.manage"]),
@@ -46,11 +46,11 @@ internal static class WorkflowBlueprintCatalog
         new("method_validation", "solicitation", "Method is lawful and approved."),
         new("solicitation", "bid_opening", "Submission period closes."),
         new("bid_opening", "evaluation", "Opening record is complete."),
-        new("evaluation", "tenders_board_review", "Evaluation report is ready."),
-        new("tenders_board_review", "accounting_officer_review", "Accounting officer review is required by route."),
+        new("evaluation", "accounting_officer_review", "CGIS direct approval applies within low-value threshold."),
+        new("evaluation", "tenders_board_review", "Board review applies within board or BPP threshold."),
         new("tenders_board_review", "award_and_publication", "Board approval is final within threshold."),
-        new("accounting_officer_review", "bpp_no_objection", "BPP prior review applies."),
-        new("accounting_officer_review", "award_and_publication", "No BPP prior review is required."),
+        new("tenders_board_review", "bpp_no_objection", "BPP prior review applies after board endorsement."),
+        new("accounting_officer_review", "award_and_publication", "CGIS direct approval is complete."),
         new("bpp_no_objection", "award_and_publication", "No-objection is issued."),
         new("award_and_publication", "contract_execution", "Contract has been signed."),
         new("contract_execution", "inspection_and_payment", "Milestone or delivery is ready for inspection."),
@@ -67,15 +67,15 @@ internal static class WorkflowBlueprintCatalog
         new("planning_statistics_officer", "Planning, Research and Statistics", "planning_committee_review", "Validate aggregation, sequencing, and annual planning assumptions.", "Planning package is coherent."),
         new("financial_unit_officer", "Financial Unit", "budget_confirmation", "Confirm appropriation, releases, and affordability.", "Only funded APP entries progress."),
         new("procurement_officer", "Procurement Officer", "procurement_initiation", "Open a procurement package from an approved APP line.", "Execution stays tied to APP control."),
-        new("procurement_manager", "Procurement Manager", "threshold_resolution", "Validate threshold band and route.", "Approval path and BPP trigger are explicit."),
+        new("procurement_manager", "Procurement Manager", "threshold_resolution", "Validate whether the case falls to CGIS, the NIS Tenders Board, or BPP prior review.", "Approval path and external review trigger are explicit."),
         new("legal_reviewer", "Legal Reviewer", "method_validation", "Validate lawful procurement method and exceptions.", "Method choice is compliant."),
         new("procurement_officer", "Procurement Officer", "solicitation", "Publish advert or invitation using the required route.", "Competition is opened lawfully."),
         new("technical_evaluator", "Technical Evaluator", "evaluation", "Perform technical scoring.", "Technical responsiveness is assessed."),
         new("financial_evaluator", "Financial Evaluator", "evaluation", "Perform arithmetic and financial review.", "Commercial comparison is accurate."),
         new("evaluation_committee", "Evaluation Committee", "evaluation", "Issue consolidated recommendation.", "Approval pack is ready."),
-        new("tenders_board_secretary", "Tenders Board Secretary", "tenders_board_review", "Prepare board papers and decision record.", "Board traceability is complete."),
-        new("tenders_board", "Immigration Tender Board", "tenders_board_review", "Approve, reject, or escalate recommendation.", "Decision is recorded with rationale."),
-        new("accounting_officer", "Accounting Officer", "accounting_officer_review", "Exercise the accountable approval gate.", "High-value decision is cleared or blocked."),
+        new("tenders_board_secretary", "Tenders Board Secretary", "tenders_board_review", "Prepare board papers and record the decision log for the DCG-led NIS Tenders Board.", "Board traceability is complete."),
+        new("tenders_board", "NIS Tenders Board", "tenders_board_review", "Approve, reject, or endorse recommendation for BPP prior review.", "Board decision is recorded with governance rationale."),
+        new("accounting_officer", "CGIS", "accounting_officer_review", "Exercise direct low-value approval authority.", "CGIS decision is recorded before award publication."),
         new("bpp_liaison", "BPP Liaison", "bpp_no_objection", "Submit prior-review pack to BPP.", "Regulatory submission is complete."),
         new("bpp_reviewer", "BPP Reviewer", "bpp_no_objection", "Record BPP outcome and queries.", "No-objection status is traceable."),
         new("procurement_officer", "Procurement Officer", "award_and_publication", "Issue award notice and publication.", "Award is legally communicated."),
@@ -91,6 +91,9 @@ internal static class WorkflowBlueprintCatalog
         "procurement_workflow.procurement_plans",
         "procurement_workflow.procurement_plan_items",
         "procurement_workflow.approval_thresholds",
+        "identity.organizational_positions",
+        "procurement_workflow.governance_bodies",
+        "procurement_workflow.governance_body_memberships",
         "procurement_workflow.requisitions",
         "procurement_workflow.tenders",
         "procurement_workflow.bid_opening_sessions",
@@ -132,10 +135,9 @@ internal static class WorkflowBlueprintCatalog
     {
         return
         [
-            new("Goods/Works/Services", 0m, 50_000_000m, "Departmental / delegated authority", false, false, "Fallback band when live threshold records are unavailable."),
-            new("Goods/Works/Services", 50_000_000m, 100_000_000m, "Immigration Tender Board", true, false, "Board route applies within entity authority."),
-            new("Goods/Works/Services", 100_000_000m, 250_000_000m, "Accounting Officer", true, true, "BPP prior review applies before award."),
-            new("Goods/Works/Services", 250_000_000m, null, "Higher approving authority / FEC", true, true, "BPP prior review and escalation route apply.")
+            new("Goods/Works/Services", 0m, 50_000_000m, "CGIS Direct Approval", "CGIS_DIRECT_APPROVAL", "CGIS Direct Approval", true, false, false, null, null, "Fallback band when live threshold records are unavailable."),
+            new("Goods/Works/Services", 50_000_000m, 100_000_000m, "NIS Tenders Board Review", "NIS_TENDERS_BOARD", "NIS Tenders Board (DCG Heads of Directorates)", false, true, false, null, "NIS Tenders Board", "Board route applies within entity authority."),
+            new("Goods/Works/Services", 100_000_000m, null, "NIS Tenders Board + BPP No Objection", "BPP_PRIOR_REVIEW", "NIS Tenders Board + BPP No Objection", false, true, true, null, "NIS Tenders Board", "BPP prior review applies after board endorsement.")
         ];
     }
 }

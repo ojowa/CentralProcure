@@ -10,15 +10,17 @@ BEGIN
         tax_id,
         company_address,
         contact_person,
+        phone_number,
         email,
         password_hash,
         vendor_status
     )
     VALUES
-        ('Global Supplies Ltd', 'RC123456', 'TIN987654', '123 Business Way, Lagos', 'John Doe', 'vendor1@example.com', v_password_hash, 'Active'),
-        ('Tech Solutions Inc', 'RC654321', 'TIN456789', '45 Tech Plaza, Abuja', 'Jane Smith', 'vendor2@example.com', v_password_hash, 'Active')
+        ('Global Supplies Ltd', 'RC123456', 'TIN987654', '123 Business Way, Lagos', 'John Doe', '+2348012345678', 'vendor1@example.com', v_password_hash, 'Active'),
+        ('Tech Solutions Inc', 'RC654321', 'TIN456789', '45 Tech Plaza, Abuja', 'Jane Smith', '+2348098765432', 'vendor2@example.com', v_password_hash, 'Active')
     ON CONFLICT (email) DO UPDATE
     SET password_hash = EXCLUDED.password_hash,
+        phone_number = EXCLUDED.phone_number,
         vendor_status = 'Active';
 END;
 $$;

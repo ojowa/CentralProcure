@@ -20,6 +20,7 @@ namespace eProcurement.Modules.VendorSourcing.Controllers
         private static readonly Regex HasLowercase = new("[a-z]", RegexOptions.Compiled);
         private static readonly Regex HasDigit = new("[0-9]", RegexOptions.Compiled);
         private static readonly Regex HasSymbol = new("[^a-zA-Z0-9]", RegexOptions.Compiled);
+        private static readonly Regex PhoneNumberPattern = new(@"^\+?[0-9 ()-]{7,20}$", RegexOptions.Compiled);
         private readonly IConfiguration _config;
         private readonly ILogger<VendorController> _logger;
 
@@ -60,6 +61,7 @@ namespace eProcurement.Modules.VendorSourcing.Controllers
                 cmd.Parameters.AddWithValue("p_tax_id", NpgsqlDbType.Varchar, request.TaxId);
                 cmd.Parameters.AddWithValue("p_company_address", NpgsqlDbType.Text, request.CompanyAddress);
                 cmd.Parameters.AddWithValue("p_contact_person", NpgsqlDbType.Varchar, request.ContactPerson);
+                cmd.Parameters.AddWithValue("p_phone_number", NpgsqlDbType.Varchar, request.PhoneNumber);
                 cmd.Parameters.AddWithValue("p_email", NpgsqlDbType.Varchar, request.Email);
                 cmd.Parameters.AddWithValue("p_password_hash", NpgsqlDbType.Varchar, passwordHash);
                 cmd.Parameters.Add(new NpgsqlParameter("p_result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.Output });
@@ -180,6 +182,12 @@ namespace eProcurement.Modules.VendorSourcing.Controllers
             var connectionString = GetConnectionString();
             if (string.IsNullOrWhiteSpace(connectionString)) return Problem("DB configuration missing.");
 
+            var validationError = ValidateVendorProfileUpdate(request);
+            if (validationError is not null)
+            {
+                return BadRequest(new { message = validationError });
+            }
+
             try
             {
                 await using var conn = new NpgsqlConnection(connectionString);
@@ -194,6 +202,7 @@ namespace eProcurement.Modules.VendorSourcing.Controllers
                 cmd.Parameters.AddWithValue("p_company_name", NpgsqlDbType.Varchar, (object?)request.CompanyName ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("p_company_address", NpgsqlDbType.Text, (object?)request.CompanyAddress ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("p_contact_person", NpgsqlDbType.Varchar, (object?)request.ContactPerson ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("p_phone_number", NpgsqlDbType.Varchar, (object?)request.PhoneNumber ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("p_email", NpgsqlDbType.Varchar, (object?)request.Email ?? DBNull.Value);
                 cmd.Parameters.Add(new NpgsqlParameter("p_result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.Output });
 
@@ -312,6 +321,7 @@ SELECT
                 r.GetString(r.GetOrdinal("tax_id")),
                 r.GetString(r.GetOrdinal("company_address")),
                 r.GetString(r.GetOrdinal("contact_person")),
+                GetNullableString(r, "phone_number"),
                 r.GetString(r.GetOrdinal("email")),
                 GetNullableDateTime(r, "registration_date"),
                 GetNullableDateTime(r, "last_login"),
@@ -503,6 +513,16 @@ SELECT
                 return "Company name is required.";
             }
 
+            if (string.IsNullOrWhiteSpace(request.PhoneNumber))
+            {
+                return "Phone number is required.";
+            }
+
+            if (!PhoneNumberPattern.IsMatch(request.PhoneNumber.Trim()))
+            {
+                return "Phone number must be 7-20 characters and may include digits, spaces, parentheses, hyphen, or leading +.";
+            }
+
             return ValidateVendorPassword(request.Password);
         }
 
@@ -531,6 +551,23 @@ SELECT
             if (!HasSymbol.IsMatch(password))
             {
                 return "Password must include at least one special character.";
+            }
+
+            return null;
+        }
+
+        private static string? ValidateVendorProfileUpdate(UpdateVendorProfileRequest request)
+        {
+            if (!string.IsNullOrWhiteSpace(request.Email) &&
+                !request.Email.Contains('@', StringComparison.Ordinal))
+            {
+                return "A valid vendor email address is required.";
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.PhoneNumber) &&
+                !PhoneNumberPattern.IsMatch(request.PhoneNumber.Trim()))
+            {
+                return "Phone number must be 7-20 characters and may include digits, spaces, parentheses, hyphen, or leading +.";
             }
 
             return null;

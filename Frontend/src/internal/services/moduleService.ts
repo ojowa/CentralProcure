@@ -98,3 +98,309 @@ export const fetchModuleData = async (moduleId: string, token: string): Promise<
     return text;
   }
 };
+
+export const fetchPlanDetails = async (planId: string, token: string) => {
+  const url = `${serviceBaseUrls.workflow}/api/procurement-plans/${planId}`;
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!response.ok) throw new Error('Failed to fetch plan details');
+  return response.json();
+};
+
+export const createPlan = async (data: any, token: string) => {
+  const url = `${serviceBaseUrls.workflow}/api/procurement-plans`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(data)
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || 'Failed to create plan');
+  }
+  return response.json();
+};
+
+export const createPlanItem = async (planId: string, data: any, token: string) => {
+  const url = `${serviceBaseUrls.workflow}/api/procurement-plan-items`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ ...data, planId })
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || 'Failed to add item');
+  }
+  return response.json();
+};
+
+export const fetchTenderDetails = async (tenderId: string, token: string) => {
+  const url = `${serviceBaseUrls.vendorSourcing}/api/tenders/${tenderId}`;
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!response.ok) throw new Error('Failed to fetch tender details');
+  return response.json();
+};
+
+export const createTender = async (data: any, token: string) => {
+  const url = `${serviceBaseUrls.vendorSourcing}/api/tenders`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(data)
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || 'Failed to create tender');
+  }
+  return response.json();
+};
+
+export const publishTender = async (tenderId: string, data: any, token: string) => {
+  const url = `${serviceBaseUrls.vendorSourcing}/api/tenders/${tenderId}/publish`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(data)
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || 'Failed to publish tender');
+  }
+  return response.json();
+};
+
+export const fetchAssignedTenders = async (token: string) => {
+  const url = `${serviceBaseUrls.workflow}/api/evaluations/assigned-tenders/default`;
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!response.ok) throw new Error('Failed to fetch assigned tenders');
+  return response.json();
+};
+
+export const logEvaluationAction = async (data: any, token: string) => {
+  const url = `${serviceBaseUrls.workflow}/api/evaluations/actions`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(data)
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || 'Failed to log evaluation action');
+  }
+  return response.json();
+};
+
+export const fetchTenderBids = async (tenderId: string, token: string) => {
+  const url = `${serviceBaseUrls.workflow}/api/tenders/${tenderId}/bids`;
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!response.ok) throw new Error('Failed to fetch bids for evaluation');
+  return response.json();
+};
+
+export const fetchApprovedRequisitions = async (token: string) => {
+  const url = `${serviceBaseUrls.workflow}/api/requisitions?status=Approved`;
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!response.ok) throw new Error('Failed to fetch approved requisitions');
+  const data = await response.json();
+  return data.Items || data; // Handle different response shapes
+};
+
+export const fetchBidOpeningSessions = async (token: string) => {
+  const url = `${serviceBaseUrls.vendorSourcing}/api/bid-opening/sessions`;
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!response.ok) throw new Error('Failed to fetch bid opening sessions');
+  const data = await response.json();
+  return data.Items || data;
+};
+
+export const updateRequisitionStatus = async (requisitionId: string, status: string, token: string) => {
+  const url = `${serviceBaseUrls.workflow}/api/requisitions/${requisitionId}`;
+  const response = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ status })
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || 'Failed to update requisition status');
+  }
+  return response.json();
+};
+
+export const fetchEvaluationReports = async (status: string, token: string) => {
+  const url = `${serviceBaseUrls.workflow}/api/evaluation-reports?status=${status}`;
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!response.ok) throw new Error('Failed to fetch evaluation reports');
+  return response.json();
+};
+
+export const fetchContracts = async (token: string) => {
+  const url = `${serviceBaseUrls.postAward}/api/contracts`;
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!response.ok) throw new Error('Failed to fetch contracts');
+  return response.json();
+};
+
+export const fetchContractMilestones = async (contractId: string, token: string) => {
+  const url = `${serviceBaseUrls.postAward}/api/contracts/${contractId}/milestones`;
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!response.ok) throw new Error('Failed to fetch milestones');
+  return response.json();
+};
+
+export const logContractMilestone = async (contractId: string, data: any, token: string) => {
+  const url = `${serviceBaseUrls.postAward}/api/contracts/${contractId}/milestones`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(data)
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || 'Failed to log milestone');
+  }
+  return response.json();
+};
+
+export const fetchBppNoObjections = async (token: string) => {
+  const url = `${serviceBaseUrls.workflow}/api/bpp-no-objections`;
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!response.ok) throw new Error('Failed to fetch BPP no-objections');
+  return response.json();
+};
+
+export const createBppNoObjection = async (data: any, token: string) => {
+  const url = `${serviceBaseUrls.workflow}/api/bpp-no-objections`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(data)
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || 'Failed to create BPP escalation');
+  }
+  return response.json();
+};
+
+export const fetchAdministrativeReviews = async (token: string) => {
+  const url = `${serviceBaseUrls.workflow}/api/administrative-reviews`;
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!response.ok) throw new Error('Failed to fetch administrative reviews');
+  return response.json();
+};
+
+export const submitAdministrativeReviewDecision = async (complaintId: string, data: any, token: string) => {
+  const url = `${serviceBaseUrls.workflow}/api/administrative-reviews/${complaintId}`;
+  
+  // Map internal module form state to the DTO expected by the backend
+  const payload = {
+    Status: 'Resolved',
+    ResolutionOutcome: data.outcome,
+    ResolutionStageKey: data.resolutionStageKey || undefined,
+    ResolutionNotes: data.resolutionNotes
+  };
+
+  const response = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || 'Failed to resolve review');
+  }
+  return response.json();
+};
+
+export const fetchBidOpeningSessionDetails = async (sessionId: string, token: string) => {
+  const url = `${serviceBaseUrls.vendorSourcing}/api/bid-opening/sessions/${sessionId}`;
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!response.ok) throw new Error('Failed to fetch session details');
+  return response.json();
+};
+
+export const createBidOpeningSession = async (data: any, token: string) => {
+  const url = `${serviceBaseUrls.vendorSourcing}/api/bid-opening/sessions`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(data)
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || 'Failed to create session');
+  }
+  return response.json();
+};
+
+export const updateBidOpeningSession = async (sessionId: string, data: any, token: string) => {
+  const url = `${serviceBaseUrls.vendorSourcing}/api/bid-opening/sessions/${sessionId}`;
+  const response = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(data)
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || 'Failed to update session');
+  }
+  return response.json();
+};

@@ -5,8 +5,12 @@ CREATE TABLE IF NOT EXISTS procurement_workflow.approval_thresholds (
     min_amount DECIMAL(18, 2) NOT NULL DEFAULT 0,
     max_amount DECIMAL(18, 2) NULL,
     approval_route VARCHAR(80) NOT NULL,
+    approval_authority_code VARCHAR(80) NOT NULL DEFAULT 'GENERIC_ROUTE',
+    approval_authority_label VARCHAR(160) NOT NULL DEFAULT 'Threshold authority',
+    requires_cgis_approval BOOLEAN NOT NULL DEFAULT FALSE,
     requires_board BOOLEAN NOT NULL DEFAULT FALSE,
     requires_bpp BOOLEAN NOT NULL DEFAULT FALSE,
+    governance_body_id UUID NULL REFERENCES procurement_workflow.governance_bodies(body_id) ON DELETE SET NULL,
     status VARCHAR(30) NOT NULL DEFAULT 'Active',
     notes TEXT NULL,
     created_by VARCHAR(255) DEFAULT CURRENT_USER,
@@ -41,3 +45,6 @@ $$;
 
 CREATE INDEX IF NOT EXISTS approval_thresholds_lookup_idx
     ON procurement_workflow.approval_thresholds (procurement_type, min_amount, max_amount, status);
+
+CREATE INDEX IF NOT EXISTS approval_thresholds_governance_body_idx
+    ON procurement_workflow.approval_thresholds (governance_body_id, status);

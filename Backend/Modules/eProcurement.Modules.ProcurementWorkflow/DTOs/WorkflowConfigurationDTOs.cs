@@ -7,7 +7,8 @@ public record WorkflowConfigurationResult(
     IReadOnlyList<WorkflowConfigurationTransitionResult> Transitions,
     IReadOnlyList<WorkflowConfigurationRoleTaskResult> RoleTasks,
     IReadOnlyList<WorkflowConfigurationThresholdResult> Thresholds,
-    IReadOnlyList<WorkflowConfigurationRoleResult> Roles);
+    IReadOnlyList<WorkflowConfigurationRoleResult> Roles,
+    IReadOnlyList<WorkflowConfigurationGovernanceBodyResult> GovernanceBodies);
 
 public record WorkflowConfigurationStageResult(
     string StageKey,
@@ -44,8 +45,13 @@ public record WorkflowConfigurationThresholdResult(
     decimal MinAmount,
     decimal? MaxAmount,
     string ApprovalRoute,
+    string ApprovalAuthorityCode,
+    string ApprovalAuthorityLabel,
+    bool RequiresCgisApproval,
     bool RequiresBoard,
     bool RequiresBpp,
+    Guid? GovernanceBodyId,
+    string? GovernanceBodyName,
     string Status,
     string? Notes,
     DateTime? UpdatedAt);
@@ -53,6 +59,13 @@ public record WorkflowConfigurationThresholdResult(
 public record WorkflowConfigurationRoleResult(
     string RoleName,
     string? Description,
+    bool IsActive);
+
+public record WorkflowConfigurationGovernanceBodyResult(
+    Guid BodyId,
+    string BodyCode,
+    string BodyName,
+    string BodyType,
     bool IsActive);
 
 public record WorkflowStageUpdateRequest(
@@ -83,8 +96,12 @@ public record WorkflowThresholdCreateRequest(
     decimal MinAmount,
     decimal? MaxAmount,
     string ApprovalRoute,
+    string ApprovalAuthorityCode,
+    string ApprovalAuthorityLabel,
+    bool RequiresCgisApproval,
     bool RequiresBoard,
     bool RequiresBpp,
+    Guid? GovernanceBodyId,
     string? Status,
     string? Notes);
 
@@ -93,7 +110,11 @@ public record WorkflowThresholdUpdateRequest(
     decimal? MinAmount,
     decimal? MaxAmount,
     string? ApprovalRoute,
+    string? ApprovalAuthorityCode,
+    string? ApprovalAuthorityLabel,
+    bool? RequiresCgisApproval,
     bool? RequiresBoard,
     bool? RequiresBpp,
+    Guid? GovernanceBodyId,
     string? Status,
     string? Notes);

@@ -1,7 +1,7 @@
 # PPA 2007 State Coverage Matrix
 
 This matrix is the Phase 0 baseline for the workflow in
-[ppa_2007_holistic_workflow_blueprint.md](C:\Users\OJOWA\Documents\Project 4\CentralProcure\design notes\ppa_2007_holistic_workflow_blueprint.md).
+[workflow_blueprint.md](./workflow_blueprint.md).
 
 Status meanings:
 - `implemented`: state has clear persistence, backend route coverage, and workflow-aware handling

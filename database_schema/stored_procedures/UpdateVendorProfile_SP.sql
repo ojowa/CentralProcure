@@ -4,6 +4,7 @@ CREATE OR REPLACE FUNCTION identity.update_vendor_profile(
     p_company_name VARCHAR(255),
     p_company_address TEXT,
     p_contact_person VARCHAR(255),
+    p_phone_number VARCHAR(50),
     p_email VARCHAR(255)
 )
 RETURNS TABLE (
@@ -13,6 +14,7 @@ RETURNS TABLE (
     tax_id VARCHAR(100),
     company_address TEXT,
     contact_person VARCHAR(255),
+    phone_number VARCHAR(50),
     email VARCHAR(255),
     registration_date TIMESTAMP WITHOUT TIME ZONE,
     last_login TIMESTAMP WITHOUT TIME ZONE,
@@ -27,6 +29,7 @@ BEGIN
         company_name = COALESCE(p_company_name, v.company_name),
         company_address = COALESCE(p_company_address, v.company_address),
         contact_person = COALESCE(p_contact_person, v.contact_person),
+        phone_number = COALESCE(NULLIF(p_phone_number, ''), v.phone_number),
         email = COALESCE(p_email, v.email),
         updated_at = NOW()
     WHERE v.vendor_id = p_vendor_id
@@ -37,6 +40,7 @@ BEGIN
         v.tax_id,
         v.company_address,
         v.contact_person,
+        v.phone_number,
         v.email,
         v.registration_date,
         v.last_login,
@@ -50,6 +54,7 @@ CREATE OR REPLACE PROCEDURE identity.update_vendor_profile_sp(
     IN p_company_name VARCHAR(255),
     IN p_company_address TEXT,
     IN p_contact_person VARCHAR(255),
+    IN p_phone_number VARCHAR(50),
     IN p_email VARCHAR(255),
     OUT p_result refcursor
 )
@@ -62,6 +67,7 @@ BEGIN
         p_company_name,
         p_company_address,
         p_contact_person,
+        p_phone_number,
         p_email
     );
 END;
