@@ -1,5 +1,7 @@
+using System.Data;
 using eProcurement.Modules.PostAward.DTOs;
 using eProcurement.Shared.Controllers;
+using eProcurement.Shared.Workflow;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 using NpgsqlTypes;
@@ -20,9 +22,15 @@ public class PaymentsController : BaseModuleController
         "Archived"
     };
 
-    public PaymentsController(IConfiguration config, ILogger<PaymentsController> logger)
+    private readonly WorkflowRuntimeTracker _workflowRuntimeTracker;
+
+    public PaymentsController(
+        IConfiguration config,
+        ILogger<PaymentsController> logger,
+        WorkflowRuntimeTracker workflowRuntimeTracker)
         : base(config, logger)
     {
+        _workflowRuntimeTracker = workflowRuntimeTracker;
     }
 
     [HttpGet]
@@ -62,15 +70,16 @@ WITH payment_rows AS (
         i.outcome AS inspection_outcome,
         i.completed_date AS inspection_completed_date,
         COALESCE(i.outcome = 'Accepted', FALSE) AS final_acceptance_completed,
-        COALESCE(pc.final_payment_completed, FALSE) AS final_payment_recorded,
-        (COALESCE(i.outcome = 'Accepted', FALSE) AND c.status = 'Completed' AND pc.closeout_id IS NULL) AS closeout_eligible,
+        COALESCE(c.is_paid, FALSE) AS final_payment_recorded,
+        (COALESCE(i.outcome = 'Accepted', FALSE) AND c.status = 'Completed' AND c.is_paid = TRUE AND pc.closeout_id IS NULL) AS closeout_eligible,
         CASE
             WHEN pc.closeout_id IS NOT NULL THEN 'Archived'
             WHEN i.inspection_code IS NULL THEN 'Awaiting Inspection'
             WHEN i.status IN ('Scheduled', 'In Progress') OR COALESCE(i.outcome, 'Pending') = 'Pending' THEN 'Inspection In Progress'
             WHEN i.outcome = 'Rejected' THEN 'Blocked by Inspection'
             WHEN c.status <> 'Completed' THEN 'Awaiting Contract Completion'
-            ELSE 'Ready for Final Payment'
+            WHEN NOT c.is_paid THEN 'Ready for Final Payment'
+            ELSE 'Ready for Closeout'
         END AS payment_stage,
         pc.closeout_id,
         pc.closeout_reference,
@@ -182,6 +191,107 @@ ORDER BY
         {
             Logger.LogError(ex, "Error retrieving payment tracking items.");
             return Problem("Internal server error retrieving payment tracking items.");
+        }
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> RecordPayment([FromBody] PaymentRecordRequest request, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(request.ContractCode))
+        {
+            return BadRequest("ContractCode is required.");
+        }
+
+        if (request.Amount <= 0)
+        {
+            return BadRequest("Payment amount must be greater than zero.");
+        }
+
+        var connectionString = GetConnectionString();
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            return Problem("Connection string 'Primary' is not configured.", statusCode: 500);
+        }
+
+        try
+        {
+            await using var conn = new NpgsqlConnection(connectionString);
+            await conn.OpenAsync(ct);
+
+            await using var cmd = new NpgsqlCommand("CALL post_award.record_payment_sp(@p_contract_code, @p_amount, @p_notes, @p_recorded_by, NULL, NULL)", conn);
+            cmd.Parameters.AddWithValue("p_contract_code", NpgsqlDbType.Varchar, request.ContractCode);
+            cmd.Parameters.AddWithValue("p_amount", NpgsqlDbType.Numeric, request.Amount);
+            cmd.Parameters.AddWithValue("p_notes", NpgsqlDbType.Text, (object?)request.Notes ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("p_recorded_by", NpgsqlDbType.Varchar, User.Identity?.Name ?? "system");
+
+            var pPaymentId = new NpgsqlParameter("p_payment_id", NpgsqlDbType.Uuid) { Direction = ParameterDirection.Output };
+            var pPaymentRef = new NpgsqlParameter("p_payment_reference", NpgsqlDbType.Varchar, 80) { Direction = ParameterDirection.Output };
+            cmd.Parameters.Add(pPaymentId);
+            cmd.Parameters.Add(pPaymentRef);
+
+            await cmd.ExecuteNonQueryAsync(ct);
+
+            var paymentId = (Guid)pPaymentId.Value!;
+            var paymentRef = (string)pPaymentRef.Value!;
+
+            // Sync workflow runtime
+            await SyncWorkflowAfterPaymentAsync(conn, request.ContractCode, paymentRef, ct);
+
+            return Ok(new PaymentRecordResponse(
+                paymentId,
+                paymentRef,
+                request.ContractCode,
+                request.Amount,
+                "Paid",
+                DateTime.UtcNow));
+        }
+        catch (PostgresException ex)
+        {
+            Logger.LogWarning(ex, "Database error recording payment for contract {ContractCode}.", request.ContractCode);
+            return BadRequest(new { message = ex.MessageText });
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error recording payment for contract {ContractCode}.", request.ContractCode);
+            return Problem("Internal server error recording payment.");
+        }
+    }
+
+    private async Task SyncWorkflowAfterPaymentAsync(NpgsqlConnection conn, string contractCode, string paymentRef, CancellationToken ct)
+    {
+        const string sql = @"
+SELECT contract_id, tender_title, contract_value 
+FROM post_award.contracts 
+WHERE contract_code = @p_contract_code;";
+
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("p_contract_code", contractCode);
+        await using var reader = await cmd.ExecuteReaderAsync(ct);
+        if (await reader.ReadAsync(ct))
+        {
+            var contractId = reader.GetGuid(0);
+            var title = reader.GetString(1);
+            var value = reader.GetDecimal(2);
+            await reader.CloseAsync();
+
+            await _workflowRuntimeTracker.SyncAsync(
+                conn,
+                null as NpgsqlTransaction,
+                new WorkflowRuntimeSyncRequest(
+                    "contract",
+                    contractId,
+                    "inspection_and_payment",
+                    "Completed",
+                    title,
+                    null,
+                    null,
+                    value,
+                    null,
+                    null,
+                    $"Final payment {paymentRef} recorded.",
+                    User.Identity?.Name,
+                    "payment_recorded"),
+                ct);
         }
     }
 

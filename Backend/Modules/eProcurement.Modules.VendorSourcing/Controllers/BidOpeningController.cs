@@ -17,6 +17,7 @@ public class BidOpeningController : ControllerBase
     private readonly IConfiguration _config;
     private readonly ILogger<BidOpeningController> _logger;
     private readonly WorkflowRuntimeTracker _workflowRuntimeTracker;
+    private readonly WorkflowActionGrantService _workflowActionGrantService;
 
     private static readonly string[] AllowedStatuses = { "Scheduled", "Open", "Closed", "Cancelled" };
     private static readonly HashSet<string> AllowedSortFields = new(StringComparer.OrdinalIgnoreCase)
@@ -60,11 +61,13 @@ public class BidOpeningController : ControllerBase
     public BidOpeningController(
         IConfiguration config,
         ILogger<BidOpeningController> logger,
-        WorkflowRuntimeTracker workflowRuntimeTracker)
+        WorkflowRuntimeTracker workflowRuntimeTracker,
+        WorkflowActionGrantService workflowActionGrantService)
     {
         _config = config;
         _logger = logger;
         _workflowRuntimeTracker = workflowRuntimeTracker;
+        _workflowActionGrantService = workflowActionGrantService;
     }
 
     private sealed record TenderScheduleContext(Guid TenderId, string Status, DateTime? OpeningDate, DateTime? ClosingDate);
@@ -92,7 +95,14 @@ public class BidOpeningController : ControllerBase
         [FromQuery] string? sortDir = "asc",
         CancellationToken ct = default)
     {
-        if (!UserHasAnyRole(ReadRoles))
+        var connectionString = GetConnectionString();
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            return Problem("Connection string 'Primary' is not configured.", statusCode: 500);
+        }
+
+        var actions = await _workflowActionGrantService.GetRoleModuleActionsAsync(connectionString, WorkflowActionGrantService.ResolveRoleKey(User), ct);
+        if (!actions.Contains("bid_opening.manage") && !actions.Contains("bid_opening.view_detail"))
         {
             return Forbid();
         }
@@ -128,12 +138,6 @@ public class BidOpeningController : ControllerBase
         if (!AllowedSortDirections.Contains(sortDir))
         {
             return BadRequest("SortDir must be 'asc' or 'desc'.");
-        }
-
-        var connectionString = GetConnectionString();
-        if (string.IsNullOrWhiteSpace(connectionString))
-        {
-            return Problem("Connection string 'Primary' is not configured.", statusCode: 500);
         }
 
         try
@@ -178,11 +182,6 @@ public class BidOpeningController : ControllerBase
     [HttpGet("sessions/{sessionId:guid}")]
     public async Task<IActionResult> GetSession(Guid sessionId, CancellationToken ct)
     {
-        if (!UserHasAnyRole(ReadRoles))
-        {
-            return Forbid();
-        }
-
         var connectionString = GetConnectionString();
         if (string.IsNullOrWhiteSpace(connectionString))
         {
@@ -194,22 +193,28 @@ public class BidOpeningController : ControllerBase
             await using var conn = new NpgsqlConnection(connectionString);
             await conn.OpenAsync(ct);
             await using var tx = await conn.BeginTransactionAsync(ct);
-            await using var cmd = new NpgsqlCommand("vendor_sourcing.get_bid_opening_session_details_sp", conn, tx)
+
+            var session = await GetSessionDetailAsync(sessionId, conn, tx, ct);
+            if (session is null)
             {
-                CommandType = CommandType.StoredProcedure
-            };
+                return NotFound();
+            }
 
-            cmd.Parameters.AddWithValue("p_session_id", NpgsqlDbType.Uuid, sessionId);
-            cmd.Parameters.Add(new NpgsqlParameter("p_result", NpgsqlDbType.Refcursor)
+            var hasAction = await _workflowActionGrantService.HasRequiredActionAsync(
+                conn,
+                tx,
+                User,
+                "bid_opening_session",
+                sessionId,
+                "bid_opening.view_detail",
+                ct);
+
+            if (!hasAction)
             {
-                Direction = ParameterDirection.Output
-            });
+                return Forbid();
+            }
 
-            var results = await ExecuteRefcursorAsync(cmd, MapDetail, ct);
-            await tx.CommitAsync(ct);
-
-            var result = results.FirstOrDefault();
-            return result is null ? NotFound() : Ok(result);
+            return Ok(session);
         }
         catch (Exception ex)
         {
@@ -221,11 +226,6 @@ public class BidOpeningController : ControllerBase
     [HttpPost("sessions")]
     public async Task<IActionResult> CreateSession([FromBody] BidOpeningSessionCreateRequest request, CancellationToken ct)
     {
-        if (!UserHasAnyRole(ManageRoles))
-        {
-            return Forbid();
-        }
-
         var validationError = ValidateCreateRequest(request, out var normalizedStatus);
         if (validationError is not null)
         {
@@ -248,6 +248,20 @@ public class BidOpeningController : ControllerBase
             if (tender is null)
             {
                 return NotFound(new { message = "Tender not found." });
+            }
+
+            var hasAction = await _workflowActionGrantService.HasRequiredActionAsync(
+                conn,
+                tx,
+                User,
+                "tender",
+                request.TenderId,
+                "bid_opening.manage",
+                ct);
+
+            if (!hasAction)
+            {
+                return Forbid();
             }
 
             var createAlignmentError = ValidatePpaAlignedState(
@@ -310,11 +324,6 @@ public class BidOpeningController : ControllerBase
     [HttpPut("sessions/{sessionId:guid}")]
     public async Task<IActionResult> UpdateSession(Guid sessionId, [FromBody] BidOpeningSessionUpdateRequest request, CancellationToken ct)
     {
-        if (!UserHasAnyRole(ManageRoles))
-        {
-            return Forbid();
-        }
-
         var validationError = ValidateUpdateRequest(request, out var normalizedStatus);
         if (validationError is not null)
         {
@@ -337,6 +346,20 @@ public class BidOpeningController : ControllerBase
             if (existingSession is null)
             {
                 return NotFound();
+            }
+
+            var hasAction = await _workflowActionGrantService.HasRequiredActionAsync(
+                conn,
+                tx,
+                User,
+                "bid_opening_session",
+                sessionId,
+                "bid_opening.manage",
+                ct);
+
+            if (!hasAction)
+            {
+                return Forbid();
             }
 
             var tender = await GetTenderScheduleAsync(existingSession.TenderId, conn, tx, ct);
@@ -502,27 +525,6 @@ public class BidOpeningController : ControllerBase
                 reason,
                 null),
             ct);
-    }
-
-    private bool UserHasAnyRole(IReadOnlySet<string> allowedRoles)
-    {
-        var role = GetNormalizedRole();
-        return role is not null && allowedRoles.Contains(role);
-    }
-
-    private string? GetNormalizedRole()
-    {
-        var rawRole = User.FindFirstValue("role") ?? User.FindFirstValue(ClaimTypes.Role);
-        if (string.IsNullOrWhiteSpace(rawRole))
-        {
-            return null;
-        }
-
-        var withUnderscores = rawRole.Trim().Replace("-", "_").Replace(" ", "_");
-        var normalized = System.Text.RegularExpressions.Regex.Replace(withUnderscores, "([a-z0-9])([A-Z])", "$1_$2")
-            .ToLowerInvariant();
-
-        return RoleAliases.TryGetValue(normalized, out var mapped) ? mapped : normalized;
     }
 
     private static string? ValidatePpaAlignedState(BidOpeningValidationState state, TenderScheduleContext tender)

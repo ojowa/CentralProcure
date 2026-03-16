@@ -805,12 +805,28 @@ export interface PaymentTrackingItem {
     InspectionCompletedDate?: string | null;
     FinalAcceptanceCompleted: boolean;
     FinalPaymentRecorded: boolean;
+    IsPaid: boolean;
     CloseoutEligible: boolean;
     PaymentStage: string;
     CloseoutId?: string | null;
     CloseoutReference?: string | null;
     CloseoutStatus?: string | null;
     ArchivedAt?: string | null;
+}
+
+export interface PaymentRecordRequest {
+    ContractCode: string;
+    Amount: number;
+    Notes?: string | null;
+}
+
+export interface PaymentRecordResponse {
+    PaymentId: string;
+    PaymentReference: string;
+    ContractCode: string;
+    Amount: number;
+    Status: string;
+    PaymentDate: string;
 }
 
 export interface AuditEventItem {

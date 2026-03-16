@@ -412,6 +412,19 @@ LIMIT @p_limit;";
                 return BadRequest("FinalAcceptanceCompleted and FinalPaymentCompleted must both be true before closeout.");
             }
 
+            // Verify paid status for contracts
+            if (entityType == "contract")
+            {
+                const string checkPaidSql = "SELECT is_paid FROM post_award.contracts WHERE contract_id = @p_contract_id;";
+                await using var checkPaidCmd = new NpgsqlCommand(checkPaidSql, conn, tx);
+                checkPaidCmd.Parameters.AddWithValue("p_contract_id", request.EntityId);
+                var isPaid = await checkPaidCmd.ExecuteScalarAsync(ct);
+                if (isPaid is not bool paid || !paid)
+                {
+                    return BadRequest("Contract must be recorded as Paid before closeout.");
+                }
+            }
+
             var closeout = await InsertCloseoutAsync(conn, tx, request, workflowInstance.RecordTitle, ct);
 
             await _workflowRuntimeTracker.SyncAsync(

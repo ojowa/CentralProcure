@@ -23,3 +23,16 @@ public record PaymentTrackingItem(
     string? CloseoutReference,
     string? CloseoutStatus,
     DateTime? ArchivedAt);
+
+public record PaymentRecordRequest(
+    string ContractCode,
+    decimal Amount,
+    string? Notes);
+
+public record PaymentRecordResponse(
+    Guid PaymentId,
+    string PaymentReference,
+    string ContractCode,
+    decimal Amount,
+    string Status,
+    DateTime PaymentDate);

@@ -284,7 +284,10 @@ INSERT INTO procurement_workflow.workflow_instances (
 SELECT
     'contract',
     c.contract_id,
-    'contract_execution',
+    CASE
+        WHEN c.status = 'Completed' THEN 'inspection_and_payment'
+        ELSE 'contract_execution'
+    END,
     c.status,
     c.tender_title,
     c.contract_value,

@@ -1,4 +1,4 @@
-import type { PaymentTrackingItem } from '../types/internal';
+import type { PaymentRecordRequest, PaymentRecordResponse, PaymentTrackingItem } from '../types/internal';
 import { serviceBaseUrls } from './moduleService';
 
 const parseBody = async (response: Response): Promise<unknown> => {
@@ -52,4 +52,17 @@ export const fetchPaymentTracking = async (
   });
 
   return parseResponse<PaymentTrackingItem[]>(response, 'Unable to load payment tracking.');
+};
+
+export const recordPayment = async (token: string, request: PaymentRecordRequest): Promise<PaymentRecordResponse> => {
+  const response = await fetch(`${serviceBaseUrls.postAward}/api/payments`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(request)
+  });
+
+  return parseResponse<PaymentRecordResponse>(response, 'Unable to record payment.');
 };
