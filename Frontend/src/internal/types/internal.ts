@@ -145,6 +145,29 @@ export interface InternalRoleRecord {
     IsActive: boolean;
 }
 
+export interface InternalUserProfile {
+    InternalUserId: string;
+    Email: string;
+    Username: string;
+    FirstName: string;
+    MiddleName?: string | null;
+    Surname: string;
+    ServiceNumber: string;
+    UnitId: string;
+    UnitName: string;
+    RoleName: string;
+    Status: string;
+    LastLogin?: string | null;
+    CreatedAt: string;
+}
+
+export interface InternalUserProfileUpdateRequest {
+    Username: string;
+    FirstName: string;
+    MiddleName?: string;
+    Surname: string;
+}
+
 export interface InternalOrganizationalUnitRecord {
     UnitId: string;
     UnitName: string;
@@ -228,13 +251,13 @@ export interface TenderSummary {
     ClosingDate?: string | null;
     CreatedAt: string;
 }
-
 export interface TenderDetail extends TenderSummary {
     Description: string;
     Specifications?: string | null;
     EligibilityCriteria?: string | null;
     EvaluationCriteria?: string | null;
     UpdatedAt: string;
+    CurrentStage?: string | null;
 }
 
 export interface TenderListResponse {
@@ -294,6 +317,138 @@ export interface BudgetSummaryResponse {
     Committed: number;
     Spent: number;
     Available: number;
+}
+
+export interface BudgetDashboardRiskItem {
+    PlanId: string;
+    PlanTitle: string;
+    Department: string;
+    BudgetCode: string;
+    FiscalYear: number;
+    RequestedAmount: number;
+    Available: number;
+    Variance: number;
+}
+
+export interface BudgetDashboardResponse {
+    Appropriated: number;
+    Released: number;
+    Committed: number;
+    Spent: number;
+    Available: number;
+    QueueCount: number;
+    AwaitingBudgetReviewCount: number;
+    OnHoldCount: number;
+    ReadyForApprovalCount: number;
+    AtRiskCount: number;
+    TopRisks: BudgetDashboardRiskItem[];
+}
+
+export interface BudgetConfirmationQueueItem {
+    PlanId: string;
+    PlanTitle: string;
+    Department: string;
+    FiscalYear: number;
+    PlanStatus: string;
+    CurrentStageKey: string;
+    CurrentStageTitle: string;
+    WorkflowStatus?: string | null;
+    TotalBudget: number;
+    RequestedAmount: number;
+    Appropriated: number;
+    Released: number;
+    Committed: number;
+    Spent: number;
+    Available: number;
+    Variance: number;
+    ItemCount: number;
+    CreatedAt: string;
+    UpdatedAt: string;
+}
+
+export interface BudgetConfirmationListResponse {
+    Items: BudgetConfirmationQueueItem[];
+    Page: number;
+    PageSize: number;
+    Total: number;
+}
+
+export interface BudgetPlanItemSummary {
+    PlanItemId: string;
+    ItemCode?: string | null;
+    Description: string;
+    BudgetCode: string;
+    ProcurementType?: string | null;
+    EstimatedAmount: number;
+    Status: string;
+    Notes?: string | null;
+    CreatedAt: string;
+    UpdatedAt: string;
+}
+
+export interface BudgetPlanBudgetLine {
+    BudgetCode: string;
+    RequestedAmount: number;
+    Appropriated: number;
+    Released: number;
+    Committed: number;
+    Spent: number;
+    Available: number;
+    Variance: number;
+    ItemCount: number;
+}
+
+export interface BudgetDecisionHistoryEntry {
+    HistoryId: string;
+    FromStageKey?: string | null;
+    ToStageKey: string;
+    ToStageTitle: string;
+    StageStatus?: string | null;
+    TransitionSource: string;
+    TransitionReason?: string | null;
+    Actor?: string | null;
+    CreatedAt: string;
+}
+
+export interface BudgetConfirmationDetail {
+    PlanId: string;
+    PlanTitle: string;
+    Department: string;
+    FiscalYear: number;
+    PlanStatus: string;
+    CurrentStageKey: string;
+    CurrentStageTitle: string;
+    WorkflowStatus?: string | null;
+    Notes?: string | null;
+    TotalBudget: number;
+    RequestedAmount: number;
+    Appropriated: number;
+    Released: number;
+    Committed: number;
+    Spent: number;
+    Available: number;
+    Variance: number;
+    ItemCount: number;
+    CreatedAt: string;
+    UpdatedAt: string;
+    BudgetLines: BudgetPlanBudgetLine[];
+    PlanItems: BudgetPlanItemSummary[];
+    History: BudgetDecisionHistoryEntry[];
+}
+
+export interface BudgetDecisionRequest {
+    Decision: string;
+    Note?: string | null;
+}
+
+export interface BudgetDecisionResponse {
+    PlanId: string;
+    Decision: string;
+    Message: string;
+    CurrentStageKey: string;
+    CurrentStageTitle: string;
+    WorkflowStatus?: string | null;
+    PlanStatus: string;
 }
 
 export interface ApprovalThresholdDetail {

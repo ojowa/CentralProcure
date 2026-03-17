@@ -1,5 +1,13 @@
 import { serviceBaseUrls } from './moduleService';
-import type { BudgetAvailabilityResponse, BudgetSummaryResponse } from '../types/internal';
+import type {
+  BudgetAvailabilityResponse,
+  BudgetConfirmationDetail,
+  BudgetConfirmationListResponse,
+  BudgetDashboardResponse,
+  BudgetDecisionRequest,
+  BudgetDecisionResponse,
+  BudgetSummaryResponse
+} from '../types/internal';
 
 const baseUrl = `${serviceBaseUrls.governance}/api/budget`;
 
@@ -66,4 +74,95 @@ export const fetchBudgetSummary = async (
   });
 
   return parseResponse<BudgetSummaryResponse>(response);
+};
+
+export const fetchBudgetDashboard = async (
+  token: string,
+  params?: { fiscalYear?: number; department?: string }
+): Promise<BudgetDashboardResponse> => {
+  const query = new URLSearchParams();
+  if (params?.fiscalYear) {
+    query.set('fiscalYear', String(params.fiscalYear));
+  }
+  if (params?.department?.trim()) {
+    query.set('department', params.department.trim());
+  }
+
+  const response = await fetch(`${baseUrl}/dashboard?${query.toString()}`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+
+  return parseResponse<BudgetDashboardResponse>(response);
+};
+
+export const fetchBudgetConfirmations = async (
+  token: string,
+  params?: {
+    fiscalYear?: number;
+    department?: string;
+    stage?: string;
+    query?: string;
+    page?: number;
+    pageSize?: number;
+  }
+): Promise<BudgetConfirmationListResponse> => {
+  const query = new URLSearchParams();
+  if (params?.fiscalYear) {
+    query.set('fiscalYear', String(params.fiscalYear));
+  }
+  if (params?.department?.trim()) {
+    query.set('department', params.department.trim());
+  }
+  if (params?.stage?.trim()) {
+    query.set('stage', params.stage.trim());
+  }
+  if (params?.query?.trim()) {
+    query.set('query', params.query.trim());
+  }
+  if (params?.page) {
+    query.set('page', String(params.page));
+  }
+  if (params?.pageSize) {
+    query.set('pageSize', String(params.pageSize));
+  }
+
+  const response = await fetch(`${baseUrl}/confirmations?${query.toString()}`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+
+  return parseResponse<BudgetConfirmationListResponse>(response);
+};
+
+export const fetchBudgetConfirmationDetail = async (
+  token: string,
+  planId: string
+): Promise<BudgetConfirmationDetail> => {
+  const response = await fetch(`${baseUrl}/confirmations/${planId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+
+  return parseResponse<BudgetConfirmationDetail>(response);
+};
+
+export const decideBudgetConfirmation = async (
+  token: string,
+  planId: string,
+  payload: BudgetDecisionRequest
+): Promise<BudgetDecisionResponse> => {
+  const response = await fetch(`${baseUrl}/confirmations/${planId}/decision`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
+
+  return parseResponse<BudgetDecisionResponse>(response);
 };

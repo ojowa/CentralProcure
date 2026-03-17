@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import type { InternalModule, TenderSummary, TenderDetail, RequisitionSummary } from '../types/internal';
 import { fetchTenderDetails, createTender, publishTender, fetchApprovedRequisitions } from '../services/moduleService';
+import { WorkflowProgressStepper } from './WorkflowProgressStepper';
+import { getHumanStatus } from '../utils/workflow';
 
 interface Props {
   module: InternalModule;
@@ -237,10 +239,16 @@ export const TenderManagementModule = ({ module, token, role, initialData }: Pro
             <h3>{selectedTender.Title}</h3>
             <div className="plan-summary-card__grid">
               <div><small>Reference</small><p>{selectedTender.TenderId.slice(0, 8).toUpperCase()}</p></div>
-              <div><small>Status</small><p>{selectedTender.Status}</p></div>
+              <div><small>Status</small><p>{getHumanStatus(selectedTender.CurrentStage, selectedTender.Status)}</p></div>
               <div><small>Budget</small><p>{new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(selectedTender.Budget || 0)}</p></div>
             </div>
           </div>
+
+          {selectedTender.CurrentStage ? (
+            <div style={{ marginBottom: '20px' }}>
+              <WorkflowProgressStepper currentStageKey={selectedTender.CurrentStage} />
+            </div>
+          ) : null}
 
           {selectedTender.Status === 'Draft' ? (
             <form className="portal-form" onSubmit={handlePublish} style={{ marginTop: '24px' }}>

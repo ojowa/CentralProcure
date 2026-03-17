@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import type { AuditCloseoutCreateRequest, InternalModule, PaymentTrackingItem, PaymentRecordRequest } from '../types/internal';
 import { createAuditCloseout } from '../services/auditService';
 import { fetchPaymentTracking, recordPayment } from '../services/paymentTrackingService';
+import { WorkflowProgressStepper } from './WorkflowProgressStepper';
+import { getHumanStatus } from '../utils/workflow';
 
 const PAYMENT_STAGES = [
   'Awaiting Inspection',
@@ -285,7 +287,7 @@ export const PaymentTrackingModulePage = ({ module, token, userEmail }: Props) =
                 </div>
               </td>
               <td>
-                <div>{record.CurrentStageTitle || record.CurrentStageKey || 'No workflow stage'}</div>
+                <div>{getHumanStatus(record.CurrentStageKey, record.CurrentStageTitle)}</div>
                 <div className="plan-muted">{record.WorkflowStatus || 'No live status'}</div>
               </td>
               <td>
@@ -331,6 +333,10 @@ export const PaymentTrackingModulePage = ({ module, token, userEmail }: Props) =
               <button type="button" className="plan-link" onClick={() => { setSelectedRecord(null); setIsPaymentModalOpen(false); }}>
                 Close
               </button>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <WorkflowProgressStepper currentStageKey={selectedRecord.CurrentStageKey || ''} />
             </div>
 
             <div className="plan-form-grid">
@@ -382,6 +388,10 @@ export const PaymentTrackingModulePage = ({ module, token, userEmail }: Props) =
               <button type="button" className="plan-link" onClick={() => setSelectedRecord(null)}>
                 Close
               </button>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <WorkflowProgressStepper currentStageKey={selectedRecord.CurrentStageKey || ''} />
             </div>
 
             <div className="plan-form-grid">

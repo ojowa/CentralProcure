@@ -41,8 +41,6 @@ interface RequisitionCreateViewProps {
   isBudgetLoading: boolean;
   budgetError: string;
   catalogError: string;
-  filters: FiltersState;
-  requisitions: RequisitionSummary[];
   guidance?: { focus: string; checks: string[] };
   userEmail?: string | null;
   isDepartmentHead: boolean;
@@ -54,8 +52,6 @@ interface RequisitionCreateViewProps {
   onAppItemSelect: (itemId: string) => void;
   onSaveDraft: (status: 'Draft' | 'Submitted') => void;
   onResetForm: () => void;
-  onFilterChange: FilterChangeHandler;
-  onRefreshRecent: () => void;
   onOpenDetail: (requisitionId: string, modal?: boolean) => void;
 }
 
@@ -79,8 +75,6 @@ export const RequisitionCreateView = ({
   isBudgetLoading,
   budgetError,
   catalogError,
-  filters,
-  requisitions,
   guidance,
   userEmail,
   isDepartmentHead,
@@ -92,8 +86,6 @@ export const RequisitionCreateView = ({
   onAppItemSelect,
   onSaveDraft,
   onResetForm,
-  onFilterChange,
-  onRefreshRecent,
   onOpenDetail
 }: RequisitionCreateViewProps) => (
   <div className="requisition-grid">
@@ -197,43 +189,6 @@ export const RequisitionCreateView = ({
           </button>
           <button type="button" className="plan-button plan-button--secondary" onClick={onResetForm}>Reset Form</button>
         </div>
-      </article>
-
-      <article className="requisition-card">
-        <div className="requisition-card__header">
-          <div>
-            <h3>{isDepartmentHead ? 'Department Requisition Queue' : 'Recent Requisitions'}</h3>
-            <p>{isDepartmentHead ? 'Search departmental drafts and active requests that need head validation or follow-up.' : 'Search recent drafts and submissions without leaving the creation workspace.'}</p>
-          </div>
-        </div>
-
-        <div className="plan-filters">
-          <label className="plan-field"><span>Search</span><input className="plan-input" value={filters.query} onChange={(event) => onFilterChange('query', event.target.value)} placeholder="Search title, department, or budget code" /></label>
-          <label className="plan-field">
-            <span>Status</span>
-            <select className="plan-select" value={filters.status} onChange={(event) => onFilterChange('status', event.target.value)}>
-              <option value="">All statuses</option>
-              {requisitionStatuses.map((status) => <option key={status} value={status}>{status}</option>)}
-            </select>
-          </label>
-          <div className="plan-actions"><button type="button" className="plan-button plan-button--secondary" disabled={isListLoading} onClick={onRefreshRecent}>{isListLoading ? 'Refreshing...' : 'Refresh'}</button></div>
-        </div>
-
-        <table className="plan-table">
-          <thead><tr><th>Title</th><th>Status</th><th>Total</th><th>Required By</th><th>Action</th></tr></thead>
-          <tbody>
-            {requisitions.slice(0, 5).map((record) => (
-              <tr key={record.RequisitionId}>
-                <td><strong>{record.Title}</strong><div className="plan-muted">{record.Department}</div></td>
-                <td><span className={`admin-status ${requisitionStatusTone(record.Status)}`.trim()}>{record.Status}</span></td>
-                <td>{formatCurrency(record.TotalEstimate)}</td>
-                <td>{formatDate(record.RequiredBy)}</td>
-                <td><button type="button" className="plan-link" onClick={() => onOpenDetail(record.RequisitionId, true)}>View</button></td>
-              </tr>
-            ))}
-            {!requisitions.length ? <tr><td colSpan={5} className="plan-empty">No requisitions match the current search.</td></tr> : null}
-          </tbody>
-        </table>
       </article>
     </div>
 

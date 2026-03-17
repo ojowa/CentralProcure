@@ -1,11 +1,29 @@
-const backendBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:5000';
+import { buildCsrfHeaders } from './internalAuthService';
 
+const normalizeBasePath = (value: string): string => {
+  if (!value || value === '/') {
+    return '';
+  }
+
+  return value.endsWith('/') ? value.slice(0, -1) : value;
+};
+
+const defaultBackendBaseUrl =
+  process.env.NODE_ENV === 'development'
+    ? 'http://localhost:5000'
+    : 'https://centralprocure-backend.onrender.com';
+
+const appBasePath = normalizeBasePath(process.env.NEXT_PUBLIC_APP_BASE_PATH ?? '');
+
+export const backendServiceBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? defaultBackendBaseUrl;
+
+// Use same-origin API paths so Next.js rewrites handle backend routing and cookies/CORS stay consistent.
 export const serviceBaseUrls = {
-  identity: backendBaseUrl,
-  workflow: backendBaseUrl,
-  vendorSourcing: backendBaseUrl,
-  postAward: backendBaseUrl,
-  governance: backendBaseUrl,
+  identity: appBasePath,
+  workflow: appBasePath,
+  vendorSourcing: appBasePath,
+  postAward: appBasePath,
+  governance: appBasePath,
 };
 
 const resolveModuleUrl = (moduleId: string): string => {
@@ -72,7 +90,8 @@ export const fetchModuleData = async (moduleId: string, token: string): Promise<
   const response = await fetch(url, {
     headers: {
       Authorization: `Bearer ${token}`
-    }
+    },
+    credentials: 'include'
   });
 
   const text = await response.text();
@@ -102,7 +121,8 @@ export const fetchModuleData = async (moduleId: string, token: string): Promise<
 export const fetchPlanDetails = async (planId: string, token: string) => {
   const url = `${serviceBaseUrls.workflow}/api/procurement-plans/${planId}`;
   const response = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` }
+    headers: { Authorization: `Bearer ${token}` },
+    credentials: 'include'
   });
   if (!response.ok) throw new Error('Failed to fetch plan details');
   return response.json();
@@ -114,8 +134,10 @@ export const createPlan = async (data: any, token: string) => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`
+      Authorization: `Bearer ${token}`,
+      ...buildCsrfHeaders()
     },
+    credentials: 'include',
     body: JSON.stringify(data)
   });
   if (!response.ok) {
@@ -131,8 +153,10 @@ export const createPlanItem = async (planId: string, data: any, token: string) =
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`
+      Authorization: `Bearer ${token}`,
+      ...buildCsrfHeaders()
     },
+    credentials: 'include',
     body: JSON.stringify({ ...data, planId })
   });
   if (!response.ok) {
@@ -145,7 +169,8 @@ export const createPlanItem = async (planId: string, data: any, token: string) =
 export const fetchTenderDetails = async (tenderId: string, token: string) => {
   const url = `${serviceBaseUrls.vendorSourcing}/api/tenders/${tenderId}`;
   const response = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` }
+    headers: { Authorization: `Bearer ${token}` },
+    credentials: 'include'
   });
   if (!response.ok) throw new Error('Failed to fetch tender details');
   return response.json();
@@ -157,8 +182,10 @@ export const createTender = async (data: any, token: string) => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`
+      Authorization: `Bearer ${token}`,
+      ...buildCsrfHeaders()
     },
+    credentials: 'include',
     body: JSON.stringify(data)
   });
   if (!response.ok) {
@@ -174,8 +201,10 @@ export const publishTender = async (tenderId: string, data: any, token: string) 
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`
+      Authorization: `Bearer ${token}`,
+      ...buildCsrfHeaders()
     },
+    credentials: 'include',
     body: JSON.stringify(data)
   });
   if (!response.ok) {
@@ -188,7 +217,8 @@ export const publishTender = async (tenderId: string, data: any, token: string) 
 export const fetchAssignedTenders = async (token: string) => {
   const url = `${serviceBaseUrls.workflow}/api/evaluations/assigned-tenders/default`;
   const response = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` }
+    headers: { Authorization: `Bearer ${token}` },
+    credentials: 'include'
   });
   if (!response.ok) throw new Error('Failed to fetch assigned tenders');
   return response.json();
@@ -200,8 +230,10 @@ export const logEvaluationAction = async (data: any, token: string) => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`
+      Authorization: `Bearer ${token}`,
+      ...buildCsrfHeaders()
     },
+    credentials: 'include',
     body: JSON.stringify(data)
   });
   if (!response.ok) {
@@ -214,7 +246,8 @@ export const logEvaluationAction = async (data: any, token: string) => {
 export const fetchTenderBids = async (tenderId: string, token: string) => {
   const url = `${serviceBaseUrls.workflow}/api/tenders/${tenderId}/bids`;
   const response = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` }
+    headers: { Authorization: `Bearer ${token}` },
+    credentials: 'include'
   });
   if (!response.ok) throw new Error('Failed to fetch bids for evaluation');
   return response.json();
@@ -223,7 +256,8 @@ export const fetchTenderBids = async (tenderId: string, token: string) => {
 export const fetchApprovedRequisitions = async (token: string) => {
   const url = `${serviceBaseUrls.workflow}/api/requisitions?status=Approved`;
   const response = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` }
+    headers: { Authorization: `Bearer ${token}` },
+    credentials: 'include'
   });
   if (!response.ok) throw new Error('Failed to fetch approved requisitions');
   const data = await response.json();
@@ -233,7 +267,8 @@ export const fetchApprovedRequisitions = async (token: string) => {
 export const fetchBidOpeningSessions = async (token: string) => {
   const url = `${serviceBaseUrls.vendorSourcing}/api/bid-opening/sessions`;
   const response = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` }
+    headers: { Authorization: `Bearer ${token}` },
+    credentials: 'include'
   });
   if (!response.ok) throw new Error('Failed to fetch bid opening sessions');
   const data = await response.json();
@@ -246,8 +281,10 @@ export const updateRequisitionStatus = async (requisitionId: string, status: str
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`
+      Authorization: `Bearer ${token}`,
+      ...buildCsrfHeaders()
     },
+    credentials: 'include',
     body: JSON.stringify({ status })
   });
   if (!response.ok) {
@@ -260,7 +297,8 @@ export const updateRequisitionStatus = async (requisitionId: string, status: str
 export const fetchEvaluationReports = async (status: string, token: string) => {
   const url = `${serviceBaseUrls.workflow}/api/evaluation-reports?status=${status}`;
   const response = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` }
+    headers: { Authorization: `Bearer ${token}` },
+    credentials: 'include'
   });
   if (!response.ok) throw new Error('Failed to fetch evaluation reports');
   return response.json();
@@ -269,7 +307,8 @@ export const fetchEvaluationReports = async (status: string, token: string) => {
 export const fetchContracts = async (token: string) => {
   const url = `${serviceBaseUrls.postAward}/api/contracts`;
   const response = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` }
+    headers: { Authorization: `Bearer ${token}` },
+    credentials: 'include'
   });
   if (!response.ok) throw new Error('Failed to fetch contracts');
   return response.json();
@@ -278,7 +317,8 @@ export const fetchContracts = async (token: string) => {
 export const fetchContractMilestones = async (contractId: string, token: string) => {
   const url = `${serviceBaseUrls.postAward}/api/contracts/${contractId}/milestones`;
   const response = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` }
+    headers: { Authorization: `Bearer ${token}` },
+    credentials: 'include'
   });
   if (!response.ok) throw new Error('Failed to fetch milestones');
   return response.json();
@@ -290,8 +330,10 @@ export const logContractMilestone = async (contractId: string, data: any, token:
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`
+      Authorization: `Bearer ${token}`,
+      ...buildCsrfHeaders()
     },
+    credentials: 'include',
     body: JSON.stringify(data)
   });
   if (!response.ok) {
@@ -304,7 +346,8 @@ export const logContractMilestone = async (contractId: string, data: any, token:
 export const fetchBppNoObjections = async (token: string) => {
   const url = `${serviceBaseUrls.workflow}/api/bpp-no-objections`;
   const response = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` }
+    headers: { Authorization: `Bearer ${token}` },
+    credentials: 'include'
   });
   if (!response.ok) throw new Error('Failed to fetch BPP no-objections');
   return response.json();
@@ -316,8 +359,10 @@ export const createBppNoObjection = async (data: any, token: string) => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`
+      Authorization: `Bearer ${token}`,
+      ...buildCsrfHeaders()
     },
+    credentials: 'include',
     body: JSON.stringify(data)
   });
   if (!response.ok) {
@@ -330,7 +375,8 @@ export const createBppNoObjection = async (data: any, token: string) => {
 export const fetchAdministrativeReviews = async (token: string) => {
   const url = `${serviceBaseUrls.workflow}/api/administrative-reviews`;
   const response = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` }
+    headers: { Authorization: `Bearer ${token}` },
+    credentials: 'include'
   });
   if (!response.ok) throw new Error('Failed to fetch administrative reviews');
   return response.json();
@@ -351,8 +397,10 @@ export const submitAdministrativeReviewDecision = async (complaintId: string, da
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`
+      Authorization: `Bearer ${token}`,
+      ...buildCsrfHeaders()
     },
+    credentials: 'include',
     body: JSON.stringify(payload)
   });
   if (!response.ok) {
@@ -365,7 +413,8 @@ export const submitAdministrativeReviewDecision = async (complaintId: string, da
 export const fetchBidOpeningSessionDetails = async (sessionId: string, token: string) => {
   const url = `${serviceBaseUrls.vendorSourcing}/api/bid-opening/sessions/${sessionId}`;
   const response = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` }
+    headers: { Authorization: `Bearer ${token}` },
+    credentials: 'include'
   });
   if (!response.ok) throw new Error('Failed to fetch session details');
   return response.json();
@@ -377,8 +426,10 @@ export const createBidOpeningSession = async (data: any, token: string) => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`
+      Authorization: `Bearer ${token}`,
+      ...buildCsrfHeaders()
     },
+    credentials: 'include',
     body: JSON.stringify(data)
   });
   if (!response.ok) {
@@ -394,8 +445,10 @@ export const updateBidOpeningSession = async (sessionId: string, data: any, toke
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`
+      Authorization: `Bearer ${token}`,
+      ...buildCsrfHeaders()
     },
+    credentials: 'include',
     body: JSON.stringify(data)
   });
   if (!response.ok) {

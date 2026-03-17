@@ -44,6 +44,11 @@ export const roles: RoleDefinition[] = [
     description: 'Reviews method, market approach, and procedural compliance.'
   },
   {
+    key: 'financial_unit_officer',
+    name: 'Budget Officer',
+    description: 'Confirms appropriation, releases, and affordability before APP approval.'
+  },
+  {
     key: 'evaluation_committee',
     name: 'Evaluation Committee',
     description: 'Runs technical and commercial evaluation steps.'
@@ -113,6 +118,19 @@ const procurementPlanningModules: InternalModule[] = [
     controlPurpose: 'Mandatory PPA 2007 baseline for all spending.',
     actions: ['plan.create', 'plan.view', 'plan.update'],
     allowedRoles: ['planning_statistics_officer', 'procurement_officer', 'accounting_officer']
+  }
+];
+
+const financialControlModules: InternalModule[] = [
+  {
+    id: 'budget-confirmation',
+    title: 'Budget Officer Workspace',
+    section: 'Financial Control',
+    description: 'Review APP funding readiness, inspect budget lines, and route plans through budget confirmation.',
+    microservice: 'Governance Service',
+    controlPurpose: 'Distinct budget-gate visibility and funding confirmation before APP approval.',
+    actions: ['planning_committee.view', 'budget.confirm'],
+    allowedRoles: ['financial_unit_officer', 'accounting_officer']
   }
 ];
 
@@ -221,19 +239,35 @@ const oversightModules: InternalModule[] = [
   }
 ];
 
+const sharedModules: InternalModule[] = [
+  {
+    id: 'user-profile',
+    title: 'User Profile',
+    section: 'Account Management',
+    description: 'Manage your personal account details, service identity, and security preferences.',
+    microservice: 'Identity Service',
+    controlPurpose: 'Self-service account management and identity verification.',
+    actions: ['profile.view', 'profile.update'],
+    allowedRoles: ['admin', 'requisitioning_officer', 'department_head', 'procurement_officer', 'procurement_manager', 'planning_statistics_officer', 'financial_unit_officer', 'legal_reviewer', 'technical_evaluator', 'financial_evaluator', 'evaluation_committee', 'tenders_board', 'tenders_board_secretary', 'accounting_officer', 'bpp_liaison', 'bpp_reviewer', 'complaints_review_officer', 'contract_manager', 'inspection_officer', 'payment_officer', 'audit_oversight', 'ict_admin']
+  }
+];
+
 export const roleModuleFallbacks: Partial<Record<RoleKey, InternalModule[]>> = {
-  requisitioning_officer: requisitionDepartmentModules,
-  department_head: [...requisitionDepartmentModules, ...postAwardModules],
-  planning_statistics_officer: procurementPlanningModules,
-  procurement_officer: [...procurementPlanningModules, ...tenderManagementModules, ...postAwardModules, ...oversightModules],
-  technical_evaluator: evaluationModules,
-  financial_evaluator: evaluationModules,
-  evaluation_committee: evaluationModules,
-  tenders_board: approvalModules,
-  accounting_officer: [...approvalModules, ...postAwardModules, ...oversightModules],
-  bpp_liaison: oversightModules,
-  legal_reviewer: oversightModules,
-  complaints_review_officer: oversightModules,
+  requisitioning_officer: [...requisitionDepartmentModules, ...sharedModules],
+  department_head: [...requisitionDepartmentModules, ...postAwardModules, ...sharedModules],
+  planning_statistics_officer: [...procurementPlanningModules, ...sharedModules],
+  financial_unit_officer: [...financialControlModules, ...sharedModules],
+  procurement_officer: [...procurementPlanningModules, ...tenderManagementModules, ...postAwardModules, ...oversightModules, ...sharedModules],
+  technical_evaluator: [...evaluationModules, ...sharedModules],
+  financial_evaluator: [...evaluationModules, ...sharedModules],
+  evaluation_committee: [...evaluationModules, ...sharedModules],
+  tenders_board: [...approvalModules, ...sharedModules],
+  accounting_officer: [...financialControlModules, ...approvalModules, ...postAwardModules, ...oversightModules, ...sharedModules],
+  bpp_liaison: [...oversightModules, ...sharedModules],
+  legal_reviewer: [...oversightModules, ...sharedModules],
+  complaints_review_officer: [...oversightModules, ...sharedModules],
+  admin: [...sharedModules],
+  ict_admin: [...tenderManagementModules, ...sharedModules]
 };
 
 export const requisitionTypes = ['Goods', 'Works', 'Services'];

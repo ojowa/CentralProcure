@@ -49,6 +49,25 @@ namespace eProcurement.Modules.Identity.DTOs
 
     public record InternalUserRegistrationResult(Guid InternalUserId, string Email, string Role, Guid? UnitId = null, string? UnitName = null);
     public record InternalUserRoleResult(Guid InternalUserId, string Email, string Role);
+    public record InternalUserProfileResult(
+        Guid InternalUserId,
+        string Email,
+        string Username,
+        string FirstName,
+        string? MiddleName,
+        string Surname,
+        string ServiceNumber,
+        Guid? UnitId,
+        string? UnitName,
+        string RoleName,
+        string Status,
+        DateTime? LastLogin,
+        DateTime CreatedAt);
+    public record UpdateInternalUserProfileRequest(
+        string Username,
+        string FirstName,
+        string? MiddleName,
+        string Surname);
 
     public record RoleResult(Guid RoleId, string RoleName, string? Description, bool IsActive);
     public record InternalOrganizationalUnitResult(

@@ -1,4 +1,5 @@
 import { serviceBaseUrls } from './moduleService';
+import { buildCsrfHeaders } from './internalAuthService';
 import type {
   RequisitionCreateRequest,
   RequisitionDetail,
@@ -102,7 +103,8 @@ export const fetchRequisitions = async (
   const response = await fetch(`${baseUrl}${buildQuery(filters)}`, {
     headers: {
       Authorization: `Bearer ${token}`
-    }
+    },
+    credentials: 'include'
   });
 
   return parseResponse<RequisitionListResponse>(response);
@@ -112,7 +114,8 @@ export const fetchRequisitionDetail = async (token: string, requisitionId: strin
   const response = await fetch(`${baseUrl}/${requisitionId}`, {
     headers: {
       Authorization: `Bearer ${token}`
-    }
+    },
+    credentials: 'include'
   });
 
   return parseResponse<RequisitionDetail>(response);
@@ -126,8 +129,10 @@ export const createRequisition = async (
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      ...buildCsrfHeaders()
     },
+    credentials: 'include',
     body: JSON.stringify(payload)
   });
 
@@ -143,8 +148,10 @@ export const updateRequisition = async (
     method: 'PUT',
     headers: {
       Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      ...buildCsrfHeaders()
     },
+    credentials: 'include',
     body: JSON.stringify(payload)
   });
 

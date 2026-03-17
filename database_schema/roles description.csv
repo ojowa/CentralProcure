@@ -16,7 +16,7 @@ PaymentOfficer,Tracks payment status post-acceptance,TRUE
 AuditOfficer,Read-only audit and compliance access,TRUE
 SystemAdministrator,"User, role, and system configuration management",TRUE
 PlanningStatisticsOfficer,Reviews procurement planning assumptions and annual plan coherence,TRUE
-FinancialUnitOfficer,Validates budget readiness and financial control requirements,TRUE
+do,Validates budget readiness and financial control requirements,TRUE
 LegalReviewer,"Reviews legal compliance, bidding documents, and contract terms",TRUE
 BPPReviewer,Reviews no-objection submissions and regulatory escalations,TRUE
 ComplaintsReviewOfficer,Handles administrative review and bidder complaints,TRUE

@@ -218,15 +218,15 @@ BEGIN
         (item->>'UnitCost')::numeric
     FROM jsonb_array_elements(COALESCE(p_line_items, '[]'::jsonb)) AS item;
 
-    UPDATE procurement_workflow.requisitions
+    UPDATE procurement_workflow.requisitions r
     SET
         total_estimate = COALESCE((
             SELECT SUM(quantity * unit_cost)
-            FROM procurement_workflow.requisition_line_items
-            WHERE requisition_id = v_requisition_id
+            FROM procurement_workflow.requisition_line_items li
+            WHERE li.requisition_id = v_requisition_id
         ), 0),
         updated_at = NOW()
-    WHERE requisition_id = v_requisition_id;
+    WHERE r.requisition_id = v_requisition_id;
 
     SELECT r.total_estimate, r.status
     INTO v_total_estimate, v_status

@@ -1,4 +1,4 @@
-import { serviceBaseUrls } from './moduleService';
+import { backendServiceBaseUrl, serviceBaseUrls } from './moduleService';
 import type {
   VendorApprovalDecisionRequest,
   VendorApprovalDetail,
@@ -104,7 +104,7 @@ export const downloadVendorApprovalDocument = async (
   token: string,
   fileUrl: string
 ): Promise<Blob> => {
-  const targetUrl = fileUrl.startsWith('http') ? fileUrl : `${serviceBaseUrls.vendorSourcing}${fileUrl}`;
+  const targetUrl = fileUrl.startsWith('http') ? fileUrl : `${backendServiceBaseUrl}${fileUrl}`;
   const response = await fetch(targetUrl, {
     headers: {
       Authorization: `Bearer ${token}`

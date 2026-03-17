@@ -6,17 +6,17 @@ import {
   requisitionRoleGuidance,
   thresholdBands,
   type BudgetLineItem
-} from '../../data/internalData';
-import { fetchInternalUnits } from '../../services/internalAuthService';
-import { fetchBudgetSummary } from '../../services/budgetService';
-import { fetchProcurementPlanItems } from '../../services/procurementPlanItemService';
-import { fetchProcurementPlans } from '../../services/procurementPlanService';
-import { createRequisition, fetchRequisitionDetail, fetchRequisitions, updateRequisition } from '../../services/requisitionService';
+} from '../data/internalData';
+import { fetchInternalUnits } from '../services/internalAuthService';
+import { fetchBudgetSummary } from '../services/budgetService';
+import { fetchProcurementPlanItems } from '../services/procurementPlanItemService';
+import { fetchProcurementPlans } from '../services/procurementPlanService';
+import { createRequisition, fetchRequisitionDetail, fetchRequisitions, updateRequisition } from '../services/requisitionService';
 import {
   fetchWorkflowActionSnapshot,
   fetchWorkflowRuntime,
   fetchWorkflowRuntimeHistory
-} from '../../services/workflowContextService';
+} from '../services/workflowContextService';
 import type {
   BudgetSummaryResponse,
   InternalOrganizationalUnitRecord,
@@ -28,8 +28,8 @@ import type {
   WorkflowActionSnapshotResponse,
   WorkflowRuntimeHistoryEntry,
   WorkflowRuntimeSnapshot
-} from '../../types/internal';
-import { getBudgetCheck, resolveThresholdRouting, toTitle } from '../../utils/procureUtils';
+} from '../types/internal';
+import { getBudgetCheck, resolveThresholdRouting, toTitle } from '../utils/procureUtils';
 import {
   buildDepartmentHeadReviewNote,
   buildEmptyForm,
@@ -41,23 +41,22 @@ import {
   getStepIndex,
   normalizeItemCatalog,
   resolveDepartmentHeadAction,
-  resolveMode,
   toNumber,
   validateForm,
   type FiltersState,
   type RequisitionFormState
-} from './helpers';
+} from './requisitionWorkspace/helpers';
 import {
   DepartmentHeadPanel,
   DepartmentHeadQueueCard,
   RequisitionDetailContent,
   RequisitionQuickLinks
-} from './detailViews';
+} from './requisitionWorkspace/detailViews';
 import {
-  RequisitionCreateView,
-  RequisitionHistoryView,
-  RequisitionTrackingView
-} from './sectionViews';
+  RequisitionCreateView
+} from './requisitionWorkspace/sectionViews';
+import { WorkflowProgressStepper } from './WorkflowProgressStepper';
+import { getHumanStatus } from '../utils/workflow';
 
 const EDIT_STORAGE_KEY = 'internal.requisitioningOfficer.editDraft';
 const ROLE_EDITABLE = new Set<RoleKey>(['requisitioning_officer', 'department_head', 'admin']);
@@ -70,14 +69,8 @@ interface Props {
   onModuleChange?: (moduleId: string) => void;
 }
 
-export const RequisitionOfficerWorkspace = ({
-  module,
-  token,
-  role,
-  userEmail,
-  onModuleChange
-}: Props) => {
-  const mode = resolveMode(module.id);
+export const CreateRequisitionPage = ({ module, token, role, userEmail, onModuleChange }: Props) => {
+  const mode = 'create';
   const pageSize = getPageSize(mode);
   const guidance = requisitionRoleGuidance[role ?? 'requisitioning_officer'] ?? requisitionRoleGuidance.requisitioning_officer;
   const isDepartmentHead = role === 'department_head';
@@ -179,9 +172,6 @@ export const RequisitionOfficerWorkspace = ({
     };
   }, [requisitions, totalItems]);
 
-  const pageStart = totalItems === 0 ? 0 : (filters.page - 1) * pageSize + 1;
-  const pageEnd = totalItems === 0 ? 0 : Math.min(totalItems, filters.page * pageSize);
-
   const loadRequisitions = async (pageOverride?: number) => {
     if (!token) {
       setRequisitions([]);
@@ -205,15 +195,6 @@ export const RequisitionOfficerWorkspace = ({
       });
       setRequisitions(response.Items);
       setTotalItems(response.Total);
-
-      if (mode === 'tracking') {
-        if (response.Items.length === 0) {
-          setSelectedId(null);
-          setSelectedDetail(null);
-        } else if (!response.Items.some((item) => item.RequisitionId === selectedId)) {
-          setSelectedId(response.Items[0].RequisitionId);
-        }
-      }
     } catch (error) {
       setListError(error instanceof Error ? error.message : 'Unable to load requisitions.');
     } finally {
@@ -223,7 +204,7 @@ export const RequisitionOfficerWorkspace = ({
 
   useEffect(() => {
     void loadRequisitions();
-  }, [token, filters.query, filters.status, filters.priority, filters.dateFrom, filters.dateTo, filters.page, pageSize, mode]);
+  }, [token, filters.query, filters.status, filters.priority, filters.dateFrom, filters.dateTo, filters.page, pageSize]);
 
   useEffect(() => {
     let isMounted = true;
@@ -440,7 +421,7 @@ export const RequisitionOfficerWorkspace = ({
   }, [isDepartmentHead, selectedId, token, workflowRefreshKey]);
 
   useEffect(() => {
-    if (mode !== 'create' || typeof window === 'undefined') {
+    if (typeof window === 'undefined') {
       return;
     }
 
@@ -460,15 +441,7 @@ export const RequisitionOfficerWorkspace = ({
     } finally {
       window.sessionStorage.removeItem(EDIT_STORAGE_KEY);
     }
-  }, [mode]);
-
-  const updateFilter = <K extends keyof FiltersState>(key: K, value: FiltersState[K]) => {
-    setFilters((previous) => ({
-      ...previous,
-      [key]: value,
-      page: key === 'page' ? Number(value) : 1
-    }));
-  };
+  }, []);
 
   const updateFormField = <K extends keyof RequisitionFormState>(key: K, value: RequisitionFormState[K]) => {
     if (key === 'UnitId') {
@@ -681,40 +654,6 @@ export const RequisitionOfficerWorkspace = ({
     }
   };
 
-  const detailContent = selectedDetail ? (
-    <RequisitionDetailContent
-      detail={selectedDetail}
-      activeStepIndex={activeStepIndex}
-      isSelectedEditable={isSelectedEditable}
-      isDepartmentHead={isDepartmentHead}
-      canEditDrafts={canEditDrafts}
-      isSaving={isSaving}
-      onOpenSelectedForEdit={openSelectedForEdit}
-      onSubmitSelectedDraft={() => void submitSelectedDraft()}
-      departmentHeadPanel={
-        isDepartmentHead ? (
-          <DepartmentHeadPanel
-            detail={selectedDetail}
-            catalog={catalog}
-            workflowSnapshot={workflowSnapshot}
-            workflowRuntime={workflowRuntime}
-            workflowHistory={workflowHistory}
-            isWorkflowLoading={isWorkflowLoading}
-            workflowError={workflowError}
-            reviewNote={reviewNote}
-            onReviewNoteChange={setReviewNote}
-            reviewError={reviewError}
-            reviewFeedback={reviewFeedback}
-            isSaving={isSaving}
-            isSelectedEditable={isSelectedEditable}
-            onApplyAction={() => void applyDepartmentHeadAction()}
-            onOpenSelectedForEdit={openSelectedForEdit}
-          />
-        ) : null
-      }
-    />
-  ) : null;
-
   return (
     <section className="portal-module">
       <div className="requisition-header">
@@ -743,79 +682,43 @@ export const RequisitionOfficerWorkspace = ({
       {listError ? <div className="portal-alert" style={{ marginTop: '16px' }}>{listError}</div> : null}
 
       <div style={{ marginTop: '16px' }}>
-        {mode === 'create' ? (
-          <RequisitionCreateView
-            editingId={editingId}
-            form={form}
-            units={assignableUnits}
-            catalog={catalog}
-            selectedAppItem={selectedAppItem}
-            budgetCheck={budgetCheck}
-            budgetDepartment={budgetDepartment}
-            budgetCode={budgetCode}
-            fiscalYear={fiscalYear}
-            routingBand={routingBand}
-            formError={formError}
-            feedback={feedback}
-            isSaving={isSaving}
-            canSaveCurrentForm={canSaveCurrentForm}
-            isListLoading={isListLoading}
-            isCatalogLoading={isCatalogLoading}
-            isBudgetLoading={isBudgetLoading}
-            budgetError={budgetError}
-            catalogError={[unitsError, catalogError].filter(Boolean).join(' ')}
-            filters={filters}
-            requisitions={requisitions}
-            guidance={guidance}
-            userEmail={userEmail}
-            isDepartmentHead={isDepartmentHead}
-            departmentHeadQueueCard={
-              isDepartmentHead ? (
-                <DepartmentHeadQueueCard queue={departmentHeadQueue} selectedId={selectedId} onOpenDetail={openDetail} />
-              ) : null
-            }
-            onFormFieldChange={updateFormField}
-            onLineItemChange={updateLineItem}
-            onAddLineItem={addLineItem}
-            onRemoveLineItem={removeLineItem}
-            onAppItemSelect={handleAppItemSelect}
-            onSaveDraft={(status) => void saveDraft(status)}
-            onResetForm={resetForm}
-            onFilterChange={updateFilter}
-            onRefreshRecent={() => void loadRequisitions(1)}
-            onOpenDetail={openDetail}
-          />
-        ) : null}
-
-        {mode === 'history' ? (
-          <RequisitionHistoryView
-            filters={filters}
-            requisitions={requisitions}
-            totalItems={totalItems}
-            pageStart={pageStart}
-            pageEnd={pageEnd}
-            isListLoading={isListLoading}
-            isDepartmentHead={isDepartmentHead}
-            onFilterChange={updateFilter}
-            onRefresh={() => void loadRequisitions()}
-            onOpenDetail={openDetail}
-          />
-        ) : null}
-
-        {mode === 'tracking' ? (
-          <RequisitionTrackingView
-            filters={filters}
-            requisitions={requisitions}
-            selectedId={selectedId}
-            selectedDetail={selectedDetail}
-            isListLoading={isListLoading}
-            isDetailLoading={isDetailLoading}
-            detailContent={detailContent}
-            onFilterChange={updateFilter}
-            onRefresh={() => void loadRequisitions()}
-            onOpenDetail={openDetail}
-          />
-        ) : null}
+        <RequisitionCreateView
+          editingId={editingId}
+          form={form}
+          units={assignableUnits}
+          catalog={catalog}
+          selectedAppItem={selectedAppItem}
+          budgetCheck={budgetCheck}
+          budgetDepartment={budgetDepartment}
+          budgetCode={budgetCode}
+          fiscalYear={fiscalYear}
+          routingBand={routingBand}
+          formError={formError}
+          feedback={feedback}
+          isSaving={isSaving}
+          canSaveCurrentForm={canSaveCurrentForm}
+          isListLoading={isListLoading}
+          isCatalogLoading={isCatalogLoading}
+          isBudgetLoading={isBudgetLoading}
+          budgetError={budgetError}
+          catalogError={[unitsError, catalogError].filter(Boolean).join(' ')}
+          guidance={guidance}
+          userEmail={userEmail}
+          isDepartmentHead={isDepartmentHead}
+          departmentHeadQueueCard={
+            isDepartmentHead ? (
+              <DepartmentHeadQueueCard queue={departmentHeadQueue} selectedId={selectedId} onOpenDetail={openDetail} />
+            ) : null
+          }
+          onFormFieldChange={updateFormField}
+          onLineItemChange={updateLineItem}
+          onAddLineItem={addLineItem}
+          onRemoveLineItem={removeLineItem}
+          onSaveDraft={(status) => void saveDraft(status)}
+          onResetForm={resetForm}
+          onOpenDetail={openDetail}
+          onAppItemSelect={handleAppItemSelect}
+        />
       </div>
 
       {isDetailModalOpen && selectedDetail ? (
@@ -831,7 +734,42 @@ export const RequisitionOfficerWorkspace = ({
                 Close
               </button>
             </div>
-            {isDetailLoading ? <div className="plan-loading">Loading requisition detail...</div> : detailContent}
+            {isDetailLoading ? (
+              <div className="plan-loading">Loading requisition detail...</div>
+            ) : (
+              <RequisitionDetailContent
+                detail={selectedDetail}
+                activeStepIndex={activeStepIndex}
+                isSelectedEditable={isSelectedEditable}
+                isDepartmentHead={isDepartmentHead}
+                canEditDrafts={canEditDrafts}
+                isSaving={isSaving}
+                workflowRuntime={workflowRuntime}
+                onOpenSelectedForEdit={openSelectedForEdit}
+                onSubmitSelectedDraft={() => void submitSelectedDraft()}
+                departmentHeadPanel={
+                  isDepartmentHead ? (
+                    <DepartmentHeadPanel
+                      detail={selectedDetail}
+                      catalog={catalog}
+                      workflowSnapshot={workflowSnapshot}
+                      workflowRuntime={workflowRuntime}
+                      workflowHistory={workflowHistory}
+                      isWorkflowLoading={isWorkflowLoading}
+                      workflowError={workflowError}
+                      reviewNote={reviewNote}
+                      onReviewNoteChange={setReviewNote}
+                      reviewError={reviewError}
+                      reviewFeedback={reviewFeedback}
+                      isSaving={isSaving}
+                      isSelectedEditable={isSelectedEditable}
+                      onApplyAction={() => void applyDepartmentHeadAction()}
+                      onOpenSelectedForEdit={openSelectedForEdit}
+                    />
+                  ) : null
+                }
+              />
+            )}
           </div>
         </div>
       ) : null}

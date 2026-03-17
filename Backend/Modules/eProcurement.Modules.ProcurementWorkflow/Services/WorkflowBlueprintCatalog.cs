@@ -65,7 +65,7 @@ internal static class WorkflowBlueprintCatalog
         new("requisitioning_officer", "Requisitioning Officer", "department_need_capture", "Draft APP need, scope, and justification.", "Department requirement enters the approved planning path."),
         new("department_head", "Department Head", "department_need_capture", "Endorse departmental need and timing.", "Department submission is accountable."),
         new("planning_statistics_officer", "Planning, Research and Statistics", "planning_committee_review", "Validate aggregation, sequencing, and annual planning assumptions.", "Planning package is coherent."),
-        new("financial_unit_officer", "Financial Unit", "budget_confirmation", "Confirm appropriation, releases, and affordability.", "Only funded APP entries progress."),
+        new("financial_unit_officer", "Budget Officer", "budget_confirmation", "Confirm appropriation, releases, and affordability.", "Only funded APP entries progress."),
         new("procurement_officer", "Procurement Officer", "procurement_initiation", "Open a procurement package from an approved APP line.", "Execution stays tied to APP control."),
         new("procurement_manager", "Procurement Manager", "threshold_resolution", "Validate whether the case falls to CGIS, the NIS Tenders Board, or BPP prior review.", "Approval path and external review trigger are explicit."),
         new("legal_reviewer", "Legal Reviewer", "method_validation", "Validate lawful procurement method and exceptions.", "Method choice is compliant."),

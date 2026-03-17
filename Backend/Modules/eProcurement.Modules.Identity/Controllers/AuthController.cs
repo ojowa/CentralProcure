@@ -415,6 +415,116 @@ namespace eProcurement.Modules.Identity.Controllers
         }
 
         [Authorize]
+        [HttpGet("internal/profile")]
+        public async Task<IActionResult> GetInternalProfile(CancellationToken ct)
+        {
+            if (!TryGetAuthenticatedInternalUserId(out var internalUserId, out var authError))
+            {
+                return authError!;
+            }
+
+            var connectionString = GetConnectionString();
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                return Problem("Connection string 'Primary' is not configured.", statusCode: 500);
+            }
+
+            try
+            {
+                await using var conn = new NpgsqlConnection(connectionString);
+                await conn.OpenAsync(ct);
+                await using var tx = await conn.BeginTransactionAsync(ct);
+                await using var cmd = new NpgsqlCommand("identity.get_internal_user_profile_sp", conn, tx)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                cmd.Parameters.AddWithValue("p_internal_user_id", NpgsqlDbType.Uuid, internalUserId);
+                cmd.Parameters.Add(new NpgsqlParameter("p_result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.Output });
+
+                var results = await ExecuteRefcursorAsync(cmd, MapInternalUserProfileResult, ct);
+                await tx.CommitAsync(ct);
+
+                var result = results.FirstOrDefault();
+                return result is null ? NotFound(new { message = "Internal user profile not found." }) : Ok(result);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error fetching internal profile for user {InternalUserId}.", internalUserId);
+                return Problem("Internal server error fetching internal profile.");
+            }
+        }
+
+        [Authorize]
+        [HttpPut("internal/profile")]
+        public async Task<IActionResult> UpdateInternalProfile([FromBody] UpdateInternalUserProfileRequest request, CancellationToken ct)
+        {
+            if (!TryGetAuthenticatedInternalUserId(out var internalUserId, out var authError))
+            {
+                return authError!;
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Username) ||
+                string.IsNullOrWhiteSpace(request.FirstName) ||
+                string.IsNullOrWhiteSpace(request.Surname))
+            {
+                return BadRequest(new { message = "Username, first name, and surname are required." });
+            }
+
+            if (!UsernamePattern.IsMatch(request.Username.Trim()))
+            {
+                return BadRequest(new { message = "Username must be 3-100 characters and may only include letters, numbers, periods, underscores, and hyphens." });
+            }
+
+            if (!NamePattern.IsMatch(request.FirstName.Trim()) ||
+                !string.IsNullOrWhiteSpace(request.MiddleName) && !NamePattern.IsMatch(request.MiddleName.Trim()) ||
+                !NamePattern.IsMatch(request.Surname.Trim()))
+            {
+                return BadRequest(new { message = "Names may only include letters, spaces, apostrophes, and hyphens." });
+            }
+
+            var connectionString = GetConnectionString();
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                return Problem("Connection string 'Primary' is not configured.", statusCode: 500);
+            }
+
+            try
+            {
+                await using var conn = new NpgsqlConnection(connectionString);
+                await conn.OpenAsync(ct);
+                await using var tx = await conn.BeginTransactionAsync(ct);
+                await using var cmd = new NpgsqlCommand("identity.update_internal_user_profile_sp", conn, tx)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                cmd.Parameters.AddWithValue("p_internal_user_id", NpgsqlDbType.Uuid, internalUserId);
+                cmd.Parameters.AddWithValue("p_username", NpgsqlDbType.Varchar, request.Username.Trim());
+                cmd.Parameters.AddWithValue("p_first_name", NpgsqlDbType.Varchar, request.FirstName.Trim());
+                cmd.Parameters.AddWithValue("p_middle_name", NpgsqlDbType.Varchar, (object?)request.MiddleName?.Trim() ?? string.Empty);
+                cmd.Parameters.AddWithValue("p_surname", NpgsqlDbType.Varchar, request.Surname.Trim());
+                cmd.Parameters.Add(new NpgsqlParameter("p_result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.Output });
+
+                var results = await ExecuteRefcursorAsync(cmd, MapInternalUserProfileResult, ct);
+                await tx.CommitAsync(ct);
+
+                var result = results.FirstOrDefault();
+                return result is null ? NotFound(new { message = "Internal user profile not found." }) : Ok(result);
+            }
+            catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.UniqueViolation)
+            {
+                Logger.LogWarning(ex, "Profile update conflict for internal user {InternalUserId}.", internalUserId);
+                return Conflict(new { message = "That username is already in use." });
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error updating internal profile for user {InternalUserId}.", internalUserId);
+                return Problem("Internal server error updating internal profile.");
+            }
+        }
+
+        [Authorize]
         [HttpGet("internal/modules")]
         public async Task<IActionResult> GetInternalModules(CancellationToken ct)
         {
@@ -993,6 +1103,24 @@ namespace eProcurement.Modules.Identity.Controllers
                 r.GetString(r.GetOrdinal("role")));
         }
 
+        private static InternalUserProfileResult MapInternalUserProfileResult(NpgsqlDataReader r)
+        {
+            return new InternalUserProfileResult(
+                r.GetGuid(r.GetOrdinal("internal_user_id")),
+                r.GetString(r.GetOrdinal("email")),
+                r.GetString(r.GetOrdinal("username")),
+                r.GetString(r.GetOrdinal("first_name")),
+                GetNullableString(r, "middle_name"),
+                r.GetString(r.GetOrdinal("surname")),
+                r.GetString(r.GetOrdinal("service_number")),
+                GetNullableGuid(r, "unit_id"),
+                GetNullableString(r, "unit_name"),
+                r.GetString(r.GetOrdinal("role_name")),
+                r.GetString(r.GetOrdinal("status")),
+                GetNullableDateTime(r, "last_login"),
+                r.GetDateTime(r.GetOrdinal("created_at")));
+        }
+
         private static RoleResult MapRoleResult(NpgsqlDataReader r)
         {
             return new RoleResult(
@@ -1013,6 +1141,27 @@ namespace eProcurement.Modules.Identity.Controllers
                 GetNullableString(r, "parent_unit_name"),
                 r.GetInt32(r.GetOrdinal("sort_order")),
                 r.GetBoolean(r.GetOrdinal("is_assignable")));
+        }
+
+        private bool TryGetAuthenticatedInternalUserId(out Guid internalUserId, out IActionResult? errorResult)
+        {
+            internalUserId = Guid.Empty;
+            errorResult = null;
+
+            var userIdValue = User.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(userIdValue))
+            {
+                errorResult = Unauthorized(new { message = "Authenticated user id is missing." });
+                return false;
+            }
+
+            if (!Guid.TryParse(userIdValue, out internalUserId))
+            {
+                errorResult = Unauthorized(new { message = "Authenticated user id is invalid." });
+                return false;
+            }
+
+            return true;
         }
     }
 }

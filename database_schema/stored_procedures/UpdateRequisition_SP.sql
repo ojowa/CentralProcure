@@ -188,32 +188,32 @@ BEGIN
         END IF;
     END IF;
 
-    UPDATE procurement_workflow.requisitions
+    UPDATE procurement_workflow.requisitions r
     SET
-        title = COALESCE(p_title, title),
+        title = COALESCE(p_title, r.title),
         department = v_department,
         unit_id = v_unit_id,
-        status = COALESCE(p_status, status),
-        priority = COALESCE(p_priority, priority),
-        procurement_type = COALESCE(p_procurement_type, procurement_type),
-        funding_source = COALESCE(p_funding_source, funding_source),
+        status = COALESCE(p_status, r.status),
+        priority = COALESCE(p_priority, r.priority),
+        procurement_type = COALESCE(p_procurement_type, r.procurement_type),
+        funding_source = COALESCE(p_funding_source, r.funding_source),
         budget_code = v_budget_code,
         app_item_id = v_app_item_id,
-        project_code = COALESCE(p_project_code, project_code),
-        required_by = COALESCE(p_required_by, required_by),
-        delivery_location = COALESCE(p_delivery_location, delivery_location),
-        justification = COALESCE(p_justification, justification),
-        risk_notes = COALESCE(p_risk_notes, risk_notes),
+        project_code = COALESCE(p_project_code, r.project_code),
+        required_by = COALESCE(p_required_by, r.required_by),
+        delivery_location = COALESCE(p_delivery_location, r.delivery_location),
+        justification = COALESCE(p_justification, r.justification),
+        risk_notes = COALESCE(p_risk_notes, r.risk_notes),
         current_stage = COALESCE(
             CASE WHEN p_status IS NULL THEN NULL ELSE procurement_workflow.resolve_requisition_stage(p_status) END,
-            current_stage
+            r.current_stage
         ),
         updated_at = NOW()
-    WHERE requisition_id = p_requisition_id;
+    WHERE r.requisition_id = p_requisition_id;
 
     IF p_line_items IS NOT NULL THEN
-        DELETE FROM procurement_workflow.requisition_line_items
-        WHERE requisition_id = p_requisition_id;
+        DELETE FROM procurement_workflow.requisition_line_items li
+        WHERE li.requisition_id = p_requisition_id;
 
         INSERT INTO procurement_workflow.requisition_line_items (
             requisition_id,
@@ -233,14 +233,14 @@ BEGIN
         FROM jsonb_array_elements(COALESCE(p_line_items, '[]'::jsonb)) AS item;
     END IF;
 
-    UPDATE procurement_workflow.requisitions
+    UPDATE procurement_workflow.requisitions r
     SET total_estimate = COALESCE((
             SELECT SUM(quantity * unit_cost)
-            FROM procurement_workflow.requisition_line_items
-            WHERE requisition_id = p_requisition_id
+            FROM procurement_workflow.requisition_line_items li
+            WHERE li.requisition_id = p_requisition_id
         ), 0),
         updated_at = NOW()
-    WHERE requisition_id = p_requisition_id;
+    WHERE r.requisition_id = p_requisition_id;
 
     SELECT r.total_estimate
     INTO v_total_estimate

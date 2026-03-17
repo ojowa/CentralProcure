@@ -10,7 +10,11 @@ import { AuditTrailWorkspace } from './AuditTrailWorkspace';
 import { ComplianceReportsWorkspace } from './ComplianceReportsWorkspace';
 import { PaymentTrackingModulePage } from './PaymentTrackingModulePage';
 import { PostAwardInspectionModulePage } from './PostAwardInspectionModulePage';
-import { RequisitionOfficerWorkspace } from './RequisitionOfficerWorkspace';
+import { BudgetOfficerWorkspacePage } from './BudgetOfficerWorkspacePage';
+import { CreateRequisitionPage } from './CreateRequisitionPage';
+import { RequisitionHistoryPage } from './RequisitionHistoryPage';
+import { RequisitionTrackingPage } from './RequisitionTrackingPage';
+import { ProfilePage } from './ProfilePage';
 import { WorkflowConfigurationModulePage } from './WorkflowConfigurationModulePage';
 import { ProcurementPlanModule } from './ProcurementPlanModule';
 import { TenderManagementModule } from './TenderManagementModule';
@@ -38,6 +42,7 @@ const moduleFetchSkipList = new Set<string>([
   'requisition-tracking',
   'workflow-blueprint',
   'annual-procurement-plan',
+  'budget-confirmation',
   'create-tender',
   'publish-tender',
   'bid-opening-session',
@@ -46,7 +51,8 @@ const moduleFetchSkipList = new Set<string>([
   'contract-management',
   'inspection-acceptance',
   'evaluation-report',
-  'vendor-registration-approval'
+  'vendor-registration-approval',
+  'user-profile'
 ]);
 
 interface InternalShellProps {
@@ -130,9 +136,9 @@ const renderGenericModuleWorkspace = ({
 };
 
 const moduleRenderers: Partial<Record<string, (props: InternalModuleRendererProps) => React.ReactNode>> = {
-  'create-requisition': (props) => <RequisitionOfficerWorkspace module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} onModuleChange={props.onModuleChange} />,
-  'requisition-history': (props) => <RequisitionOfficerWorkspace module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} onModuleChange={props.onModuleChange} />,
-  'requisition-tracking': (props) => <RequisitionOfficerWorkspace module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} onModuleChange={props.onModuleChange} />,
+  'create-requisition': (props) => <CreateRequisitionPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} onModuleChange={props.onModuleChange} />,
+  'requisition-history': (props) => <RequisitionHistoryPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} onModuleChange={props.onModuleChange} />,
+  'requisition-tracking': (props) => <RequisitionTrackingPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} onModuleChange={props.onModuleChange} />,
   'audit-dashboard': (props) => <AuditDashboardWorkspace module={props.module} token={props.token} />,
   'audit-trail-viewer': (props) => <AuditTrailWorkspace module={props.module} token={props.token} />,
   'compliance-reports': (props) => <ComplianceReportsWorkspace module={props.module} token={props.token} />,
@@ -142,6 +148,7 @@ const moduleRenderers: Partial<Record<string, (props: InternalModuleRendererProp
   'bpp-escalation': (props) => <BppEscalationModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
   'administrative-review': (props) => <AdministrativeReviewModulePage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} />,
   'annual-procurement-plan': (props) => <ProcurementPlanModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
+  'budget-confirmation': (props) => <BudgetOfficerWorkspacePage module={props.module} token={props.token} role={props.role} />,
   'create-tender': (props) => <TenderManagementModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
   'publish-tender': (props) => <TenderManagementModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
   'technical-evaluation': (props) => <EvaluationScoringModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
@@ -161,6 +168,13 @@ const moduleRenderers: Partial<Record<string, (props: InternalModuleRendererProp
       module={props.module}
       token={props.token}
       role={props.role}
+      userEmail={props.userEmail}
+    />
+  ),
+  'user-profile': (props) => (
+    <ProfilePage
+      module={props.module}
+      token={props.token}
       userEmail={props.userEmail}
     />
   )
@@ -185,7 +199,7 @@ const mapRoleRecordToDefinition = (roleRecord: InternalRoleRecord): RoleDefiniti
 
   return {
     key,
-    name: formatRoleName(roleRecord.RoleName),
+    name: fallbackRole?.name ?? formatRoleName(roleRecord.RoleName),
     description: roleRecord.Description?.trim() || fallbackRole?.description || ''
   };
 };
@@ -394,4 +408,3 @@ export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShel
     </div>
   );
 };
-

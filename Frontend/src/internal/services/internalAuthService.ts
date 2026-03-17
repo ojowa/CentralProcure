@@ -8,7 +8,9 @@ import {
   InternalRegistrationResponse,
   InternalOrganizationalUnitRecord,
   InternalRoleRecord,
-  InternalModule
+  InternalModule,
+  InternalUserProfile,
+  InternalUserProfileUpdateRequest
 } from '../types/internal';
 
 const normalizeBasePath = (value: string): string => {
@@ -31,9 +33,10 @@ const API_ENDPOINTS = {
   INTERNAL_ROLES: withBasePath('/api/Auth/roles'),
   INTERNAL_UNITS: withBasePath('/api/Auth/internal/units'),
   INTERNAL_MODULES: withBasePath('/api/Auth/internal/modules'),
+  INTERNAL_PROFILE: withBasePath('/api/Auth/internal/profile'),
 };
 
-const CSRF_COOKIE = 'XSRF-TOKEN';
+export const CSRF_COOKIE = 'XSRF-TOKEN';
 const VALID_ROLES: RoleKey[] = [
   'admin',
   'requisitioning_officer',
@@ -59,7 +62,7 @@ const VALID_ROLES: RoleKey[] = [
   'ict_admin'
 ];
 
-const getCookieValue = (name: string): string | null => {
+export const getCookieValue = (name: string): string | null => {
   if (typeof document === 'undefined') {
     return null;
   }
@@ -68,7 +71,7 @@ const getCookieValue = (name: string): string | null => {
   return match ? decodeURIComponent(match[2]) : null;
 };
 
-const buildCsrfHeaders = (): Record<string, string> => {
+export const buildCsrfHeaders = (): Record<string, string> => {
   const csrfToken = getCookieValue(CSRF_COOKIE);
   return csrfToken ? { 'X-CSRF-Token': csrfToken } : {};
 };
@@ -346,5 +349,35 @@ export const fetchInternalModules = async (token: string): Promise<InternalModul
             .filter((roleValue: RoleKey | null): roleValue is RoleKey => Boolean(roleValue))
         : []
     }));
+};
+
+export const fetchInternalUserProfile = async (token: string): Promise<InternalUserProfile> => {
+  const response = await fetch(API_ENDPOINTS.INTERNAL_PROFILE, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    credentials: 'include'
+  });
+
+  return parseResponse<InternalUserProfile>(response, 'Unable to load your profile.');
+};
+
+export const updateInternalUserProfile = async (
+  token: string,
+  data: InternalUserProfileUpdateRequest
+): Promise<InternalUserProfile> => {
+  const response = await fetch(API_ENDPOINTS.INTERNAL_PROFILE, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      ...buildCsrfHeaders()
+    },
+    credentials: 'include',
+    body: JSON.stringify(data)
+  });
+
+  return parseResponse<InternalUserProfile>(response, 'Unable to update your profile.');
 };
 

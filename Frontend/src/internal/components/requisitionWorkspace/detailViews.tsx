@@ -17,6 +17,8 @@ import {
   resolveThresholdRouting,
   toTitle
 } from '../../utils/procureUtils';
+import { getHumanStatus } from '../../utils/workflow';
+import { WorkflowProgressStepper } from '../WorkflowProgressStepper';
 import { buildDepartmentHeadChecklist, resolveDepartmentHeadAction, type WorkspaceMode } from './helpers';
 
 interface QuickLinksProps {
@@ -295,6 +297,7 @@ interface RequisitionDetailContentProps {
   isDepartmentHead: boolean;
   canEditDrafts: boolean;
   isSaving: boolean;
+  workflowRuntime: WorkflowRuntimeSnapshot | null;
   onOpenSelectedForEdit: () => void;
   onSubmitSelectedDraft: () => void;
   departmentHeadPanel?: ReactNode;
@@ -307,6 +310,7 @@ export const RequisitionDetailContent = ({
   isDepartmentHead,
   canEditDrafts,
   isSaving,
+  workflowRuntime,
   onOpenSelectedForEdit,
   onSubmitSelectedDraft,
   departmentHeadPanel
@@ -326,13 +330,19 @@ export const RequisitionDetailContent = ({
         </div>
       </div>
 
+      {workflowRuntime?.CurrentStageKey ? (
+        <div style={{ marginBottom: '20px' }}>
+          <WorkflowProgressStepper currentStageKey={workflowRuntime.CurrentStageKey} />
+        </div>
+      ) : null}
+
       <div className="requisition-detail-grid">
         <div><span>Department</span><strong>{detail.Department}</strong></div>
         <div><span>Priority</span><strong>{detail.Priority || 'Not set'}</strong></div>
         <div><span>Funding Source</span><strong>{detail.FundingSource || 'Not set'}</strong></div>
         <div><span>Procurement Type</span><strong>{detail.ProcurementType || 'Not set'}</strong></div>
         <div><span>Required By</span><strong>{formatDate(detail.RequiredBy)}</strong></div>
-        <div><span>Current Stage</span><strong>{detail.CurrentStage || detail.Status}</strong></div>
+        <div><span>Current Stage</span><strong>{getHumanStatus(detail.CurrentStage, detail.Status)}</strong></div>
         <div><span>Budget Code</span><strong>{detail.BudgetCode || 'Not linked'}</strong></div>
         <div><span>APP Item</span><strong>{detail.AppItemId || 'Not linked'}</strong></div>
         <div><span>Project Code</span><strong>{detail.ProjectCode || 'Not set'}</strong></div>
@@ -429,7 +439,7 @@ export const RequisitionDetailContent = ({
             disabled={isSaving || !canEditDrafts}
             onClick={onSubmitSelectedDraft}
           >
-            {isSaving ? 'Submitting...' : 'Submit Draft'}
+            {isSaving ? 'Submitting...' : 'Submit Requisition'}
           </button>
         </div>
       ) : null}

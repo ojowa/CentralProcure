@@ -9,6 +9,126 @@ public record BudgetSummaryResponse(
     decimal Spent,
     decimal Available);
 
+public record BudgetDashboardRiskItem(
+    Guid PlanId,
+    string PlanTitle,
+    string Department,
+    string BudgetCode,
+    int FiscalYear,
+    decimal RequestedAmount,
+    decimal Available,
+    decimal Variance);
+
+public record BudgetDashboardResponse(
+    decimal Appropriated,
+    decimal Released,
+    decimal Committed,
+    decimal Spent,
+    decimal Available,
+    int QueueCount,
+    int AwaitingBudgetReviewCount,
+    int OnHoldCount,
+    int ReadyForApprovalCount,
+    int AtRiskCount,
+    IReadOnlyList<BudgetDashboardRiskItem> TopRisks);
+
+public record BudgetConfirmationQueueItem(
+    Guid PlanId,
+    string PlanTitle,
+    string Department,
+    int FiscalYear,
+    string PlanStatus,
+    string CurrentStageKey,
+    string CurrentStageTitle,
+    string? WorkflowStatus,
+    decimal TotalBudget,
+    decimal RequestedAmount,
+    decimal Appropriated,
+    decimal Released,
+    decimal Committed,
+    decimal Spent,
+    decimal Available,
+    decimal Variance,
+    int ItemCount,
+    DateTime CreatedAt,
+    DateTime UpdatedAt);
+
+public record BudgetConfirmationListResponse(
+    IReadOnlyList<BudgetConfirmationQueueItem> Items,
+    int Page,
+    int PageSize,
+    long Total);
+
+public record BudgetPlanItemSummary(
+    Guid PlanItemId,
+    string? ItemCode,
+    string Description,
+    string BudgetCode,
+    string? ProcurementType,
+    decimal EstimatedAmount,
+    string Status,
+    string? Notes,
+    DateTime CreatedAt,
+    DateTime UpdatedAt);
+
+public record BudgetPlanBudgetLine(
+    string BudgetCode,
+    decimal RequestedAmount,
+    decimal Appropriated,
+    decimal Released,
+    decimal Committed,
+    decimal Spent,
+    decimal Available,
+    decimal Variance,
+    int ItemCount);
+
+public record BudgetDecisionHistoryEntry(
+    Guid HistoryId,
+    string? FromStageKey,
+    string ToStageKey,
+    string ToStageTitle,
+    string? StageStatus,
+    string TransitionSource,
+    string? TransitionReason,
+    string? Actor,
+    DateTime CreatedAt);
+
+public record BudgetConfirmationDetail(
+    Guid PlanId,
+    string PlanTitle,
+    string Department,
+    int FiscalYear,
+    string PlanStatus,
+    string CurrentStageKey,
+    string CurrentStageTitle,
+    string? WorkflowStatus,
+    string? Notes,
+    decimal TotalBudget,
+    decimal RequestedAmount,
+    decimal Appropriated,
+    decimal Released,
+    decimal Committed,
+    decimal Spent,
+    decimal Available,
+    decimal Variance,
+    int ItemCount,
+    DateTime CreatedAt,
+    DateTime UpdatedAt,
+    IReadOnlyList<BudgetPlanBudgetLine> BudgetLines,
+    IReadOnlyList<BudgetPlanItemSummary> PlanItems,
+    IReadOnlyList<BudgetDecisionHistoryEntry> History);
+
+public record BudgetDecisionRequest(string Decision, string? Note);
+
+public record BudgetDecisionResponse(
+    Guid PlanId,
+    string Decision,
+    string Message,
+    string CurrentStageKey,
+    string CurrentStageTitle,
+    string? WorkflowStatus,
+    string PlanStatus);
+
 public record BudgetAppropriationCreateRequest(
     int FiscalYear,
     string Department,

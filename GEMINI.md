@@ -5,7 +5,7 @@ This document provides foundational mandates for any AI agent working on the Cen
 ## 1. Core Mission & Compliance
 - **System Purpose:** Internal e-Procurement system for the Nigeria Immigration Service (NIS).
 - **Statutory Mandate:** Absolute adherence to the **Public Procurement Act (PPA) 2007**.
-- **Threshold Routing:** Logic must always check if a project is "Low-Value" (Accounting Officer), "Board-Level" (Tenders Board), or "High-Value" (BPP Prior Review).
+- **Threshold Routing:** Logic must always check if a project is "Low-Value" (CGIS), "Board-Level" (Tenders Board), or "High-Value" (BPP Prior Review).
 - **Timeline Integrity:** PPA-mandated durations (e.g., 42-day minimum advertising for NCB) must be enforced or explicitly flagged as exceptions.
 
 ## 2. Technical Stack & Casing Standards
