@@ -2,6 +2,7 @@ import type {
   AuditCloseoutCreateRequest,
   AuditCloseoutItem,
   AuditHistoryItem,
+  AuditHistoryListResponse,
   AuditSummaryResponse,
   AuditWorkflowDiagnosticsResponse
 } from '../types/internal';
@@ -110,6 +111,31 @@ export const fetchAuditHistory = async (
     limit?: number;
   }
 ): Promise<AuditHistoryItem[]> => {
+  const result = await fetchAuditHistoryPage(token, {
+    ...filters,
+    page: 1,
+    pageSize: filters?.limit ?? 250
+  });
+
+  return result.Items;
+};
+
+export const fetchAuditHistoryPage = async (
+  token: string,
+  filters?: {
+    entityType?: string;
+    entityId?: string;
+    actor?: string;
+    transitionSource?: string;
+    query?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    page?: number;
+    pageSize?: number;
+    sortBy?: string;
+    sortDir?: 'asc' | 'desc';
+  }
+): Promise<AuditHistoryListResponse> => {
   const params = new URLSearchParams();
   if (filters?.entityType) {
     params.set('entityType', filters.entityType);
@@ -132,8 +158,17 @@ export const fetchAuditHistory = async (
   if (filters?.dateTo) {
     params.set('dateTo', filters.dateTo);
   }
-  if (filters?.limit) {
-    params.set('limit', String(filters.limit));
+  if (filters?.page) {
+    params.set('page', String(filters.page));
+  }
+  if (filters?.pageSize) {
+    params.set('pageSize', String(filters.pageSize));
+  }
+  if (filters?.sortBy) {
+    params.set('sortBy', filters.sortBy);
+  }
+  if (filters?.sortDir) {
+    params.set('sortDir', filters.sortDir);
   }
 
   const query = params.toString();
@@ -141,7 +176,7 @@ export const fetchAuditHistory = async (
     headers: buildHeaders(token)
   });
 
-  return parseResponse<AuditHistoryItem[]>(response, 'Unable to load audit history.');
+  return parseResponse<AuditHistoryListResponse>(response, 'Unable to load audit history.');
 };
 
 export const fetchAuditWorkflowDiagnostics = async (

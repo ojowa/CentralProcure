@@ -6,6 +6,7 @@ import { SidebarNav } from './SidebarNav';
 import { DashboardPage } from './DashboardPage';
 import { AdministrativeReviewModulePage } from './AdministrativeReviewModulePage';
 import { AuditDashboardWorkspace } from './AuditDashboardWorkspace';
+import { UserRoleManagementModule } from './UserRoleManagementModule';
 import { AuditTrailWorkspace } from './AuditTrailWorkspace';
 import { ComplianceReportsWorkspace } from './ComplianceReportsWorkspace';
 import { PaymentTrackingModulePage } from './PaymentTrackingModulePage';
@@ -156,6 +157,7 @@ const moduleRenderers: Partial<Record<string, (props: InternalModuleRendererProp
   'publish-tender': (props) => <TenderManagementModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
   'technical-evaluation': (props) => <EvaluationScoringModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
   'financial-evaluation': (props) => <EvaluationScoringModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
+  'user-role-management': (props) => <UserRoleManagementModule module={props.module} token={props.token} />,
   'bid-opening-session': (props) => <BidOpeningModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
   'tenders-board-approval': (props) => <TendersBoardApprovalModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
   'workflow-configuration': (props) => (

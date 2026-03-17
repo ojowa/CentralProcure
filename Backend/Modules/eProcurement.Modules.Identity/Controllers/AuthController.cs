@@ -587,6 +587,45 @@ namespace eProcurement.Modules.Identity.Controllers
         }
 
         [Authorize]
+        [HttpGet("internal/users")]
+        public async Task<IActionResult> GetInternalUsers(CancellationToken ct)
+        {
+            if (!IsIdentityAdministrator())
+            {
+                return Forbid();
+            }
+
+            var connectionString = GetConnectionString();
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                return Problem("Connection string 'Primary' is not configured.", statusCode: 500);
+            }
+
+            try
+            {
+                await using var conn = new NpgsqlConnection(connectionString);
+                await conn.OpenAsync(ct);
+                await using var tx = await conn.BeginTransactionAsync(ct);
+                await using var cmd = new NpgsqlCommand("identity.get_internal_users_sp", conn, tx)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                cmd.Parameters.Add(new NpgsqlParameter("p_result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.Output });
+
+                var results = await ExecuteRefcursorAsync(cmd, MapInternalUserProfileResult, ct);
+                await tx.CommitAsync(ct);
+
+                return Ok(results);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error fetching internal users.");
+                return Problem("Internal server error fetching internal users.");
+            }
+        }
+
+        [Authorize]
         [HttpGet("internal/modules")]
         public async Task<IActionResult> GetInternalModules(CancellationToken ct)
         {

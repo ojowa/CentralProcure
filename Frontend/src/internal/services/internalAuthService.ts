@@ -35,6 +35,8 @@ const API_ENDPOINTS = {
   INTERNAL_UNITS: withBasePath('/api/Auth/internal/units'),
   INTERNAL_MODULES: withBasePath('/api/Auth/internal/modules'),
   INTERNAL_PROFILE: withBasePath('/api/Auth/internal/profile'),
+  INTERNAL_USERS: withBasePath('/api/Auth/internal/users'),
+  INTERNAL_USER_ROLE: withBasePath('/api/Auth/internal/users/role'),
 };
 
 export const CSRF_COOKIE = 'XSRF-TOKEN';
@@ -399,5 +401,34 @@ export const updateInternalUserProfile = async (
   });
 
   return parseResponse<InternalUserProfile>(response, 'Unable to update your profile.');
+};
+
+export const fetchInternalUsers = async (token: string): Promise<InternalUserProfile[]> => {
+  const response = await fetch(API_ENDPOINTS.INTERNAL_USERS, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    credentials: 'include'
+  });
+
+  return parseResponse<InternalUserProfile[]>(response, 'Unable to fetch internal users.');
+};
+
+export const updateInternalUserRole = async (
+  token: string,
+  data: { InternalUserId: string; Role: string }
+): Promise<any> => {
+  const response = await fetch(API_ENDPOINTS.INTERNAL_USER_ROLE, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+      ...buildCsrfHeaders()
+    },
+    credentials: 'include',
+    body: JSON.stringify(data)
+  });
+
+  return parseResponse<any>(response, 'Unable to update user role.');
 };
 

@@ -6,7 +6,7 @@ import { getCurrentUser, logoutVendor } from '../features/vendor/services/vendor
 interface AuthContextType {
     isAuthenticated: boolean;
     isReady: boolean;
-    login: () => void;
+    login: (user?: { UserId: string; Email: string; Role: string } | null) => Promise<void>;
     logout: () => void;
     user: { UserId: string; Email: string; Role: string } | null;
 }
@@ -46,12 +46,22 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
         // But we can still keep it for LAST_ACTIVE_KEY if we want sync across tabs
     }, []);
 
-    const login = async () => {
+    const login = async (nextUser?: { UserId: string; Email: string; Role: string } | null) => {
+        if (nextUser) {
+            setIsAuthenticated(true);
+            setUser(nextUser);
+            return;
+        }
+
         const currentUser = await getCurrentUser();
         if (currentUser) {
             setIsAuthenticated(true);
             setUser(currentUser);
+            return;
         }
+
+        setIsAuthenticated(false);
+        setUser(null);
     };
 
     const logout = async () => {

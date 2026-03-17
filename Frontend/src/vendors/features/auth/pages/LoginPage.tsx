@@ -34,11 +34,18 @@ const LoginPage: React.FC = () => {
             localStorage.setItem('vendorCompanyName', response.CompanyName);
             localStorage.setItem('vendorEmail', response.Email);
             
-            // Set authenticated state (this will call getCurrentUser)
-            await login();
+            // Set authenticated state immediately from the successful login result.
+            await login({
+                UserId: response.VendorId,
+                Email: response.Email,
+                Role: 'vendor'
+            });
             
-            // Redirect to dashboard on successful login
-            router.push('/dashboard');
+            const nextPath =
+                typeof window !== 'undefined'
+                    ? new URLSearchParams(window.location.search).get('next')
+                    : null;
+            router.push(nextPath && nextPath.startsWith('/') ? nextPath : '/dashboard/profile-management');
         } catch (err: any) {
             setError(err.message || 'Login failed. Please check your credentials and try again.');
         } finally {

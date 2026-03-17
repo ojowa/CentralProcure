@@ -4,33 +4,12 @@ import { useEffect, useMemo, useState } from 'react';
 import type { AuditCloseoutItem, AuditSummaryResponse, InternalModule } from '../types/internal';
 import { fetchAuditCloseouts, fetchAuditSummary } from '../services/auditService';
 
-const formatDateTimeShort = (value?: string | null) => {
-  if (!value) {
-    return 'Not recorded';
-  }
-
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return value;
-  }
-
-  return parsed.toLocaleString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-};
-
-const toTitle = (value?: string | null) =>
-  value
-    ? value
-        .replace(/_/g, ' ')
-        .split(' ')
-        .map((part) => (part ? part[0].toUpperCase() + part.slice(1) : part))
-        .join(' ')
-    : 'Unspecified';
+// Redesigned sub-components
+import { AuditMetrics } from './audit-dashboard/AuditMetrics';
+import { AuditSubNav, AuditViewType } from './audit-dashboard/AuditSubNav';
+import { AuditCloseoutRegister } from './audit-dashboard/AuditCloseoutRegister';
+import { AuditWorkflowTimeline } from './audit-dashboard/AuditWorkflowTimeline';
+import { AuditComplianceHealth } from './audit-dashboard/AuditComplianceHealth';
 
 type Props = {
   module: InternalModule;
@@ -38,6 +17,7 @@ type Props = {
 };
 
 export const AuditDashboardWorkspace = ({ module, token }: Props) => {
+  const [activeView, setActiveView] = useState<AuditViewType>('overview');
   const [summary, setSummary] = useState<AuditSummaryResponse | null>(null);
   const [closeouts, setCloseouts] = useState<AuditCloseoutItem[]>([]);
   const [statusFilter, setStatusFilter] = useState('');
@@ -71,127 +51,75 @@ export const AuditDashboardWorkspace = ({ module, token }: Props) => {
     void load();
   }, [token, statusFilter]);
 
-  const latestCloseouts = useMemo(() => closeouts.slice(0, 8), [closeouts]);
-
   return (
-    <section className="portal-module audit-dashboard">
-      <h2>{module.title}</h2>
-      <p>{module.description}</p>
-      {!token ? <div className="portal-alert">Authentication token is missing.</div> : null}
-      {error ? <div className="portal-alert">{error}</div> : null}
+    <section className="portal-module audit-dashboard animate-fade-up">
+      <header className="budget-workspace__hero">
+        <div className="budget-workspace__title-group">
+          <div className="admin-kicker">Statutory Oversight & Internal Audit</div>
+          <h2>{module.title}</h2>
+          <p className="plan-muted">{module.description}</p>
+        </div>
+        <div className="plan-actions">
+          <button
+            type="button"
+            className="plan-button plan-button--secondary"
+            onClick={() => void load()}
+            disabled={!token || isLoading}
+          >
+            {isLoading ? 'Syncing...' : 'Refresh Audit Data'}
+          </button>
+        </div>
+      </header>
 
-      <div className="portal-module-grid" style={{ marginTop: '16px' }}>
-        <article className="portal-module-card">
-          <h3>Active Workflow Items</h3>
-          <p>{summary?.ActiveWorkflowItems ?? 0}</p>
-        </article>
-        <article className="portal-module-card">
-          <h3>Open Reviews</h3>
-          <p>{summary?.AdministrativeReviewsOpen ?? 0}</p>
-        </article>
-        <article className="portal-module-card">
-          <h3>Archived Closeouts</h3>
-          <p>{summary?.CloseoutsArchived ?? 0}</p>
-        </article>
-        <article className="portal-module-card">
-          <h3>Recent Transitions</h3>
-          <p>{summary?.RecentTransitions ?? 0} in the last 30 days</p>
-        </article>
-      </div>
+      {error ? <div className="portal-alert animate-shake">{error}</div> : null}
 
-      <div className="admin-grid" style={{ marginTop: '16px' }}>
-        <article className="admin-card admin-card--wide">
-          <div className="plan-toolbar" style={{ marginBottom: '12px' }}>
-            <div className="plan-filters">
-              <label className="plan-field">
-                <span>Closeout Status</span>
-                <select
-                  className="plan-select"
-                  value={statusFilter}
-                  onChange={(event) => setStatusFilter(event.target.value)}
-                >
-                  <option value="">All statuses</option>
-                  <option value="Submitted">Submitted</option>
-                  <option value="Archived">Archived</option>
-                  <option value="Reopened">Reopened</option>
-                </select>
-              </label>
-              <div className="plan-actions">
-                <button type="button" className="plan-button plan-button--secondary" onClick={() => void load()} disabled={!token || isLoading}>
-                  {isLoading ? 'Refreshing...' : 'Refresh'}
-                </button>
-              </div>
+      <AuditSubNav activeView={activeView} onViewChange={setActiveView} />
+
+      <div className="audit-workspace-content">
+        {activeView === 'overview' && (
+          <div className="audit-overview-view">
+            <AuditMetrics summary={summary} />
+            
+            <div className="view-header" style={{ marginTop: '32px' }}>
+              <h3>Compliance Health Indicators</h3>
+              <p>Automated verification of statutory procurement rules.</p>
+            </div>
+            <AuditComplianceHealth />
+
+            <div style={{ marginTop: '32px' }}>
+              <AuditWorkflowTimeline events={(summary?.RecentEvents ?? []).slice(0, 5)} />
             </div>
           </div>
+        )}
 
-          <h3>Closeout Register</h3>
-          <table className="plan-table">
-            <thead>
-              <tr>
-                <th>Reference</th>
-                <th>Record</th>
-                <th>Status</th>
-                <th>Archive Location</th>
-                <th>Archived</th>
-              </tr>
-            </thead>
-            <tbody>
-              {latestCloseouts.map((closeout) => (
-                <tr key={closeout.CloseoutId}>
-                  <td>
-                    <div>{closeout.CloseoutReference}</div>
-                    <div className="plan-muted">{closeout.Summary}</div>
-                  </td>
-                  <td>{closeout.RecordTitle || `${toTitle(closeout.EntityType)} · ${closeout.EntityId}`}</td>
-                  <td>{closeout.Status}</td>
-                  <td>{closeout.ArchiveLocation || 'Not recorded'}</td>
-                  <td>{formatDateTimeShort(closeout.ArchivedAt || closeout.CreatedAt)}</td>
-                </tr>
-              ))}
-              {!latestCloseouts.length ? (
-                <tr>
-                  <td colSpan={5} className="plan-empty">
-                    No closeouts match the selected filter.
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </article>
+        {activeView === 'closeouts' && (
+          <div className="audit-closeouts-view">
+            <AuditCloseoutRegister 
+              closeouts={closeouts}
+              statusFilter={statusFilter}
+              onStatusFilterChange={setStatusFilter}
+              isLoading={isLoading}
+              onRefresh={load}
+            />
+          </div>
+        )}
 
-        <article className="admin-card admin-card--wide">
-          <h3>Recent Workflow Events</h3>
-          <table className="plan-table">
-            <thead>
-              <tr>
-                <th>When</th>
-                <th>Entity</th>
-                <th>To Stage</th>
-                <th>Status</th>
-                <th>Actor</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(summary?.RecentEvents ?? []).map((event) => (
-                <tr key={event.HistoryId}>
-                  <td>{formatDateTimeShort(event.CreatedAt)}</td>
-                  <td>{toTitle(event.EntityType)} · {event.EntityId}</td>
-                  <td>{event.ToStageTitle}</td>
-                  <td>{event.StageStatus || 'Not recorded'}</td>
-                  <td>{event.Actor || 'System'}</td>
-                </tr>
-              ))}
-              {!summary?.RecentEvents?.length ? (
-                <tr>
-                  <td colSpan={5} className="plan-empty">
-                    No recent workflow events were returned.
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </article>
+        {activeView === 'timeline' && (
+          <div className="audit-timeline-view">
+            <AuditWorkflowTimeline events={summary?.RecentEvents ?? []} />
+          </div>
+        )}
       </div>
+
+      <style jsx>{`
+        .audit-dashboard {
+          display: grid;
+          gap: 24px;
+        }
+        .audit-workspace-content {
+          min-height: 400px;
+        }
+      `}</style>
     </section>
   );
 };

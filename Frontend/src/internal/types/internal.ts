@@ -1030,6 +1030,13 @@ export interface AuditHistoryItem {
     CreatedAt: string;
 }
 
+export interface AuditHistoryListResponse {
+    Items: AuditHistoryItem[];
+    Page: number;
+    PageSize: number;
+    Total: number;
+}
+
 export interface WorkflowGrantedAction {
     ActionKey: string;
     StageKey: string;

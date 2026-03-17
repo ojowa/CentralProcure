@@ -194,12 +194,50 @@ ORDER BY archived_at DESC NULLS LAST, created_at DESC;";
         [FromQuery] string? query,
         [FromQuery] DateTime? dateFrom,
         [FromQuery] DateTime? dateTo,
-        [FromQuery] int limit = 200,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] string? sortDir = null,
         CancellationToken ct = default)
     {
-        if (limit <= 0 || limit > 500)
+        if (page < 1)
         {
-            return BadRequest("Limit must be between 1 and 500.");
+            return BadRequest("Page must be 1 or greater.");
+        }
+
+        if (pageSize <= 0 || pageSize > 100)
+        {
+            return BadRequest("PageSize must be between 1 and 100.");
+        }
+
+        var sortColumns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["createdAt"] = "h.created_at",
+            ["entityType"] = "LOWER(wi.entity_type)",
+            ["recordTitle"] = "LOWER(COALESCE(wi.record_title, ''))",
+            ["fromStageTitle"] = "LOWER(COALESCE(from_sc.stage_title, ''))",
+            ["toStageTitle"] = "LOWER(to_sc.stage_title)",
+            ["stageStatus"] = "LOWER(COALESCE(h.stage_status, ''))",
+            ["transitionSource"] = "LOWER(h.transition_source)",
+            ["actor"] = "LOWER(COALESCE(h.actor, ''))"
+        };
+
+        sortBy ??= "createdAt";
+        if (!sortColumns.TryGetValue(sortBy, out var sortColumnSql))
+        {
+            return BadRequest("SortBy is not supported.");
+        }
+
+        var sortDirectionSql = sortDir?.Trim().ToLowerInvariant() switch
+        {
+            null or "" or "desc" => "DESC",
+            "asc" => "ASC",
+            _ => null
+        };
+
+        if (sortDirectionSql is null)
+        {
+            return BadRequest("SortDir must be 'asc' or 'desc'.");
         }
 
         var connectionString = GetConnectionString();
@@ -208,7 +246,37 @@ ORDER BY archived_at DESC NULLS LAST, created_at DESC;";
             return Problem("Connection string 'Primary' is not configured.", statusCode: 500);
         }
 
-        const string sql = @"
+        const string countSql = @"
+SELECT COUNT(*)
+FROM procurement_workflow.workflow_instance_history h
+JOIN procurement_workflow.workflow_instances wi
+  ON wi.instance_id = h.instance_id
+LEFT JOIN procurement_workflow.workflow_stage_catalog from_sc
+  ON from_sc.stage_key = h.from_stage_key
+JOIN procurement_workflow.workflow_stage_catalog to_sc
+  ON to_sc.stage_key = h.to_stage_key
+WHERE (@p_entity_type IS NULL OR wi.entity_type = @p_entity_type)
+  AND (@p_entity_id IS NULL OR wi.entity_id = @p_entity_id)
+  AND (@p_actor IS NULL OR h.actor ILIKE '%' || @p_actor || '%')
+  AND (@p_transition_source IS NULL OR h.transition_source = @p_transition_source)
+  AND (
+      @p_query IS NULL
+      OR wi.record_title ILIKE '%' || @p_query || '%'
+      OR wi.entity_type ILIKE '%' || @p_query || '%'
+      OR CAST(wi.entity_id AS TEXT) ILIKE '%' || @p_query || '%'
+      OR COALESCE(h.transition_reason, '') ILIKE '%' || @p_query || '%'
+      OR COALESCE(h.actor, '') ILIKE '%' || @p_query || '%'
+      OR to_sc.stage_title ILIKE '%' || @p_query || '%'
+      OR COALESCE(from_sc.stage_title, '') ILIKE '%' || @p_query || '%'
+  )
+  AND (@p_date_from IS NULL OR h.created_at >= @p_date_from)
+  AND (@p_date_to IS NULL OR h.created_at <= @p_date_to);";
+
+        var orderByClause = string.Equals(sortColumnSql, "h.created_at", StringComparison.Ordinal)
+            ? $"ORDER BY {sortColumnSql} {sortDirectionSql}, h.history_id DESC"
+            : $"ORDER BY {sortColumnSql} {sortDirectionSql}, h.created_at DESC, h.history_id DESC";
+
+        var sql = $@"
 SELECT
     h.history_id,
     wi.entity_type,
@@ -250,22 +318,43 @@ WHERE (@p_entity_type IS NULL OR wi.entity_type = @p_entity_type)
   )
   AND (@p_date_from IS NULL OR h.created_at >= @p_date_from)
   AND (@p_date_to IS NULL OR h.created_at <= @p_date_to)
-ORDER BY h.created_at DESC
-LIMIT @p_limit;";
+{orderByClause}
+LIMIT @p_page_size
+OFFSET @p_offset;";
 
         try
         {
             await using var conn = new NpgsqlConnection(connectionString);
             await conn.OpenAsync(ct);
+
+            static void AddHistoryFilterParameters(
+                NpgsqlCommand command,
+                string? nextEntityType,
+                Guid? nextEntityId,
+                string? nextActor,
+                string? nextTransitionSource,
+                string? nextQuery,
+                DateTime? nextDateFrom,
+                DateTime? nextDateTo)
+            {
+                command.Parameters.AddWithValue("p_entity_type", NpgsqlDbType.Varchar, (object?)NormalizeNullable(nextEntityType)?.ToLowerInvariant() ?? DBNull.Value);
+                command.Parameters.AddWithValue("p_entity_id", NpgsqlDbType.Uuid, (object?)nextEntityId ?? DBNull.Value);
+                command.Parameters.AddWithValue("p_actor", NpgsqlDbType.Varchar, (object?)NormalizeNullable(nextActor) ?? DBNull.Value);
+                command.Parameters.AddWithValue("p_transition_source", NpgsqlDbType.Varchar, (object?)NormalizeNullable(nextTransitionSource) ?? DBNull.Value);
+                command.Parameters.AddWithValue("p_query", NpgsqlDbType.Text, (object?)NormalizeNullable(nextQuery) ?? DBNull.Value);
+                command.Parameters.AddWithValue("p_date_from", NpgsqlDbType.Timestamp, (object?)nextDateFrom ?? DBNull.Value);
+                command.Parameters.AddWithValue("p_date_to", NpgsqlDbType.Timestamp, (object?)nextDateTo ?? DBNull.Value);
+            }
+
+            await using var countCmd = new NpgsqlCommand(countSql, conn);
+            AddHistoryFilterParameters(countCmd, entityType, entityId, actor, transitionSource, query, dateFrom, dateTo);
+            var totalResult = await countCmd.ExecuteScalarAsync(ct);
+            var total = totalResult is null ? 0 : Convert.ToInt32(totalResult);
+
             await using var cmd = new NpgsqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("p_entity_type", NpgsqlDbType.Varchar, (object?)NormalizeNullable(entityType)?.ToLowerInvariant() ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("p_entity_id", NpgsqlDbType.Uuid, (object?)entityId ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("p_actor", NpgsqlDbType.Varchar, (object?)NormalizeNullable(actor) ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("p_transition_source", NpgsqlDbType.Varchar, (object?)NormalizeNullable(transitionSource) ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("p_query", NpgsqlDbType.Text, (object?)NormalizeNullable(query) ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("p_date_from", NpgsqlDbType.Timestamp, (object?)dateFrom ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("p_date_to", NpgsqlDbType.Timestamp, (object?)dateTo ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("p_limit", NpgsqlDbType.Integer, limit);
+            AddHistoryFilterParameters(cmd, entityType, entityId, actor, transitionSource, query, dateFrom, dateTo);
+            cmd.Parameters.AddWithValue("p_page_size", NpgsqlDbType.Integer, pageSize);
+            cmd.Parameters.AddWithValue("p_offset", NpgsqlDbType.Integer, (page - 1) * pageSize);
 
             var results = new List<AuditHistoryItem>();
             await using var reader = await cmd.ExecuteReaderAsync(ct);
@@ -289,7 +378,7 @@ LIMIT @p_limit;";
                     reader.GetDateTime(reader.GetOrdinal("created_at"))));
             }
 
-            return Ok(results);
+            return Ok(new AuditHistoryListResponse(results, page, pageSize, total));
         }
         catch (Exception ex)
         {

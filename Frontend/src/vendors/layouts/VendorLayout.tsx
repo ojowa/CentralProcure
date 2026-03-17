@@ -1,13 +1,19 @@
+'use client';
+
 import type { ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
 const VendorLayout = ({ children }: { children: ReactNode }) => {
+  const pathname = usePathname();
+  const isDashboard = pathname?.startsWith('/dashboard');
+
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
       <main className="flex-grow">{children}</main>
-      <Footer />
+      {!isDashboard && <Footer />}
     </div>
   );
 };

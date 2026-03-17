@@ -1,11 +1,12 @@
--- Vendor Registration Approval Stored Procedure (PL/pgSQL)
 CREATE OR REPLACE FUNCTION identity.approve_vendor_registration(
     p_vendor_id UUID,
     p_vendor_status VARCHAR(50),
     p_updated_by VARCHAR(255),
     p_notes TEXT DEFAULT NULL
 )
-RETURNS VOID AS $$
+RETURNS VOID
+LANGUAGE plpgsql
+AS $$
 BEGIN
     UPDATE identity.vendors
     SET
@@ -18,4 +19,4 @@ BEGIN
     -- Review notes are accepted for API compatibility and future audit persistence.
     PERFORM p_notes;
 END;
-$$ LANGUAGE plpgsql;
+$$;

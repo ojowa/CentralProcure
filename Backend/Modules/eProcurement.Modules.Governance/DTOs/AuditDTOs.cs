@@ -62,6 +62,12 @@ public record AuditHistoryItem(
     string? Actor,
     DateTime CreatedAt);
 
+public record AuditHistoryListResponse(
+    IReadOnlyList<AuditHistoryItem> Items,
+    int Page,
+    int PageSize,
+    int Total);
+
 public record AuditTransitionDiagnostic(
     string RequestedStageKey,
     string RequestedStageTitle,

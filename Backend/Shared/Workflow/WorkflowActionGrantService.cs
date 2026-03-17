@@ -31,7 +31,7 @@ public sealed class WorkflowActionGrantService
             ["threshold_resolution"] = ["threshold.resolve", "approval.review"],
             ["method_validation"] = ["tender.manage", "tender.publish"],
             ["solicitation"] = ["tender.manage", "tender.publish", "administrative_review.create"],
-            ["bid_opening"] = ["bid_opening.manage", "evaluation.actions"],
+            ["bid_opening"] = ["bid_opening.manage", "bid_opening.view_detail", "evaluation.actions"],
             ["evaluation"] = ["evaluation.actions", "administrative_review.create"],
             ["tenders_board_review"] = ["approval.review", "approval.decide"],
             ["accounting_officer_review"] = ["final_approval.decide", "bpp.create"],

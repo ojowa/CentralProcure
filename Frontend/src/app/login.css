@@ -244,8 +244,11 @@ a{ color: inherit; }
   margin-top: 6px;
   width:100%;
   border:none;
-  border-radius: 12px;
-  padding: 12px 14px;
+  border-radius: 10px;
+  padding: 10whtapx 14px;
+  min-height: 40px;
+  font-size: 14px;
+  line-height: 1.15;
   font-weight: 800;
   cursor:pointer;
   color:#fff;

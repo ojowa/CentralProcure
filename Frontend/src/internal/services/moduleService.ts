@@ -270,7 +270,10 @@ export const fetchBidOpeningSessions = async (token: string) => {
     headers: { Authorization: `Bearer ${token}` },
     credentials: 'include'
   });
-  if (!response.ok) throw new Error('Failed to fetch bid opening sessions');
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || `Failed to fetch bid opening sessions (${response.status})`);
+  }
   const data = await response.json();
   return data.Items || data;
 };
