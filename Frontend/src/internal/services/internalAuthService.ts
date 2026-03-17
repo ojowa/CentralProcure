@@ -29,6 +29,7 @@ const withBasePath = (path: string): string => `${APP_BASE_PATH}${path}`;
 
 const API_ENDPOINTS = {
   INTERNAL_LOGIN: withBasePath('/api/Auth/internal/login'),
+  INTERNAL_LOGOUT: withBasePath('/api/Auth/internal/logout'),
   INTERNAL_REGISTER: withBasePath('/api/Auth/internal/register'),
   INTERNAL_ROLES: withBasePath('/api/Auth/roles'),
   INTERNAL_UNITS: withBasePath('/api/Auth/internal/units'),
@@ -37,6 +38,7 @@ const API_ENDPOINTS = {
 };
 
 export const CSRF_COOKIE = 'XSRF-TOKEN';
+export const COOKIE_SESSION_TOKEN = '__internal_cookie_session__';
 const VALID_ROLES: RoleKey[] = [
   'admin',
   'requisitioning_officer',
@@ -74,6 +76,16 @@ export const getCookieValue = (name: string): string | null => {
 export const buildCsrfHeaders = (): Record<string, string> => {
   const csrfToken = getCookieValue(CSRF_COOKIE);
   return csrfToken ? { 'X-CSRF-Token': csrfToken } : {};
+};
+
+const buildAuthHeaders = (token?: string | null): Record<string, string> => {
+  if (!token || token === COOKIE_SESSION_TOKEN) {
+    return {};
+  }
+
+  return {
+    Authorization: `Bearer ${token}`
+  };
 };
 
 const parseJwtPayload = (token: string): Record<string, unknown> | null => {
@@ -224,6 +236,18 @@ export const loginInternalUser = async (
   } as InternalLoginResponse;
 };
 
+export const logoutInternalUser = async (): Promise<void> => {
+  const response = await fetch(API_ENDPOINTS.INTERNAL_LOGOUT, {
+    method: 'POST',
+    headers: {
+      ...buildCsrfHeaders()
+    },
+    credentials: 'include'
+  });
+
+  await parseResponse<unknown>(response, 'Internal logout failed.');
+};
+
 export const registerInternalUser = async (
   data: InternalRegistrationData
 ): Promise<InternalRegistrationResponse> => {
@@ -300,13 +324,11 @@ export const fetchInternalUnits = async (): Promise<InternalOrganizationalUnitRe
   });
 };
 
-export const fetchInternalModules = async (token: string): Promise<InternalModule[]> => {
+export const fetchInternalModules = async (token?: string | null): Promise<InternalModule[]> => {
   const response = await fetch(API_ENDPOINTS.INTERNAL_MODULES, {
     method: 'GET',
     credentials: 'include',
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
+    headers: buildAuthHeaders(token)
   });
 
   const payload = await response.json();
@@ -351,12 +373,10 @@ export const fetchInternalModules = async (token: string): Promise<InternalModul
     }));
 };
 
-export const fetchInternalUserProfile = async (token: string): Promise<InternalUserProfile> => {
+export const fetchInternalUserProfile = async (token?: string | null): Promise<InternalUserProfile> => {
   const response = await fetch(API_ENDPOINTS.INTERNAL_PROFILE, {
     method: 'GET',
-    headers: {
-      Authorization: `Bearer ${token}`
-    },
+    headers: buildAuthHeaders(token),
     credentials: 'include'
   });
 
@@ -364,14 +384,14 @@ export const fetchInternalUserProfile = async (token: string): Promise<InternalU
 };
 
 export const updateInternalUserProfile = async (
-  token: string,
+  token: string | null | undefined,
   data: InternalUserProfileUpdateRequest
 ): Promise<InternalUserProfile> => {
   const response = await fetch(API_ENDPOINTS.INTERNAL_PROFILE, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
+      ...buildAuthHeaders(token),
       ...buildCsrfHeaders()
     },
     credentials: 'include',

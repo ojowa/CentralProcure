@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace eProcurement.Modules.Governance.Controllers;
 
@@ -27,6 +28,7 @@ public class HomeController : ControllerBase
         });
     }
 
+    [AllowAnonymous]
     [HttpGet("health")]
     public IActionResult Health()
     {

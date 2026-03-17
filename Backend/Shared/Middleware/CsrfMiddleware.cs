@@ -9,6 +9,8 @@ public sealed class CsrfMiddleware
 {
     private const string CsrfCookieName = "XSRF-TOKEN";
     private const string CsrfHeaderName = "X-CSRF-Token";
+    private const string AuthorizationHeaderName = "Authorization";
+    private const string BearerPrefix = "Bearer ";
 
     private readonly RequestDelegate _next;
     private readonly ILogger<CsrfMiddleware> _logger;
@@ -21,7 +23,7 @@ public sealed class CsrfMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
-        if (IsSafeMethod(context.Request.Method) || IsExemptPath(context.Request.Path))
+        if (IsSafeMethod(context.Request.Method) || IsExemptPath(context.Request.Path) || HasBearerAuthorization(context))
         {
             await _next(context);
             return;
@@ -32,12 +34,18 @@ public sealed class CsrfMiddleware
 
         if (string.IsNullOrWhiteSpace(cookieToken) || string.IsNullOrWhiteSpace(headerToken))
         {
+            _logger.LogWarning(
+                "Rejected request for {Path}: missing CSRF cookie or header.",
+                context.Request.Path);
             await RejectAsync(context);
             return;
         }
 
         if (!TokensMatch(cookieToken, headerToken))
         {
+            _logger.LogWarning(
+                "Rejected request for {Path}: CSRF cookie/header mismatch.",
+                context.Request.Path);
             await RejectAsync(context);
             return;
         }
@@ -48,6 +56,13 @@ public sealed class CsrfMiddleware
     private static bool IsSafeMethod(string method)
     {
         return HttpMethods.IsGet(method) || HttpMethods.IsHead(method) || HttpMethods.IsOptions(method);
+    }
+
+    private static bool HasBearerAuthorization(HttpContext context)
+    {
+        var authorization = context.Request.Headers[AuthorizationHeaderName].FirstOrDefault();
+        return !string.IsNullOrWhiteSpace(authorization)
+               && authorization.StartsWith(BearerPrefix, StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsExemptPath(PathString path)

@@ -29,6 +29,7 @@ import { VendorRegistrationApprovalModule } from './VendorRegistrationApprovalMo
 import { fetchInternalModules, fetchInternalRoles, resolveRole } from '../services/internalAuthService';
 import { fetchModuleData } from '../services/moduleService';
 import { roleModuleFallbacks, roles } from '../data/internalData';
+import { useAuth } from '../hooks/useAuth';
 import {
   getInternalDashboardPath,
   getInternalDashboardRouteSegment,
@@ -209,6 +210,7 @@ const mapRoleRecordToDefinition = (roleRecord: InternalRoleRecord): RoleDefiniti
 export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShellProps) => {
   const pathname = usePathname();
   const router = useRouter();
+  const { logout } = useAuth();
   const [accessibleModules, setAccessibleModules] = useState<InternalModule[]>([]);
   const [availableRoles, setAvailableRoles] = useState<RoleDefinition[]>(roles);
   const [modulesLoading, setModulesLoading] = useState(false);
@@ -248,8 +250,9 @@ export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShel
   );
 
   const handleSignOut = useCallback(() => {
-    window.location.href = '/internal/login';
-  }, []);
+    logout();
+    router.replace('/internal/login');
+  }, [logout, router]);
 
   useEffect(() => {
     let isMounted = true;
@@ -309,7 +312,15 @@ export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShel
     fetchInternalModules(token)
       .then((modules) => {
         if (isMounted) {
-          setAccessibleModules(mergeModulesForRole(selectedRole, modules));
+          // If the database has explicitly granted modules, we trust that list as the primary source.
+          // We only apply role-based fallbacks if the server returns no operational modules,
+          // which ensures that granular database-level restrictions are respected.
+          const hasOperationalModules = modules.some(m => m.section !== 'Account Management');
+          const finalModules = hasOperationalModules 
+            ? mergeModulesForRole(selectedRole, modules) 
+            : mergeModulesForRole(selectedRole, []);
+          
+          setAccessibleModules(finalModules);
         }
       })
       .catch((error) => {

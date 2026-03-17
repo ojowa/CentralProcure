@@ -22,6 +22,8 @@ namespace eProcurement.Modules.Identity.Controllers
     public class AuthController : BaseModuleController
     {
         private const int InternalPasswordMinLength = 8;
+        private const string VendorAuthCookieName = "vendorAuthToken";
+        private const string InternalAuthCookieName = "internalAuthToken";
         private static readonly Regex HasUppercase = new("[A-Z]", RegexOptions.Compiled);
         private static readonly Regex HasLowercase = new("[a-z]", RegexOptions.Compiled);
         private static readonly Regex HasDigit = new("[0-9]", RegexOptions.Compiled);
@@ -41,6 +43,7 @@ namespace eProcurement.Modules.Identity.Controllers
             _workflowActionGrantService = workflowActionGrantService;
         }
 
+        [AllowAnonymous]
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken ct)
         {
@@ -100,7 +103,7 @@ namespace eProcurement.Modules.Identity.Controllers
                 }
 
                 var token = GenerateToken(result.VendorId.Value, result.Email ?? resolvedEmail ?? request.Email, "vendor");
-                SetAuthCookie(token);
+                SetAuthCookie(VendorAuthCookieName, token);
                 return Ok(new AuthResponse(token, result.Email ?? resolvedEmail ?? request.Email, "Success"));
             }
             catch (Exception ex)
@@ -134,10 +137,19 @@ namespace eProcurement.Modules.Identity.Controllers
         [HttpPost("logout")]
         public IActionResult Logout()
         {
-            Response.Cookies.Delete("vendorAuthToken");
+            DeleteAuthCookie(VendorAuthCookieName);
             return Ok(new { message = "Logged out successfully" });
         }
 
+        [Authorize]
+        [HttpPost("internal/logout")]
+        public IActionResult InternalLogout()
+        {
+            DeleteAuthCookie(InternalAuthCookieName);
+            return Ok(new { message = "Logged out successfully" });
+        }
+
+        [AllowAnonymous]
         [HttpPost("internal/login")]
         public async Task<IActionResult> InternalLogin([FromBody] InternalLoginRequest request, CancellationToken ct)
         {
@@ -200,8 +212,14 @@ namespace eProcurement.Modules.Identity.Controllers
 
                 var role = result.Role;
                 var token = GenerateToken(result.InternalUserId.Value, result.Email ?? resolvedEmail ?? request.Email, role);
-                SetAuthCookie(token);
-                return Ok(new AuthResponse(token, result.Email ?? resolvedEmail ?? request.Email, result.Status ?? "Success", role));
+                SetAuthCookie(InternalAuthCookieName, token);
+                return Ok(new
+                {
+                    Email = result.Email ?? resolvedEmail ?? request.Email,
+                    Status = result.Status ?? "Success",
+                    Role = role,
+                    InternalUserId = result.InternalUserId.Value
+                });
             }
             catch (Exception ex)
             {
@@ -210,6 +228,7 @@ namespace eProcurement.Modules.Identity.Controllers
             }
         }
 
+        [AllowAnonymous]
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] VendorRegistrationRequest request, CancellationToken ct)
         {
@@ -267,7 +286,7 @@ namespace eProcurement.Modules.Identity.Controllers
                 if (result is null) return Problem("Failed to register vendor.");
 
                 var token = GenerateToken(result.VendorId, result.Email, "vendor");
-                SetAuthCookie(token);
+                SetAuthCookie(VendorAuthCookieName, token);
                 return Ok(new AuthResponse(token, result.Email, "Success"));
             }
             catch (Exception ex)
@@ -277,22 +296,53 @@ namespace eProcurement.Modules.Identity.Controllers
             }
         }
 
-        private void SetAuthCookie(string token)
+        private void SetAuthCookie(string cookieName, string token)
         {
             var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
-                Secure = true, // Set to true in production
+                Secure = ShouldUseSecureCookies(),
                 SameSite = SameSiteMode.Strict,
+                Path = "/",
                 Expires = DateTime.UtcNow.AddHours(24)
             };
-            Response.Cookies.Append("vendorAuthToken", token, cookieOptions);
+            Response.Cookies.Append(cookieName, token, cookieOptions);
+        }
+
+        private void DeleteAuthCookie(string cookieName)
+        {
+            Response.Cookies.Delete(cookieName, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = ShouldUseSecureCookies(),
+                SameSite = SameSiteMode.Strict,
+                Path = "/"
+            });
+        }
+
+        private bool ShouldUseSecureCookies()
+        {
+            if (Request.IsHttps)
+            {
+                return true;
+            }
+
+            return string.Equals(
+                Request.Headers["X-Forwarded-Proto"].ToString(),
+                "https",
+                StringComparison.OrdinalIgnoreCase);
         }
 
 
+        [Authorize]
         [HttpPost("internal/register")]
         public async Task<IActionResult> InternalRegister([FromBody] InternalUserRegistrationRequest request, CancellationToken ct)
         {
+            if (!IsIdentityAdministrator())
+            {
+                return Forbid();
+            }
+
             Logger.LogInformation("Registering internal user {Email}", request.Email);
             var connectionString = GetConnectionString();
             if (string.IsNullOrWhiteSpace(connectionString))
@@ -345,9 +395,15 @@ namespace eProcurement.Modules.Identity.Controllers
             }
         }
 
+        [Authorize]
         [HttpPost("roles")]
         public async Task<IActionResult> CreateRole([FromBody] CreateRoleRequest request, CancellationToken ct)
         {
+            if (!IsIdentityAdministrator())
+            {
+                return Forbid();
+            }
+
             Logger.LogInformation("Creating role {RoleName}", request.RoleName);
             var connectionString = GetConnectionString();
             if (string.IsNullOrWhiteSpace(connectionString))
@@ -381,9 +437,15 @@ namespace eProcurement.Modules.Identity.Controllers
             }
         }
 
+        [Authorize]
         [HttpGet("roles")]
         public async Task<IActionResult> GetRoles(CancellationToken ct)
         {
+            if (!IsIdentityAdministrator())
+            {
+                return Forbid();
+            }
+
             var connectionString = GetConnectionString();
             if (string.IsNullOrWhiteSpace(connectionString))
             {
@@ -542,6 +604,7 @@ namespace eProcurement.Modules.Identity.Controllers
             return Ok(InternalModuleCatalog.GetModulesForRole(role, workflowActions));
         }
 
+        [Authorize]
         [HttpGet("internal/units")]
         public async Task<IActionResult> GetInternalUnits(CancellationToken ct)
         {
@@ -591,9 +654,15 @@ namespace eProcurement.Modules.Identity.Controllers
             }
         }
 
+        [Authorize]
         [HttpPut("internal/users/role")]
         public async Task<IActionResult> UpdateInternalUserRole([FromBody] UpdateInternalUserRoleRequest request, CancellationToken ct)
         {
+            if (!IsIdentityAdministrator())
+            {
+                return Forbid();
+            }
+
             Logger.LogInformation("Updating role for internal user {UserId} to {Role}", request.InternalUserId, request.Role);
             var connectionString = GetConnectionString();
             if (string.IsNullOrWhiteSpace(connectionString))
@@ -650,6 +719,32 @@ namespace eProcurement.Modules.Identity.Controllers
                 Logger.LogError(ex, "BCrypt verification error for {Email}", email);
                 return false;
             }
+        }
+
+        private static string? NormalizeRoleKey(string? role)
+        {
+            if (string.IsNullOrWhiteSpace(role))
+            {
+                return null;
+            }
+
+            var trimmed = role.Trim();
+            var withUnderscores = trimmed.Replace("-", "_").Replace(" ", "_");
+            var snakeCase = System.Text.RegularExpressions.Regex.Replace(withUnderscores, "([a-z0-9])([A-Z])", "$1_$2");
+            return snakeCase.ToLowerInvariant();
+        }
+
+        private bool IsIdentityAdministrator()
+        {
+            var role = User.FindFirstValue("role") ?? User.FindFirstValue(ClaimTypes.Role);
+            if (string.IsNullOrWhiteSpace(role))
+            {
+                return false;
+            }
+
+            var normalized = NormalizeRoleKey(role);
+            return string.Equals(normalized, "admin", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(normalized, "ict_admin", StringComparison.OrdinalIgnoreCase);
         }
 
         private async Task<string?> ResolveVerifiedInternalPasswordHashAsync(

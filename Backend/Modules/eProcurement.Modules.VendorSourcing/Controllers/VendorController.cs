@@ -32,6 +32,7 @@ namespace eProcurement.Modules.VendorSourcing.Controllers
 
         private string GetConnectionString() => _config.GetConnectionString("Primary") ?? string.Empty;
 
+        [AllowAnonymous]
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterVendorRequest request, CancellationToken ct)
         {
@@ -91,6 +92,7 @@ namespace eProcurement.Modules.VendorSourcing.Controllers
             }
         }
 
+        [AllowAnonymous]
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] VendorLoginRequest request, CancellationToken ct)
         {
@@ -229,6 +231,7 @@ namespace eProcurement.Modules.VendorSourcing.Controllers
             }
         }
 
+        [AllowAnonymous]
         [HttpGet("availability")]
         public async Task<IActionResult> CheckAvailability(
             [FromQuery] string? email,

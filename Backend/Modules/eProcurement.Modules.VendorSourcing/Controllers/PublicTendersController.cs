@@ -1,4 +1,5 @@
 using System.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 using NpgsqlTypes;
@@ -44,6 +45,7 @@ public class PublicTendersController : ControllerBase
 
     private string GetConnectionString() => _config.GetConnectionString("Primary") ?? string.Empty;
 
+    [AllowAnonymous]
     [HttpGet("open")]
     public async Task<IActionResult> GetOpenTenders(CancellationToken ct)
     {
@@ -80,6 +82,7 @@ public class PublicTendersController : ControllerBase
         }
     }
 
+    [AllowAnonymous]
     [HttpGet("{tenderId:guid}")]
     public async Task<IActionResult> GetTender(Guid tenderId, CancellationToken ct)
     {

@@ -47,6 +47,8 @@ coverage/
 artifacts/
 tmp/
 temp/
+.data-protection-keys/
+Backend/.data-protection-keys/
 
 scripts/
 

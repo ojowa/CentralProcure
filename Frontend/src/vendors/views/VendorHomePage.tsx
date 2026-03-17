@@ -10,8 +10,7 @@ const VendorHomePage: React.FC = () => {
   const quickActions = [
     { title: 'Open Tenders', description: 'Browse active procurement opportunities.', to: '/tenders' },
     { title: 'Vendor Login', description: 'Access vendor dashboard and submissions.', to: vendorLoginHref },
-    { title: 'Create Account', description: 'Register your organization for bidding.', to: '/register' },
-    { title: 'Admin', description: 'Internal access for procurement staff.', to: '/internal/login' }
+    { title: 'Create Account', description: 'Register your organization for bidding.', to: '/register' }
   ];
 
   const notices = [

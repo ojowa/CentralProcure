@@ -124,7 +124,7 @@ export interface InternalRegistrationRequestBackend {
 export interface InternalLoginResponse {
     Email: string;
     Status: string;
-    Token: string; // Assuming a token is returned on successful login
+    Token?: string;
     Role?: RoleKey;
     InternalUserId?: string;
     ErrorMessage?: string;

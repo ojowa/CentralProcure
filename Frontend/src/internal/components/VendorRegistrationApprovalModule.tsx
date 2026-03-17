@@ -367,6 +367,7 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
             </div>
 
             {isDetailLoading ? <div className="plan-loading">Loading vendor registration detail...</div> : null}
+            {error && selectedId ? <div className="portal-alert animate-shake" style={{ margin: '16px 0' }}>{error}</div> : null}
 
             {detail ? (
               <>
@@ -469,14 +470,14 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
                       />
                     </label>
                   </div>
-                  <div className="plan-actions">
+                  <div className="plan-actions" style={{ marginTop: '24px' }}>
                     <button type="button" className="plan-button plan-button--secondary" onClick={() => void handleDecision('Pending Approval')} disabled={!canReview || isSaving}>
                       {isSaving ? 'Saving...' : 'Mark Pending'}
                     </button>
                     <button type="button" className="plan-button" onClick={() => void handleDecision('Active')} disabled={!canReview || isSaving}>
                       {isSaving ? 'Saving...' : 'Approve Vendor'}
                     </button>
-                    <button type="button" className="plan-button plan-button--secondary" onClick={() => void handleDecision('Rejected')} disabled={!canReview || isSaving}>
+                    <button type="button" className="plan-button plan-button--danger" onClick={() => void handleDecision('Rejected')} disabled={!canReview || isSaving}>
                       {isSaving ? 'Saving...' : 'Reject Vendor'}
                     </button>
                   </div>

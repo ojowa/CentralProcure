@@ -3,6 +3,7 @@ import './globals.css';
 import './login.css';
 import './portal.css';
 import { metadataBase } from './seo';
+import { CsrfFetchBootstrap } from './CsrfFetchBootstrap';
 
 export const metadata: Metadata = {
   metadataBase,
@@ -17,7 +18,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body suppressHydrationWarning>{children}</body>
+      <body suppressHydrationWarning>
+        <CsrfFetchBootstrap />
+        {children}
+      </body>
     </html>
   );
 }
