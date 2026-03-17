@@ -25,10 +25,32 @@ export const SidebarNav = ({ modules, activeModuleId, onModuleChange }: SidebarP
   }, [modules, searchQuery]);
 
   const grouped = filteredModules.reduce<Record<string, InternalModule[]>>((accumulator, module) => {
-    accumulator[module.section] = accumulator[module.section] ?? [];
-    accumulator[module.section].push(module);
+    let sectionName = module.section;
+    if (sectionName === 'Governance & Approval' || sectionName === 'Procurement Planning') {
+      sectionName = 'Governance and Planning';
+    }
+    accumulator[sectionName] = accumulator[sectionName] ?? [];
+    accumulator[sectionName].push(module);
     return accumulator;
   }, {});
+
+  const sortedSections = useMemo(() => {
+    const entries = Object.entries(grouped);
+    return entries.sort(([a], [b]) => {
+      const getWeight = (name: string) => {
+        if (name === 'Governance and Planning') return 1000;
+        if (name === 'Account Management') return 900;
+        return 0;
+      };
+      const weightA = getWeight(a);
+      const weightB = getWeight(b);
+      
+      if (weightA !== weightB) {
+        return weightA - weightB;
+      }
+      return a.localeCompare(b);
+    });
+  }, [grouped]);
 
   return (
     <aside className="portal-sidebar">
@@ -52,7 +74,7 @@ export const SidebarNav = ({ modules, activeModuleId, onModuleChange }: SidebarP
           Dashboard
         </button>
       </section>
-      {Object.entries(grouped).map(([section, sectionModules]) => (
+      {sortedSections.map(([section, sectionModules]) => (
         <section key={section} className="portal-sidebar-section">
           <h3>{section}</h3>
           {sectionModules.map((module) => (
@@ -67,7 +89,7 @@ export const SidebarNav = ({ modules, activeModuleId, onModuleChange }: SidebarP
           ))}
         </section>
       ))}
-      {!Object.keys(grouped).length ? <div className="plan-empty">No modules match the current search.</div> : null}
+      {!sortedSections.length ? <div className="plan-empty">No modules match the current search.</div> : null}
     </aside>
   );
 };

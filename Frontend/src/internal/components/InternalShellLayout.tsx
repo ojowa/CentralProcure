@@ -11,6 +11,7 @@ import { ComplianceReportsWorkspace } from './ComplianceReportsWorkspace';
 import { PaymentTrackingModulePage } from './PaymentTrackingModulePage';
 import { PostAwardInspectionModulePage } from './PostAwardInspectionModulePage';
 import { BudgetOfficerWorkspacePage } from './BudgetOfficerWorkspacePage';
+import { WorkflowBlueprintPage } from './WorkflowBlueprintPage';
 import { CreateRequisitionPage } from './CreateRequisitionPage';
 import { RequisitionHistoryPage } from './RequisitionHistoryPage';
 import { RequisitionTrackingPage } from './RequisitionTrackingPage';
@@ -147,6 +148,7 @@ const moduleRenderers: Partial<Record<string, (props: InternalModuleRendererProp
   'contract-management': (props) => <ContractManagementModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
   'bpp-escalation': (props) => <BppEscalationModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
   'administrative-review': (props) => <AdministrativeReviewModulePage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} />,
+  'workflow-blueprint': (props) => <WorkflowBlueprintPage module={props.module} token={props.token} />,
   'annual-procurement-plan': (props) => <ProcurementPlanModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
   'budget-confirmation': (props) => <BudgetOfficerWorkspacePage module={props.module} token={props.token} role={props.role} />,
   'create-tender': (props) => <TenderManagementModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,

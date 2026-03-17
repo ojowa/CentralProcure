@@ -1804,3 +1804,234 @@
     animation: none;
   }
 }
+
+/* Modern UI Enhancements */
+.metric-card--glass {
+  background: rgba(255, 255, 255, 0.7) !important;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.metric-card--glass:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(11, 93, 59, 0.08) !important;
+}
+
+.metric-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.plan-code {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  background: var(--portal-background);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.8125rem;
+  color: var(--portal-forest);
+}
+
+.animate-fade-up {
+  animation: fade-up 0.5s ease-out forwards;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+/* Budget Control Center Redesign */
+.budget-workspace-redesign {
+  display: grid;
+  gap: 24px;
+}
+
+.budget-workspace__command-grid {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.budget-workspace__sidebar {
+  position: sticky;
+  top: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.budget-workspace__viewport {
+  min-width: 0;
+  display: grid;
+  gap: 24px;
+}
+
+.view-header {
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--portal-border);
+  padding-bottom: 12px;
+}
+
+.view-header h3 {
+  font-family: 'Fraunces', serif;
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+.view-header p {
+  font-size: 0.875rem;
+  color: var(--portal-slate);
+  margin: 4px 0 0;
+}
+
+.review-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 350px;
+  gap: 24px;
+  align-items: start;
+}
+
+.review-panel {
+  position: sticky;
+  top: 24px;
+  display: grid;
+  gap: 16px;
+}
+
+@media (max-width: 1200px) {
+  .budget-workspace__command-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .review-layout {
+    grid-template-columns: 1fr;
+  }
+  
+  .budget-workspace__sidebar {
+    position: relative;
+    top: 0;
+  }
+}
+
+
+/* Budget Control Center Redesign - Corrected Layouts */
+.budget-workspace__detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)) !important;
+  gap: 16px !important;
+}
+
+.budget-workspace__metric-list {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
+  gap: 16px !important;
+}
+
+.portal-module-card {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.portal-module-card table {
+  width: 100%;
+  display: table; /* Reset for proper table behavior */
+}
+
+.budget-workspace__queue-table,
+.portal-module-card .plan-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 12px;
+}
+
+/* Ensure review layout is more spacious */
+.review-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px !important;
+  gap: 24px !important;
+  align-items: start;
+}
+
+@media (max-width: 1200px) {
+  .review-layout {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+
+/* Active Review Terminal Improvements */
+.active-review-terminal {
+  display: grid;
+  grid-template-columns: 1fr 340px !important;
+  gap: 24px;
+  align-items: start;
+}
+
+.review-action-terminal {
+  position: sticky;
+  top: 24px;
+}
+
+.action-terminal-card {
+  padding: 24px !important;
+  border: 1px solid var(--portal-border) !important;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.06) !important;
+}
+
+.terminal-header {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.terminal-icon {
+  width: 48px;
+  height: 48px;
+  background: var(--portal-mist);
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-size: 1.5rem;
+}
+
+.terminal-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  background: rgba(11, 93, 59, 0.05);
+  padding: 16px;
+  border-radius: 12px;
+}
+
+.stat-item span {
+  display: block;
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  color: var(--portal-slate);
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
+}
+
+.stat-item strong {
+  display: block;
+  font-size: 0.875rem;
+}
+
+@media (max-width: 1400px) {
+  .active-review-terminal {
+    grid-template-columns: 1fr !important;
+  }
+}
+

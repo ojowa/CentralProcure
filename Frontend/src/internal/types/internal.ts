@@ -319,6 +319,13 @@ export interface BudgetSummaryResponse {
     Available: number;
 }
 
+export interface BudgetFilters {
+  fiscalYear: string;
+  department: string;
+  stage: string;
+  query: string;
+}
+
 export interface BudgetDashboardRiskItem {
     PlanId: string;
     PlanTitle: string;
