@@ -936,6 +936,8 @@ BEGIN
 END;
 $$;
 
+DROP FUNCTION IF EXISTS procurement_workflow.get_requisition_detail(UUID);
+
 CREATE OR REPLACE FUNCTION procurement_workflow.get_requisition_detail(
     p_requisition_id UUID
 )
