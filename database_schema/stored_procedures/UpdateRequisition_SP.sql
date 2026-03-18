@@ -249,7 +249,7 @@ BEGIN
 
     v_fiscal_year := COALESCE(EXTRACT(YEAR FROM v_required_by)::int, EXTRACT(YEAR FROM NOW())::int);
 
-    IF v_status IN ('Submitted', 'Under Review', 'Evaluation', 'Board Review', 'Approved') THEN
+    IF v_status IN ('Submitted', 'Under Review', 'Evaluation', 'Board Review', 'Approved') AND v_budget_code IS NOT NULL AND btrim(v_budget_code) <> '' THEN
         PERFORM procurement_workflow.reserve_budget_for_requisition(
             p_requisition_id,
             v_budget_code,
