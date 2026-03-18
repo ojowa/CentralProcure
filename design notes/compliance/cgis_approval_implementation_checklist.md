@@ -43,11 +43,11 @@ Goal:
 - define exactly how `CGIS Approval` fits the current role and workflow model
 
 Tasks:
-- [ ] confirm whether the current `AccountingOfficer` role remains the effective CGIS actor for now
-- [ ] decide whether `CGIS Approval` should appear as a new internal module id or as a relabel of an existing approval module
-- [ ] confirm which actions are valid in the CGIS stage: approve, reject, return, escalate
-- [ ] define the exact rejection and return workflow destinations
-- [ ] define whether mobile read-only or mobile approval is acceptable
+- [x] confirm whether the current `AccountingOfficer` role remains the effective CGIS actor for now
+- [x] decide whether `CGIS Approval` should appear as a new internal module id or as a relabel of an existing approval module
+- [x] confirm which actions are valid in the CGIS stage: approve, reject, return, escalate
+- [x] define the exact rejection and return workflow destinations
+- [x] define whether mobile read-only or mobile approval is acceptable
 
 Deliverable:
 - agreed module and policy contract for CGIS approval
@@ -61,11 +61,11 @@ Goal:
 - expose all data needed to render the queue and detail screens
 
 Tasks:
-- [ ] define queue query for records currently at `accounting_officer_review`
-- [ ] include threshold diagnostics in the queue response
-- [ ] define case detail DTO with executive brief, recommendation, compliance flags, documents, and audit summary
-- [ ] ensure the payload includes allowed actions and next-stage preview
-- [ ] ensure the payload uses business labels such as `CGIS Approval` instead of internal-only workflow naming
+- [x] define queue query for records currently at `accounting_officer_review`
+- [x] include threshold diagnostics in the queue response
+- [x] define case detail DTO with executive brief, recommendation, compliance flags, documents, and audit summary
+- [x] ensure the payload includes allowed actions and next-stage preview
+- [x] ensure the payload uses business labels such as `CGIS Approval` instead of internal-only workflow naming
 
 Deliverable:
 - queue and detail read endpoints for CGIS approval
@@ -79,15 +79,15 @@ Goal:
 - allow only valid CGIS decisions and block all invalid workflow actions
 
 Tasks:
-- [ ] add or confirm action names for CGIS stage decisions
-- [ ] implement action endpoint for approval
-- [ ] implement action endpoint for rejection
-- [ ] implement action endpoint for return for clarification
-- [ ] implement controlled escalation endpoint
-- [ ] enforce mandatory rationale on every decision
-- [ ] validate current workflow stage before any write
-- [ ] validate that the active threshold route really requires direct CGIS approval where applicable
-- [ ] persist audit-grade metadata for each decision
+- [x] add or confirm action names for CGIS stage decisions
+- [x] implement action endpoint for approval
+- [x] implement action endpoint for rejection
+- [x] implement action endpoint for return for clarification
+- [x] implement controlled escalation endpoint
+- [x] enforce mandatory rationale on every decision
+- [x] validate current workflow stage before any write
+- [x] validate that the active threshold route really requires direct CGIS approval where applicable
+- [x] persist audit-grade metadata for each decision
 
 Deliverable:
 - policy-enforced decision endpoints for CGIS approval
@@ -101,11 +101,11 @@ Goal:
 - register CGIS approval as a first-class internal module in the portal
 
 Tasks:
-- [ ] add module definition for `CGIS Approval` in the internal module catalog
-- [ ] assign allowed roles for current implementation
-- [ ] map the module to the correct action set
-- [ ] decide how it appears alongside board and BPP modules
-- [ ] ensure non-authorized roles do not see the module
+- [x] add module definition for `CGIS Approval` in the internal module catalog
+- [x] assign allowed roles for current implementation
+- [x] map the module to the correct action set
+- [x] decide how it appears alongside board and BPP modules
+- [x] ensure non-authorized roles do not see the module
 
 Deliverable:
 - internal module visibility and action issuance for CGIS users
@@ -119,12 +119,12 @@ Goal:
 - implement the CGIS queue page from the wireframe spec
 
 Tasks:
-- [ ] add queue route in the internal dashboard shell
-- [ ] render summary cards
-- [ ] render filter bar and search
-- [ ] render queue table with aging and risk indicators
-- [ ] support empty, loading, and error states
-- [ ] add navigation from queue row to case detail
+- [x] add queue route in the internal dashboard shell
+- [x] render summary cards
+- [x] render filter bar and search
+- [x] render queue table with aging and risk indicators
+- [x] support empty, loading, and error states
+- [x] add navigation from queue row to case detail
 
 Deliverable:
 - usable queue page for executive approval cases
@@ -138,14 +138,14 @@ Goal:
 - implement a decision-ready case detail screen
 
 Tasks:
-- [ ] render case header with route badge
-- [ ] render executive brief card
-- [ ] render `Why this case reached CGIS` block
-- [ ] render recommendation snapshot
-- [ ] render compliance and risk checklist
-- [ ] render supporting pack tabs or panels
-- [ ] render audit timeline
-- [ ] render sticky decision panel
+- [x] render case header with route badge
+- [x] render executive brief card
+- [x] render `Why this case reached CGIS` block
+- [x] render recommendation snapshot (Recommended Vendor card)
+- [x] render compliance and risk checklist (Document Pack)
+- [x] render supporting pack tabs or panels (CgisDocumentsPanel)
+- [ ] render audit timeline (History exists in DB but not yet explicitly in this view's detail DTO)
+- [x] render sticky decision panel
 
 Deliverable:
 - case detail page aligned to the executive review wireframe
@@ -159,11 +159,11 @@ Goal:
 - complete the approval interaction flow safely
 
 Tasks:
-- [ ] implement confirmation modal before final submission
-- [ ] require rationale text before submission
-- [ ] show next-stage preview before confirmation
-- [ ] implement success and failure handling
-- [ ] render a decision receipt page or success panel with audit reference
+- [x] implement confirmation modal before final submission
+- [x] require rationale text before submission
+- [x] show next-stage preview before confirmation
+- [x] implement success and failure handling
+- [ ] render a decision receipt page or success panel with audit reference (Handled by success message for now)
 
 Deliverable:
 - complete decision flow from review to persisted outcome
@@ -177,11 +177,11 @@ Goal:
 - make CGIS decisions visible to the correct downstream actors
 
 Tasks:
-- [ ] define notification targets for approval
-- [ ] define notification targets for rejection
-- [ ] define notification targets for return for clarification
-- [ ] define notification targets for escalation
-- [ ] ensure downstream modules reflect the new workflow state after decision
+- [x] define notification targets for approval
+- [x] define notification targets for rejection
+- [x] define notification targets for return for clarification
+- [x] define notification targets for escalation
+- [x] ensure downstream modules reflect the new workflow state after decision (Award auto-creation implemented)
 
 Deliverable:
 - downstream operational awareness after executive action
@@ -195,11 +195,11 @@ Goal:
 - ensure CGIS actions are defensible during review and investigation
 
 Tasks:
-- [ ] log actor, role, action, rationale, timestamp, and route diagnostics
-- [ ] include decision records in audit history endpoints
-- [ ] make the final decision visible in audit dashboards
-- [ ] expose failure diagnostics for invalid or blocked approval attempts
-- [ ] confirm that repeated submissions do not create inconsistent workflow movement
+- [x] log actor, role, action, rationale, timestamp, and route diagnostics
+- [x] include decision records in audit history endpoints
+- [x] make the final decision visible in audit dashboards
+- [x] expose failure diagnostics for invalid or blocked approval attempts
+- [x] confirm that repeated submissions do not create inconsistent workflow movement
 
 Deliverable:
 - audit-grade traceability for CGIS decisions
@@ -213,11 +213,11 @@ Goal:
 - ensure the workspace can be demonstrated and tested with realistic data
 
 Tasks:
-- [ ] add or confirm at least one seeded low-value case currently awaiting CGIS approval
-- [ ] add or confirm a case already approved by CGIS
-- [ ] add or confirm a case returned for clarification
-- [ ] ensure queue and detail views include complete supporting pack data for at least one scenario
-- [ ] ensure the seeded decision path matches threshold rules
+- [x] add or confirm at least one seeded low-value case currently awaiting CGIS approval
+- [x] add or confirm a case already approved by CGIS
+- [x] add or confirm a case returned for clarification
+- [x] ensure queue and detail views include complete supporting pack data for at least one scenario
+- [x] ensure the seeded decision path matches threshold rules
 
 Deliverable:
 - repeatable demo and QA data for the CGIS module
@@ -231,15 +231,15 @@ Goal:
 - prove that the CGIS workspace behaves correctly across policy, UI, and workflow transition layers
 
 Tasks:
-- [ ] verify only low-value cases route into the CGIS queue
-- [ ] verify board-routed and BPP-routed cases do not appear in the CGIS queue
-- [ ] verify approval advances to `award_and_publication`
-- [ ] verify rejection follows the configured rejection path
-- [ ] verify return for clarification moves to the correct operational stage
-- [ ] verify escalation is blocked unless policy allows it
-- [ ] verify rationale is mandatory for every action
-- [ ] verify unauthorized users cannot call the action endpoints directly
-- [ ] verify audit history shows the exact CGIS decision event
+- [x] verify only low-value cases route into the CGIS queue
+- [x] verify board-routed and BPP-routed cases do not appear in the CGIS queue
+- [x] verify approval advances to `award_and_publication`
+- [x] verify rejection follows the configured rejection path
+- [x] verify return for clarification moves to the correct operational stage
+- [x] verify escalation is blocked unless policy allows it
+- [x] verify rationale is mandatory for every action
+- [x] verify unauthorized users cannot call the action endpoints directly
+- [x] verify audit history shows the exact CGIS decision event (PowerShell verification script provided)
 
 Deliverable:
 - repeatable test checklist and verification evidence

@@ -51,6 +51,8 @@ const resolveModuleUrl = (moduleId: string): string => {
     case 'high-value-tenders':
     case 'final-approval':
       return `${serviceBaseUrls.workflow}/api/approvals`;
+    case 'cgis-approval':
+      return `${serviceBaseUrls.workflow}/api/workflow-runtime/cgis-queue`;
     case 'bpp-escalation':
       return `${serviceBaseUrls.workflow}/api/bpp-no-objections`;
     case 'administrative-review':
@@ -78,6 +80,8 @@ const resolveModuleUrl = (moduleId: string): string => {
     // Identity Service
     case 'user-role-management':
       return `${serviceBaseUrls.identity}/api/Auth/roles`;
+    case 'procurement-planning-committee':
+      return `${serviceBaseUrls.workflow}/api/planning-committee`;
 
     default:
       return `${serviceBaseUrls.governance}/api/notifications`;
@@ -86,8 +90,13 @@ const resolveModuleUrl = (moduleId: string): string => {
 
 export const fetchModuleData = async (moduleId: string, token: string): Promise<unknown> => {
   const url = resolveModuleUrl(moduleId);
+  
+  // Specific override for planning committee list to fetch plans in the right stage
+  const finalUrl = moduleId === 'procurement-planning-committee' 
+    ? `${serviceBaseUrls.workflow}/api/procurement-plans?status=Submitted`
+    : url;
 
-  const response = await fetch(url, {
+  const response = await fetch(finalUrl, {
     headers: {
       Authorization: `Bearer ${token}`
     },
@@ -124,7 +133,10 @@ export const fetchPlanDetails = async (planId: string, token: string) => {
     headers: { Authorization: `Bearer ${token}` },
     credentials: 'include'
   });
-  if (!response.ok) throw new Error('Failed to fetch plan details');
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || 'Failed to fetch plan details');
+  }
   return response.json();
 };
 
@@ -457,6 +469,89 @@ export const updateBidOpeningSession = async (sessionId: string, data: any, toke
   if (!response.ok) {
     const text = await response.text();
     throw new Error(text || 'Failed to update session');
+  }
+  return response.json();
+};
+
+export const fetchMemberReviews = async (planId: string, token: string) => {
+  const url = `${serviceBaseUrls.workflow}/api/planning-committee/plans/${planId}/reviews`;
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+    credentials: 'include'
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || 'Failed to fetch member reviews');
+  }
+  return response.json();
+};
+
+export const submitMemberReview = async (data: any, token: string) => {
+  const url = `${serviceBaseUrls.workflow}/api/planning-committee/submit-member-review`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      ...buildCsrfHeaders()
+    },
+    credentials: 'include',
+    body: JSON.stringify(data)
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || 'Failed to submit member review');
+  }
+  return response.json();
+};
+
+export const submitCommitteeDecision = async (data: any, token: string) => {
+  const url = `${serviceBaseUrls.workflow}/api/planning-committee/submit-committee-decision`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      ...buildCsrfHeaders()
+    },
+    credentials: 'include',
+    body: JSON.stringify(data)
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || 'Failed to submit committee decision');
+  }
+  return response.json();
+};
+
+export const fetchCgisDocuments = async (entityType: string, entityId: string, token: string) => {
+  const url = `${serviceBaseUrls.workflow}/api/cgis-approval/documents/${entityType}/${entityId}`;
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+    credentials: 'include'
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || 'Failed to fetch case documents.');
+  }
+  return response.json();
+};
+
+export const applyCgisAction = async (action: 'approve' | 'reject' | 'return' | 'escalate', data: any, token: string) => {
+  const url = `${serviceBaseUrls.workflow}/api/cgis-approval/${action}`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      ...buildCsrfHeaders()
+    },
+    credentials: 'include',
+    body: JSON.stringify(data)
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || `Failed to ${action} case.`);
   }
   return response.json();
 };

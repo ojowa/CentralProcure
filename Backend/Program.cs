@@ -7,6 +7,7 @@ using System.Text;
 using eProcurement.Shared.Workflow;
 using eProcurement.Shared.Configurations;
 using eProcurement.Shared.Middleware;
+using eProcurement.Shared.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
@@ -76,6 +77,8 @@ builder.Services.AddHealthChecks();
 builder.Services.AddScoped<WorkflowPolicyGuard>();
 builder.Services.AddScoped<WorkflowRuntimeTracker>();
 builder.Services.AddScoped<WorkflowActionGrantService>();
+builder.Services.Configure<InternalSessionOptions>(builder.Configuration.GetSection(InternalSessionOptions.SectionName));
+builder.Services.AddSingleton<InternalSessionActivityProtector>();
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
@@ -168,6 +171,7 @@ app.UseMiddleware<CsrfMiddleware>();
 app.UseHttpsRedirection();
 app.UseCors(FrontendCorsPolicy);
 app.UseAuthentication();
+app.UseMiddleware<InternalSessionIdleTimeoutMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();
@@ -241,7 +245,9 @@ static bool UsesVendorCookie(PathString path)
     return path.StartsWithSegments("/api/Auth/me", StringComparison.OrdinalIgnoreCase)
         || path.StartsWithSegments("/api/Auth/logout", StringComparison.OrdinalIgnoreCase)
         || path.StartsWithSegments("/api/Vendor", StringComparison.OrdinalIgnoreCase)
+        || path.StartsWithSegments("/api/vendors", StringComparison.OrdinalIgnoreCase)
         || path.StartsWithSegments("/api/Tender", StringComparison.OrdinalIgnoreCase)
+        || path.StartsWithSegments("/api/tenders", StringComparison.OrdinalIgnoreCase)
         || path.StartsWithSegments("/api/bids", StringComparison.OrdinalIgnoreCase);
 }
 

@@ -40,8 +40,8 @@ export const roles: RoleDefinition[] = [
   },
   {
     key: 'procurement_officer',
-    name: 'Procurement Officer',
-    description: 'Reviews method, market approach, and procedural compliance.'
+    name: 'Comptroller Procurement',
+    description: 'Heads the procurement unit and reviews method, market approach, and procedural compliance.'
   },
   {
     key: 'financial_unit_officer',
@@ -56,7 +56,7 @@ export const roles: RoleDefinition[] = [
   {
     key: 'tenders_board',
     name: 'Tenders Board',
-    description: 'DCG-led NIS Tenders Board that reviews and decides board-routed submissions.'
+    description: 'NIS Tenders Board chaired by CGIS that reviews and decides board-routed submissions.'
   },
   {
     key: 'accounting_officer',
@@ -192,10 +192,20 @@ const evaluationModules: InternalModule[] = [
 
 const approvalModules: InternalModule[] = [
   {
+    id: 'cgis-approval',
+    title: 'CGIS Approval',
+    section: 'Governance & Approval',
+    description: 'Executive workspace for low-value procurement approvals and statutory executive decisions.',
+    microservice: 'Procurement Workflow Service',
+    controlPurpose: 'Direct executive authorization for low-value routes.',
+    actions: ['cgis.approve', 'cgis.reject', 'cgis.return', 'cgis.escalate'],
+    allowedRoles: ['accounting_officer', 'admin']
+  },
+  {
     id: 'tenders-board-approval',
     title: 'Tenders Board Approvals',
     section: 'Governance & Approval',
-    description: 'Run CGIS direct approvals, DCG-led board decisions, and escalation-ready award reviews.',
+    description: 'Run CGIS direct approvals, board decisions chaired by CGIS, and escalation-ready award reviews.',
     microservice: 'Procurement Workflow Service',
     controlPurpose: 'Statutory oversight and final spending authorization.',
     actions: ['approval.requisition', 'approval.award'],
@@ -266,7 +276,7 @@ export const roleModuleFallbacks: Partial<Record<RoleKey, InternalModule[]>> = {
   bpp_liaison: [...oversightModules, ...sharedModules],
   legal_reviewer: [...oversightModules, ...sharedModules],
   complaints_review_officer: [...oversightModules, ...sharedModules],
-  admin: [...sharedModules],
+  admin: [...requisitionDepartmentModules, ...procurementPlanningModules, ...financialControlModules, ...tenderManagementModules, ...evaluationModules, ...approvalModules, ...postAwardModules, ...oversightModules, ...sharedModules],
   ict_admin: [...tenderManagementModules, ...sharedModules]
 };
 
@@ -303,9 +313,9 @@ export const requisitionSteps: Array<{
   },
   {
     key: 'procurement_officer',
-    title: 'Procurement Unit',
+    title: 'Comptroller Procurement',
     status: 'Pending Review',
-    detail: 'Validate specifications, method, and threshold routing.'
+    detail: 'Head the procurement unit review of specifications, method, and threshold routing.'
   },
   {
     key: 'evaluation_committee',
@@ -317,7 +327,7 @@ export const requisitionSteps: Array<{
     key: 'tenders_board',
     title: 'Tenders Board',
     status: 'Awaiting',
-    detail: 'DCG-led NIS Tenders Board reviews and decides board-routed recommendations.'
+    detail: 'NIS Tenders Board chaired by CGIS reviews and decides board-routed recommendations.'
   },
   {
     key: 'accounting_officer',
@@ -359,7 +369,7 @@ export const requisitionRoleGuidance: Partial<
     ]
   },
   procurement_officer: {
-    focus: 'Check completeness, routing basis, and procurement method readiness.',
+    focus: 'Lead the procurement unit review of completeness, routing basis, and procurement method readiness.',
     checks: [
       'Validate specifications and scope clarity.',
       'Confirm threshold route and approval path.',
@@ -375,7 +385,7 @@ export const requisitionRoleGuidance: Partial<
     ]
   },
   tenders_board: {
-    focus: 'Exercise DCG-led board oversight on cases that fall within NIS Tenders Board authority.',
+    focus: 'Exercise board oversight under the NIS Tenders Board chaired by CGIS.',
     checks: [
       'Check completeness of supporting documentation.',
       'Confirm that the recommendation basis is defensible.',
@@ -420,7 +430,7 @@ export const thresholdBands: ThresholdBand[] = [
     approvalLevel: 'NIS Tenders Board',
     timeline: '45 - 60 days',
     requiresBpp: false,
-    escalation: 'Board-routed cases are decided by the DCG heads of directorates sitting as the NIS Tenders Board.',
+    escalation: 'Board-routed cases are decided by the NIS Tenders Board chaired by CGIS.',
     steps: ['Requisition Review', 'Evaluation', 'Tenders Board Review', 'Award Publication']
   },
   {

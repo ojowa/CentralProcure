@@ -41,4 +41,17 @@ public class WorkflowRuntimeController : ControllerBase
         var history = await _workflowRuntimeTracker.GetHistoryAsync(connectionString, entityType, entityId, ct);
         return Ok(history);
     }
+
+    [HttpGet("cgis-queue")]
+    public async Task<IActionResult> GetCgisQueue(CancellationToken ct)
+    {
+        var connectionString = _config.GetConnectionString("Primary");
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            return Problem("Connection string 'Primary' is not configured.", statusCode: 500);
+        }
+
+        var queue = await _workflowRuntimeTracker.GetCgisQueueAsync(connectionString, ct);
+        return Ok(queue);
+    }
 }

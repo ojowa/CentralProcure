@@ -149,6 +149,43 @@ public class ProcurementPlansController : ControllerBase
         }
     }
 
+    [HttpGet("{planId:guid}")]
+    public async Task<IActionResult> GetPlan(Guid planId, CancellationToken ct)
+    {
+        var connectionString = GetConnectionString();
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            return Problem("Connection string 'Primary' is not configured.", statusCode: 500);
+        }
+
+        try
+        {
+            await using var conn = new NpgsqlConnection(connectionString);
+            await conn.OpenAsync(ct);
+            await using var tx = await conn.BeginTransactionAsync(ct);
+
+            var plan = await GetPlanDetailAsync(conn, tx, planId, ct);
+            if (plan is null)
+            {
+                return NotFound();
+            }
+
+            var items = await GetPlanItemsAsync(conn, tx, planId, ct);
+            await tx.CommitAsync(ct);
+
+            return Ok(new
+            {
+                Plan = plan,
+                Items = items
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving procurement plan {PlanId}.", planId);
+            return Problem("Internal server error retrieving procurement plan.");
+        }
+    }
+
     [HttpPost]
     public async Task<IActionResult> CreatePlan([FromBody] ProcurementPlanCreateRequest request, CancellationToken ct)
     {
@@ -364,6 +401,22 @@ public class ProcurementPlansController : ControllerBase
             r.GetDateTime(r.GetOrdinal("updated_at")));
     }
 
+    private static ProcurementPlanItemDetail MapPlanItemDetail(NpgsqlDataReader r)
+    {
+        return new ProcurementPlanItemDetail(
+            r.GetGuid(r.GetOrdinal("plan_item_id")),
+            r.GetGuid(r.GetOrdinal("plan_id")),
+            GetNullableString(r, "item_code"),
+            r.GetString(r.GetOrdinal("description")),
+            r.GetString(r.GetOrdinal("budget_code")),
+            GetNullableString(r, "procurement_type"),
+            r.GetFieldValue<decimal>(r.GetOrdinal("estimated_amount")),
+            r.GetString(r.GetOrdinal("status")),
+            GetNullableString(r, "notes"),
+            r.GetDateTime(r.GetOrdinal("created_at")),
+            r.GetDateTime(r.GetOrdinal("updated_at")));
+    }
+
     private static string? GetNullableString(NpgsqlDataReader r, string n)
     {
         var ordinal = r.GetOrdinal(n);
@@ -392,6 +445,61 @@ public class ProcurementPlansController : ControllerBase
 
         var result = await cmd.ExecuteScalarAsync(ct);
         return result is null ? 0 : Convert.ToInt64(result);
+    }
+
+    private static async Task<ProcurementPlanDetail?> GetPlanDetailAsync(
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        Guid planId,
+        CancellationToken ct)
+    {
+        const string sql =
+            """
+            SELECT
+                p.plan_id,
+                p.plan_title,
+                p.department,
+                p.fiscal_year,
+                p.status,
+                p.total_budget,
+                p.notes,
+                p.submitted_at,
+                p.approved_at,
+                p.created_at,
+                p.updated_at
+            FROM procurement_workflow.procurement_plans p
+            WHERE p.plan_id = @p_plan_id;
+            """;
+
+        await using var cmd = new NpgsqlCommand(sql, conn, tx);
+        cmd.Parameters.AddWithValue("p_plan_id", NpgsqlDbType.Uuid, planId);
+        await using var reader = await cmd.ExecuteReaderAsync(ct);
+        if (!await reader.ReadAsync(ct))
+        {
+            return null;
+        }
+
+        return MapPlanDetail(reader);
+    }
+
+    private static async Task<List<ProcurementPlanItemDetail>> GetPlanItemsAsync(
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        Guid planId,
+        CancellationToken ct)
+    {
+        await using var cmd = new NpgsqlCommand("procurement_workflow.get_procurement_plan_items_sp", conn, tx)
+        {
+            CommandType = CommandType.StoredProcedure
+        };
+
+        cmd.Parameters.AddWithValue("p_plan_id", NpgsqlDbType.Uuid, planId);
+        cmd.Parameters.Add(new NpgsqlParameter("p_result", NpgsqlDbType.Refcursor)
+        {
+            Direction = ParameterDirection.Output
+        });
+
+        return await ExecuteRefcursorAsync(cmd, MapPlanItemDetail, ct);
     }
 
     private static bool IsStatusValid(string? status, out string? normalizedStatus)

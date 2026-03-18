@@ -62,7 +62,7 @@ export const TendersBoardApprovalModule = ({ module, token, role, initialData }:
         ActionType: 'RecommendAward',
         TenderId: report.TenderId,
         ReportCode: report.ReportCode,
-        Justification: 'Approved by Tenders Board.',
+        Justification: 'Approved by the NIS Tenders Board chaired by CGIS.',
         Recommendation: 'Qualified'
       }, token);
       loadData();

@@ -25,7 +25,7 @@ internal static class WorkflowBlueprintCatalog
         new("solicitation", "procurement_execution", "Solicitation", "Publish advert, invitation, EOI, or RFP in the lawful format.", 8, false, false, false, "PPA 2007 s.19, s.25, s.44-s.48", ["procurement_officer"], ["solicitation.publish"]),
         new("bid_opening", "procurement_execution", "Bid Opening", "Record public opening, attendance, and bid totals.", 9, false, false, false, "PPA 2007 s.30", ["procurement_officer", "evaluation_committee"], ["bid_opening.record"]),
         new("evaluation", "procurement_execution", "Evaluation", "Evaluate only against the published criteria and issue recommendation.", 10, false, false, false, "PPA 2007 s.31-s.33, s.49-s.52", ["technical_evaluator", "financial_evaluator", "evaluation_committee"], ["evaluation.score", "evaluation.report"]),
-        new("tenders_board_review", "procurement_execution", "Tenders Board Review", "NIS Tenders Board review led by DCG heads of directorates, with the board secretary maintaining the decision record.", 11, true, false, false, "PPA 2007 s.17, s.19, s.22", ["tenders_board", "tenders_board_secretary"], ["approval.review", "approval.decide"]),
+        new("tenders_board_review", "procurement_execution", "Tenders Board Review", "NIS Tenders Board review chaired by CGIS, with the board secretary maintaining the decision record.", 11, true, false, false, "PPA 2007 s.17, s.19, s.22", ["tenders_board", "tenders_board_secretary"], ["approval.review", "approval.decide"]),
         new("accounting_officer_review", "procurement_execution", "CGIS Approval", "CGIS exercises the direct low-value approval authority before award publication.", 12, true, false, false, "PPA 2007 s.16, s.20", ["accounting_officer"], ["accounting_officer.decide"]),
         new("bpp_no_objection", "procurement_execution", "BPP No Objection", "Submit and track the prior-review no-objection process when required.", 13, true, false, false, "PPA 2007 s.16, s.19", ["bpp_liaison", "bpp_reviewer"], ["bpp.submit", "bpp.review"]),
         new("award_and_publication", "post_award", "Award and Publication", "Notify outcome, debrief on request, and publish award.", 14, false, false, false, "PPA 2007 s.19, s.33", ["procurement_officer", "procurement_manager"], ["award.publish"]),
@@ -66,19 +66,19 @@ internal static class WorkflowBlueprintCatalog
         new("department_head", "Department Head", "department_need_capture", "Endorse departmental need and timing.", "Department submission is accountable."),
         new("planning_statistics_officer", "Planning, Research and Statistics", "planning_committee_review", "Validate aggregation, sequencing, and annual planning assumptions.", "Planning package is coherent."),
         new("financial_unit_officer", "Budget Officer", "budget_confirmation", "Confirm appropriation, releases, and affordability.", "Only funded APP entries progress."),
-        new("procurement_officer", "Procurement Officer", "procurement_initiation", "Open a procurement package from an approved APP line.", "Execution stays tied to APP control."),
+        new("procurement_officer", "Comptroller Procurement", "procurement_initiation", "Open a procurement package from an approved APP line as head of the procurement unit.", "Execution stays tied to APP control."),
         new("procurement_manager", "Procurement Manager", "threshold_resolution", "Validate whether the case falls to CGIS, the NIS Tenders Board, or BPP prior review.", "Approval path and external review trigger are explicit."),
         new("legal_reviewer", "Legal Reviewer", "method_validation", "Validate lawful procurement method and exceptions.", "Method choice is compliant."),
-        new("procurement_officer", "Procurement Officer", "solicitation", "Publish advert or invitation using the required route.", "Competition is opened lawfully."),
+        new("procurement_officer", "Comptroller Procurement", "solicitation", "Publish advert or invitation using the required route.", "Competition is opened lawfully."),
         new("technical_evaluator", "Technical Evaluator", "evaluation", "Perform technical scoring.", "Technical responsiveness is assessed."),
         new("financial_evaluator", "Financial Evaluator", "evaluation", "Perform arithmetic and financial review.", "Commercial comparison is accurate."),
         new("evaluation_committee", "Evaluation Committee", "evaluation", "Issue consolidated recommendation.", "Approval pack is ready."),
-        new("tenders_board_secretary", "Tenders Board Secretary", "tenders_board_review", "Prepare board papers and record the decision log for the DCG-led NIS Tenders Board.", "Board traceability is complete."),
-        new("tenders_board", "NIS Tenders Board", "tenders_board_review", "Approve, reject, or endorse recommendation for BPP prior review.", "Board decision is recorded with governance rationale."),
+        new("tenders_board_secretary", "Tenders Board Secretary", "tenders_board_review", "Prepare board papers and record the decision log for the NIS Tenders Board chaired by CGIS.", "Board traceability is complete."),
+        new("tenders_board", "NIS Tenders Board", "tenders_board_review", "Approve, reject, or endorse recommendation for BPP prior review under the chairmanship of CGIS.", "Board decision is recorded with governance rationale."),
         new("accounting_officer", "CGIS", "accounting_officer_review", "Exercise direct low-value approval authority.", "CGIS decision is recorded before award publication."),
         new("bpp_liaison", "BPP Liaison", "bpp_no_objection", "Submit prior-review pack to BPP.", "Regulatory submission is complete."),
         new("bpp_reviewer", "BPP Reviewer", "bpp_no_objection", "Record BPP outcome and queries.", "No-objection status is traceable."),
-        new("procurement_officer", "Procurement Officer", "award_and_publication", "Issue award notice and publication.", "Award is legally communicated."),
+        new("procurement_officer", "Comptroller Procurement", "award_and_publication", "Issue award notice and publication.", "Award is legally communicated."),
         new("contract_manager", "Contract Manager", "contract_execution", "Track performance security, milestones, and variations.", "Contract is controlled post-award."),
         new("inspection_officer", "Inspection Officer", "inspection_and_payment", "Record inspection and acceptance.", "Payment readiness is evidence-backed."),
         new("payment_officer", "Payment Officer", "inspection_and_payment", "Track payment path after acceptance.", "Disbursement stays controlled."),
@@ -136,8 +136,8 @@ internal static class WorkflowBlueprintCatalog
         return
         [
             new("Goods/Works/Services", 0m, 50_000_000m, "CGIS Direct Approval", "CGIS_DIRECT_APPROVAL", "CGIS Direct Approval", true, false, false, null, null, "Fallback band when live threshold records are unavailable."),
-            new("Goods/Works/Services", 50_000_000m, 100_000_000m, "NIS Tenders Board Review", "NIS_TENDERS_BOARD", "NIS Tenders Board (DCG Heads of Directorates)", false, true, false, null, "NIS Tenders Board", "Board route applies within entity authority."),
-            new("Goods/Works/Services", 100_000_000m, null, "NIS Tenders Board + BPP No Objection", "BPP_PRIOR_REVIEW", "NIS Tenders Board + BPP No Objection", false, true, true, null, "NIS Tenders Board", "BPP prior review applies after board endorsement.")
+            new("Goods/Works/Services", 50_000_000m, 100_000_000m, "NIS Tenders Board Review", "NIS_TENDERS_BOARD", "NIS Tenders Board (Chair: CGIS)", false, true, false, null, "NIS Tenders Board", "Board route applies within entity authority under the chairmanship of CGIS."),
+            new("Goods/Works/Services", 100_000_000m, null, "NIS Tenders Board + BPP No Objection", "BPP_PRIOR_REVIEW", "NIS Tenders Board + BPP No Objection", false, true, true, null, "NIS Tenders Board", "BPP prior review applies after NIS Tenders Board endorsement chaired by CGIS.")
         ];
     }
 }
