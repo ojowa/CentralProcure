@@ -111,10 +111,11 @@ export const fetchAuditHistory = async (
     limit?: number;
   }
 ): Promise<AuditHistoryItem[]> => {
+  const safeLimit = Math.min(Math.max(filters?.limit ?? 250, 1), 100);
   const result = await fetchAuditHistoryPage(token, {
     ...filters,
     page: 1,
-    pageSize: filters?.limit ?? 250
+    pageSize: safeLimit
   });
 
   return result.Items;

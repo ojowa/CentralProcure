@@ -217,33 +217,43 @@ ORDER BY
         {
             await using var conn = new NpgsqlConnection(connectionString);
             await conn.OpenAsync(ct);
+            await using var tx = await conn.BeginTransactionAsync(ct);
+            try
+            {
+                await using var cmd = new NpgsqlCommand("CALL post_award.record_payment_sp(@p_contract_code, @p_amount, @p_notes, @p_recorded_by, NULL, NULL)", conn, tx);
+                cmd.Parameters.AddWithValue("p_contract_code", NpgsqlDbType.Varchar, request.ContractCode);
+                cmd.Parameters.AddWithValue("p_amount", NpgsqlDbType.Numeric, request.Amount);
+                cmd.Parameters.AddWithValue("p_notes", NpgsqlDbType.Text, (object?)request.Notes ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("p_recorded_by", NpgsqlDbType.Varchar, User.Identity?.Name ?? "system");
 
-            await using var cmd = new NpgsqlCommand("CALL post_award.record_payment_sp(@p_contract_code, @p_amount, @p_notes, @p_recorded_by, NULL, NULL)", conn);
-            cmd.Parameters.AddWithValue("p_contract_code", NpgsqlDbType.Varchar, request.ContractCode);
-            cmd.Parameters.AddWithValue("p_amount", NpgsqlDbType.Numeric, request.Amount);
-            cmd.Parameters.AddWithValue("p_notes", NpgsqlDbType.Text, (object?)request.Notes ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("p_recorded_by", NpgsqlDbType.Varchar, User.Identity?.Name ?? "system");
+                var pPaymentId = new NpgsqlParameter("p_payment_id", NpgsqlDbType.Uuid) { Direction = ParameterDirection.Output };
+                var pPaymentRef = new NpgsqlParameter("p_payment_reference", NpgsqlDbType.Varchar, 80) { Direction = ParameterDirection.Output };
+                cmd.Parameters.Add(pPaymentId);
+                cmd.Parameters.Add(pPaymentRef);
 
-            var pPaymentId = new NpgsqlParameter("p_payment_id", NpgsqlDbType.Uuid) { Direction = ParameterDirection.Output };
-            var pPaymentRef = new NpgsqlParameter("p_payment_reference", NpgsqlDbType.Varchar, 80) { Direction = ParameterDirection.Output };
-            cmd.Parameters.Add(pPaymentId);
-            cmd.Parameters.Add(pPaymentRef);
+                await cmd.ExecuteNonQueryAsync(ct);
 
-            await cmd.ExecuteNonQueryAsync(ct);
+                var paymentId = (Guid)pPaymentId.Value!;
+                var paymentRef = (string)pPaymentRef.Value!;
 
-            var paymentId = (Guid)pPaymentId.Value!;
-            var paymentRef = (string)pPaymentRef.Value!;
+                // Sync workflow runtime
+                await SyncWorkflowAfterPaymentAsync(conn, tx, request.ContractCode, paymentRef, ct);
 
-            // Sync workflow runtime
-            await SyncWorkflowAfterPaymentAsync(conn, request.ContractCode, paymentRef, ct);
+                await tx.CommitAsync(ct);
 
-            return Ok(new PaymentRecordResponse(
-                paymentId,
-                paymentRef,
-                request.ContractCode,
-                request.Amount,
-                "Paid",
-                DateTime.UtcNow));
+                return Ok(new PaymentRecordResponse(
+                    paymentId,
+                    paymentRef,
+                    request.ContractCode,
+                    request.Amount,
+                    "Paid",
+                    DateTime.UtcNow));
+            }
+            catch
+            {
+                await tx.RollbackAsync(ct);
+                throw;
+            }
         }
         catch (PostgresException ex)
         {
@@ -257,14 +267,14 @@ ORDER BY
         }
     }
 
-    private async Task SyncWorkflowAfterPaymentAsync(NpgsqlConnection conn, string contractCode, string paymentRef, CancellationToken ct)
+    private async Task SyncWorkflowAfterPaymentAsync(NpgsqlConnection conn, NpgsqlTransaction tx, string contractCode, string paymentRef, CancellationToken ct)
     {
         const string sql = @"
 SELECT contract_id, tender_title, contract_value 
 FROM post_award.contracts 
 WHERE contract_code = @p_contract_code;";
 
-        await using var cmd = new NpgsqlCommand(sql, conn);
+        await using var cmd = new NpgsqlCommand(sql, conn, tx);
         cmd.Parameters.AddWithValue("p_contract_code", contractCode);
         await using var reader = await cmd.ExecuteReaderAsync(ct);
         if (await reader.ReadAsync(ct))
@@ -276,7 +286,7 @@ WHERE contract_code = @p_contract_code;";
 
             await _workflowRuntimeTracker.SyncAsync(
                 conn,
-                null as NpgsqlTransaction,
+                tx,
                 new WorkflowRuntimeSyncRequest(
                     "contract",
                     contractId,

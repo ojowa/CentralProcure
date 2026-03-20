@@ -1,4 +1,5 @@
 using System.Data;
+using System.Security.Claims;
 using eProcurement.Modules.VendorSourcing.DTOs;
 using eProcurement.Shared.Workflow;
 using Npgsql;
@@ -92,6 +93,8 @@ public partial class BidOpeningController
         string reason,
         CancellationToken ct)
     {
+        var actor = ResolveActor();
+
         await _workflowRuntimeTracker.SyncAsync(
             conn,
             tx,
@@ -107,7 +110,32 @@ public partial class BidOpeningController
                 null,
                 null,
                 reason,
-                null),
+                actor),
+            ct);
+
+        var tenderWorkflow = await GetTenderWorkflowInstanceAsync(conn, tx, session.TenderId, ct);
+        if (tenderWorkflow is null)
+        {
+            return;
+        }
+
+        await _workflowRuntimeTracker.SyncAsync(
+            conn,
+            tx,
+            new WorkflowRuntimeSyncRequest(
+                tenderWorkflow.EntityType,
+                tenderWorkflow.EntityId,
+                "bid_opening",
+                session.Status,
+                tenderWorkflow.RecordTitle,
+                tenderWorkflow.ParentEntityType,
+                tenderWorkflow.ParentEntityId,
+                tenderWorkflow.Amount,
+                tenderWorkflow.ProcurementType,
+                tenderWorkflow.ThresholdId,
+                reason,
+                actor,
+                "bid_opening_session"),
             ct);
     }
 
@@ -235,4 +263,60 @@ public partial class BidOpeningController
 
         return results.FirstOrDefault();
     }
+
+    private async Task<TenderWorkflowInstanceState?> GetTenderWorkflowInstanceAsync(
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        Guid tenderId,
+        CancellationToken ct)
+    {
+        const string sql = @"
+SELECT
+    entity_type,
+    entity_id,
+    record_title,
+    parent_entity_type,
+    parent_entity_id,
+    amount,
+    procurement_type,
+    threshold_id
+FROM procurement_workflow.workflow_instances
+WHERE entity_type = 'tender'
+  AND entity_id = @p_tender_id
+FOR UPDATE;";
+
+        await using var cmd = new NpgsqlCommand(sql, conn, tx);
+        cmd.Parameters.AddWithValue("p_tender_id", NpgsqlDbType.Uuid, tenderId);
+
+        await using var reader = await cmd.ExecuteReaderAsync(ct);
+        if (!await reader.ReadAsync(ct))
+        {
+            return null;
+        }
+
+        return new TenderWorkflowInstanceState(
+            reader.GetString(reader.GetOrdinal("entity_type")),
+            reader.GetGuid(reader.GetOrdinal("entity_id")),
+            GetNullableString(reader, "record_title"),
+            GetNullableString(reader, "parent_entity_type"),
+            reader.IsDBNull(reader.GetOrdinal("parent_entity_id")) ? null : reader.GetGuid(reader.GetOrdinal("parent_entity_id")),
+            reader.IsDBNull(reader.GetOrdinal("amount")) ? null : reader.GetFieldValue<decimal>(reader.GetOrdinal("amount")),
+            GetNullableString(reader, "procurement_type"),
+            reader.IsDBNull(reader.GetOrdinal("threshold_id")) ? null : reader.GetGuid(reader.GetOrdinal("threshold_id")));
+    }
+
+    private string? ResolveActor()
+        => User.FindFirstValue(ClaimTypes.Email) ??
+           User.FindFirstValue(ClaimTypes.Name) ??
+           User.Identity?.Name;
+
+    private sealed record TenderWorkflowInstanceState(
+        string EntityType,
+        Guid EntityId,
+        string? RecordTitle,
+        string? ParentEntityType,
+        Guid? ParentEntityId,
+        decimal? Amount,
+        string? ProcurementType,
+        Guid? ThresholdId);
 }

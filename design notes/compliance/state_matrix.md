@@ -26,14 +26,14 @@ Status meanings:
 | `award_and_publication` | `post_award.contract_awards`, `vendor_sourcing.tenders` | `GET /api/contracts/awards`, `POST /api/contracts/awards/{awardId}/publish` | `Contract Award` | partial | Award publication exists, but parent procurement progression and complaint branch re-entry are not unified |
 | `contract_execution` | `post_award.contracts`, `post_award.contract_milestones` | `GET /api/contracts`, `POST /api/contracts/{contractId}/milestones` | `Contract Management` | partial | Contract progress exists, but milestone progression is not tied to the blueprint stage machine |
 | `inspection_and_payment` | `post_award.inspections` | `GET /api/inspections` | `Inspection Acceptance` | partial | Inspection data exists, but payment readiness and closeout transition are not enforced as blueprint movement |
-| `closeout_and_audit` | none canonical | no dedicated closeout endpoint | audit and oversight views only | missing | No explicit closeout record, action, or terminal workflow state carrier |
-| `administrative_review` | no dedicated complaint table | no complaint controller yet | `Complaints` workspace shell only | missing | Complaint filing, suspension, review outcomes, and flow restoration are not implemented as operational workflow |
+| `closeout_and_audit` | `procurement_workflow.procurement_closeouts` | `POST /api/audit/closeouts` | audit dashboard | partial | Closeout records exist and API is implemented, but stage transition enforcement needs verification |
+| `administrative_review` | `procurement_workflow.procurement_complaints` | `GET/POST/PUT /api/administrative-reviews` | `AdministrativeReviewModule` | partial | Complaint filing and resolution implemented, but frontend complaint filing button integration pending |
 
 ## Coverage Summary
 
 - `implemented`: 0
-- `partial`: 16
-- `missing`: 2
+- `partial`: 18
+- `missing`: 0
 
 ## Immediate Engineering Conclusions
 

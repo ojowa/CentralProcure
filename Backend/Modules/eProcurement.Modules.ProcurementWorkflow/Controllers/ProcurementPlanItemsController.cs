@@ -100,6 +100,11 @@ public class ProcurementPlanItemsController : ControllerBase
             var result = results.FirstOrDefault();
             return result is null ? Problem("Procurement plan item creation failed.") : Created($"/api/procurement-plan-items/{result.PlanItemId}", result);
         }
+        catch (PostgresException ex)
+        {
+            _logger.LogError(ex, "Error creating procurement plan item for {PlanId}.", planId);
+            return BadRequest(ex.MessageText);
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating procurement plan item for {PlanId}.", planId);

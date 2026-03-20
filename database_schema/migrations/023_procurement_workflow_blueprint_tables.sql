@@ -68,24 +68,27 @@ INSERT INTO procurement_workflow.workflow_stage_catalog (
 SELECT *
 FROM (
     VALUES
-        ('department_need_capture', 'app_planning', 'Department Need Capture', 'Capture departmental needs for the APP cycle.', 1, FALSE, TRUE, FALSE, 'requisitioning_officer', 'PPA 2007 s.18'),
-        ('planning_committee_review', 'app_planning', 'Planning Committee Review', 'Validate need, market assumptions, aggregation, and packaging.', 2, FALSE, FALSE, FALSE, 'procurement_officer', 'PPA 2007 s.18, s.21'),
-        ('budget_confirmation', 'app_planning', 'Budget Confirmation', 'Confirm appropriation, releases, and affordability.', 3, TRUE, FALSE, FALSE, 'financial_unit_officer', 'PPA 2007 s.16, s.18'),
-        ('app_approval', 'app_planning', 'APP Approval', 'Approve the annual procurement plan for execution.', 4, TRUE, FALSE, FALSE, 'accounting_officer', 'PPA 2007 s.16, s.18'),
-        ('procurement_initiation', 'threshold_control', 'Procurement Initiation', 'Activate an approved APP line for execution.', 5, FALSE, FALSE, FALSE, 'procurement_officer', 'PPA 2007 s.16, s.19'),
-        ('threshold_resolution', 'threshold_control', 'Threshold Resolution', 'Resolve approval route, board gate, and BPP need.', 6, TRUE, FALSE, FALSE, 'procurement_manager', 'PPA 2007 s.16, s.17'),
-        ('method_validation', 'threshold_control', 'Method Validation', 'Confirm the lawful procurement method and route.', 7, TRUE, FALSE, FALSE, 'legal_reviewer', 'PPA 2007 s.24-s.52'),
-        ('solicitation', 'procurement_execution', 'Solicitation', 'Publish advert or issue invitations/EOI/RFP.', 8, FALSE, FALSE, FALSE, 'procurement_officer', 'PPA 2007 s.19, s.25, s.44-s.48'),
-        ('bid_opening', 'procurement_execution', 'Bid Opening', 'Record public opening and attendance.', 9, FALSE, FALSE, FALSE, 'procurement_officer', 'PPA 2007 s.30'),
-        ('evaluation', 'procurement_execution', 'Evaluation', 'Evaluate against published criteria only.', 10, FALSE, FALSE, FALSE, 'evaluation_committee', 'PPA 2007 s.31-s.33, s.49-s.52'),
-        ('tenders_board_review', 'procurement_execution', 'Tenders Board Review', 'Board review of evaluation recommendation.', 11, TRUE, FALSE, FALSE, 'tenders_board', 'PPA 2007 s.17, s.19, s.22'),
-        ('accounting_officer_review', 'procurement_execution', 'Accounting Officer Review', 'Accounting officer final accountable gate.', 12, TRUE, FALSE, FALSE, 'accounting_officer', 'PPA 2007 s.16, s.20'),
-        ('bpp_no_objection', 'procurement_execution', 'BPP No Objection', 'Prior review and no-objection gate for applicable thresholds.', 13, TRUE, FALSE, FALSE, 'bpp_liaison', 'PPA 2007 s.16, s.19'),
-        ('award_and_publication', 'post_award', 'Award and Publication', 'Issue award notice and publish award record.', 14, FALSE, FALSE, FALSE, 'procurement_officer', 'PPA 2007 s.19, s.33'),
-        ('contract_execution', 'post_award', 'Contract Execution', 'Manage contract signing, security, mobilisation, and milestones.', 15, FALSE, FALSE, FALSE, 'contract_manager', 'PPA 2007 s.35-s.37'),
-        ('inspection_and_payment', 'post_award', 'Inspection and Payment', 'Record inspection, acceptance, and payment readiness.', 16, FALSE, FALSE, FALSE, 'inspection_officer', 'PPA 2007 s.19, s.37'),
-        ('closeout_and_audit', 'review_and_oversight', 'Closeout and Audit', 'Archive records, complete closeout, and preserve audit trace.', 17, FALSE, FALSE, TRUE, 'audit_oversight', 'PPA 2007 s.16, s.38'),
-        ('administrative_review', 'review_and_oversight', 'Administrative Review', 'Handle bidder complaint and statutory review path.', 18, FALSE, FALSE, FALSE, 'complaints_review_officer', 'PPA 2007 s.54')
+        ('department_need_capture', 'app_planning', 'Department Need Capture', 'Requisitioning Officer drafts and submits the departmental need.', 1, FALSE, TRUE, FALSE, 'requisitioning_officer', 'PPA 2007 s.18'),
+        ('department_head_endorsement', 'app_planning', 'Department Head Endorsement', 'Department Head endorses the departmental need before budget coding.', 2, FALSE, FALSE, FALSE, 'department_head', 'PPA 2007 s.18'),
+        ('budget_code_allocation', 'app_planning', 'Budget Code Allocation', 'Allocate budget code only before committee review.', 3, TRUE, FALSE, FALSE, 'financial_unit_officer', 'PPA 2007 s.16, s.18'),
+        ('comptroller_procurement_review', 'app_planning', 'Comptroller Procurement Review', 'Comptroller Procurement approves the request for Planning Committee review.', 4, FALSE, FALSE, FALSE, 'procurement_officer', 'PPA 2007 s.18, s.21'),
+        ('planning_committee_review', 'app_planning', 'Planning Committee Review', 'Validate need, packaging, aggregation, and cost assumptions.', 5, FALSE, FALSE, FALSE, 'procurement_officer', 'PPA 2007 s.18, s.21'),
+        ('budget_confirmation', 'app_planning', 'Budget Final Confirmation', 'Confirm appropriation, affordability, and funding readiness.', 6, TRUE, FALSE, FALSE, 'financial_unit_officer', 'PPA 2007 s.16, s.18'),
+        ('app_approval', 'app_planning', 'APP Approval', 'Approve the annual procurement plan for execution.', 7, TRUE, FALSE, FALSE, 'accounting_officer', 'PPA 2007 s.16, s.18'),
+        ('procurement_initiation', 'threshold_control', 'Procurement Initiation', 'Activate an approved APP line for execution.', 8, FALSE, FALSE, FALSE, 'procurement_officer', 'PPA 2007 s.16, s.19'),
+        ('threshold_resolution', 'threshold_control', 'Threshold Resolution', 'Resolve approval route, board gate, and BPP need.', 9, TRUE, FALSE, FALSE, 'procurement_manager', 'PPA 2007 s.16, s.17'),
+        ('method_validation', 'threshold_control', 'Method Validation', 'Confirm the lawful procurement method and route.', 10, TRUE, FALSE, FALSE, 'legal_reviewer', 'PPA 2007 s.24-s.52'),
+        ('solicitation', 'procurement_execution', 'Advert / Invitation / EOI / RFP', 'Publish advert or issue invitations/EOI/RFP.', 11, FALSE, FALSE, FALSE, 'procurement_officer', 'PPA 2007 s.19, s.25, s.44-s.48'),
+        ('bid_opening', 'procurement_execution', 'Bid Opening', 'Record public opening and attendance.', 12, FALSE, FALSE, FALSE, 'procurement_officer', 'PPA 2007 s.30'),
+        ('evaluation', 'procurement_execution', 'Evaluation', 'Evaluate against published criteria only.', 13, FALSE, FALSE, FALSE, 'evaluation_committee', 'PPA 2007 s.31-s.33, s.49-s.52'),
+        ('tenders_board_review', 'procurement_execution', 'Tenders Board Review', 'Board review of evaluation recommendation.', 14, TRUE, FALSE, FALSE, 'tenders_board', 'PPA 2007 s.17, s.19, s.22'),
+        ('accounting_officer_review', 'procurement_execution', 'CGIS Approval', 'Accounting officer final accountable gate.', 15, TRUE, FALSE, FALSE, 'accounting_officer', 'PPA 2007 s.16, s.20'),
+        ('bpp_no_objection', 'procurement_execution', 'BPP No Objection', 'Prior review and no-objection gate for applicable thresholds.', 16, TRUE, FALSE, FALSE, 'bpp_liaison', 'PPA 2007 s.16, s.19'),
+        ('award_and_publication', 'post_award', 'Award and Publication', 'Issue award notice and publish award record.', 17, FALSE, FALSE, FALSE, 'procurement_officer', 'PPA 2007 s.19, s.33'),
+        ('contract_execution', 'post_award', 'Contract Execution', 'Manage contract signing, security, mobilisation, and milestones.', 18, FALSE, FALSE, FALSE, 'contract_manager', 'PPA 2007 s.35-s.37'),
+        ('inspection_and_payment', 'post_award', 'Inspection and Payment', 'Record inspection, acceptance, and payment readiness.', 19, FALSE, FALSE, FALSE, 'inspection_officer', 'PPA 2007 s.19, s.37'),
+        ('closeout_and_audit', 'review_and_oversight', 'Closeout and Audit', 'Archive records, complete closeout, and preserve audit trace.', 20, FALSE, FALSE, TRUE, 'audit_oversight', 'PPA 2007 s.16, s.38'),
+        ('administrative_review', 'review_and_oversight', 'Administrative Review', 'Handle bidder complaint and statutory review path.', 21, FALSE, FALSE, FALSE, 'complaints_review_officer', 'PPA 2007 s.54')
 ) AS seed (
     stage_key,
     phase_key,
@@ -112,9 +115,12 @@ INSERT INTO procurement_workflow.workflow_stage_transitions (
 SELECT *
 FROM (
     VALUES
-        ('department_need_capture', 'planning_committee_review', 'Department submits APP need.'),
-        ('planning_committee_review', 'budget_confirmation', 'Planning package validated.'),
-        ('budget_confirmation', 'app_approval', 'Budget appropriation confirmed.'),
+        ('department_need_capture', 'department_head_endorsement', 'Requisition officer submits departmental need for endorsement.'),
+        ('department_head_endorsement', 'budget_code_allocation', 'Department Head endorsement completed.'),
+        ('budget_code_allocation', 'comptroller_procurement_review', 'Budget code allocated for planning review.'),
+        ('comptroller_procurement_review', 'planning_committee_review', 'Comptroller Procurement approves for committee review.'),
+        ('planning_committee_review', 'budget_confirmation', 'Committee review complete and routed for final budget confirmation.'),
+        ('budget_confirmation', 'app_approval', 'Final budget confirmation complete.'),
         ('app_approval', 'procurement_initiation', 'Approved APP line activated.'),
         ('procurement_initiation', 'threshold_resolution', 'Procurement request created.'),
         ('threshold_resolution', 'method_validation', 'Threshold route resolved.'),
@@ -152,8 +158,10 @@ INSERT INTO procurement_workflow.workflow_role_tasks (
 SELECT *
 FROM (
     VALUES
-        ('requisitioning_officer', 'Requisitioning Officer', 'department_need_capture', 'Draft departmental need and APP justification.', 'Need is ready for committee review.'),
-        ('department_head', 'Department Head', 'department_need_capture', 'Endorse yearly departmental need.', 'Department submission is accountable and complete.'),
+        ('requisitioning_officer', 'Requisitioning Officer', 'department_need_capture', 'Create and submit the departmental request.', 'Department request is logged for endorsement.'),
+        ('department_head', 'Department Head', 'department_head_endorsement', 'Endorse the departmental request.', 'Department endorsement is recorded.'),
+        ('financial_unit_officer', 'Budget Officer', 'budget_code_allocation', 'Allocate budget code for the request.', 'Budget code is assigned.'),
+        ('procurement_officer', 'Comptroller Procurement', 'comptroller_procurement_review', 'Approve the request for Planning Committee review.', 'Request is approved for committee consideration.'),
         ('planning_statistics_officer', 'Planning, Research and Statistics', 'planning_committee_review', 'Review demand timing and aggregation logic.', 'APP package is planning-compliant.'),
         ('financial_unit_officer', 'Financial Unit', 'budget_confirmation', 'Confirm appropriation and affordability.', 'Budget gate is passed or blocked with reasons.'),
         ('procurement_officer', 'Procurement Officer', 'procurement_initiation', 'Open procurement package from approved APP line.', 'Execution begins only from approved APP entries.'),

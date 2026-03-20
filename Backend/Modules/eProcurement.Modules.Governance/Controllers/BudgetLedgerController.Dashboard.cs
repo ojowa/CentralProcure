@@ -26,6 +26,44 @@ public partial class BudgetLedgerController
             return Problem("Connection string 'Primary' is not configured.", statusCode: 500);
         }
 
+        const string globalSummarySql = @"
+WITH appropriation AS (
+    SELECT COALESCE(SUM(a.amount), 0) AS amount
+    FROM procurement_workflow.budget_appropriations a
+    WHERE (@p_fiscal_year IS NULL OR a.fiscal_year = @p_fiscal_year)
+      AND (@p_department IS NULL OR a.department = @p_department)
+      AND a.status = 'Active'
+),
+releases AS (
+    SELECT COALESCE(SUM(r.amount), 0) AS amount
+    FROM procurement_workflow.budget_releases r
+    JOIN procurement_workflow.budget_appropriations a ON a.appropriation_id = r.appropriation_id
+    WHERE (@p_fiscal_year IS NULL OR a.fiscal_year = @p_fiscal_year)
+      AND (@p_department IS NULL OR a.department = @p_department)
+      AND a.status = 'Active'
+),
+commitments AS (
+    SELECT COALESCE(SUM(c.amount), 0) AS amount
+    FROM procurement_workflow.budget_commitments c
+    WHERE (@p_fiscal_year IS NULL OR c.fiscal_year = @p_fiscal_year)
+      AND (@p_department IS NULL OR c.department = @p_department)
+      AND c.status IN ('Reserved', 'Committed')
+),
+expenditures AS (
+    SELECT COALESCE(SUM(e.amount), 0) AS amount
+    FROM procurement_workflow.budget_expenditures e
+    JOIN procurement_workflow.budget_commitments c ON c.commitment_id = e.commitment_id
+    WHERE (@p_fiscal_year IS NULL OR c.fiscal_year = @p_fiscal_year)
+      AND (@p_department IS NULL OR c.department = @p_department)
+)
+SELECT
+    appropriation.amount AS appropriated,
+    releases.amount AS released,
+    commitments.amount AS committed,
+    expenditures.amount AS spent,
+    (CASE WHEN releases.amount > 0 THEN releases.amount ELSE appropriation.amount END) - commitments.amount - expenditures.amount AS available
+FROM appropriation, releases, commitments, expenditures;";
+
         const string queueCte = @"
 WITH queue AS (
     SELECT
@@ -33,13 +71,9 @@ WITH queue AS (
         p.plan_title,
         p.department,
         p.fiscal_year,
-        COALESCE(wi.current_stage_key, CASE WHEN p.status = 'Submitted' THEN 'planning_committee_review' ELSE 'department_need_capture' END) AS current_stage_key,
+        COALESCE(wi.current_stage_key, CASE WHEN p.status = 'Initial' THEN 'budget_code_allocation' ELSE 'department_need_capture' END) AS current_stage_key,
         COALESCE(wi.current_status, p.status) AS workflow_status,
         COALESCE(items.requested_amount, 0) AS requested_amount,
-        COALESCE(budget.appropriated, 0) AS appropriated,
-        COALESCE(budget.released, 0) AS released,
-        COALESCE(budget.committed, 0) AS committed,
-        COALESCE(budget.spent, 0) AS spent,
         COALESCE(budget.available, 0) AS available
     FROM procurement_workflow.procurement_plans p
     LEFT JOIN procurement_workflow.workflow_instances wi
@@ -57,7 +91,7 @@ WITH queue AS (
             WHERE i.plan_id = p.plan_id
               AND NULLIF(BTRIM(i.budget_code), '') IS NOT NULL
         ),
-        appropriation AS (
+        app_sub AS (
             SELECT COALESCE(SUM(a.amount), 0) AS amount
             FROM procurement_workflow.budget_appropriations a
             WHERE a.department = p.department
@@ -65,7 +99,7 @@ WITH queue AS (
               AND a.status = 'Active'
               AND EXISTS (SELECT 1 FROM codes c WHERE c.budget_code = a.budget_code)
         ),
-        releases AS (
+        rel_sub AS (
             SELECT COALESCE(SUM(r.amount), 0) AS amount
             FROM procurement_workflow.budget_releases r
             JOIN procurement_workflow.budget_appropriations a ON a.appropriation_id = r.appropriation_id
@@ -74,7 +108,7 @@ WITH queue AS (
               AND a.status = 'Active'
               AND EXISTS (SELECT 1 FROM codes c WHERE c.budget_code = a.budget_code)
         ),
-        commitments AS (
+        com_sub AS (
             SELECT COALESCE(SUM(c.amount), 0) AS amount
             FROM procurement_workflow.budget_commitments c
             WHERE c.department = p.department
@@ -82,7 +116,7 @@ WITH queue AS (
               AND c.status IN ('Reserved', 'Committed')
               AND EXISTS (SELECT 1 FROM codes x WHERE x.budget_code = c.budget_code)
         ),
-        expenditures AS (
+        exp_sub AS (
             SELECT COALESCE(SUM(e.amount), 0) AS amount
             FROM procurement_workflow.budget_expenditures e
             JOIN procurement_workflow.budget_commitments c ON c.commitment_id = e.commitment_id
@@ -91,28 +125,19 @@ WITH queue AS (
               AND EXISTS (SELECT 1 FROM codes x WHERE x.budget_code = c.budget_code)
         )
         SELECT
-            appropriation.amount AS appropriated,
-            releases.amount AS released,
-            commitments.amount AS committed,
-            expenditures.amount AS spent,
-            (CASE WHEN releases.amount > 0 THEN releases.amount ELSE appropriation.amount END) - commitments.amount - expenditures.amount AS available
-        FROM appropriation, releases, commitments, expenditures
+            (CASE WHEN rel_sub.amount > 0 THEN rel_sub.amount ELSE app_sub.amount END) - com_sub.amount - exp_sub.amount AS available
+        FROM app_sub, rel_sub, com_sub, exp_sub
     ) budget ON TRUE
     WHERE p.status NOT IN ('Approved', 'Cancelled', 'Rejected')
       AND (@p_fiscal_year IS NULL OR p.fiscal_year = @p_fiscal_year)
       AND (@p_department IS NULL OR p.department = @p_department)
 )";
 
-        var summarySql = $@"
+        var queueSummarySql = $@"
 {queueCte}
 SELECT
-    COALESCE(SUM(appropriated), 0) AS appropriated,
-    COALESCE(SUM(released), 0) AS released,
-    COALESCE(SUM(committed), 0) AS committed,
-    COALESCE(SUM(spent), 0) AS spent,
-    COALESCE(SUM(available), 0) AS available,
     COUNT(*)::int AS queue_count,
-    COUNT(*) FILTER (WHERE current_stage_key IN ('planning_committee_review', 'budget_confirmation'))::int AS awaiting_budget_review_count,
+    COUNT(*) FILTER (WHERE current_stage_key IN ('comptroller_procurement_review', 'planning_committee_review', 'budget_confirmation'))::int AS awaiting_budget_review_count,
     COUNT(*) FILTER (WHERE workflow_status = 'On Hold')::int AS on_hold_count,
     COUNT(*) FILTER (WHERE current_stage_key = 'app_approval')::int AS ready_for_approval_count,
     COUNT(*) FILTER (WHERE requested_amount > available)::int AS at_risk_count
@@ -139,26 +164,48 @@ LIMIT 6;";
             await using var conn = new NpgsqlConnection(connectionString);
             await conn.OpenAsync(ct);
 
-            await using var summaryCmd = new NpgsqlCommand(summarySql, conn);
-            summaryCmd.Parameters.AddWithValue("p_fiscal_year", NpgsqlDbType.Integer, (object?)fiscalYear ?? DBNull.Value);
-            summaryCmd.Parameters.AddWithValue("p_department", NpgsqlDbType.Varchar, (object?)NormalizeFilter(department) ?? DBNull.Value);
+            // 1. Get Global Summary
+            await using var globalCmd = new NpgsqlCommand(globalSummarySql, conn);
+            globalCmd.Parameters.AddWithValue("p_fiscal_year", NpgsqlDbType.Integer, (object?)fiscalYear ?? DBNull.Value);
+            globalCmd.Parameters.AddWithValue("p_department", NpgsqlDbType.Varchar, (object?)NormalizeFilter(department) ?? DBNull.Value);
 
-            await using var summaryReader = await summaryCmd.ExecuteReaderAsync(ct);
-            await summaryReader.ReadAsync(ct);
+            decimal appropriated = 0, released = 0, committed = 0, spent = 0, available = 0;
+            await using (var reader = await globalCmd.ExecuteReaderAsync(ct))
+            {
+                if (await reader.ReadAsync(ct))
+                {
+                    appropriated = reader.GetDecimal(reader.GetOrdinal("appropriated"));
+                    released = reader.GetDecimal(reader.GetOrdinal("released"));
+                    committed = reader.GetDecimal(reader.GetOrdinal("committed"));
+                    spent = reader.GetDecimal(reader.GetOrdinal("spent"));
+                    available = reader.GetDecimal(reader.GetOrdinal("available"));
+                }
+            }
+
+            // 2. Get Queue Counts
+            await using var queueCmd = new NpgsqlCommand(queueSummarySql, conn);
+            queueCmd.Parameters.AddWithValue("p_fiscal_year", NpgsqlDbType.Integer, (object?)fiscalYear ?? DBNull.Value);
+            queueCmd.Parameters.AddWithValue("p_department", NpgsqlDbType.Varchar, (object?)NormalizeFilter(department) ?? DBNull.Value);
+
+            int queueCount = 0, awaiting = 0, onHold = 0, ready = 0, atRisk = 0;
+            await using (var reader = await queueCmd.ExecuteReaderAsync(ct))
+            {
+                if (await reader.ReadAsync(ct))
+                {
+                    queueCount = reader.GetInt32(reader.GetOrdinal("queue_count"));
+                    awaiting = reader.GetInt32(reader.GetOrdinal("awaiting_budget_review_count"));
+                    onHold = reader.GetInt32(reader.GetOrdinal("on_hold_count"));
+                    ready = reader.GetInt32(reader.GetOrdinal("ready_for_approval_count"));
+                    atRisk = reader.GetInt32(reader.GetOrdinal("at_risk_count"));
+                }
+            }
+
             var dashboard = new BudgetDashboardResponse(
-                summaryReader.GetDecimal(summaryReader.GetOrdinal("appropriated")),
-                summaryReader.GetDecimal(summaryReader.GetOrdinal("released")),
-                summaryReader.GetDecimal(summaryReader.GetOrdinal("committed")),
-                summaryReader.GetDecimal(summaryReader.GetOrdinal("spent")),
-                summaryReader.GetDecimal(summaryReader.GetOrdinal("available")),
-                summaryReader.GetInt32(summaryReader.GetOrdinal("queue_count")),
-                summaryReader.GetInt32(summaryReader.GetOrdinal("awaiting_budget_review_count")),
-                summaryReader.GetInt32(summaryReader.GetOrdinal("on_hold_count")),
-                summaryReader.GetInt32(summaryReader.GetOrdinal("ready_for_approval_count")),
-                summaryReader.GetInt32(summaryReader.GetOrdinal("at_risk_count")),
+                appropriated, released, committed, spent, available,
+                queueCount, awaiting, onHold, ready, atRisk,
                 Array.Empty<BudgetDashboardRiskItem>());
-            await summaryReader.CloseAsync();
 
+            // 3. Get Risks
             await using var risksCmd = new NpgsqlCommand(risksSql, conn);
             risksCmd.Parameters.AddWithValue("p_fiscal_year", NpgsqlDbType.Integer, (object?)fiscalYear ?? DBNull.Value);
             risksCmd.Parameters.AddWithValue("p_department", NpgsqlDbType.Varchar, (object?)NormalizeFilter(department) ?? DBNull.Value);

@@ -49,6 +49,16 @@ export const roles: RoleDefinition[] = [
     description: 'Confirms appropriation, releases, and affordability before APP approval.'
   },
   {
+    key: 'procurement_secretary',
+    name: 'Procurement Secretary',
+    description: 'Committee secretary who records decisions and keeps the review log.'
+  },
+  {
+    key: 'comptroller_procurement',
+    name: 'Comptroller Procurement (Chair)',
+    description: 'Leads committee review and issues the final committee decision.'
+  },
+  {
     key: 'evaluation_committee',
     name: 'Evaluation Committee',
     description: 'Runs technical and commercial evaluation steps.'
@@ -80,7 +90,7 @@ const requisitionDepartmentModules: InternalModule[] = [
     id: 'create-requisition',
     title: 'Create Requisition',
     section: 'Requisitioning Departments',
-    description: 'Submit procurement requests with budget and justification metadata.',
+    description: 'Initiate departmental procurement requests with budget and requirement metadata.',
     microservice: 'Requisition Service',
     controlPurpose: 'Controlled initiation of procurement.',
     actions: ['requisition.create'],
@@ -118,6 +128,23 @@ const procurementPlanningModules: InternalModule[] = [
     controlPurpose: 'Mandatory PPA 2007 baseline for all spending.',
     actions: ['plan.create', 'plan.view', 'plan.update'],
     allowedRoles: ['planning_statistics_officer', 'procurement_officer', 'accounting_officer']
+  },
+  {
+    id: 'procurement-planning-committee',
+    title: 'Planning Committee Review',
+    section: 'Procurement Planning Committee',
+    description: 'Link requisitions to APP items and record committee review decisions.',
+    microservice: 'Procurement Workflow Service',
+    controlPurpose: 'Section 21 planning committee visibility and pre-tender discipline.',
+    actions: ['planning_committee.view'],
+    allowedRoles: [
+      'planning_statistics_officer',
+      'financial_unit_officer',
+      'department_head',
+      'legal_reviewer',
+      'procurement_secretary',
+      'comptroller_procurement'
+    ]
   }
 ];
 
@@ -228,6 +255,16 @@ const postAwardModules: InternalModule[] = [
 
 const oversightModules: InternalModule[] = [
   {
+    id: 'requisition-management',
+    title: 'Requisition Management',
+    section: 'Governance & Oversight',
+    description: 'Administrative control over all departmental procurement requests, including hard deletion and state overrides.',
+    microservice: 'Requisition Service',
+    controlPurpose: 'Ultimate administrative control over requisition lifecycle.',
+    actions: ['requisition.delete', 'requisition.view.all'],
+    allowedRoles: ['admin', 'procurement_officer']
+  },
+  {
     id: 'bpp-escalation',
     title: 'BPP No-Objection',
     section: 'External Oversight',
@@ -258,7 +295,7 @@ const sharedModules: InternalModule[] = [
     microservice: 'Identity Service',
     controlPurpose: 'Self-service account management and identity verification.',
     actions: ['profile.view', 'profile.update'],
-    allowedRoles: ['admin', 'requisitioning_officer', 'department_head', 'procurement_officer', 'procurement_manager', 'planning_statistics_officer', 'financial_unit_officer', 'legal_reviewer', 'technical_evaluator', 'financial_evaluator', 'evaluation_committee', 'tenders_board', 'tenders_board_secretary', 'accounting_officer', 'bpp_liaison', 'bpp_reviewer', 'complaints_review_officer', 'contract_manager', 'inspection_officer', 'payment_officer', 'audit_oversight', 'ict_admin']
+    allowedRoles: ['admin', 'requisitioning_officer', 'department_head', 'procurement_officer', 'procurement_manager', 'planning_statistics_officer', 'financial_unit_officer', 'procurement_secretary', 'comptroller_procurement', 'legal_reviewer', 'technical_evaluator', 'financial_evaluator', 'evaluation_committee', 'tenders_board', 'tenders_board_secretary', 'accounting_officer', 'bpp_liaison', 'bpp_reviewer', 'complaints_review_officer', 'contract_manager', 'inspection_officer', 'payment_officer', 'audit_oversight', 'ict_admin']
   }
 ];
 
@@ -267,6 +304,8 @@ export const roleModuleFallbacks: Partial<Record<RoleKey, InternalModule[]>> = {
   department_head: [...requisitionDepartmentModules, ...postAwardModules, ...sharedModules],
   planning_statistics_officer: [...procurementPlanningModules, ...sharedModules],
   financial_unit_officer: [...financialControlModules, ...sharedModules],
+  procurement_secretary: [...procurementPlanningModules, ...sharedModules],
+  comptroller_procurement: [...procurementPlanningModules, ...sharedModules],
   procurement_officer: [...procurementPlanningModules, ...tenderManagementModules, ...postAwardModules, ...oversightModules, ...sharedModules],
   technical_evaluator: [...evaluationModules, ...sharedModules],
   financial_evaluator: [...evaluationModules, ...sharedModules],
@@ -291,13 +330,15 @@ export const requisitionFundingSources = [
 export const requisitionStatuses = [
   'Draft',
   'Submitted',
+  'Endorsed',
+  'Initial',
   'Under Review',
   'Evaluation',
   'Board Review',
   'Approved',
   'Rejected'
 ];
-export const editableRequisitionStatuses = new Set(['Draft', 'Rejected']);
+export const editableRequisitionStatuses = new Set(['Draft', 'Submitted', 'Endorsed', 'Rejected']);
 
 export const requisitionSteps: Array<{
   key: RoleKey;

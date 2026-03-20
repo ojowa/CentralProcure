@@ -16,7 +16,7 @@ public class ProcurementPlansController : ControllerBase
     private readonly WorkflowPolicyGuard _workflowPolicyGuard;
     private readonly WorkflowRuntimeTracker _workflowRuntimeTracker;
 
-    private static readonly string[] AllowedStatuses = { "Draft", "Submitted", "Approved", "Rejected", "Cancelled" };
+    private static readonly string[] AllowedStatuses = { "Draft", "Submitted", "Under Review", "Approved", "Rejected", "Cancelled" };
     private const int MinTitleLength = 5;
     private const int MaxTitleLength = 255;
     private const int MinDepartmentLength = 3;
@@ -232,6 +232,11 @@ public class ProcurementPlansController : ControllerBase
             await SyncWorkflowRuntimeAsync(conn, tx, result, "Procurement plan created.", ct);
             await tx.CommitAsync(ct);
             return Created($"/api/procurement-plans/{result.PlanId}", result);
+        }
+        catch (PostgresException ex)
+        {
+            _logger.LogError(ex, "Error creating procurement plan.");
+            return BadRequest(ex.MessageText);
         }
         catch (Exception ex)
         {
@@ -545,7 +550,8 @@ public class ProcurementPlansController : ControllerBase
         return status switch
         {
             "Draft" => "department_need_capture",
-            "Submitted" => "planning_committee_review",
+            "Submitted" => "comptroller_procurement_review",
+            "Under Review" => "planning_committee_review",
             _ => "app_approval"
         };
     }

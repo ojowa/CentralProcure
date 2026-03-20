@@ -166,8 +166,8 @@ export const CreateRequisitionPage = ({ module, token, role, userEmail, onModule
 
     return {
       total: totalItems,
-      drafts: counts.Draft ?? 0,
-      active: (counts.Submitted ?? 0) + (counts['Under Review'] ?? 0) + (counts.Evaluation ?? 0) + (counts['Board Review'] ?? 0),
+      drafts: (counts.Draft ?? 0) + (counts.Submitted ?? 0) + (counts.Endorsed ?? 0),
+      active: (counts.Initial ?? 0) + (counts['Under Review'] ?? 0) + (counts.Evaluation ?? 0) + (counts['Board Review'] ?? 0),
       approved: counts.Approved ?? 0
     };
   }, [requisitions, totalItems]);
@@ -636,8 +636,10 @@ export const CreateRequisitionPage = ({ module, token, role, userEmail, onModule
       setReviewNote('');
       setReviewFeedback(
         actionConfig.nextStatus === 'Submitted'
-          ? `Department endorsement recorded. ${updated.Title} is now in procurement review.`
-          : `Department head review note recorded for ${updated.Title}.`
+          ? `Requisition submitted. ${updated.Title} is now awaiting department head endorsement.`
+          : actionConfig.nextStatus === 'Endorsed'
+            ? `Department endorsement recorded. ${updated.Title} is ready for budget allocation.`
+            : `Department head review note recorded for ${updated.Title}.`
       );
 
       if (editingId === updated.RequisitionId && !editableRequisitionStatuses.has(updated.Status)) {
@@ -737,17 +739,19 @@ export const CreateRequisitionPage = ({ module, token, role, userEmail, onModule
             {isDetailLoading ? (
               <div className="plan-loading">Loading requisition detail...</div>
             ) : (
-              <RequisitionDetailContent
-                detail={selectedDetail}
-                activeStepIndex={activeStepIndex}
-                isSelectedEditable={isSelectedEditable}
-                isDepartmentHead={isDepartmentHead}
-                canEditDrafts={canEditDrafts}
-                isSaving={isSaving}
-                workflowRuntime={workflowRuntime}
-                onOpenSelectedForEdit={openSelectedForEdit}
-                onSubmitSelectedDraft={() => void submitSelectedDraft()}
-                departmentHeadPanel={
+                <RequisitionDetailContent
+                  detail={selectedDetail}
+                  activeStepIndex={activeStepIndex}
+                  isSelectedEditable={isSelectedEditable}
+                  isDepartmentHead={isDepartmentHead}
+                  isAdmin={role === 'admin'}
+                  canEditDrafts={canEditDrafts}
+                  isSaving={isSaving}
+                  workflowRuntime={workflowRuntime}
+                  onOpenSelectedForEdit={openSelectedForEdit}
+                  onSubmitSelectedDraft={() => void submitSelectedDraft()}
+                  onDeleteRequisition={() => {}}
+                  departmentHeadPanel={
                   isDepartmentHead ? (
                     <DepartmentHeadPanel
                       detail={selectedDetail}

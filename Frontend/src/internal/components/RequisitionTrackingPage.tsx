@@ -107,8 +107,8 @@ export const RequisitionTrackingPage = ({ module, token, role, userEmail, onModu
 
     return {
       total: totalItems,
-      drafts: counts.Draft ?? 0,
-      active: (counts.Submitted ?? 0) + (counts['Under Review'] ?? 0) + (counts.Evaluation ?? 0) + (counts['Board Review'] ?? 0),
+      drafts: (counts.Draft ?? 0) + (counts.Submitted ?? 0) + (counts.Endorsed ?? 0),
+      active: (counts.Initial ?? 0) + (counts['Under Review'] ?? 0) + (counts.Evaluation ?? 0) + (counts['Board Review'] ?? 0),
       approved: counts.Approved ?? 0
     };
   }, [requisitions, totalItems]);
@@ -319,11 +319,13 @@ export const RequisitionTrackingPage = ({ module, token, role, userEmail, onModu
       activeStepIndex={activeStepIndex}
       isSelectedEditable={isSelectedEditable}
       isDepartmentHead={isDepartmentHead}
+      isAdmin={role === 'admin'}
       canEditDrafts={canEditDrafts}
       isSaving={isSaving}
       workflowRuntime={workflowRuntime}
       onOpenSelectedForEdit={openSelectedForEdit}
       onSubmitSelectedDraft={() => void submitSelectedDraft()}
+      onDeleteRequisition={() => {}}
       departmentHeadPanel={
         isDepartmentHead ? (
           <DepartmentHeadPanel
@@ -411,11 +413,13 @@ export const RequisitionTrackingPage = ({ module, token, role, userEmail, onModu
                 activeStepIndex={activeStepIndex}
                 isSelectedEditable={isSelectedEditable}
                 isDepartmentHead={isDepartmentHead}
+                isAdmin={role === 'admin'}
                 canEditDrafts={canEditDrafts}
                 isSaving={isSaving}
                 workflowRuntime={workflowRuntime}
                 onOpenSelectedForEdit={openSelectedForEdit}
                 onSubmitSelectedDraft={() => void submitSelectedDraft()}
+                onDeleteRequisition={() => {}}
                 departmentHeadPanel={
                   isDepartmentHead ? (
                     <DepartmentHeadPanel

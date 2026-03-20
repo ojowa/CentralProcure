@@ -29,6 +29,7 @@ import { ContractManagementModule } from './ContractManagementModule';
 import { BppEscalationModule } from './BppEscalationModule';
 import { AdministrativeReviewModule } from './AdministrativeReviewModule';
 import { VendorRegistrationApprovalModule } from './VendorRegistrationApprovalModule';
+import { AdminRequisitionManagementPage } from './AdminRequisitionManagementPage';
 import { fetchInternalModules, fetchInternalRoles, resolveRole } from '../services/internalAuthService';
 import { fetchModuleData } from '../services/moduleService';
 import { roleModuleFallbacks, roles } from '../data/internalData';
@@ -45,6 +46,7 @@ const moduleFetchSkipList = new Set<string>([
   'create-requisition',
   'requisition-history',
   'requisition-tracking',
+  'requisition-management',
   'workflow-blueprint',
   'annual-procurement-plan',
   'budget-confirmation',
@@ -144,6 +146,15 @@ const moduleRenderers: Partial<Record<string, (props: InternalModuleRendererProp
   'create-requisition': (props) => <CreateRequisitionPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} onModuleChange={props.onModuleChange} />,
   'requisition-history': (props) => <RequisitionHistoryPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} onModuleChange={props.onModuleChange} />,
   'requisition-tracking': (props) => <RequisitionTrackingPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} onModuleChange={props.onModuleChange} />,
+  'requisition-management': (props) => (
+    <AdminRequisitionManagementPage
+      module={props.module}
+      token={props.token}
+      role={props.role}
+      userEmail={props.userEmail}
+      onModuleChange={props.onModuleChange}
+    />
+  ),
   'audit-dashboard': (props) => <AuditDashboardWorkspace module={props.module} token={props.token} />,
   'audit-trail-viewer': (props) => <AuditTrailWorkspace module={props.module} token={props.token} />,
   'compliance-reports': (props) => <ComplianceReportsWorkspace module={props.module} token={props.token} />,

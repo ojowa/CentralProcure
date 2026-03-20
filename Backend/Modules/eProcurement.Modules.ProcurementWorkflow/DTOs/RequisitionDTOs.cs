@@ -12,6 +12,8 @@ public record RequisitionSummary(
     string Title,
     string Department,
     Guid? UnitId,
+    Guid? AppItemId,
+    string? AppItemDescription,
     string Status,
     string? Priority,
     string? FundingSource,

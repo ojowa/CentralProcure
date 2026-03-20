@@ -29,6 +29,8 @@ public partial class RequisitionsController
             r.GetString(r.GetOrdinal("title")),
             r.GetString(r.GetOrdinal("department")),
             GetNullableGuid(r, "unit_id"),
+            GetNullableGuid(r, "app_item_id"),
+            GetNullableString(r, "app_item_description"),
             r.GetString(r.GetOrdinal("status")),
             GetNullableString(r, "priority"),
             GetNullableString(r, "funding_source"),

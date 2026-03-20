@@ -139,7 +139,7 @@ export const AdministrativeReviewModule = ({ module, token, role, initialData }:
                 <span>Return to Stage (Optional)</span>
                 <select className="plan-input" value={resolution.resolutionStageKey} onChange={e => setResolution({...resolution, resolutionStageKey: e.target.value})}>
                   <option value="">-- No Stage Change --</option>
-                  <option value="solicitation">Back to Solicitation</option>
+                  <option value="solicitation">Back to Advert / Invitation / EOI / RFP</option>
                   <option value="evaluation">Back to Evaluation</option>
                   <option value="award_and_publication">Back to Award</option>
                 </select>

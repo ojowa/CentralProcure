@@ -41,6 +41,8 @@ RETURNS TABLE (
     title VARCHAR(255),
     department VARCHAR(150),
     unit_id UUID,
+    app_item_id UUID,
+    app_item_description TEXT,
     status VARCHAR(50),
     priority VARCHAR(50),
     funding_source VARCHAR(120),
@@ -57,6 +59,8 @@ BEGIN
         r.title,
         r.department,
         r.unit_id,
+        r.app_item_id,
+        pi.description,
         r.status,
         r.priority,
         r.funding_source,
@@ -65,6 +69,8 @@ BEGIN
         r.created_at
     FROM
         procurement_workflow.requisitions r
+        LEFT JOIN procurement_workflow.procurement_plan_items pi
+            ON pi.plan_item_id = r.app_item_id
     WHERE
         (p_status IS NULL OR r.status ILIKE p_status)
         AND (p_department IS NULL OR r.department ILIKE '%' || p_department || '%')

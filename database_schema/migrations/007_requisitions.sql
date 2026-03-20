@@ -46,7 +46,7 @@ BEGIN
     ) THEN
         ALTER TABLE procurement_workflow.requisitions
             ADD CONSTRAINT requisitions_status_chk
-            CHECK (status IN ('Draft', 'Submitted', 'Under Review', 'Evaluation', 'Board Review', 'Approved', 'Rejected', 'Cancelled'));
+            CHECK (status IN ('Draft', 'Submitted', 'Endorsed', 'Initial', 'Under Review', 'Evaluation', 'Board Review', 'Approved', 'Rejected', 'Cancelled'));
     END IF;
 
     IF NOT EXISTS (
@@ -148,7 +148,9 @@ AS $$
 BEGIN
     RETURN CASE
         WHEN p_status IS NULL THEN 'department_user'
-        WHEN p_status ILIKE 'Submitted' THEN 'procurement_officer'
+        WHEN p_status ILIKE 'Submitted' THEN 'department_head'
+        WHEN p_status ILIKE 'Endorsed' THEN 'department_head'
+        WHEN p_status ILIKE 'Initial' THEN 'procurement_officer'
         WHEN p_status ILIKE 'Under Review' THEN 'procurement_officer'
         WHEN p_status ILIKE 'Evaluation' THEN 'evaluation_committee'
         WHEN p_status ILIKE 'Board Review' THEN 'tenders_board'

@@ -139,6 +139,29 @@ export const createRequisition = async (
   return parseResponse<RequisitionDetail>(response);
 };
 
+export const deleteRequisition = async (token: string, requisitionId: string): Promise<void> => {
+  const response = await fetch(`${baseUrl}/${requisitionId}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...buildCsrfHeaders()
+    },
+    credentials: 'include'
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    let message = `Delete failed (${response.status}).`;
+    try {
+      const payload = JSON.parse(text);
+      message = payload?.message || payload?.error || message;
+    } catch {
+      message = text || message;
+    }
+    throw new Error(message);
+  }
+};
+
 export const updateRequisition = async (
   token: string,
   requisitionId: string,

@@ -217,7 +217,7 @@ Queue actions:
 Empty state:
 - `No cases are currently awaiting CGIS approval.`
 
-### 9.2 Screen 2: CGIS Case Detail
+### 9.2 Sccoreen 2: CGIS Case Detail
 
 Purpose:
 - present one case in a decision-ready layout

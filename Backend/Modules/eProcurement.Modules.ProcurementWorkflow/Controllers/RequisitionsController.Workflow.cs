@@ -61,13 +61,15 @@ public partial class RequisitionsController
     {
         return status switch
         {
-            "Draft" => "procurement_initiation",
-            "Submitted" => "threshold_resolution",
-            "Under Review" => "threshold_resolution",
+            "Draft" => "department_need_capture",
+            "Submitted" => "department_need_capture",
+            "Endorsed" => "department_head_endorsement",
+            "Initial" => "budget_code_allocation",
+            "Under Review" => "planning_committee_review",
             "Evaluation" => "evaluation",
             "Board Review" => "tenders_board_review",
             "Approved" => ResolveApprovedWorkflowStage(threshold),
-            _ => "procurement_initiation"
+            _ => "department_need_capture"
         };
     }
 

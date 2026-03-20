@@ -45,22 +45,24 @@ public class PlanningCommitteeReviewController : ControllerBase
 
             await cmd.ExecuteNonQueryAsync(ct);
             var cursorName = (string)cmd.Parameters["p_result"].Value!;
-            await using var fetch = new NpgsqlCommand($"FETCH ALL IN \"{cursorName}\"", conn, tx);
-            await using var reader = await fetch.ExecuteReaderAsync(ct);
-
             var reviews = new List<MemberReviewResponse>();
-            while (await reader.ReadAsync(ct))
             {
-                reviews.Add(new MemberReviewResponse(
-                    reader.GetGuid(reader.GetOrdinal("review_id")),
-                    reader.GetGuid(reader.GetOrdinal("plan_id")),
-                    reader.GetString(reader.GetOrdinal("reviewer_role")),
-                    reader.GetString(reader.GetOrdinal("reviewer_user_id")),
-                    reader.GetString(reader.GetOrdinal("decision")),
-                    reader.IsDBNull(reader.GetOrdinal("remarks")) ? null : reader.GetString(reader.GetOrdinal("remarks")),
-                    reader.GetDateTime(reader.GetOrdinal("created_at")),
-                    reader.GetDateTime(reader.GetOrdinal("updated_at"))
-                ));
+                await using var fetch = new NpgsqlCommand($"FETCH ALL IN \"{cursorName}\"", conn, tx);
+                await using var reader = await fetch.ExecuteReaderAsync(ct);
+
+                while (await reader.ReadAsync(ct))
+                {
+                    reviews.Add(new MemberReviewResponse(
+                        reader.GetGuid(reader.GetOrdinal("review_id")),
+                        reader.GetGuid(reader.GetOrdinal("plan_id")),
+                        reader.GetString(reader.GetOrdinal("reviewer_role")),
+                        reader.GetString(reader.GetOrdinal("reviewer_user_id")),
+                        reader.GetString(reader.GetOrdinal("decision")),
+                        reader.IsDBNull(reader.GetOrdinal("remarks")) ? null : reader.GetString(reader.GetOrdinal("remarks")),
+                        reader.GetDateTime(reader.GetOrdinal("created_at")),
+                        reader.GetDateTime(reader.GetOrdinal("updated_at"))
+                    ));
+                }
             }
 
             await tx.CommitAsync(ct);
@@ -70,6 +72,51 @@ public class PlanningCommitteeReviewController : ControllerBase
         {
             _logger.LogError(ex, "Error retrieving member reviews for plan {PlanId}", planId);
             return Problem("Internal server error retrieving reviews.");
+        }
+    }
+
+    [HttpGet("plans/{planId:guid}/member-statuses")]
+    public async Task<IActionResult> GetMemberStatuses(Guid planId, CancellationToken ct)
+    {
+        var connectionString = GetConnectionString();
+        try
+        {
+            await using var conn = new NpgsqlConnection(connectionString);
+            await conn.OpenAsync(ct);
+            await using var tx = await conn.BeginTransactionAsync(ct);
+            await using var cmd = new NpgsqlCommand("procurement_workflow.get_member_statuses_sp", conn, tx)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            cmd.Parameters.AddWithValue("p_plan_id", NpgsqlDbType.Uuid, planId);
+            cmd.Parameters.Add(new NpgsqlParameter("p_result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.Output });
+
+            await cmd.ExecuteNonQueryAsync(ct);
+            var cursorName = (string)cmd.Parameters["p_result"].Value!;
+            var statuses = new List<MemberStatusResponse>();
+            {
+                await using var fetch = new NpgsqlCommand($"FETCH ALL IN \"{cursorName}\"", conn, tx);
+                await using var reader = await fetch.ExecuteReaderAsync(ct);
+
+                while (await reader.ReadAsync(ct))
+                {
+                    statuses.Add(new MemberStatusResponse(
+                        reader.GetString(reader.GetOrdinal("role_key")),
+                        reader.GetString(reader.GetOrdinal("status_label")),
+                        reader.IsDBNull(reader.GetOrdinal("decision")) ? null : reader.GetString(reader.GetOrdinal("decision")),
+                        reader.IsDBNull(reader.GetOrdinal("updated_by")) ? null : reader.GetString(reader.GetOrdinal("updated_by")),
+                        reader.GetDateTime(reader.GetOrdinal("updated_at"))
+                    ));
+                }
+            }
+
+            await tx.CommitAsync(ct);
+            return Ok(statuses);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving member statuses for plan {PlanId}", planId);
+            return Problem("Internal server error retrieving member statuses.");
         }
     }
 
@@ -95,41 +142,48 @@ public class PlanningCommitteeReviewController : ControllerBase
 
             await cmd.ExecuteNonQueryAsync(ct);
             var cursorName = (string)cmd.Parameters["p_result"].Value!;
-            await using var fetch = new NpgsqlCommand($"FETCH ALL IN \"{cursorName}\"", conn, tx);
-            await using var reader = await fetch.ExecuteReaderAsync(ct);
-
-            if (await reader.ReadAsync(ct))
+            MemberReviewResponse? response = null;
             {
-                var response = new MemberReviewResponse(
-                    reader.GetGuid(reader.GetOrdinal("review_id")),
-                    reader.GetGuid(reader.GetOrdinal("plan_id")),
-                    reader.GetString(reader.GetOrdinal("reviewer_role")),
-                    reader.GetString(reader.GetOrdinal("reviewer_user_id")),
-                    reader.GetString(reader.GetOrdinal("decision")),
-                    reader.IsDBNull(reader.GetOrdinal("remarks")) ? null : reader.GetString(reader.GetOrdinal("remarks")),
-                    reader.GetDateTime(reader.GetOrdinal("created_at")),
-                    reader.GetDateTime(reader.GetOrdinal("created_at")) // Initial update matches created
-                );
+                await using var fetch = new NpgsqlCommand($"FETCH ALL IN \"{cursorName}\"", conn, tx);
+                await using var reader = await fetch.ExecuteReaderAsync(ct);
 
-                await _workflowRuntimeTracker.SyncAsync(conn, tx, new WorkflowRuntimeSyncRequest(
-                    "procurement_plan",
-                    request.PlanId,
-                    "planning_committee_review",
-                    "Submitted",
-                    $"Member Review: {request.Decision}",
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    request.Remarks ?? "Member review submitted.",
-                    request.ReviewerUserId), ct);
-
-                await tx.CommitAsync(ct);
-                return Ok(response);
+                if (await reader.ReadAsync(ct))
+                {
+                    response = new MemberReviewResponse(
+                        reader.GetGuid(reader.GetOrdinal("review_id")),
+                        reader.GetGuid(reader.GetOrdinal("plan_id")),
+                        reader.GetString(reader.GetOrdinal("reviewer_role")),
+                        reader.GetString(reader.GetOrdinal("reviewer_user_id")),
+                        reader.GetString(reader.GetOrdinal("decision")),
+                        reader.IsDBNull(reader.GetOrdinal("remarks")) ? null : reader.GetString(reader.GetOrdinal("remarks")),
+                        reader.GetDateTime(reader.GetOrdinal("created_at")),
+                        reader.GetDateTime(reader.GetOrdinal("created_at"))
+                    );
+                }
             }
 
-            return Problem("Failed to submit member review.");
+            if (response is null)
+            {
+                return Problem("Failed to submit member review.");
+            }
+
+            await _workflowRuntimeTracker.SyncAsync(conn, tx, new WorkflowRuntimeSyncRequest(
+                "procurement_plan",
+                request.PlanId,
+                "planning_committee_review",
+                "Submitted",
+                $"Member Review: {request.Decision}",
+                null,
+                null,
+                null,
+                null,
+                null,
+                request.Remarks ?? "Member review submitted.",
+                request.ReviewerUserId), ct);
+
+            await tx.CommitAsync(ct);
+            return Ok(response);
+
         }
         catch (Exception ex)
         {
@@ -161,46 +215,53 @@ public class PlanningCommitteeReviewController : ControllerBase
 
             await cmd.ExecuteNonQueryAsync(ct);
             var cursorName = (string)cmd.Parameters["p_result"].Value!;
-            await using var fetch = new NpgsqlCommand($"FETCH ALL IN \"{cursorName}\"", conn, tx);
-            await using var reader = await fetch.ExecuteReaderAsync(ct);
-
-            if (await reader.ReadAsync(ct))
+            CommitteeDecisionResponse? response = null;
             {
-                var response = new CommitteeDecisionResponse(
-                    reader.GetGuid(reader.GetOrdinal("decision_id")),
-                    reader.GetGuid(reader.GetOrdinal("plan_id")),
-                    reader.GetString(reader.GetOrdinal("overall_decision")),
-                    reader.IsDBNull(reader.GetOrdinal("committee_remarks")) ? null : reader.GetString(reader.GetOrdinal("committee_remarks")),
-                    reader.GetDateTime(reader.GetOrdinal("meeting_date")),
-                    reader.GetDateTime(reader.GetOrdinal("created_at"))
-                );
+                await using var fetch = new NpgsqlCommand($"FETCH ALL IN \"{cursorName}\"", conn, tx);
+                await using var reader = await fetch.ExecuteReaderAsync(ct);
 
-                string nextStage = request.OverallDecision switch
+                if (await reader.ReadAsync(ct))
                 {
-                    "Recommended" => "budget_confirmation",
-                    "Returned" => "department_need_capture",
-                    _ => "app_approval" // Final rejection is a terminal-ish state in APP
-                };
-
-                await _workflowRuntimeTracker.SyncAsync(conn, tx, new WorkflowRuntimeSyncRequest(
-                    "procurement_plan",
-                    request.PlanId,
-                    nextStage,
-                    request.OverallDecision == "Recommended" ? "Submitted" : request.OverallDecision == "Returned" ? "Draft" : "Rejected",
-                    $"Committee Decision: {request.OverallDecision}",
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    request.CommitteeRemarks ?? "Committee decision recorded.",
-                    request.ChairmanUserId), ct);
-
-                await tx.CommitAsync(ct);
-                return Ok(response);
+                    response = new CommitteeDecisionResponse(
+                        reader.GetGuid(reader.GetOrdinal("decision_id")),
+                        reader.GetGuid(reader.GetOrdinal("plan_id")),
+                        reader.GetString(reader.GetOrdinal("overall_decision")),
+                        reader.IsDBNull(reader.GetOrdinal("committee_remarks")) ? null : reader.GetString(reader.GetOrdinal("committee_remarks")),
+                        reader.GetDateTime(reader.GetOrdinal("meeting_date")),
+                        reader.GetDateTime(reader.GetOrdinal("created_at"))
+                    );
+                }
             }
 
-            return Problem("Failed to submit committee decision.");
+            if (response is null)
+            {
+                return Problem("Failed to submit committee decision.");
+            }
+
+            string nextStage = request.OverallDecision switch
+            {
+                "Recommended" => "budget_confirmation",
+                "Returned" => "department_head_endorsement",
+                _ => "app_approval"
+            };
+
+            await _workflowRuntimeTracker.SyncAsync(conn, tx, new WorkflowRuntimeSyncRequest(
+                "procurement_plan",
+                request.PlanId,
+                nextStage,
+                request.OverallDecision == "Recommended" ? "Submitted" : request.OverallDecision == "Returned" ? "Draft" : "Rejected",
+                $"Committee Decision: {request.OverallDecision}",
+                null,
+                null,
+                null,
+                null,
+                null,
+                request.CommitteeRemarks ?? "Committee decision recorded.",
+                request.ChairmanUserId), ct);
+
+            await tx.CommitAsync(ct);
+            return Ok(response);
+
         }
         catch (Exception ex)
         {

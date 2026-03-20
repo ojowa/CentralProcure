@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Linq;
+using System.Security.Claims;
 using Npgsql;
 using NpgsqlTypes;
 using eProcurement.Modules.ProcurementWorkflow.DTOs;
@@ -34,6 +35,12 @@ public class EvaluationsController : ControllerBase
     [HttpGet("assigned-tenders/{assignmentKey?}")]
     public async Task<IActionResult> GetAssignedTenders(string? assignmentKey, CancellationToken ct)
     {
+        var roleKey = WorkflowActionGrantService.ResolveRoleKey(User);
+        if (string.IsNullOrWhiteSpace(roleKey))
+        {
+            return Ok(Array.Empty<AssignedTenderItem>());
+        }
+
         var connectionString = _config.GetConnectionString("Primary");
         if (string.IsNullOrWhiteSpace(connectionString))
         {
@@ -63,6 +70,15 @@ SELECT
     END AS is_locked
 FROM procurement_workflow.evaluation_reports r
 LEFT JOIN vendor_sourcing.tenders t ON t.tender_id = r.tender_id
+WHERE EXISTS (
+    SELECT 1
+    FROM procurement_workflow.workflow_instances wi
+    JOIN procurement_workflow.workflow_role_tasks wrt
+      ON wrt.stage_key = wi.current_stage_key
+    WHERE wi.entity_type = 'tender'
+      AND wi.entity_id = r.tender_id
+      AND wrt.role_key = @p_role_key
+)
 ORDER BY r.submitted_at DESC;";
 
         try
@@ -70,6 +86,7 @@ ORDER BY r.submitted_at DESC;";
             await using var conn = new NpgsqlConnection(connectionString);
             await conn.OpenAsync(ct);
             await using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("p_role_key", NpgsqlDbType.Varchar, roleKey);
 
             var results = new List<AssignedTenderItem>();
             await using var reader = await cmd.ExecuteReaderAsync(ct);
@@ -196,6 +213,7 @@ RETURNING action_id;";
             await using var conn = new NpgsqlConnection(connectionString);
             await conn.OpenAsync(ct);
             await using var tx = await conn.BeginTransactionAsync(ct);
+            var actor = NormalizeNullable(request.RequestedBy) ?? ResolveActor();
 
             var workflowMovement = ResolveWorkflowMovement(actionType);
             WorkflowInstanceState? currentTenderWorkflow = null;
@@ -244,7 +262,7 @@ RETURNING action_id;";
             cmd.Parameters.AddWithValue("justification", NpgsqlDbType.Text, (object?)request.Justification ?? DBNull.Value);
             cmd.Parameters.AddWithValue("recommendation", NpgsqlDbType.Varchar, (object?)request.Recommendation ?? DBNull.Value);
             cmd.Parameters.AddWithValue("threshold_note", NpgsqlDbType.Text, (object?)request.ThresholdNote ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("requested_by", NpgsqlDbType.Varchar, (object?)request.RequestedBy ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("requested_by", NpgsqlDbType.Varchar, (object?)actor ?? DBNull.Value);
 
             var actionId = (Guid?)await cmd.ExecuteScalarAsync(ct);
 
@@ -265,7 +283,7 @@ RETURNING action_id;";
                         currentTenderWorkflow.ProcurementType,
                         currentTenderWorkflow.ThresholdId,
                         workflowMovement.Reason,
-                        NormalizeNullable(request.RequestedBy),
+                        actor,
                         "evaluation_action"),
                     ct);
             }
@@ -291,6 +309,11 @@ RETURNING action_id;";
             _ => null
         };
     }
+
+    private string? ResolveActor()
+        => User.FindFirstValue(ClaimTypes.Email) ??
+           User.FindFirstValue(ClaimTypes.Name) ??
+           User.Identity?.Name;
 
     private static async Task<WorkflowInstanceState?> GetWorkflowInstanceAsync(
         NpgsqlConnection conn,

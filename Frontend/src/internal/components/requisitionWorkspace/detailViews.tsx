@@ -295,11 +295,13 @@ interface RequisitionDetailContentProps {
   activeStepIndex: number;
   isSelectedEditable: boolean;
   isDepartmentHead: boolean;
+  isAdmin: boolean;
   canEditDrafts: boolean;
   isSaving: boolean;
   workflowRuntime: WorkflowRuntimeSnapshot | null;
   onOpenSelectedForEdit: () => void;
   onSubmitSelectedDraft: () => void;
+  onDeleteRequisition: () => void;
   departmentHeadPanel?: ReactNode;
 }
 
@@ -308,11 +310,13 @@ export const RequisitionDetailContent = ({
   activeStepIndex,
   isSelectedEditable,
   isDepartmentHead,
+  isAdmin,
   canEditDrafts,
   isSaving,
   workflowRuntime,
   onOpenSelectedForEdit,
   onSubmitSelectedDraft,
+  onDeleteRequisition,
   departmentHeadPanel
 }: RequisitionDetailContentProps) => {
   const band = resolveThresholdRouting(detail.TotalEstimate, thresholdBands);
@@ -428,21 +432,33 @@ export const RequisitionDetailContent = ({
         </div>
       </div>
 
-      {isSelectedEditable && !isDepartmentHead ? (
-        <div className="requisition-actions">
-          <button type="button" className="plan-button" onClick={onOpenSelectedForEdit}>
-            Edit Draft
-          </button>
+      <div className="requisition-actions">
+        {isAdmin && (
           <button
             type="button"
-            className="plan-button plan-button--secondary"
-            disabled={isSaving || !canEditDrafts}
-            onClick={onSubmitSelectedDraft}
+            className="plan-button plan-button--secondary text-red-600 border-red-200 hover:bg-red-50"
+            disabled={isSaving}
+            onClick={onDeleteRequisition}
           >
-            {isSaving ? 'Submitting...' : 'Submit Requisition'}
+            Delete Requisition
           </button>
-        </div>
-      ) : null}
+        )}
+        {isSelectedEditable && !isDepartmentHead && (
+          <>
+            <button type="button" className="plan-button" onClick={onOpenSelectedForEdit}>
+              Edit Draft
+            </button>
+            <button
+              type="button"
+              className="plan-button plan-button--secondary"
+              disabled={isSaving || !canEditDrafts}
+              onClick={onSubmitSelectedDraft}
+            >
+              {isSaving ? 'Submitting...' : 'Submit Requisition'}
+            </button>
+          </>
+        )}
+      </div>
     </>
   );
 };

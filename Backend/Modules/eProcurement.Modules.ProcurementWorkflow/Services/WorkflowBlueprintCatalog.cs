@@ -8,38 +8,45 @@ internal static class WorkflowBlueprintCatalog
     [
         new("app_planning", "APP Planning", "Need capture, committee review, budget confirmation, and APP approval.", 1),
         new("threshold_control", "Threshold Control", "CGIS, Tenders Board, BPP gate, and procurement method validation.", 2),
-        new("procurement_execution", "Procurement Execution", "Solicitation, opening, evaluation, and approval routing.", 3),
+        new("procurement_execution", "Procurement Execution", "Advert/invitation, opening, evaluation, and approval routing.", 3),
         new("post_award", "Post-Award", "Award publication, contract delivery, inspection, and payment controls.", 4),
         new("review_and_oversight", "Review and Oversight", "Complaints, closeout, and audit traceability.", 5)
     ];
 
     private static readonly WorkflowStateResult[] States =
     [
-        new("department_need_capture", "app_planning", "Department Need Capture", "Capture yearly needs, justification, and draft APP entries.", 1, false, true, false, "PPA 2007 s.18", ["requisitioning_officer", "department_head"], ["app.draft", "app.submit"]),
-        new("planning_committee_review", "app_planning", "Planning Committee Review", "Validate need, packaging, aggregation, and cost assumptions.", 2, false, false, false, "PPA 2007 s.18, s.21", ["procurement_officer", "planning_statistics_officer", "financial_unit_officer", "legal_reviewer"], ["app.review"]),
-        new("budget_confirmation", "app_planning", "Budget Confirmation", "Confirm appropriation, affordability, and funding readiness.", 3, true, false, false, "PPA 2007 s.16, s.18", ["financial_unit_officer"], ["budget.confirm"]),
-        new("app_approval", "app_planning", "APP Approval", "Approve the annual procurement plan and release it for execution.", 4, true, false, false, "PPA 2007 s.16, s.18", ["procurement_manager", "accounting_officer"], ["app.approve"]),
-        new("procurement_initiation", "threshold_control", "Procurement Initiation", "Create a live procurement package from an approved APP line.", 5, false, false, false, "PPA 2007 s.16, s.19", ["requisitioning_officer", "procurement_officer"], ["procurement.initiate"]),
-        new("threshold_resolution", "threshold_control", "Threshold Resolution", "Resolve the CGIS, Board, or BPP approval path for the procurement package.", 6, true, false, false, "PPA 2007 s.16, s.17", ["procurement_officer", "procurement_manager"], ["threshold.resolve"]),
-        new("method_validation", "threshold_control", "Method Validation", "Validate open bidding by default and record any lawful exception.", 7, true, false, false, "PPA 2007 s.24-s.52", ["procurement_officer", "legal_reviewer"], ["method.validate"]),
-        new("solicitation", "procurement_execution", "Solicitation", "Publish advert, invitation, EOI, or RFP in the lawful format.", 8, false, false, false, "PPA 2007 s.19, s.25, s.44-s.48", ["procurement_officer"], ["solicitation.publish"]),
-        new("bid_opening", "procurement_execution", "Bid Opening", "Record public opening, attendance, and bid totals.", 9, false, false, false, "PPA 2007 s.30", ["procurement_officer", "evaluation_committee"], ["bid_opening.record"]),
-        new("evaluation", "procurement_execution", "Evaluation", "Evaluate only against the published criteria and issue recommendation.", 10, false, false, false, "PPA 2007 s.31-s.33, s.49-s.52", ["technical_evaluator", "financial_evaluator", "evaluation_committee"], ["evaluation.score", "evaluation.report"]),
-        new("tenders_board_review", "procurement_execution", "Tenders Board Review", "NIS Tenders Board review chaired by CGIS, with the board secretary maintaining the decision record.", 11, true, false, false, "PPA 2007 s.17, s.19, s.22", ["tenders_board", "tenders_board_secretary"], ["approval.review", "approval.decide"]),
-        new("accounting_officer_review", "procurement_execution", "CGIS Approval", "CGIS exercises the direct low-value approval authority before award publication.", 12, true, false, false, "PPA 2007 s.16, s.20", ["accounting_officer"], ["accounting_officer.decide"]),
-        new("bpp_no_objection", "procurement_execution", "BPP No Objection", "Submit and track the prior-review no-objection process when required.", 13, true, false, false, "PPA 2007 s.16, s.19", ["bpp_liaison", "bpp_reviewer"], ["bpp.submit", "bpp.review"]),
-        new("award_and_publication", "post_award", "Award and Publication", "Notify outcome, debrief on request, and publish award.", 14, false, false, false, "PPA 2007 s.19, s.33", ["procurement_officer", "procurement_manager"], ["award.publish"]),
-        new("contract_execution", "post_award", "Contract Execution", "Track contract signing, security, mobilisation, milestones, and variations.", 15, false, false, false, "PPA 2007 s.35-s.37", ["contract_manager", "procurement_officer"], ["contract.manage"]),
-        new("inspection_and_payment", "post_award", "Inspection and Payment", "Verify delivery, acceptance, and payment readiness.", 16, false, false, false, "PPA 2007 s.19, s.37", ["inspection_officer", "payment_officer"], ["inspection.record", "payment.track"]),
-        new("closeout_and_audit", "review_and_oversight", "Closeout and Audit", "Close the procurement file and preserve the audit record.", 17, false, false, true, "PPA 2007 s.16, s.38", ["audit_oversight", "admin"], ["closeout.archive"]),
-        new("administrative_review", "review_and_oversight", "Administrative Review", "Handle bidder complaints and statutory review paths.", 18, false, false, false, "PPA 2007 s.54", ["complaints_review_officer", "accounting_officer", "bpp_reviewer"], ["complaint.review"])
+        new("department_need_capture", "app_planning", "Department Need Capture", "Requisitioning Officer drafts and submits the departmental need.", 1, false, true, false, "PPA 2007 s.18", ["requisitioning_officer"], ["app.draft", "app.submit"]),
+        new("department_head_endorsement", "app_planning", "Department Head Endorsement", "Department Head endorses the departmental need before budget coding.", 2, false, false, false, "PPA 2007 s.18", ["department_head"], ["app.submit"]),
+        new("budget_code_allocation", "app_planning", "Budget Code Allocation", "Allocate budget code only before committee review.", 3, true, false, false, "PPA 2007 s.16, s.18", ["financial_unit_officer"], ["budget.confirm"]),
+        new("comptroller_procurement_review", "app_planning", "Comptroller Procurement Review", "Comptroller Procurement approves the request for Planning Committee review.", 4, false, false, false, "PPA 2007 s.18, s.21", ["procurement_officer"], ["app.review"]),
+        new("planning_committee_review", "app_planning", "Planning Committee Review", "Validate need, packaging, aggregation, and cost assumptions.", 5, false, false, false, "PPA 2007 s.18, s.21", ["procurement_officer", "planning_statistics_officer", "financial_unit_officer", "legal_reviewer"], ["app.review"]),
+        new("budget_confirmation", "app_planning", "Budget Final Confirmation", "Confirm appropriation, affordability, and funding readiness.", 6, true, false, false, "PPA 2007 s.16, s.18", ["financial_unit_officer"], ["budget.confirm"]),
+        new("app_approval", "app_planning", "APP Approval", "Approve the annual procurement plan and release it for execution.", 7, true, false, false, "PPA 2007 s.16, s.18", ["procurement_manager", "accounting_officer"], ["app.approve"]),
+        new("procurement_initiation", "threshold_control", "Procurement Initiation", "Create a live procurement package from an approved APP line.", 8, false, false, false, "PPA 2007 s.16, s.19", ["requisitioning_officer", "procurement_officer"], ["procurement.initiate"]),
+        new("threshold_resolution", "threshold_control", "Threshold Resolution", "Resolve the CGIS, Board, or BPP approval path for the procurement package.", 9, true, false, false, "PPA 2007 s.16, s.17", ["procurement_officer", "procurement_manager"], ["threshold.resolve"]),
+        new("method_validation", "threshold_control", "Method Validation", "Validate open bidding by default and record any lawful exception.", 10, true, false, false, "PPA 2007 s.24-s.52", ["procurement_officer", "legal_reviewer"], ["method.validate"]),
+        new("solicitation", "procurement_execution", "Advert / Invitation / EOI / RFP", "Publish advert, invitation, EOI, or RFP in the lawful format.", 11, false, false, false, "PPA 2007 s.19, s.25, s.44-s.48", ["procurement_officer"], ["solicitation.publish"]),
+        new("bid_opening", "procurement_execution", "Bid Opening", "Record public opening, attendance, and bid totals.", 12, false, false, false, "PPA 2007 s.30", ["procurement_officer", "evaluation_committee"], ["bid_opening.record"]),
+        new("evaluation", "procurement_execution", "Evaluation", "Evaluate only against the published criteria and issue recommendation.", 13, false, false, false, "PPA 2007 s.31-s.33, s.49-s.52", ["technical_evaluator", "financial_evaluator", "evaluation_committee"], ["evaluation.score", "evaluation.report"]),
+        new("tenders_board_review", "procurement_execution", "Tenders Board Review", "NIS Tenders Board review chaired by CGIS, with the board secretary maintaining the decision record.", 14, true, false, false, "PPA 2007 s.17, s.19, s.22", ["tenders_board", "tenders_board_secretary"], ["approval.review", "approval.decide"]),
+        new("accounting_officer_review", "procurement_execution", "CGIS Approval", "CGIS exercises the direct low-value approval authority before award publication.", 15, true, false, false, "PPA 2007 s.16, s.20", ["accounting_officer"], ["accounting_officer.decide"]),
+        new("bpp_no_objection", "procurement_execution", "BPP No Objection", "Submit and track the prior-review no-objection process when required.", 16, true, false, false, "PPA 2007 s.16, s.19", ["bpp_liaison", "bpp_reviewer"], ["bpp.submit", "bpp.review"]),
+        new("award_and_publication", "post_award", "Award and Publication", "Notify outcome, debrief on request, and publish award.", 17, false, false, false, "PPA 2007 s.19, s.33", ["procurement_officer", "procurement_manager"], ["award.publish"]),
+        new("contract_execution", "post_award", "Contract Execution", "Track contract signing, security, mobilisation, milestones, and variations.", 18, false, false, false, "PPA 2007 s.35-s.37", ["contract_manager", "procurement_officer"], ["contract.manage"]),
+        new("inspection_and_payment", "post_award", "Inspection and Payment", "Verify delivery, acceptance, and payment readiness.", 19, false, false, false, "PPA 2007 s.19, s.37", ["inspection_officer", "payment_officer"], ["inspection.record", "payment.track"]),
+        new("closeout_and_audit", "review_and_oversight", "Closeout and Audit", "Close the procurement file and preserve the audit record.", 20, false, false, true, "PPA 2007 s.16, s.38", ["audit_oversight", "admin"], ["closeout.archive"]),
+        new("administrative_review", "review_and_oversight", "Administrative Review", "Handle bidder complaints and statutory review paths.", 21, false, false, false, "PPA 2007 s.54", ["complaints_review_officer", "accounting_officer", "bpp_reviewer"], ["complaint.review"])
     ];
 
     private static readonly WorkflowTransitionResult[] Transitions =
     [
-        new("department_need_capture", "planning_committee_review", "Department submission is ready for committee review."),
-        new("planning_committee_review", "budget_confirmation", "Need and packaging assumptions are validated."),
-        new("budget_confirmation", "app_approval", "Appropriation and affordability are confirmed."),
+        new("department_need_capture", "department_head_endorsement", "Requisition officer submits departmental need for endorsement."),
+        new("department_head_endorsement", "budget_code_allocation", "Department Head endorsement completed."),
+        new("budget_code_allocation", "comptroller_procurement_review", "Budget code allocated for planning review."),
+        new("budget_code_allocation", "planning_committee_review", "Comptroller Procurement approval routes to planning committee review."),
+        new("comptroller_procurement_review", "planning_committee_review", "Comptroller Procurement approves for committee review."),
+        new("planning_committee_review", "budget_confirmation", "Committee review complete and routed for final budget confirmation."),
+        new("budget_confirmation", "app_approval", "Final budget confirmation complete."),
         new("app_approval", "procurement_initiation", "Approved APP line is activated."),
         new("procurement_initiation", "threshold_resolution", "Live procurement request has been created."),
         new("threshold_resolution", "method_validation", "Threshold route and approval path have been resolved."),
@@ -62,14 +69,16 @@ internal static class WorkflowBlueprintCatalog
 
     private static readonly WorkflowRoleTaskResult[] RoleTasks =
     [
-        new("requisitioning_officer", "Requisitioning Officer", "department_need_capture", "Draft APP need, scope, and justification.", "Department requirement enters the approved planning path."),
-        new("department_head", "Department Head", "department_need_capture", "Endorse departmental need and timing.", "Department submission is accountable."),
+        new("requisitioning_officer", "Requisitioning Officer", "department_need_capture", "Create and submit the departmental request.", "Department request is logged for endorsement."),
+        new("department_head", "Department Head", "department_head_endorsement", "Endorse the departmental request.", "Department endorsement is recorded."),
+        new("financial_unit_officer", "Budget Officer", "budget_code_allocation", "Allocate budget code for the request.", "Budget code is assigned."),
+        new("procurement_officer", "Comptroller Procurement", "comptroller_procurement_review", "Approve the request for Planning Committee review.", "Request is approved for committee consideration."),
         new("planning_statistics_officer", "Planning, Research and Statistics", "planning_committee_review", "Validate aggregation, sequencing, and annual planning assumptions.", "Planning package is coherent."),
-        new("financial_unit_officer", "Budget Officer", "budget_confirmation", "Confirm appropriation, releases, and affordability.", "Only funded APP entries progress."),
+        new("financial_unit_officer", "Budget Officer", "budget_confirmation", "Confirm final appropriation and affordability.", "Only funded APP entries progress."),
         new("procurement_officer", "Comptroller Procurement", "procurement_initiation", "Open a procurement package from an approved APP line as head of the procurement unit.", "Execution stays tied to APP control."),
         new("procurement_manager", "Procurement Manager", "threshold_resolution", "Validate whether the case falls to CGIS, the NIS Tenders Board, or BPP prior review.", "Approval path and external review trigger are explicit."),
         new("legal_reviewer", "Legal Reviewer", "method_validation", "Validate lawful procurement method and exceptions.", "Method choice is compliant."),
-        new("procurement_officer", "Comptroller Procurement", "solicitation", "Publish advert or invitation using the required route.", "Competition is opened lawfully."),
+        new("procurement_officer", "Comptroller Procurement", "solicitation", "Publish advert, invitation, EOI, or RFP using the required route.", "Competition is opened lawfully through the approved publication route."),
         new("technical_evaluator", "Technical Evaluator", "evaluation", "Perform technical scoring.", "Technical responsiveness is assessed."),
         new("financial_evaluator", "Financial Evaluator", "evaluation", "Perform arithmetic and financial review.", "Commercial comparison is accurate."),
         new("evaluation_committee", "Evaluation Committee", "evaluation", "Issue consolidated recommendation.", "Approval pack is ready."),

@@ -16,6 +16,8 @@ VALUES
     ('PlanningStatisticsOfficer', 'Reviews procurement planning assumptions and annual plan coherence'),
     ('FinancialUnitOfficer', 'Validates budget readiness and financial control requirements'),
     ('LegalReviewer', 'Reviews legal compliance, bidding documents, and contract terms'),
+    ('ProcurementSecretary', 'Planning committee secretary who records decisions and minutes'),
+    ('ComptrollerProcurement', 'Chair of the planning committee and head of procurement approval'),
     ('ComplaintsReviewOfficer', 'Handles administrative review and bidder complaints'),
     ('ContractManager', 'Manages awards and contract administration'),
     ('InspectionOfficer', 'Records inspection and acceptance'),

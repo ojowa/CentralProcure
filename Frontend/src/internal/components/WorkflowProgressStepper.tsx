@@ -2,38 +2,55 @@
 
 import React from 'react';
 
-export type WorkflowPhase = 'Planning' | 'Solicitation' | 'Evaluation' | 'Approval' | 'Post-Award';
+export type WorkflowPhase = 'Planning' | 'Advert / Invitation / EOI / RFP' | 'Evaluation' | 'Approval' | 'Post-Award';
 
 interface PhaseConfig {
-  label: WorkflowPhase;
+  id: WorkflowPhase;
+  label: string;
   states: string[];
   color: string;
 }
 
 const PHASES: PhaseConfig[] = [
   {
+    id: 'Planning',
     label: 'Planning',
-    states: ['draft_requisition', 'needs_assessment', 'budget_reservation'],
+    states: [
+      'department_need_capture',
+      'department_head_endorsement',
+      'budget_code_allocation',
+      'comptroller_procurement_review',
+      'planning_committee_review',
+      'budget_confirmation',
+      'app_approval',
+      'procurement_initiation',
+      'threshold_resolution',
+      'method_validation'
+    ],
     color: '#3b82f6' // Blue
   },
   {
-    label: 'Solicitation',
-    states: ['tender_preparation', 'advertisement', 'bid_submission'],
+    id: 'Advert / Invitation / EOI / RFP',
+    label: 'Advert / Invitation / EOI / RFP',
+    states: ['solicitation'],
     color: '#f59e0b' // Orange
   },
   {
+    id: 'Evaluation',
     label: 'Evaluation',
-    states: ['bid_opening', 'technical_evaluation', 'financial_comparison'],
+    states: ['bid_opening', 'evaluation'],
     color: '#a855f7' // Purple
   },
   {
+    id: 'Approval',
     label: 'Approval',
-    states: ['tenders_board_review', 'accounting_officer_approval', 'bpp_no_objection'],
+    states: ['tenders_board_review', 'accounting_officer_review', 'bpp_no_objection'],
     color: '#eab308' // Yellow
   },
   {
+    id: 'Post-Award',
     label: 'Post-Award',
-    states: ['contract_execution', 'inspection_and_payment', 'closeout_and_audit', 'archived'],
+    states: ['award_and_publication', 'contract_execution', 'inspection_and_payment', 'closeout_and_audit'],
     color: '#10b981' // NIS Green
   }
 ];
@@ -59,7 +76,7 @@ export const WorkflowProgressStepper: React.FC<Props> = ({ currentStageKey }) =>
 
         return (
           <div 
-            key={phase.label} 
+            key={phase.id} 
             className={`stepper-item ${statusClass}`}
             style={{ '--phase-color': phase.color } as React.CSSProperties}
           >

@@ -11,7 +11,7 @@ import { fetchInternalUnits } from '../services/internalAuthService';
 import { fetchBudgetSummary } from '../services/budgetService';
 import { fetchProcurementPlanItems } from '../services/procurementPlanItemService';
 import { fetchProcurementPlans } from '../services/procurementPlanService';
-import { fetchRequisitionDetail, fetchRequisitions, updateRequisition } from '../services/requisitionService';
+import { fetchRequisitionDetail, fetchRequisitions, updateRequisition, deleteRequisition } from '../services/requisitionService';
 import {
   fetchWorkflowActionSnapshot,
   fetchWorkflowRuntime,
@@ -108,8 +108,8 @@ export const RequisitionHistoryPage = ({ module, token, role, userEmail, onModul
 
     return {
       total: totalItems,
-      drafts: counts.Draft ?? 0,
-      active: (counts.Submitted ?? 0) + (counts['Under Review'] ?? 0) + (counts.Evaluation ?? 0) + (counts['Board Review'] ?? 0),
+      drafts: (counts.Draft ?? 0) + (counts.Submitted ?? 0) + (counts.Endorsed ?? 0),
+      active: (counts.Initial ?? 0) + (counts['Under Review'] ?? 0) + (counts.Evaluation ?? 0) + (counts['Board Review'] ?? 0),
       approved: counts.Approved ?? 0
     };
   }, [requisitions, totalItems]);
@@ -273,6 +273,29 @@ export const RequisitionHistoryPage = ({ module, token, role, userEmail, onModul
     }
   };
 
+  const handleDeleteRequisition = async () => {
+    if (!token || !selectedDetail || role !== 'admin') {
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to permanently delete requisition "${selectedDetail.Title}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await deleteRequisition(token, selectedDetail.RequisitionId);
+      setIsDetailModalOpen(false);
+      setSelectedId(null);
+      setSelectedDetail(null);
+      await loadRequisitions();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Failed to delete requisition.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const applyDepartmentHeadAction = async () => {
     const actionConfig = resolveDepartmentHeadAction(selectedDetail);
     if (!token || !selectedDetail || !isDepartmentHead || !actionConfig) {
@@ -370,11 +393,13 @@ export const RequisitionHistoryPage = ({ module, token, role, userEmail, onModul
                 activeStepIndex={activeStepIndex}
                 isSelectedEditable={isSelectedEditable}
                 isDepartmentHead={isDepartmentHead}
+                isAdmin={role === 'admin'}
                 canEditDrafts={canEditDrafts}
                 isSaving={isSaving}
                 workflowRuntime={workflowRuntime}
                 onOpenSelectedForEdit={openSelectedForEdit}
                 onSubmitSelectedDraft={() => void submitSelectedDraft()}
+                onDeleteRequisition={() => void handleDeleteRequisition()}
                 departmentHeadPanel={
                   isDepartmentHead ? (
                     <DepartmentHeadPanel

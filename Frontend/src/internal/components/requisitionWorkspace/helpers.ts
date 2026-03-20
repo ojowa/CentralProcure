@@ -15,11 +15,11 @@ import type {
 } from '../../types/internal';
 import { formatDate, getBudgetCheck } from '../../utils/procureUtils';
 
-export const DEPARTMENT_HEAD_QUEUE_STATUSES = new Set(['Draft', 'Submitted', 'Rejected', 'Under Review']);
+export const DEPARTMENT_HEAD_QUEUE_STATUSES = new Set(['Draft', 'Submitted', 'Endorsed', 'Rejected', 'Under Review']);
 
 export type DepartmentHeadActionConfig = {
   label: string;
-  nextStatus: 'Submitted' | 'Under Review';
+  nextStatus: 'Submitted' | 'Endorsed' | 'Under Review';
   helper: string;
 };
 
@@ -235,9 +235,11 @@ export const getStepIndex = (detail: RequisitionDetail | null): number => {
 
   switch (detail.Status) {
     case 'Draft':
+    case 'Submitted':
+    case 'Endorsed':
     case 'Rejected':
       return 0;
-    case 'Submitted':
+    case 'Initial':
     case 'Under Review':
       return 1;
     case 'Evaluation':
@@ -260,15 +262,21 @@ export const resolveDepartmentHeadAction = (detail: RequisitionDetail | null): D
     case 'Draft':
     case 'Rejected':
       return {
-        label: 'Endorse and Submit',
+        label: 'Submit to Department Head',
         nextStatus: 'Submitted',
-        helper: 'Release the requisition from the department into live procurement routing.'
+        helper: 'Submit the requisition for department head endorsement.'
       };
     case 'Submitted':
       return {
-        label: 'Confirm Department Review',
+        label: 'Endorse Request',
+        nextStatus: 'Endorsed',
+        helper: 'Record department head endorsement before budget code allocation.'
+      };
+    case 'Under Review':
+      return {
+        label: 'Update Review Note',
         nextStatus: 'Under Review',
-        helper: 'Record that the department head has validated scope, timing, and readiness.'
+        helper: 'Refresh the department head note without changing the current workflow stage.'
       };
     case 'Under Review':
       return {
@@ -284,14 +292,16 @@ export const resolveDepartmentHeadAction = (detail: RequisitionDetail | null): D
 export const buildDepartmentHeadReviewNote = (
   existing: string | null | undefined,
   note: string,
-  nextStatus: 'Submitted' | 'Under Review',
+  nextStatus: 'Submitted' | 'Endorsed' | 'Under Review',
   userEmail?: string | null
 ): string => {
   const timestamp = new Date().toISOString();
   const defaultNote =
     nextStatus === 'Submitted'
-      ? 'Department head endorsed the requisition and released it for procurement review.'
-      : 'Department head confirmed the requisition is ready for downstream processing.';
+      ? 'Requisition submitted for department head endorsement.'
+      : nextStatus === 'Endorsed'
+        ? 'Department head endorsed the requisition.'
+        : 'Department head confirmed the requisition is ready for downstream processing.';
   const entry = `[Department Head Review | ${timestamp}${userEmail ? ` | ${userEmail}` : ''}] ${note.trim() || defaultNote}`;
 
   return [existing?.trim(), entry].filter((value): value is string => Boolean(value)).join('\n\n');

@@ -10,8 +10,11 @@ type Props = {
 
 const stageOptions = [
   { value: '', label: 'All active stages' },
+  { value: 'budget_alignment', label: 'Budget alignment (endorsed)' },
+  { value: 'budget_code_allocation', label: 'Budget Code Allocation' },
+  { value: 'comptroller_procurement_review', label: 'Comptroller Procurement Review' },
   { value: 'planning_committee_review', label: 'Planning Committee Review' },
-  { value: 'budget_confirmation', label: 'Budget Confirmation' },
+  { value: 'budget_confirmation', label: 'Budget Final Confirmation' },
   { value: 'app_approval', label: 'APP Approval' }
 ];
 
@@ -58,7 +61,7 @@ export const BudgetFilters = ({ filters, onFilterChange }: Props) => {
             className="plan-input"
             value={filters.query}
             onChange={(event) => onFilterChange({ query: event.target.value })}
-            placeholder="Plan title, department, budget code"
+            placeholder="Title, department, or budget code"
           />
         </label>
       </div>

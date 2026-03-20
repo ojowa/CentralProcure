@@ -105,8 +105,9 @@ SELECT
     'requisition',
     r.requisition_id,
     CASE
-        WHEN r.status = 'Draft' THEN 'procurement_initiation'
-        WHEN r.status IN ('Submitted', 'Under Review') THEN 'threshold_resolution'
+        WHEN r.status IN ('Draft', 'Submitted') THEN 'department_need_capture'
+        WHEN r.status = 'Endorsed' THEN 'department_head_endorsement'
+        WHEN r.status IN ('Initial', 'Under Review') THEN 'threshold_resolution'
         WHEN r.status = 'Evaluation' THEN 'evaluation'
         WHEN r.status = 'Board Review' THEN 'tenders_board_review'
         WHEN r.status = 'Approved' THEN 'accounting_officer_review'

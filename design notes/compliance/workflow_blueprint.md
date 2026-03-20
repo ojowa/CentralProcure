@@ -36,7 +36,7 @@ This blueprint covers three linked layers:
 The supporting diagram is in [ppa-2007-holistic-workflow.mmd](./diagrams/ppa-2007-holistic-workflow.mmd).
 
 ```text
-Department Need -> Planning Committee Review -> Budget Confirmation -> APP Approval
+Department Need -> Department Head Endorsement -> Budget Code Allocation -> Comptroller Procurement Review -> Planning Committee Review -> Budget Final Confirmation -> APP Approval
 -> Procurement Initiation -> Threshold Resolution -> Method Validation -> Solicitation
 -> Bid Receipt/Opening -> Evaluation -> Tenders Board Review -> Accounting Officer Review
 -> BPP No Objection when required -> Award/Publication -> Contract Execution
@@ -59,32 +59,38 @@ Exception branch: Complaint -> Accounting Officer Review -> BPP Review -> Court
 
 | Sequence | State Key | Phase | Primary Owners | Notes |
 | --- | --- | --- | --- | --- |
-| 1 | `department_need_capture` | `app_planning` | requisitioning_officer, department_head | Department raises yearly need |
-| 2 | `planning_committee_review` | `app_planning` | procurement_officer, planning_statistics_officer, financial_unit_officer, legal_reviewer | Section 21 committee review |
-| 3 | `budget_confirmation` | `app_planning` | financial_unit_officer | Budget line and availability gate |
-| 4 | `app_approval` | `app_planning` | procurement_manager, accounting_officer | Annual Procurement Plan approved |
-| 5 | `procurement_initiation` | `threshold_control` | requisitioning_officer, procurement_officer | Approved APP line moves into execution |
-| 6 | `threshold_resolution` | `threshold_control` | procurement_officer, procurement_manager | Determine route, board, and BPP needs |
-| 7 | `method_validation` | `threshold_control` | procurement_officer, legal_reviewer | Open bidding default, exceptions justified |
-| 8 | `solicitation` | `procurement_execution` | procurement_officer | Advert/invite/EOI/RFP issued |
-| 9 | `bid_opening` | `procurement_execution` | procurement_officer, evaluation_committee | Public opening and records |
-| 10 | `evaluation` | `procurement_execution` | technical_evaluator, financial_evaluator, evaluation_committee | Objective published criteria only |
-| 11 | `tenders_board_review` | `procurement_execution` | tenders_board, tenders_board_secretary | Threshold-based board decision |
-| 12 | `accounting_officer_review` | `procurement_execution` | accounting_officer | Statutory accountability gate |
-| 13 | `bpp_no_objection` | `procurement_execution` | bpp_liaison, bpp_reviewer | Prior review path where required |
-| 14 | `award_and_publication` | `post_award` | procurement_officer, procurement_manager | Award notice and debriefing |
-| 15 | `contract_execution` | `post_award` | contract_manager, procurement_officer | Performance guarantee, mobilisation, milestones |
-| 16 | `inspection_and_payment` | `post_award` | inspection_officer, payment_officer | Acceptance and payment controls |
-| 17 | `closeout_and_audit` | `review_and_oversight` | audit_oversight, admin | Completion, archive, audit trail |
-| 18 | `administrative_review` | `review_and_oversight` | complaints_review_officer, accounting_officer, bpp_reviewer | Section 54 complaint branch |
+| 1 | `department_need_capture` | `app_planning` | requisitioning_officer | Department raises yearly need |
+| 2 | `department_head_endorsement` | `app_planning` | department_head | Department head endorsement of the need |
+| 3 | `budget_code_allocation` | `app_planning` | financial_unit_officer | Budget code allocation only |
+| 4 | `comptroller_procurement_review` | `app_planning` | procurement_officer | Comptroller Procurement approval before committee review |
+| 5 | `planning_committee_review` | `app_planning` | procurement_officer, planning_statistics_officer, financial_unit_officer, legal_reviewer | Section 21 committee review |
+| 6 | `budget_confirmation` | `app_planning` | financial_unit_officer | Final budget confirmation |
+| 7 | `app_approval` | `app_planning` | procurement_manager, accounting_officer | Annual Procurement Plan approved |
+| 8 | `procurement_initiation` | `threshold_control` | requisitioning_officer, procurement_officer | Approved APP line moves into execution |
+| 9 | `threshold_resolution` | `threshold_control` | procurement_officer, procurement_manager | Determine route, board, and BPP needs |
+| 10 | `method_validation` | `threshold_control` | procurement_officer, legal_reviewer | Open bidding default, exceptions justified |
+| 11 | `solicitation` | `procurement_execution` | procurement_officer | Advert/invite/EOI/RFP issued |
+| 12 | `bid_opening` | `procurement_execution` | procurement_officer, evaluation_committee | Public opening and records |
+| 13 | `evaluation` | `procurement_execution` | technical_evaluator, financial_evaluator, evaluation_committee | Objective published criteria only |
+| 14 | `tenders_board_review` | `procurement_execution` | tenders_board, tenders_board_secretary | Threshold-based board decision |
+| 15 | `accounting_officer_review` | `procurement_execution` | accounting_officer | Statutory accountability gate |
+| 16 | `bpp_no_objection` | `procurement_execution` | bpp_liaison, bpp_reviewer | Prior review path where required |
+| 17 | `award_and_publication` | `post_award` | procurement_officer, procurement_manager | Award notice and debriefing |
+| 18 | `contract_execution` | `post_award` | contract_manager, procurement_officer | Performance guarantee, mobilisation, milestones |
+| 19 | `inspection_and_payment` | `post_award` | inspection_officer, payment_officer | Acceptance and payment controls |
+| 20 | `closeout_and_audit` | `review_and_oversight` | audit_oversight, admin | Completion, archive, audit trail |
+| 21 | `administrative_review` | `review_and_oversight` | complaints_review_officer, accounting_officer, bpp_reviewer | Section 54 complaint branch |
 
 ### Transition Rules
 
 | From | To | Condition |
 | --- | --- | --- |
-| `department_need_capture` | `planning_committee_review` | Department draft submitted |
+| `department_need_capture` | `department_head_endorsement` | Requisition officer submits departmental need |
+| `department_head_endorsement` | `budget_code_allocation` | Department head endorsement completed |
+| `budget_code_allocation` | `comptroller_procurement_review` | Budget code allocated |
+| `comptroller_procurement_review` | `planning_committee_review` | Comptroller Procurement approves for committee review |
 | `planning_committee_review` | `budget_confirmation` | Need, packaging, and costing validated |
-| `budget_confirmation` | `app_approval` | Appropriation confirmed |
+| `budget_confirmation` | `app_approval` | Final budget confirmation completed |
 | `app_approval` | `procurement_initiation` | Approved APP line activated |
 | `procurement_initiation` | `threshold_resolution` | Requisition or procurement request created |
 | `threshold_resolution` | `method_validation` | Threshold and route resolved |

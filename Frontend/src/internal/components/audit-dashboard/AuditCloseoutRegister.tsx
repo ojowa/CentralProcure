@@ -13,8 +13,16 @@ const formatDateTimeShort = (value?: string | null) => {
   });
 };
 
-const toTitle = (value?: string | null) =>
-  value ? value.replace(/_/g, ' ').split(' ').map(p => p ? p[0].toUpperCase() + p.slice(1) : p).join(' ') : 'Unspecified';
+const toTitle = (value?: string | null) => {
+  const normalized = (value ?? '').trim().toLowerCase();
+  if (normalized === 'accounting_officer_review') {
+    return 'CGIS Approval';
+  }
+
+  return value
+    ? value.replace(/_/g, ' ').split(' ').map(p => p ? p[0].toUpperCase() + p.slice(1) : p).join(' ')
+    : 'Unspecified';
+};
 
 type Props = {
   closeouts: AuditCloseoutItem[];

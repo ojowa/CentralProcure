@@ -24,6 +24,9 @@ public sealed class WorkflowActionGrantService
         new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
         {
             ["department_need_capture"] = ["procurement_plan.create", "procurement_plan.update"],
+            ["department_head_endorsement"] = ["procurement_plan.update"],
+            ["budget_code_allocation"] = ["budget.confirm"],
+            ["comptroller_procurement_review"] = ["procurement_plan.update"],
             ["planning_committee_review"] = ["planning_committee.review"],
             ["budget_confirmation"] = ["budget.confirm"],
             ["app_approval"] = ["procurement_plan.approve"],
@@ -47,6 +50,9 @@ public sealed class WorkflowActionGrantService
         new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
         {
             ["department_need_capture"] = ["procurement_plan.manage", "requisition.create", "requisition.view", "requisition.track"],
+            ["department_head_endorsement"] = ["procurement_plan.manage", "requisition.create", "requisition.view", "requisition.track"],
+            ["budget_code_allocation"] = ["planning_committee.view"],
+            ["comptroller_procurement_review"] = ["planning_committee.view"],
             ["planning_committee_review"] = ["planning_committee.view"],
             ["budget_confirmation"] = ["planning_committee.view"],
             ["app_approval"] = ["procurement_plan.manage", "requisition.view", "requisition.track"],
@@ -199,6 +205,8 @@ WHERE role_key = @p_role_key;", conn);
             "procurement_planning_committee" => "planning_statistics_officer",
             "bpp_liaison" => "bpp_liaison",
             "bpp_reviewer" => "bpp_reviewer",
+            "procurementsecretary" => "procurement_secretary",
+            "comptrollerprocurement" => "comptroller_procurement",
             var value => value
         };
     }

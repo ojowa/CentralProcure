@@ -44,17 +44,25 @@ export const formatDateTimeShort = (value?: string | null): string => {
   });
 };
 
-export const toTitle = (value: string): string =>
-  value
+export const toTitle = (value: string): string => {
+  const key = value.trim().toLowerCase();
+  if (key === 'accounting_officer_review') {
+    return 'CGIS Approval';
+  }
+
+  return value
     .replace(/_/g, ' ')
     .split(' ')
     .map((part) => (part ? part[0].toUpperCase() + part.slice(1) : part))
     .join(' ');
+};
 
 export const requisitionStatusTone = (status: string): string => {
   switch (status) {
     case 'Approved':
       return 'admin-status--good';
+    case 'Initial':
+    case 'Endorsed':
     case 'Submitted':
     case 'Under Review':
     case 'Evaluation':
@@ -66,6 +74,19 @@ export const requisitionStatusTone = (status: string): string => {
       return '';
   }
 };
+
+export const getVarianceColor = (variance: number): string => {
+  if (variance >= 0) return 'variance-positive';
+  return 'variance-negative';
+};
+
+export const formatVariance = (variance: number, available: number, requested: number): string => {
+  const absVariance = Math.abs(variance);
+  if (absVariance === 0) return 'On budget';
+  const percentage = ((absVariance / available) * 100).toFixed(1);
+  return variance >= 0 ? `+${formatCurrency(absVariance)} (${percentage}%)` : `-${formatCurrency(absVariance)} (${percentage}%)`;
+};
+
 
 export const resolveThresholdRouting = (amount: number, thresholdBands: ThresholdBand[]): ThresholdBand => {
   const safeAmount = Number.isFinite(amount) ? Math.max(amount, 0) : 0;

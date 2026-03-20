@@ -24,14 +24,20 @@ const REVIEW_OUTCOMES = [
   'Dismiss Complaint'
 ] as const;
 
-const toTitle = (value?: string | null) =>
-  value
+const toTitle = (value?: string | null) => {
+  const normalized = (value ?? '').trim().toLowerCase();
+  if (normalized === 'accounting_officer_review') {
+    return 'CGIS Approval';
+  }
+
+  return value
     ? value
         .replace(/_/g, ' ')
         .split(' ')
         .map((part) => (part ? part[0].toUpperCase() + part.slice(1) : part))
         .join(' ')
     : 'Unspecified';
+};
 
 const formatDateTimeShort = (value?: string | null) => {
   if (!value) {

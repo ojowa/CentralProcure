@@ -101,8 +101,8 @@ SELECT
     p.plan_title,
     p.status AS plan_status,
     p.total_budget,
-    COALESCE(wi.current_stage_key, CASE WHEN p.status = 'Submitted' THEN 'planning_committee_review' ELSE 'department_need_capture' END) AS current_stage_key,
-    COALESCE(sc.stage_title, CASE WHEN p.status = 'Submitted' THEN 'Planning Committee Review' ELSE 'Department Need Capture' END) AS current_stage_title
+    COALESCE(wi.current_stage_key, CASE WHEN p.status = 'Initial' THEN 'budget_code_allocation' ELSE 'department_need_capture' END) AS current_stage_key,
+    COALESCE(sc.stage_title, CASE WHEN p.status = 'Initial' THEN 'Budget Code Allocation' ELSE 'Department Need Capture' END) AS current_stage_title
 FROM procurement_workflow.procurement_plans p
 LEFT JOIN procurement_workflow.workflow_instances wi
     ON wi.entity_type = 'procurement_plan'
@@ -148,14 +148,14 @@ FOR UPDATE;";
         return decision switch
         {
             "start_review" when string.Equals(currentStageKey, "planning_committee_review", StringComparison.OrdinalIgnoreCase)
-                => new DecisionTarget("budget_confirmation", "Budget Confirmation", "Under Review", "Submitted", "Budget review started."),
+                => new DecisionTarget("budget_confirmation", "Budget Final Confirmation", "Under Review", "Initial", "Budget review started."),
             "confirm" when string.Equals(currentStageKey, "planning_committee_review", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(currentStageKey, "budget_confirmation", StringComparison.OrdinalIgnoreCase)
-                => new DecisionTarget("app_approval", "APP Approval", "Budget Confirmed", "Submitted", "Funding confirmed and routed for APP approval."),
+                => new DecisionTarget("app_approval", "APP Approval", "Budget Confirmed", "Initial", "Funding confirmed and routed for APP approval."),
             "hold"
                 => new DecisionTarget(currentStageKey, currentStageTitle, "On Hold", currentPlanStatus, "Plan placed on hold for budget clarification."),
             "return"
-                => new DecisionTarget("planning_committee_review", "Planning Committee Review", "Returned", "Draft", "Plan returned for planning correction."),
+                => new DecisionTarget("comptroller_procurement_review", "Comptroller Procurement Review", "Returned", "Draft", "Plan returned for procurement correction."),
             "reject"
                 => new DecisionTarget(currentStageKey, currentStageTitle, "Rejected", "Rejected", "Plan rejected at budget review."),
             _ => throw new InvalidOperationException("Decision must be one of: start_review, confirm, hold, return, reject.")

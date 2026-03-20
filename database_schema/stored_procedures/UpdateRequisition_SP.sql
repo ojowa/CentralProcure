@@ -40,14 +40,17 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
     RETURN CASE
-        WHEN p_status IS NULL THEN 'department_user'
-        WHEN p_status ILIKE 'Submitted' THEN 'procurement_officer'
-        WHEN p_status ILIKE 'Under Review' THEN 'procurement_officer'
+        WHEN p_status IS NULL THEN 'department_need_capture'
+        WHEN p_status ILIKE 'Draft' THEN 'department_need_capture'
+        WHEN p_status ILIKE 'Submitted' THEN 'department_need_capture'
+        WHEN p_status ILIKE 'Endorsed' THEN 'department_head_endorsement'
+        WHEN p_status ILIKE 'Initial' THEN 'budget_code_allocation'
+        WHEN p_status ILIKE 'Under Review' THEN 'planning_committee_review'
         WHEN p_status ILIKE 'Evaluation' THEN 'evaluation_committee'
         WHEN p_status ILIKE 'Board Review' THEN 'tenders_board'
         WHEN p_status ILIKE 'Approved' THEN 'accounting_officer'
-        WHEN p_status ILIKE 'Rejected' THEN 'department_user'
-        ELSE 'department_user'
+        WHEN p_status ILIKE 'Rejected' THEN 'department_need_capture'
+        ELSE 'department_need_capture'
     END;
 END;
 $$;
@@ -114,6 +117,7 @@ DECLARE
     v_item_budget_code VARCHAR(60);
     v_item_status VARCHAR(30);
     v_unit_id UUID;
+    v_linked_requisition_id UUID;
 BEGIN
     SELECT r.department, r.unit_id, r.budget_code, r.app_item_id, r.procurement_type, r.status, r.required_by
     INTO v_existing_department, v_existing_unit_id, v_existing_budget_code, v_existing_app_item_id, v_existing_proc_type, v_existing_status, v_existing_required_by
@@ -126,6 +130,10 @@ BEGIN
     v_status := COALESCE(p_status, v_existing_status);
     v_required_by := COALESCE(p_required_by, v_existing_required_by);
     v_unit_id := COALESCE(p_unit_id, v_existing_unit_id);
+
+    IF p_app_item_id IS NOT NULL AND v_existing_app_item_id IS NOT NULL AND v_existing_app_item_id <> p_app_item_id THEN
+        RAISE EXCEPTION USING ERRCODE = 'P0001', MESSAGE = 'Requisition is already linked to an APP item.';
+    END IF;
 
     IF v_unit_id IS NOT NULL THEN
         SELECT ou.unit_id, ou.unit_name
@@ -173,8 +181,19 @@ BEGIN
             RAISE EXCEPTION USING ERRCODE = 'P0001', MESSAGE = 'APP line item is not active.';
         END IF;
 
-        IF v_plan_status <> 'Approved' THEN
-            RAISE EXCEPTION USING ERRCODE = 'P0001', MESSAGE = 'Procurement plan must be approved for this APP item.';
+        IF v_plan_status <> 'Under Review' THEN
+            RAISE EXCEPTION USING ERRCODE = 'P0001', MESSAGE = 'Procurement plan must be under review for this APP item.';
+        END IF;
+
+        SELECT r.requisition_id
+        INTO v_linked_requisition_id
+        FROM procurement_workflow.requisitions r
+        WHERE r.app_item_id = v_app_item_id
+          AND r.requisition_id <> p_requisition_id
+        LIMIT 1;
+
+        IF v_linked_requisition_id IS NOT NULL THEN
+            RAISE EXCEPTION USING ERRCODE = 'P0001', MESSAGE = 'APP item is already linked to another requisition.';
         END IF;
 
         IF v_plan_department IS NOT NULL AND v_department IS NOT NULL AND v_plan_department <> v_department THEN
@@ -249,7 +268,7 @@ BEGIN
 
     v_fiscal_year := COALESCE(EXTRACT(YEAR FROM v_required_by)::int, EXTRACT(YEAR FROM NOW())::int);
 
-    IF v_status IN ('Submitted', 'Under Review', 'Evaluation', 'Board Review', 'Approved') AND v_budget_code IS NOT NULL AND btrim(v_budget_code) <> '' THEN
+    IF v_status IN ('Initial', 'Under Review', 'Evaluation', 'Board Review', 'Approved') AND v_budget_code IS NOT NULL AND btrim(v_budget_code) <> '' THEN
         PERFORM procurement_workflow.reserve_budget_for_requisition(
             p_requisition_id,
             v_budget_code,
@@ -257,7 +276,7 @@ BEGIN
             v_fiscal_year,
             v_total_estimate
         );
-    ELSIF v_status IN ('Draft', 'Rejected', 'Cancelled') THEN
+    ELSIF v_status IN ('Draft', 'Submitted', 'Endorsed', 'Rejected', 'Cancelled') THEN
         PERFORM procurement_workflow.release_budget_for_requisition(p_requisition_id);
     END IF;
 

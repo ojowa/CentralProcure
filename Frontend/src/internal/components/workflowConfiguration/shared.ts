@@ -1,11 +1,17 @@
 export const EMPTY_GUID = '00000000-0000-0000-0000-000000000000';
 
-export const toTitle = (value: string) =>
-  value
+export const toTitle = (value: string) => {
+  const key = value.trim().toLowerCase();
+  if (key === 'accounting_officer_review') {
+    return 'CGIS Approval';
+  }
+
+  return value
     .replace(/_/g, ' ')
     .split(' ')
     .map((part) => (part ? part[0].toUpperCase() + part.slice(1) : part))
     .join(' ');
+};
 
 export const formatCurrency = (value: number) =>
   new Intl.NumberFormat('en-NG', {

@@ -69,9 +69,10 @@ DECLARE
     v_existing_id UUID;
     v_existing_amount DECIMAL(18, 2);
     v_available DECIMAL(18, 2);
+    v_appropriation_id UUID;
 BEGIN
     IF p_budget_code IS NULL OR btrim(p_budget_code) = '' THEN
-        RAISE EXCEPTION USING ERRCODE = 'P0001', MESSAGE = 'BudgetCode is required for budget reservation.';
+        RETURN;
     END IF;
 
     IF p_amount IS NULL OR p_amount <= 0 THEN
@@ -88,6 +89,20 @@ BEGIN
 
     v_available := procurement_workflow.get_budget_available(p_budget_code, p_department, p_fiscal_year);
 
+    SELECT a.appropriation_id
+    INTO v_appropriation_id
+    FROM procurement_workflow.budget_appropriations a
+    WHERE a.budget_code = p_budget_code
+      AND a.department = p_department
+      AND a.fiscal_year = p_fiscal_year
+      AND a.status = 'Active'
+    ORDER BY a.created_at DESC
+    LIMIT 1;
+
+    IF v_appropriation_id IS NULL THEN
+        RAISE EXCEPTION USING ERRCODE = 'P0001', MESSAGE = 'Active appropriation not found for this budget code, department, and fiscal year.';
+    END IF;
+
     IF v_existing_id IS NOT NULL THEN
         v_available := v_available + v_existing_amount;
     END IF;
@@ -98,6 +113,7 @@ BEGIN
 
     IF v_existing_id IS NULL THEN
         INSERT INTO procurement_workflow.budget_commitments (
+            appropriation_id,
             requisition_id,
             fiscal_year,
             department,
@@ -107,6 +123,7 @@ BEGIN
             committed_at
         )
         VALUES (
+            v_appropriation_id,
             p_requisition_id,
             p_fiscal_year,
             p_department,
@@ -118,6 +135,7 @@ BEGIN
     ELSE
         UPDATE procurement_workflow.budget_commitments
         SET
+            appropriation_id = v_appropriation_id,
             fiscal_year = p_fiscal_year,
             department = p_department,
             budget_code = p_budget_code,

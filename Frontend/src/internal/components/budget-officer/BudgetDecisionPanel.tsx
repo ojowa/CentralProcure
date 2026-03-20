@@ -1,14 +1,41 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import type { BudgetConfirmationDetail, BudgetConfirmationQueueItem } from '../../types/internal';
+import { useCallback, useEffect } from 'react';
+import type { BudgetConfirmationDetail } from '../../types/internal';
+import { formatCurrency, getVarianceColor } from '../../utils/procureUtils';
+
+interface DecisionConfig {
+  label: string;
+  className: string;
+  icon: string;
+}
 
 const decisionConfig = {
-  start_review: { label: 'Start Budget Review', className: 'plan-button plan-button--secondary' },
-  confirm: { label: 'Confirm Funding', className: 'plan-button' },
-  hold: { label: 'Place On Hold', className: 'plan-button plan-button--secondary' },
-  return: { label: 'Return for Correction', className: 'plan-button plan-button--secondary' },
-  reject: { label: 'Reject Budget Support', className: 'plan-button plan-button--danger' }
+  start_review: {
+    label: 'Start Review',
+    className: 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-200',
+    icon: '📝'
+  },
+  confirm: {
+    label: 'Confirm Funding',
+    className: 'bg-green-100 hover:bg-green-200 text-green-800 border-green-200 shadow-md shadow-green-200/50',
+    icon: '✅'
+  },
+  hold: {
+    label: 'Place On Hold',
+    className: 'bg-yellow-100 hover:bg-yellow-200 text-yellow-800 border-yellow-200',
+    icon: '⏸️'
+  },
+  return: {
+    label: 'Return for Correction',
+    className: 'bg-orange-100 hover:bg-orange-200 text-orange-800 border-orange-200',
+    icon: '↩️'
+  },
+  reject: {
+    label: 'Reject Request',
+    className: 'bg-red-100 hover:bg-red-200 text-red-800 border-red-200 shadow-md shadow-red-200/50',
+    icon: '❌'
+  }
 } as const;
 
 type DecisionKey = keyof typeof decisionConfig;
@@ -16,12 +43,11 @@ type DecisionKey = keyof typeof decisionConfig;
 type Props = {
   isOpen: boolean;
   onClose: () => void;
-  selectedQueueItem: BudgetConfirmationQueueItem | null;
   detail: BudgetConfirmationDetail | null;
   availableDecisions: DecisionKey[];
   decisionNote: string;
   onNoteChange: (note: string) => void;
-  onDecision: (decision: DecisionKey) => void;
+  onDecision: (decision: DecisionKey, note: string) => void;
   canTakeDecisions: boolean;
   isSaving: boolean;
   error?: string | null;
@@ -30,7 +56,6 @@ type Props = {
 export const BudgetDecisionPanel = ({
   isOpen,
   onClose,
-  selectedQueueItem,
   detail,
   availableDecisions,
   decisionNote,
@@ -40,180 +65,130 @@ export const BudgetDecisionPanel = ({
   isSaving,
   error
 }: Props) => {
-  // Lock scroll when open
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
+    if (isOpen) document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = 'unset';
     };
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !detail) return null;
+
+  const handleDecision = useCallback(
+    (decision: DecisionKey) => {
+      onDecision(decision, decisionNote);
+    },
+    [onDecision, decisionNote]
+  );
 
   return (
-    <div className="budget-modal-overlay animate-fade" onClick={onClose}>
-      <div 
-        className="budget-modal-card animate-rise-in" 
-        onClick={(e) => e.stopPropagation()} 
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md animate-in fade-in zoom-in duration-200"
+      onClick={onClose}
+    >
+      <div
+        className="budget-modal-card max-w-2xl w-full max-h-[90vh] overflow-hidden bg-white/95 backdrop-blur-xl shadow-2xl rounded-3xl border border-white/20 animate-in slide-in-from-bottom-4 duration-200"
+        onClick={(e) => e.stopPropagation()}
       >
-        <header className="budget-modal-header">
-          <div>
-            <div className="admin-kicker">Budget Decision Terminal</div>
-            <h3>Record Financial Status</h3>
-            <p className="plan-muted">
-              {selectedQueueItem?.PlanTitle || 'Reviewing Requisition'}
-            </p>
+        <header className="p-8 pb-4 border-b border-slate-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="admin-kicker bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-1 rounded-full text-sm font-bold inline-flex items-center gap-2">
+                🟋 Decision Terminal
+              </div>
+              <h3 className="text-2xl font-bold mt-3 mb-1 leading-tight">{detail.PlanTitle}</h3>
+              <p className="text-slate-600 text-sm">
+                {detail.Department} • FY {detail.FiscalYear} • {formatCurrency(detail.RequestedAmount)}
+              </p>
+            </div>
+            <button
+              className="p-2 -m-2 rounded-2xl hover:bg-slate-200 transition-all text-slate-500 hover:text-slate-900"
+              onClick={onClose}
+              disabled={isSaving}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
-          <button type="button" className="budget-modal-close" onClick={onClose} disabled={isSaving}>
-            &times;
-          </button>
         </header>
 
-        <div className="budget-modal-body">
+        <div className="p-8">
           {error && (
-            <div className="portal-alert animate-shake" style={{ marginBottom: '20px', fontSize: '14px' }}>
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-900 text-sm">
+              <div className="font-semibold mb-1">Decision Error</div>
               {error}
             </div>
           )}
 
-          <label className="plan-field">
-            <span style={{ fontWeight: 600, marginBottom: '8px', display: 'block' }}>Decision Note & Rationale</span>
+          <div className="budget-card p-6 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 text-center">
+              <div>
+                <div className="text-2xl font-bold text-green-600">{formatCurrency(detail.Appropriated)}</div>
+                <div className="text-xs text-slate-500 uppercase tracking-wide mt-1">Appropriated</div>
+              </div>
+              <div>
+                <div className={`text-2xl font-bold ${getVarianceColor(detail.Variance)}`}>{formatCurrency(detail.Available)}</div>
+                <div className="text-xs text-slate-500 uppercase tracking-wide mt-1">Available</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-orange-600">{formatCurrency(Math.abs(detail.Variance))}</div>
+                <div className="text-xs text-slate-500 uppercase tracking-wide mt-1">Variance</div>
+              </div>
+              <div>
+                <div className="text-lg font-bold">{detail.BudgetLines.length}</div>
+                <div className="text-xs text-slate-500 uppercase tracking-wide mt-1">Lines</div>
+              </div>
+            </div>
+          </div>
+
+          <label className="block mb-6">
+            <span className="block font-semibold text-sm uppercase tracking-wide text-slate-700 mb-2">Rationale</span>
             <textarea
-              className="plan-textarea"
-              rows={6}
+              className="w-full p-4 border border-slate-300 rounded-2xl resize-vertical focus:ring-4 focus:ring-blue-200 focus:border-blue-500 transition-all text-sm min-h-[120px]"
+              rows={5}
               value={decisionNote}
-              onChange={(event) => onNoteChange(event.target.value)}
-              placeholder="Record affordability rationale or corrective instructions..."
-              disabled={!canTakeDecisions || !detail || isSaving}
-              autoFocus
+              onChange={(e) => onNoteChange(e.target.value)}
+              placeholder="Document your decision rationale, affordability analysis, or instructions..."
+              disabled={!canTakeDecisions || isSaving}
             />
           </label>
 
-          <div className="budget-decision-grid">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {availableDecisions.map((decision) => (
               <button
                 key={decision}
-                type="button"
-                className={decisionConfig[decision].className}
-                style={{ height: '48px', fontWeight: 600 }}
-                onClick={() => onDecision(decision)}
-                disabled={!canTakeDecisions || !detail || isSaving}
+                className={`budget-decision-button h-16 flex items-center justify-center gap-3 font-semibold rounded-2xl transition-all shadow-lg hover:shadow-xl focus:outline-none focus:ring-4 p-0 text-sm ${decisionConfig[decision].className} ${
+                  isSaving ? 'opacity-75 cursor-not-allowed' : ''
+                }`}
+                onClick={() => !isSaving && handleDecision(decision)}
+                disabled={!canTakeDecisions || isSaving}
               >
-                {isSaving ? 'Processing...' : decisionConfig[decision].label}
+                <span className="text-xl">{decisionConfig[decision].icon}</span>
+                <span>{decisionConfig[decision].label}</span>
               </button>
             ))}
           </div>
 
-          {!canTakeDecisions ? (
-            <div className="plan-empty" style={{ marginTop: '16px', fontSize: '13px' }}>
-              Your current role is not authorized to record budget decisions.
+          {!canTakeDecisions && (
+            <div className="mt-8 p-6 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-300 text-center">
+              <div className="text-4xl mb-4 opacity-50">🧭</div>
+              <h4 className="font-bold text-lg mb-2 text-slate-900">Role Restricted</h4>
+              <p className="text-slate-600 text-sm">Your account does not have permission to record budget decisions. Contact your administrator.</p>
             </div>
-          ) : null}
+          )}
         </div>
 
-        <footer className="budget-modal-footer">
-          <button type="button" className="plan-button plan-button--secondary" onClick={onClose} disabled={isSaving}>
+        <div className="p-6 pt-0 bg-slate-50 border-t flex justify-end gap-3">
+          <button
+            className="px-8 py-3 bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold rounded-xl transition-all flex items-center gap-2"
+            onClick={onClose}
+            disabled={isSaving}
+          >
             Cancel
           </button>
-        </footer>
+        </div>
       </div>
-
-      <style jsx>{`
-        .budget-modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100vw;
-          height: 100vh;
-          background: rgba(11, 18, 33, 0.85); /* Full dark grey/ink overlay */
-          backdrop-filter: blur(6px);
-          display: grid;
-          place-items: center;
-          padding: 24px;
-          z-index: 9999;
-        }
-
-        .budget-modal-card {
-          background: #fff;
-          width: min(600px, 100%);
-          border-radius: 28px;
-          box-shadow: 0 40px 80px rgba(0, 0, 0, 0.4);
-          display: flex;
-          flex-direction: column;
-          overflow: hidden;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .budget-modal-header {
-          padding: 24px 32px;
-          border-bottom: 1px solid var(--portal-border);
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          background: #fff;
-        }
-
-        .budget-modal-header h3 {
-          margin: 4px 0 0;
-          font-family: 'Fraunces', serif;
-          font-size: 1.35rem;
-          color: var(--portal-ink);
-        }
-
-        .budget-modal-close {
-          background: var(--portal-mist);
-          border: none;
-          width: 36px;
-          height: 36px;
-          border-radius: 50%;
-          font-size: 1.5rem;
-          line-height: 1;
-          cursor: pointer;
-          color: var(--portal-slate);
-          display: grid;
-          place-items: center;
-          transition: all 0.2s ease;
-        }
-
-        .budget-modal-close:hover {
-          background: var(--portal-border);
-          color: var(--portal-ink);
-        }
-
-        .budget-modal-body {
-          padding: 32px;
-          background: #fff;
-        }
-
-        .budget-decision-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 12px;
-          margin-top: 24px;
-        }
-
-        .budget-modal-footer {
-          padding: 20px 32px;
-          background: var(--portal-mist);
-          display: flex;
-          justify-content: flex-end;
-          border-top: 1px solid var(--portal-border);
-        }
-
-        @media (max-width: 600px) {
-          .budget-decision-grid {
-            grid-template-columns: 1fr;
-          }
-          
-          .budget-modal-body {
-            padding: 24px;
-          }
-        }
-      `}</style>
     </div>
   );
 };

@@ -1,134 +1,111 @@
 'use client';
 
-import React from 'react';
-
-type ViewType = 'dashboard' | 'queue' | 'review';
+type ViewType = 'dashboard' | 'queue' | 'ledger' | 'releaseledger' | 'commitments' | 'create' | 'review';
 
 type Props = {
   activeView: ViewType;
   onViewChange: (view: ViewType) => void;
   hasSelection: boolean;
+  canCreateBudget: boolean;
+  canViewLedger: boolean;
 };
 
-export const BudgetSubNav = ({ activeView, onViewChange, hasSelection }: Props) => {
+export const BudgetSubNav = ({
+  activeView,
+  onViewChange,
+  hasSelection,
+  canCreateBudget,
+  canViewLedger
+}: Props) => {
+  const views: Array<{
+    key: ViewType;
+    title: string;
+    subtitle: string;
+    disabled?: boolean;
+    badge?: string;
+  }> = [
+    { key: 'dashboard', title: 'Dashboard', subtitle: 'Insights', disabled: false },
+    { key: 'queue', title: 'Queue', subtitle: 'Requisition list', disabled: false },
+    { key: 'ledger', title: 'Ledger', subtitle: 'Appropriations', disabled: !canViewLedger, badge: canViewLedger ? undefined : 'Locked' },
+    { key: 'releaseledger', title: 'Release Ledger', subtitle: 'Fund logs', disabled: !canViewLedger, badge: canViewLedger ? undefined : 'Locked' },
+    { key: 'commitments', title: 'Commitments', subtitle: 'Committed funds', disabled: !canViewLedger, badge: canViewLedger ? undefined : 'Locked' },
+    { key: 'create', title: 'Create Budget', subtitle: 'New appropriation', disabled: !canCreateBudget, badge: canCreateBudget ? undefined : 'Restricted' }
+  ];
+
   return (
-    <nav className="budget-nav-stack">
-      <button
-        type="button"
-        className={activeView === 'dashboard' ? 'budget-nav-item active' : 'budget-nav-item'}
-        onClick={() => onViewChange('dashboard')}
-      >
-        <span className="nav-icon">📊</span>
-        <div className="nav-label">
-          <strong>Insights Dashboard</strong>
-          <span>Appropriations & Risk</span>
-        </div>
-      </button>
-      
-      <button
-        type="button"
-        className={activeView === 'queue' ? 'budget-nav-item active' : 'budget-nav-item'}
-        onClick={() => onViewChange('queue')}
-      >
-        <span className="nav-icon">🔄</span>
-        <div className="nav-label">
-          <strong>Requisition Queue</strong>
-          <span>Pipeline Management</span>
-        </div>
-      </button>
-      
-      <button
-        type="button"
-        className={activeView === 'review' ? 'budget-nav-item active' : 'budget-nav-item'}
-        onClick={() => onViewChange('review')}
-        disabled={!hasSelection}
-      >
-        <span className="nav-icon">⚖️</span>
-        <div className="nav-label">
-          <strong>Active Review</strong>
-          <span>Decision Terminal</span>
-        </div>
-        {!hasSelection && <span className="nav-badge">Select Item</span>}
-      </button>
+    <nav className="budget-top-tabs" aria-label="Budget workspace sections">
+      {views.map((view) => (
+        <button
+          key={view.key}
+          type="button"
+          className={`budget-top-tabs__item ${activeView === view.key ? 'is-active' : ''}`}
+          onClick={() => !view.disabled && onViewChange(view.key)}
+          disabled={view.disabled}
+          title={`${view.title}: ${view.subtitle}${view.badge ? ` (${view.badge})` : ''}`}
+        >
+          <span className="budget-top-tabs__title">{view.title}</span>
+          <span className="budget-top-tabs__subtitle">{view.subtitle}</span>
+          {view.badge ? <span className="budget-top-tabs__badge">{view.badge}</span> : null}
+        </button>
+      ))}
 
       <style jsx>{`
-        .budget-nav-stack {
-          display: grid;
-          gap: 10px;
-          margin-bottom: 24px;
-        }
-
-        .budget-nav-item {
+        .budget-top-tabs {
           display: flex;
-          align-items: center;
-          gap: 14px;
-          padding: 14px;
-          background: rgba(255, 255, 255, 0.4);
-          border: 1px solid var(--portal-border);
-          border-radius: 16px;
-          text-align: left;
-          cursor: pointer;
-          transition: all 0.2s ease;
+          gap: 8px;
+          overflow-x: auto;
+          padding-bottom: 2px;
+        }
+
+        .budget-top-tabs__item {
           position: relative;
-          color: var(--portal-ink);
-          font-family: inherit;
-        }
-
-        .budget-nav-item:hover:not(:disabled) {
-          background: #fff;
-          border-color: var(--portal-forest);
-          transform: translateX(4px);
-        }
-
-        .budget-nav-item.active {
-          background: #fff;
-          border-color: var(--portal-forest);
-          box-shadow: 0 4px 12px rgba(11, 93, 59, 0.08);
-          border-left-width: 4px;
-        }
-
-        .nav-icon {
-          font-size: 1.25rem;
-          width: 40px;
-          height: 40px;
-          display: grid;
-          place-items: center;
-          background: #fff;
-          border-radius: 10px;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-
-        .nav-label {
+          min-width: 128px;
+          padding: 10px 12px;
+          border-radius: 14px;
+          border: 1px solid var(--portal-border);
+          background: rgba(255, 255, 255, 0.92);
+          text-align: left;
           display: flex;
           flex-direction: column;
+          gap: 1px;
+          flex-shrink: 0;
+          transition: 160ms ease;
         }
 
-        .nav-label strong {
-          font-size: 0.875rem;
-          font-weight: 700;
-        }
-
-        .nav-label span {
-          font-size: 0.75rem;
-          color: var(--portal-slate);
-        }
-
-        .nav-badge {
-          position: absolute;
-          right: 12px;
-          top: 12px;
-          font-size: 9px;
-          text-transform: uppercase;
-          background: var(--portal-mist);
-          padding: 2px 6px;
-          border-radius: 4px;
-          font-weight: 600;
-        }
-
-        .budget-nav-item:disabled {
-          opacity: 0.6;
+        .budget-top-tabs__item:disabled {
+          opacity: 0.55;
           cursor: not-allowed;
-          filter: grayscale(1);
+        }
+
+        .budget-top-tabs__item.is-active {
+          border-color: #2563eb;
+          background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+          box-shadow: 0 6px 16px rgba(37, 99, 235, 0.12);
+        }
+
+        .budget-top-tabs__title {
+          font-size: 0.92rem;
+          font-weight: 700;
+          color: #0f172a;
+          line-height: 1.1;
+        }
+
+        .budget-top-tabs__subtitle {
+          font-size: 0.72rem;
+          color: #64748b;
+          line-height: 1.05;
+        }
+
+        .budget-top-tabs__badge {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          padding: 2px 6px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.85);
+          font-size: 0.62rem;
+          font-weight: 700;
+          color: #475569;
         }
       `}</style>
     </nav>

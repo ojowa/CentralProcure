@@ -93,7 +93,7 @@ export const fetchModuleData = async (moduleId: string, token: string): Promise<
   
   // Specific override for planning committee list to fetch plans in the right stage
   const finalUrl = moduleId === 'procurement-planning-committee' 
-    ? `${serviceBaseUrls.workflow}/api/procurement-plans?status=Submitted`
+    ? `${serviceBaseUrls.workflow}/api/procurement-plans?status=Under%20Review`
     : url;
 
   const response = await fetch(finalUrl, {
@@ -155,25 +155,6 @@ export const createPlan = async (data: any, token: string) => {
   if (!response.ok) {
     const text = await response.text();
     throw new Error(text || 'Failed to create plan');
-  }
-  return response.json();
-};
-
-export const createPlanItem = async (planId: string, data: any, token: string) => {
-  const url = `${serviceBaseUrls.workflow}/api/procurement-plan-items`;
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      ...buildCsrfHeaders()
-    },
-    credentials: 'include',
-    body: JSON.stringify({ ...data, planId })
-  });
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(text || 'Failed to add item');
   }
   return response.json();
 };
@@ -250,7 +231,61 @@ export const logEvaluationAction = async (data: any, token: string) => {
   });
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(text || 'Failed to log evaluation action');
+    if (text) {
+      try {
+        const payload = JSON.parse(text) as { message?: string; detail?: string; title?: string };
+        throw new Error(payload.message || payload.detail || payload.title || `Request failed (${response.status}).`);
+      } catch {
+        throw new Error(text);
+      }
+    }
+
+    throw new Error(`Request failed (${response.status}).`);
+  }
+  return response.json();
+};
+
+export const fetchProcurementPlans = async (token: string, status?: string) => {
+  const statusParam = status ? `?status=${encodeURIComponent(status)}` : '';
+  const url = `${serviceBaseUrls.workflow}/api/procurement-plans${statusParam}`;
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+    credentials: 'include'
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || 'Failed to fetch procurement plans');
+  }
+  return response.json();
+};
+
+export const createPlanItem = async (
+  planId: string,
+  payload: {
+    ItemCode?: string | null;
+    Description: string;
+    BudgetCode: string;
+    ProcurementType?: string | null;
+    EstimatedAmount?: number | null;
+    Status?: string | null;
+    Notes?: string | null;
+  },
+  token: string
+) => {
+  const url = `${serviceBaseUrls.workflow}/api/procurement-plans/${planId}/items`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      ...buildCsrfHeaders()
+    },
+    credentials: 'include',
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || 'Failed to create plan item');
   }
   return response.json();
 };
@@ -482,6 +517,19 @@ export const fetchMemberReviews = async (planId: string, token: string) => {
   if (!response.ok) {
     const text = await response.text();
     throw new Error(text || 'Failed to fetch member reviews');
+  }
+  return response.json();
+};
+
+export const fetchMemberStatuses = async (planId: string, token: string) => {
+  const url = `${serviceBaseUrls.workflow}/api/planning-committee/plans/${planId}/member-statuses`;
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+    credentials: 'include'
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || 'Failed to fetch member statuses');
   }
   return response.json();
 };

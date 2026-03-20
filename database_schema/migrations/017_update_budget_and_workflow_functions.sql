@@ -452,7 +452,9 @@ AS $$
 BEGIN
     RETURN CASE
         WHEN p_status IS NULL THEN 'department_user'
-        WHEN p_status ILIKE 'Submitted' THEN 'procurement_officer'
+        WHEN p_status ILIKE 'Submitted' THEN 'department_head'
+        WHEN p_status ILIKE 'Endorsed' THEN 'department_head'
+        WHEN p_status ILIKE 'Initial' THEN 'procurement_officer'
         WHEN p_status ILIKE 'Under Review' THEN 'procurement_officer'
         WHEN p_status ILIKE 'Evaluation' THEN 'evaluation_committee'
         WHEN p_status ILIKE 'Board Review' THEN 'tenders_board'
@@ -610,7 +612,7 @@ BEGIN
     FROM procurement_workflow.requisitions r
     WHERE r.requisition_id = v_requisition_id;
 
-    IF v_status IN ('Submitted', 'Under Review', 'Evaluation', 'Board Review', 'Approved')
+    IF v_status IN ('Initial', 'Under Review', 'Evaluation', 'Board Review', 'Approved')
        AND v_budget_code IS NOT NULL AND btrim(v_budget_code) <> '' THEN
         v_fiscal_year := COALESCE(EXTRACT(YEAR FROM p_required_by)::int, EXTRACT(YEAR FROM NOW())::int);
         PERFORM procurement_workflow.reserve_budget_for_requisition(
@@ -852,7 +854,7 @@ BEGIN
 
     v_fiscal_year := COALESCE(EXTRACT(YEAR FROM v_required_by)::int, EXTRACT(YEAR FROM NOW())::int);
 
-    IF v_status IN ('Submitted', 'Under Review', 'Evaluation', 'Board Review', 'Approved')
+    IF v_status IN ('Initial', 'Under Review', 'Evaluation', 'Board Review', 'Approved')
        AND v_budget_code IS NOT NULL AND btrim(v_budget_code) <> '' THEN
         PERFORM procurement_workflow.reserve_budget_for_requisition(
             p_requisition_id,
@@ -861,7 +863,7 @@ BEGIN
             v_fiscal_year,
             v_total_estimate
         );
-    ELSIF v_status IN ('Draft', 'Rejected', 'Cancelled') THEN
+    ELSIF v_status IN ('Draft', 'Submitted', 'Endorsed', 'Rejected', 'Cancelled') THEN
         PERFORM procurement_workflow.release_budget_for_requisition(p_requisition_id);
     END IF;
 

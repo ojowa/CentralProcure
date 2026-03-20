@@ -16,11 +16,14 @@ public partial class RequisitionsController : ControllerBase
     private readonly ILogger<RequisitionsController> _logger;
     private readonly WorkflowPolicyGuard _workflowPolicyGuard;
     private readonly WorkflowRuntimeTracker _workflowRuntimeTracker;
+    private readonly WorkflowActionGrantService _workflowActionGrantService;
 
     private static readonly string[] AllowedStatuses =
     {
         "Draft",
         "Submitted",
+        "Endorsed",
+        "Initial",
         "Under Review",
         "Evaluation",
         "Board Review",
@@ -61,15 +64,54 @@ public partial class RequisitionsController : ControllerBase
         IConfiguration config,
         ILogger<RequisitionsController> logger,
         WorkflowPolicyGuard workflowPolicyGuard,
-        WorkflowRuntimeTracker workflowRuntimeTracker)
+        WorkflowRuntimeTracker workflowRuntimeTracker,
+        WorkflowActionGrantService workflowActionGrantService)
     {
         _config = config;
         _logger = logger;
         _workflowPolicyGuard = workflowPolicyGuard;
         _workflowRuntimeTracker = workflowRuntimeTracker;
+        _workflowActionGrantService = workflowActionGrantService;
     }
 
     private string GetConnectionString() => _config.GetConnectionString("Primary") ?? string.Empty;
+
+    [HttpDelete("{requisitionId:guid}")]
+    public async Task<IActionResult> DeleteRequisition(Guid requisitionId, CancellationToken ct)
+    {
+        var roleKey = WorkflowActionGrantService.ResolveRoleKey(User);
+        if (!string.Equals(roleKey, "admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return Forbid();
+        }
+
+        var connectionString = GetConnectionString();
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            return Problem("Connection string 'Primary' is not configured.", statusCode: 500);
+        }
+
+        try
+        {
+            await using var conn = new NpgsqlConnection(connectionString);
+            await conn.OpenAsync(ct);
+
+            await using var cmd = new NpgsqlCommand("procurement_workflow.delete_requisition_sp", conn)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+
+            cmd.Parameters.AddWithValue("p_requisition_id", NpgsqlDbType.Uuid, requisitionId);
+            await cmd.ExecuteNonQueryAsync(ct);
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting requisition {RequisitionId}.", requisitionId);
+            return Problem("Internal server error deleting requisition.");
+        }
+    }
 
     [HttpGet]
     public async Task<IActionResult> GetRequisitions(
@@ -270,6 +312,11 @@ public partial class RequisitionsController : ControllerBase
             await tx.CommitAsync(ct);
             return Created($"/api/requisitions/{response.RequisitionId}", response);
         }
+        catch (PostgresException ex) when (ex.SqlState == "23505" && ex.ConstraintName == "requisitions_app_item_id_ux")
+        {
+            _logger.LogWarning(ex, "Duplicate APP item link while creating requisition.");
+            return Conflict("APP item is already linked to another requisition.");
+        }
         catch (PostgresException ex) when (ex.SqlState == "P0001")
         {
             _logger.LogWarning(ex, "Budget validation failed while creating requisition.");
@@ -361,6 +408,11 @@ public partial class RequisitionsController : ControllerBase
             await tx.CommitAsync(ct);
 
             return Ok(response);
+        }
+        catch (PostgresException ex) when (ex.SqlState == "23505" && ex.ConstraintName == "requisitions_app_item_id_ux")
+        {
+            _logger.LogWarning(ex, "Duplicate APP item link while updating requisition {RequisitionId}.", requisitionId);
+            return Conflict("APP item is already linked to another requisition.");
         }
         catch (PostgresException ex) when (ex.SqlState == "P0001")
         {

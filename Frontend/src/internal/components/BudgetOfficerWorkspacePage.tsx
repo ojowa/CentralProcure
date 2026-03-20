@@ -1,30 +1,37 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { useEffect, useMemo, useState, type SetStateAction } from 'react';
 import type {
+  BudgetAppropriationResponse,
   BudgetConfirmationDetail,
-  BudgetConfirmationQueueItem,
   BudgetDashboardResponse,
   BudgetFilters as IBudgetFilters,
+  BudgetRequisitionQueueItem,
   InternalModule,
   RoleKey
 } from '../types/internal';
 import {
   decideBudgetConfirmation,
   fetchBudgetConfirmationDetail,
-  fetchBudgetConfirmations,
-  fetchBudgetDashboard
+  fetchBudgetDashboard,
+  fetchBudgetRequisitionQueue
 } from '../services/budgetService';
 
 // Sub-components
-import { BudgetMetrics } from './budget-officer/BudgetMetrics';
 import { BudgetFilters } from './budget-officer/BudgetFilters';
 import { BudgetQueue } from './budget-officer/BudgetQueue';
 import { BudgetDetailView } from './budget-officer/BudgetDetailView';
 import { BudgetDecisionPanel } from './budget-officer/BudgetDecisionPanel';
-import { BudgetRiskItems } from './budget-officer/BudgetRiskItems';
-import { BudgetQueueSnapshot } from './budget-officer/BudgetQueueSnapshot';
 import { BudgetSubNav } from './budget-officer/BudgetSubNav';
+import { BudgetAppropriationLedger } from './budget-officer/BudgetAppropriationLedger';
+import { BudgetAppropriationForm } from './budget-officer/BudgetAppropriationForm';
+import { BudgetAlignmentPanel } from './budget-officer/BudgetAlignmentPanel';
+import { BudgetExecutionDashboard } from './budget-officer/BudgetExecutionDashboard';
+import { BudgetReleaseForm } from './budget-officer/BudgetReleaseForm';
+import { BudgetCommitmentForm } from './budget-officer/BudgetCommitmentForm';
+import { BudgetCommitmentLedger } from './budget-officer/BudgetCommitmentLedger';
+import { BudgetReleaseLedger } from './budget-officer/BudgetReleaseLedger';
 
 type Props = {
   module: InternalModule;
@@ -32,7 +39,7 @@ type Props = {
   role?: RoleKey | null;
 };
 
-type ViewType = 'dashboard' | 'queue' | 'review';
+type ViewType = 'dashboard' | 'queue' | 'ledger' | 'releaseledger' | 'commitments' | 'create' | 'review';
 
 const defaultFilters: IBudgetFilters = {
   fiscalYear: '',
@@ -58,14 +65,28 @@ const getDecisionOptions = (detail: BudgetConfirmationDetail | null) => {
 };
 
 export const BudgetOfficerWorkspacePage = ({ module, token, role }: Props) => {
-  const [activeView, setActiveView] = useState<ViewType>('dashboard');
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const activeView = (searchParams.get('view') as ViewType) || 'dashboard';
+
+  const setActiveView = (view: ViewType | SetStateAction<ViewType>) => {
+    const nextView = typeof view === 'function' ? (view as any)(activeView) : view;
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('view', nextView);
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
   const [isDecisionModalOpen, setIsDecisionModalOpen] = useState(false);
+  const [isAlignmentModalOpen, setIsAlignmentModalOpen] = useState(false);
   const [filters, setFilters] = useState<IBudgetFilters>(defaultFilters);
   const [page, setPage] = useState(1);
   const [dashboard, setDashboard] = useState<BudgetDashboardResponse | null>(null);
-  const [queue, setQueue] = useState<BudgetConfirmationQueueItem[]>([]);
+  const [queue, setQueue] = useState<BudgetRequisitionQueueItem[]>([]);
   const [total, setTotal] = useState(0);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
+  const [selectedRequisitionId, setSelectedRequisitionId] = useState<string | null>(null);
   const [detail, setDetail] = useState<BudgetConfirmationDetail | null>(null);
   const [decisionNote, setDecisionNote] = useState('');
   const [feedback, setFeedback] = useState('');
@@ -75,14 +96,15 @@ export const BudgetOfficerWorkspacePage = ({ module, token, role }: Props) => {
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const canTakeDecisions = Boolean(
-    token && role && ['financial_unit_officer', 'accounting_officer', 'admin'].includes(role)
-  );
+  const allowedBudgetRoles = module.allowedRoles?.length
+    ? module.allowedRoles
+    : ['financial_unit_officer', 'accounting_officer', 'admin'];
 
-  const selectedQueueItem = useMemo(
-    () => queue.find((item) => item.PlanId === selectedPlanId) ?? null,
-    [queue, selectedPlanId]
-  );
+  const hasBudgetAuthority = Boolean(role && allowedBudgetRoles.includes(role));
+
+  const canTakeDecisions = hasBudgetAuthority;
+  const canCreateBudget = hasBudgetAuthority;
+  const canViewLedger = hasBudgetAuthority;
 
   const availableDecisions = useMemo(() => getDecisionOptions(detail) as any[], [detail]);
 
@@ -92,6 +114,7 @@ export const BudgetOfficerWorkspacePage = ({ module, token, role }: Props) => {
       setQueue([]);
       setTotal(0);
       setSelectedPlanId(null);
+      setSelectedRequisitionId(null);
       return;
     }
 
@@ -105,7 +128,7 @@ export const BudgetOfficerWorkspacePage = ({ module, token, role }: Props) => {
           fiscalYear: Number.isFinite(fiscalYear) && fiscalYear > 0 ? fiscalYear : undefined,
           department: filters.department || undefined
         }),
-        fetchBudgetConfirmations(token, {
+        fetchBudgetRequisitionQueue(token, {
           fiscalYear: Number.isFinite(fiscalYear) && fiscalYear > 0 ? fiscalYear : undefined,
           department: filters.department || undefined,
           stage: filters.stage || undefined,
@@ -130,7 +153,7 @@ export const BudgetOfficerWorkspacePage = ({ module, token, role }: Props) => {
 
   useEffect(() => {
     void loadQueueAndDashboard();
-  }, [token, filters.department, filters.fiscalYear, filters.query, filters.stage, page]);
+  }, [token, filters.department, filters.fiscalYear, filters.query, filters.stage, page, activeView]);
 
   useEffect(() => {
     if (!token || !selectedPlanId) {
@@ -189,6 +212,33 @@ export const BudgetOfficerWorkspacePage = ({ module, token, role }: Props) => {
     }
   };
 
+  const handleAppropriationCreated = (response: BudgetAppropriationResponse) => {
+    setFeedback(`Appropriation ${response.BudgetCode} added for FY ${response.FiscalYear}.`);
+    void loadQueueAndDashboard();
+  };
+
+  const handleReleaseCreated = () => {
+    setFeedback('Budget release recorded successfully.');
+    void loadQueueAndDashboard();
+  };
+
+  const handleCommitmentCreated = () => {
+    setFeedback('Budget commitment recorded successfully.');
+    void loadQueueAndDashboard();
+  };
+
+  const selectedRequisition = useMemo(
+    () => queue.find((item) => item.RequisitionId === selectedRequisitionId) ?? null,
+    [queue, selectedRequisitionId]
+  );
+
+  const handleBudgetAligned = () => {
+    setFeedback('Budget code aligned. Requisition now waits for final budget confirmation.');
+    setIsAlignmentModalOpen(false);
+    setSelectedRequisitionId(null);
+    void loadQueueAndDashboard();
+  };
+
   const onSelectPlan = (planId: string) => {
     setSelectedPlanId(planId);
     setActiveView('review');
@@ -205,7 +255,10 @@ export const BudgetOfficerWorkspacePage = ({ module, token, role }: Props) => {
         <div className="budget-workspace__title-group">
           <div className="admin-kicker">NIS Financial Oversight</div>
           <h2>Budget Control Center</h2>
-          <p className="plan-muted">Monitoring {total} active requisitions for Fiscal Year 2026</p>
+          <p className="plan-muted">
+            Monitoring {total} active requisitions for Fiscal Year{' '}
+            {filters.fiscalYear.trim() || new Date().getFullYear()}
+          </p>
         </div>
         <div className="plan-actions">
           <button
@@ -222,37 +275,25 @@ export const BudgetOfficerWorkspacePage = ({ module, token, role }: Props) => {
       {error ? <div className="portal-alert animate-shake">{error}</div> : null}
       {feedback ? <div className="plan-loading animate-rise-in">{feedback}</div> : null}
 
-      <div className="budget-workspace__command-grid">
-        <aside className="budget-workspace__sidebar">
-          <BudgetSubNav
-            activeView={activeView}
-            onViewChange={setActiveView}
-            hasSelection={Boolean(selectedPlanId)}
-          />
-          
-          <div className="budget-sidebar-scroll">
-            <BudgetMetrics dashboard={dashboard} compact />
-            {activeView !== 'review' && <BudgetQueueSnapshot dashboard={dashboard} />}
-          </div>
-        </aside>
+      <div className="budget-workspace__topbar">
+        <BudgetSubNav
+          activeView={activeView}
+          onViewChange={(view) => setActiveView(view as SetStateAction<ViewType>)}
+          hasSelection={Boolean(selectedPlanId)}
+          canCreateBudget={canCreateBudget}
+          canViewLedger={canViewLedger}
+        />
+      </div>
 
-        <main className="budget-workspace__viewport">
+      <main className="budget-workspace__viewport">
           {activeView === 'dashboard' && (
             <div className="budget-view-content animate-fade">
-              <div className="view-header">
-                <h3>Financial Insights</h3>
-                <p>Top financial risks and appropriation status</p>
-              </div>
-              <BudgetRiskItems dashboard={dashboard} onSelectPlan={onSelectPlan} />
+              <BudgetExecutionDashboard dashboard={dashboard} onSelectPlan={onSelectPlan} />
             </div>
           )}
 
           {activeView === 'queue' && (
             <div className="budget-view-content animate-fade">
-              <div className="view-header">
-                <h3>Requisition Pipeline</h3>
-                <p>Manage routing and confirmations</p>
-              </div>
               <BudgetFilters
                 filters={filters}
                 onFilterChange={(next) => {
@@ -262,13 +303,44 @@ export const BudgetOfficerWorkspacePage = ({ module, token, role }: Props) => {
               />
               <BudgetQueue
                 queue={queue}
-                selectedPlanId={selectedPlanId}
-                onSelectPlan={onSelectPlan}
+                selectedRequisitionId={selectedRequisitionId}
+                onSelectRequisition={(id) => {
+                  setSelectedRequisitionId(id);
+                  setIsAlignmentModalOpen(true);
+                }}
                 isLoading={isLoadingQueue}
                 page={page}
                 total={total}
                 onPageChange={setPage}
               />
+            </div>
+          )}
+
+          {activeView === 'ledger' && (
+            <div className="budget-view-content animate-fade">
+              <BudgetAppropriationLedger token={token} />
+            </div>
+          )}
+
+          {activeView === 'releaseledger' && (
+            <div className="budget-view-content animate-fade">
+              <BudgetReleaseLedger token={token} />
+            </div>
+          )}
+
+          {activeView === 'commitments' && (
+            <div className="budget-view-content animate-fade">
+              <BudgetCommitmentLedger token={token} />
+            </div>
+          )}
+
+          {activeView === 'create' && (
+            <div className="budget-view-content animate-fade">
+              <div className="budget-create-stack">
+                <BudgetAppropriationForm token={token} onSuccess={handleAppropriationCreated} />
+                <BudgetReleaseForm token={token} onSuccess={handleReleaseCreated} />
+                <BudgetCommitmentForm token={token} onSuccess={handleCommitmentCreated} />
+              </div>
             </div>
           )}
 
@@ -311,13 +383,11 @@ export const BudgetOfficerWorkspacePage = ({ module, token, role }: Props) => {
               </aside>
             </div>
           )}
-        </main>
-      </div>
+      </main>
 
       <BudgetDecisionPanel
         isOpen={isDecisionModalOpen}
         onClose={() => setIsDecisionModalOpen(false)}
-        selectedQueueItem={selectedQueueItem}
         detail={detail}
         availableDecisions={availableDecisions}
         decisionNote={decisionNote}
@@ -327,6 +397,56 @@ export const BudgetOfficerWorkspacePage = ({ module, token, role }: Props) => {
         isSaving={isSaving}
         error={modalError}
       />
+      {isAlignmentModalOpen && selectedRequisition ? (
+        <div className="budget-modal-overlay" role="dialog" aria-modal="true" aria-label="Budget alignment">
+          <div className="budget-modal-shell">
+            <BudgetAlignmentPanel
+              token={token}
+              requisition={selectedRequisition}
+              onAligned={handleBudgetAligned}
+              onClose={() => {
+                setIsAlignmentModalOpen(false);
+                setSelectedRequisitionId(null);
+              }}
+            />
+          </div>
+        </div>
+      ) : null}
+      <style jsx>{`
+        .budget-workspace__topbar {
+          margin-bottom: 8px;
+        }
+
+        .budget-create-stack {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          gap: 18px;
+        }
+
+        @media (max-width: 1120px) {
+          .budget-create-stack {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        .budget-modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.48);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 24px;
+          z-index: 90;
+          backdrop-filter: blur(6px);
+        }
+
+        .budget-modal-shell {
+          width: min(880px, 100%);
+          max-height: calc(100vh - 48px);
+          overflow: auto;
+        }
+      `}</style>
     </section>
   );
 };

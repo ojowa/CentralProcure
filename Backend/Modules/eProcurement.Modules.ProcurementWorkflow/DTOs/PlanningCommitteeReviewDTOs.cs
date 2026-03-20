@@ -19,6 +19,14 @@ public record MemberReviewResponse(
     DateTime UpdatedAt
 );
 
+public record MemberStatusResponse(
+    string RoleKey,
+    string StatusLabel,
+    string? Decision,
+    string? UpdatedBy,
+    DateTime UpdatedAt
+);
+
 public record CommitteeDecisionSubmitRequest(
     Guid PlanId,
     string ChairmanUserId,

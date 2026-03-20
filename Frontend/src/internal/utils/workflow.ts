@@ -1,4 +1,4 @@
-export type WorkflowPhase = 'Planning' | 'Solicitation' | 'Evaluation' | 'Approval' | 'Post-Award' | 'Unknown';
+export type WorkflowPhase = 'Planning' | 'Advert / Invitation / EOI / RFP' | 'Evaluation' | 'Approval' | 'Post-Award' | 'Unknown';
 
 export interface PhaseInfo {
   phase: WorkflowPhase;
@@ -11,21 +11,34 @@ const PHASE_MAP: Record<string, WorkflowPhase> = {
   draft_requisition: 'Planning',
   needs_assessment: 'Planning',
   budget_reservation: 'Planning',
+  department_need_capture: 'Planning',
+  department_head_endorsement: 'Planning',
+  budget_code_allocation: 'Planning',
+  comptroller_procurement_review: 'Planning',
+  planning_committee_review: 'Planning',
+  budget_confirmation: 'Planning',
+  app_approval: 'Planning',
+  procurement_initiation: 'Planning',
+  threshold_resolution: 'Planning',
+  method_validation: 'Planning',
   
-  // Solicitation
-  tender_preparation: 'Solicitation',
-  advertisement: 'Solicitation',
-  bid_submission: 'Solicitation',
+  // Advert / Invitation / EOI / RFP
+  tender_preparation: 'Advert / Invitation / EOI / RFP',
+  advertisement: 'Advert / Invitation / EOI / RFP',
+  bid_submission: 'Advert / Invitation / EOI / RFP',
+  solicitation: 'Advert / Invitation / EOI / RFP',
   
   // Evaluation
   bid_opening: 'Evaluation',
   technical_evaluation: 'Evaluation',
   financial_comparison: 'Evaluation',
   evaluation_report: 'Evaluation',
+  evaluation: 'Evaluation',
   
   // Approval
   tenders_board_review: 'Approval',
   accounting_officer_approval: 'Approval',
+  accounting_officer_review: 'Approval',
   bpp_no_objection: 'Approval',
   award_notification: 'Approval',
   
@@ -33,7 +46,9 @@ const PHASE_MAP: Record<string, WorkflowPhase> = {
   contract_execution: 'Post-Award',
   inspection_and_payment: 'Post-Award',
   closeout_and_audit: 'Post-Award',
-  archived: 'Post-Award'
+  archived: 'Post-Award',
+  award_and_publication: 'Post-Award',
+  administrative_review: 'Post-Award'
 };
 
 export const getWorkflowPhase = (stageKey?: string | null): WorkflowPhase => {
@@ -45,8 +60,8 @@ export const getPhaseInfo = (phase: WorkflowPhase): PhaseInfo => {
   switch (phase) {
     case 'Planning':
       return { phase, color: '#3b82f6', displayLabel: 'Procurement Planning' };
-    case 'Solicitation':
-      return { phase, color: '#f59e0b', displayLabel: 'Tender Solicitation' };
+    case 'Advert / Invitation / EOI / RFP':
+      return { phase, color: '#f59e0b', displayLabel: 'Advert / Invitation / EOI / RFP' };
     case 'Evaluation':
       return { phase, color: '#a855f7', displayLabel: 'Bid Evaluation' };
     case 'Approval':

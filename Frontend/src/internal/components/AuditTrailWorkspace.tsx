@@ -24,14 +24,20 @@ const formatDateTimeShort = (value?: string | null) => {
   });
 };
 
-const toTitle = (value?: string | null) =>
-  value
+const toTitle = (value?: string | null) => {
+  const normalized = (value ?? '').trim().toLowerCase();
+  if (normalized === 'accounting_officer_review') {
+    return 'CGIS Approval';
+  }
+
+  return value
     ? value
         .replace(/_/g, ' ')
         .split(' ')
         .map((part) => (part ? part[0].toUpperCase() + part.slice(1) : part))
         .join(' ')
     : 'Unspecified';
+};
 
 const statusTone = (value?: string | null) => {
   const normalized = (value || '').toLowerCase();
@@ -483,7 +489,7 @@ export const AuditTrailWorkspace = ({ module, token }: Props) => {
         </div>
       </div>
 
-      <div className="audit-trail__surface">
+      <div className="audit-trail__surface" style={{ width: '100%', maxWidth: '960px', marginInline: 'auto' }}>
         <div className="audit-trail__surface-header">
           <div>
             <h3>Audit Grid</h3>

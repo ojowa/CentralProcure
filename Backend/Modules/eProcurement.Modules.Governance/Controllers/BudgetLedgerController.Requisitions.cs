@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Data;
 using eProcurement.Modules.Governance.DTOs;
 using Microsoft.AspNetCore.Authorization;
@@ -35,7 +37,8 @@ public partial class BudgetLedgerController
             return BadRequest($"PageSize must be between 1 and {MaxPageSize}.");
         }
 
-        var stageFilter = string.IsNullOrWhiteSpace(stage) ? "budget_confirmation" : stage.Trim();
+        var stageFilter = string.IsNullOrWhiteSpace(stage) ? "budget_code_allocation" : stage.Trim();
+        var stageStatuses = GetStageStatuses(stageFilter);
         var connectionString = GetConnectionString();
         if (string.IsNullOrWhiteSpace(connectionString))
         {
@@ -68,6 +71,15 @@ WITH queue AS (
             ELSE 0 END,
             0
         ) AS available,
+        COALESCE(
+            (
+                SELECT COALESCE(SUM(c.amount), 0)
+                FROM procurement_workflow.budget_commitments c
+                WHERE c.requisition_id = r.requisition_id
+                  AND c.status IN ('Reserved', 'Committed')
+            ),
+            0
+        ) AS committed,
         COALESCE(EXTRACT(YEAR FROM r.required_by)::INT, EXTRACT(YEAR FROM r.created_at)::INT, EXTRACT(YEAR FROM NOW())::INT) AS fiscal_year
     FROM procurement_workflow.requisitions r
     LEFT JOIN procurement_workflow.workflow_instances wi
@@ -75,14 +87,14 @@ WITH queue AS (
        AND wi.entity_id = r.requisition_id
     LEFT JOIN procurement_workflow.workflow_stage_catalog sc
         ON sc.stage_key = COALESCE(wi.current_stage_key, r.current_stage)
-    WHERE wi.current_stage_key = @p_stage_filter
-      AND r.status NOT IN ('Cancelled', 'Rejected')
+    WHERE r.status NOT IN ('Cancelled', 'Rejected')
 )
 SELECT
     q.*,
     q.total_estimate - q.available AS variance
 FROM queue q
-WHERE (@p_fiscal_year IS NULL OR q.fiscal_year = @p_fiscal_year)
+ WHERE q.status = ANY(@p_statuses)
+   AND (@p_fiscal_year IS NULL OR q.fiscal_year = @p_fiscal_year)
   AND (@p_department IS NULL OR q.department = @p_department)
   AND (
         @p_query IS NULL
@@ -90,11 +102,11 @@ WHERE (@p_fiscal_year IS NULL OR q.fiscal_year = @p_fiscal_year)
         OR q.department ILIKE '%' || @p_query || '%'
         OR q.budget_code ILIKE '%' || @p_query || '%'
   )
-ORDER BY q.updated_at DESC
 ";
 
+        var filteredSql = $"{baseSql} ORDER BY q.updated_at DESC";
         var countSql = $"SELECT COUNT(*) FROM ({baseSql}) q";
-        var itemSql = $"{baseSql} OFFSET @p_offset LIMIT @p_limit";
+        var itemSql = $"{filteredSql} OFFSET @p_offset LIMIT @p_limit";
 
         try
         {
@@ -102,11 +114,11 @@ ORDER BY q.updated_at DESC
             await conn.OpenAsync(ct);
 
             await using var countCmd = new NpgsqlCommand(countSql, conn);
-            AddRequisitionQueueFilters(countCmd, fiscalYear, department, query, stageFilter);
+            AddRequisitionQueueFilters(countCmd, fiscalYear, department, stageStatuses, query);
             var total = Convert.ToInt64(await countCmd.ExecuteScalarAsync(ct) ?? 0);
 
             await using var itemCmd = new NpgsqlCommand(itemSql, conn);
-            AddRequisitionQueueFilters(itemCmd, fiscalYear, department, query, stageFilter);
+            AddRequisitionQueueFilters(itemCmd, fiscalYear, department, stageStatuses, query);
             itemCmd.Parameters.AddWithValue("p_offset", NpgsqlDbType.Integer, (page - 1) * pageSize);
             itemCmd.Parameters.AddWithValue("p_limit", NpgsqlDbType.Integer, pageSize);
 
@@ -130,14 +142,32 @@ ORDER BY q.updated_at DESC
         NpgsqlCommand cmd,
         int? fiscalYear,
         string? department,
-        string? query,
-        string stageFilter)
+        string[] stageStatuses,
+        string? query)
     {
-        cmd.Parameters.AddWithValue("p_stage_filter", NpgsqlDbType.Varchar, stageFilter);
+        cmd.Parameters.AddWithValue("p_statuses", NpgsqlDbType.Array | NpgsqlDbType.Varchar, stageStatuses);
         cmd.Parameters.AddWithValue("p_fiscal_year", NpgsqlDbType.Integer, (object?)fiscalYear ?? DBNull.Value);
         cmd.Parameters.AddWithValue("p_department", NpgsqlDbType.Varchar, (object?)NormalizeFilter(department) ?? DBNull.Value);
         cmd.Parameters.AddWithValue("p_query", NpgsqlDbType.Text, (object?)NormalizeFilter(query) ?? DBNull.Value);
     }
+
+    private static readonly string[] AllBudgetStageStatuses =
+        { "Endorsed", "Initial", "Under Review", "Evaluation", "Board Review", "Approved" };
+
+    private static readonly Dictionary<string, string[]> StageStatusLookup = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["budget_alignment"] = new[] { "Endorsed", "Initial", "Under Review" },
+        ["budget_code_allocation"] = new[] { "Endorsed", "Initial" },
+        ["comptroller_procurement_review"] = new[] { "Endorsed", "Initial" },
+        ["budget_confirmation"] = new[] { "Under Review" },
+        ["planning_committee_review"] = new[] { "Evaluation", "Board Review" },
+        ["app_approval"] = new[] { "Approved" }
+    };
+
+    private static string[] GetStageStatuses(string stageKey)
+        => StageStatusLookup.TryGetValue(stageKey, out var statuses)
+            ? statuses
+            : AllBudgetStageStatuses;
 
     private static BudgetRequisitionQueueItem MapBudgetRequisitionQueueItem(NpgsqlDataReader reader)
         => new(
@@ -153,6 +183,7 @@ ORDER BY q.updated_at DESC
             reader.GetString(reader.GetOrdinal("current_stage_title")),
             GetNullableString(reader, "workflow_status"),
             reader.GetDecimal(reader.GetOrdinal("available")),
+            reader.GetDecimal(reader.GetOrdinal("committed")),
             reader.GetDecimal(reader.GetOrdinal("variance")),
             reader.GetDateTime(reader.GetOrdinal("created_at")),
             reader.GetDateTime(reader.GetOrdinal("updated_at")));

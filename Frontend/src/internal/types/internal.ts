@@ -6,6 +6,8 @@ export type RoleKey =
   | 'procurement_manager'
   | 'planning_statistics_officer'
   | 'financial_unit_officer'
+  | 'procurement_secretary'
+  | 'comptroller_procurement'
   | 'legal_reviewer'
   | 'technical_evaluator'
   | 'financial_evaluator'
@@ -458,6 +460,118 @@ export interface BudgetDecisionResponse {
     PlanStatus: string;
 }
 
+export interface BudgetAppropriationCreateRequest {
+    FiscalYear: number;
+    Department: string;
+    BudgetCode: string;
+    Amount: number;
+    Status?: string | null;
+    Notes?: string | null;
+}
+
+export interface BudgetAppropriationResponse {
+    AppropriationId: string;
+    FiscalYear: number;
+    Department: string;
+    BudgetCode: string;
+    Amount: number;
+    Status: string;
+    Notes?: string | null;
+    CreatedAt: string;
+    UpdatedAt: string;
+}
+
+export interface BudgetAppropriationListResponse {
+    Items: BudgetAppropriationResponse[];
+    Page: number;
+    PageSize: number;
+    Total: number;
+}
+
+export interface BudgetReleaseCreateRequest {
+    AppropriationId: string;
+    Amount: number;
+    ReleaseDate?: string | null;
+    Notes?: string | null;
+}
+
+export interface BudgetReleaseResponse {
+    ReleaseId: string;
+    AppropriationId: string;
+    FiscalYear: number;
+    Department: string;
+    BudgetCode: string;
+    AppropriationAmount: number;
+    Amount: number;
+    ReleaseDate: string;
+    Notes?: string | null;
+    CreatedAt: string;
+    UpdatedAt: string;
+}
+
+export interface BudgetReleaseListResponse {
+    Items: BudgetReleaseResponse[];
+    Page: number;
+    PageSize: number;
+    Total: number;
+}
+
+export interface BudgetCommitmentCreateRequest {
+    AppropriationId: string;
+    Amount: number;
+    CommittedAt?: string | null;
+}
+
+export interface BudgetCommitmentResponse {
+  CommitmentId: string;
+  AppropriationId: string | null;
+  RequisitionId: string | null;
+  RequisitionTitle: string | null;
+  RequisitionStatus: string | null;
+  FiscalYear: number;
+  Department: string;
+  BudgetCode: string;
+    AppropriationAmount: number;
+    Amount: number;
+    CommittedAt: string;
+    Status: string;
+    CreatedAt: string;
+    UpdatedAt: string;
+}
+
+export interface BudgetCommitmentListResponse {
+    Items: BudgetCommitmentResponse[];
+    Page: number;
+    PageSize: number;
+    Total: number;
+}
+
+export interface BudgetRequisitionQueueItem {
+    RequisitionId: string;
+    Title: string;
+    Department: string;
+    BudgetCode?: string | null;
+    AppItemId?: string | null;
+    TotalEstimate: number;
+    RequiredBy?: string | null;
+    Status: string;
+    CurrentStageKey: string;
+    CurrentStageTitle: string;
+    WorkflowStatus?: string | null;
+    Available: number;
+    Committed: number;
+    Variance: number;
+    CreatedAt: string;
+    UpdatedAt: string;
+}
+
+export interface BudgetRequisitionListResponse {
+    Items: BudgetRequisitionQueueItem[];
+    Page: number;
+    PageSize: number;
+    Total: number;
+}
+
 export interface ApprovalThresholdDetail {
     ThresholdId: string;
     ProcurementType?: string | null;
@@ -818,6 +932,8 @@ export interface RequisitionSummary {
     Title: string;
     Department: string;
     UnitId?: string | null;
+    AppItemId?: string | null;
+    AppItemDescription?: string | null;
     Status: string;
     Priority?: string | null;
     FundingSource?: string | null;
@@ -1028,6 +1144,14 @@ export interface AuditHistoryItem {
     TransitionReason?: string | null;
     Actor?: string | null;
     CreatedAt: string;
+}
+
+export interface PlanningCommitteeMemberStatus {
+    RoleKey: string;
+    StatusLabel: string;
+    Decision?: string | null;
+    UpdatedBy?: string | null;
+    UpdatedAt: string;
 }
 
 export interface AuditHistoryListResponse {

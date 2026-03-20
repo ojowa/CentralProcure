@@ -52,8 +52,8 @@ WITH queue AS (
         p.total_budget,
         COALESCE(items.requested_amount, 0) AS requested_amount,
         COALESCE(items.item_count, 0) AS item_count,
-        COALESCE(wi.current_stage_key, CASE WHEN p.status = 'Submitted' THEN 'planning_committee_review' ELSE 'department_need_capture' END) AS current_stage_key,
-        COALESCE(sc.stage_title, CASE WHEN p.status = 'Submitted' THEN 'Planning Committee Review' ELSE 'Department Need Capture' END) AS current_stage_title,
+        COALESCE(wi.current_stage_key, CASE WHEN p.status = 'Initial' THEN 'budget_code_allocation' ELSE 'department_need_capture' END) AS current_stage_key,
+        COALESCE(sc.stage_title, CASE WHEN p.status = 'Initial' THEN 'Budget Code Allocation' ELSE 'Department Need Capture' END) AS current_stage_title,
         COALESCE(wi.current_status, p.status) AS workflow_status,
         p.created_at,
         p.updated_at,
@@ -129,7 +129,7 @@ SELECT
     q.*,
     GREATEST(q.requested_amount - q.available, 0) AS variance
 FROM queue q
-WHERE q.current_stage_key IN ('planning_committee_review', 'budget_confirmation', 'app_approval')
+WHERE q.current_stage_key IN ('comptroller_procurement_review', 'planning_committee_review', 'budget_confirmation', 'app_approval')
   AND (@p_fiscal_year IS NULL OR q.fiscal_year = @p_fiscal_year)
   AND (@p_department IS NULL OR q.department = @p_department)
   AND (@p_stage IS NULL OR q.current_stage_key = @p_stage)

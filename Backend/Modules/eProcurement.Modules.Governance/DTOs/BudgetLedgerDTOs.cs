@@ -137,11 +137,74 @@ public record BudgetAppropriationCreateRequest(
     string? Status,
     string? Notes);
 
+public record BudgetAppropriationResponse(
+    Guid AppropriationId,
+    int FiscalYear,
+    string Department,
+    string BudgetCode,
+    decimal Amount,
+    string Status,
+    string? Notes,
+    DateTime CreatedAt,
+    DateTime UpdatedAt);
+
+public record BudgetAppropriationListResponse(
+    IReadOnlyList<BudgetAppropriationResponse> Items,
+    int Page,
+    int PageSize,
+    long Total);
+
 public record BudgetReleaseCreateRequest(
     Guid AppropriationId,
     decimal Amount,
     DateTime? ReleaseDate,
     string? Notes);
+
+public record BudgetReleaseResponse(
+    Guid ReleaseId,
+    Guid AppropriationId,
+    int FiscalYear,
+    string Department,
+    string BudgetCode,
+    decimal AppropriationAmount,
+    decimal Amount,
+    DateTime ReleaseDate,
+    string? Notes,
+    DateTime CreatedAt,
+    DateTime UpdatedAt);
+
+public record BudgetReleaseListResponse(
+    IReadOnlyList<BudgetReleaseResponse> Items,
+    int Page,
+    int PageSize,
+    long Total);
+
+public record BudgetCommitmentCreateRequest(
+    Guid AppropriationId,
+    decimal Amount,
+    DateTime? CommittedAt);
+
+public record BudgetCommitmentResponse(
+    Guid CommitmentId,
+    Guid? AppropriationId,
+    Guid? RequisitionId,
+    string? RequisitionTitle,
+    string? RequisitionStatus,
+    int FiscalYear,
+    string Department,
+    string BudgetCode,
+    decimal AppropriationAmount,
+    decimal Amount,
+    DateTime CommittedAt,
+    string Status,
+    DateTime CreatedAt,
+    DateTime UpdatedAt);
+
+public record BudgetCommitmentListResponse(
+    IReadOnlyList<BudgetCommitmentResponse> Items,
+    int Page,
+    int PageSize,
+    long Total);
 
 public record BudgetExpenditureCreateRequest(
     Guid CommitmentId,
@@ -159,3 +222,27 @@ public record BudgetCommitmentSummary(
     decimal Amount,
     string Status,
     DateTime CommittedAt);
+
+public record BudgetRequisitionQueueItem(
+    Guid RequisitionId,
+    string Title,
+    string Department,
+    string? BudgetCode,
+    Guid? AppItemId,
+    decimal TotalEstimate,
+    DateTime? RequiredBy,
+    string Status,
+    string CurrentStageKey,
+    string CurrentStageTitle,
+    string? WorkflowStatus,
+    decimal Available,
+    decimal Committed,
+    decimal Variance,
+    DateTime CreatedAt,
+    DateTime UpdatedAt);
+
+public record BudgetRequisitionListResponse(
+    IReadOnlyList<BudgetRequisitionQueueItem> Items,
+    int Page,
+    int PageSize,
+    long Total);

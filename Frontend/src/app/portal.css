@@ -1946,11 +1946,175 @@
 }
 
 
-/* Budget Control Center Redesign - Corrected Layouts */
-.budget-workspace__detail-grid {
+/* Budget Theme Variables */
+:root {
+  --budget-primary: #3b82f6;
+  --budget-success: #10b981;
+  --budget-warning: #f59e0b;
+  --budget-danger: #ef4444;
+  --budget-info: #06b6d4;
+  --budget-gradient: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  --budget-glass: rgba(255, 255, 255, 0.85);
+}
+
+/* Budget Cards */
+.budget-card {
+  background: var(--budget-glass);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 24px;
+  box-shadow: 0 20px 40px rgba(59, 130, 246, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.budget-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 32px 64px rgba(59, 130, 246, 0.15);
+}
+
+.budget-kpi {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 24px;
+}
+
+.budget-kpi-value {
+  font-size: 2.5rem;
+  font-weight: 800;
+  background: var(--budget-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.budget-kpi-label {
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--portal-slate);
+  font-weight: 600;
+}
+
+/* Variance Indicators */
+.variance-positive {
+  color: var(--budget-success);
+}
+
+.variance-negative {
+  color: var(--budget-danger);
+}
+
+.variance-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(59, 130, 246, 0.2);
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.variance-fill {
+  height: 100%;
+  background: var(--budget-gradient);
+  transition: width 0.5s ease;
+}
+
+/* Risk Heatmap */
+.risk-heatmap {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)) !important;
-  gap: 16px !important;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.risk-item {
+  padding: 16px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.risk-low { border: 2px solid var(--budget-success); background: rgba(16, 185, 129, 0.1); }
+.risk-medium { border: 2px solid var(--budget-warning); background: rgba(245, 158, 11, 0.15); }
+.risk-high { border: 2px solid var(--budget-danger); background: rgba(239, 68, 68, 0.12); }
+
+/* Modern Table */
+.budget-table-modern {
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 16px 32px rgba(0,0,0,0.08);
+}
+
+.budget-table-modern thead {
+  background: var(--budget-gradient);
+  color: white;
+}
+
+.budget-table-modern tbody tr {
+  transition: background 0.2s ease;
+}
+
+.budget-table-modern tbody tr:hover {
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.budget-table-modern tbody tr:nth-child(even) {
+  background: rgba(255,255,255,0.5);
+}
+
+/* Budget Nav Modern */
+.budget-nav-modern {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.budget-nav-item-modern {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: 20px;
+  background: var(--budget-glass);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.budget-nav-item-modern:hover,
+.budget-nav-item-modern.active {
+  background: var(--budget-gradient);
+  color: white;
+  transform: translateX(8px);
+  box-shadow: 0 20px 40px rgba(59, 130, 246, 0.3);
+}
+
+/* Gauge Styles */
+.budget-gauge {
+  --size: 120px;
+  --stroke: 12px;
+  --value: 60;
+  width: var(--size);
+  height: var(--size);
+  position: relative;
+}
+
+.budget-gauge-circle {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: conic-gradient(var(--budget-success) calc(var(--value) * 1%), var(--budget-warning) calc(var(--value) * 1%) 75%, var(--budget-danger) 75% 100%);
+  mask: radial-gradient(farthest-side, transparent calc(100% - var(--stroke) / 2), black 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - var(--stroke) / 2), black 0);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .budget-kpi-value { font-size: 2rem; }
+  .risk-heatmap { grid-template-columns: repeat(2, 1fr); }
 }
 
 .budget-workspace__metric-list {
