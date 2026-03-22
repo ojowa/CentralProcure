@@ -174,7 +174,7 @@ ORDER BY body_name ASC;";
                 state.IsDecisionGate,
                 state.IsStart,
                 state.IsTerminal,
-                state.PrimaryOwners.FirstOrDefault() ?? "procurement_officer",
+                state.PrimaryOwners.FirstOrDefault() ?? "comptroller_procurement",
                 state.PpaReference,
                 null))
             .ToArray();
@@ -272,3 +272,4 @@ ORDER BY body_name ASC;";
         return new Guid(bytes);
     }
 }
+

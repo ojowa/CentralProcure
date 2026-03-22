@@ -64,3 +64,13 @@ public record AdministrativeReviewUpdateRequest(
     string? ResolutionOutcome,
     string? ResolutionStageKey,
     string? ResolutionNotes);
+
+public record AdministrativeReviewFilingContextResponse(
+    string EntityType,
+    Guid EntityId,
+    string? RecordTitle,
+    string CurrentStageKey,
+    string? CurrentStageTitle,
+    bool CanFile,
+    string? Reason,
+    string FilingEffectNote);

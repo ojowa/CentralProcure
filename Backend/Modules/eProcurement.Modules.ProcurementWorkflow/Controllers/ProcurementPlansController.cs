@@ -1,4 +1,5 @@
 using System.Data;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 using NpgsqlTypes;
@@ -114,24 +115,17 @@ public class ProcurementPlansController : ControllerBase
 
             var total = await GetPlanCountAsync(conn, tx, fiscalYear, department, status, ct);
 
-            await using var cmd = new NpgsqlCommand("procurement_workflow.get_procurement_plans_sp", conn, tx)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
-
-            cmd.Parameters.AddWithValue("p_fiscal_year", NpgsqlDbType.Integer, (object?)fiscalYear ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("p_department", NpgsqlDbType.Varchar, (object?)department ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("p_status", NpgsqlDbType.Varchar, (object?)status ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("p_sort_by", NpgsqlDbType.Varchar, sortBy);
-            cmd.Parameters.AddWithValue("p_sort_dir", NpgsqlDbType.Varchar, sortDir);
-            cmd.Parameters.AddWithValue("p_limit", NpgsqlDbType.Integer, pageSize);
-            cmd.Parameters.AddWithValue("p_offset", NpgsqlDbType.Integer, (page - 1) * pageSize);
-            cmd.Parameters.Add(new NpgsqlParameter("p_result", NpgsqlDbType.Refcursor)
-            {
-                Direction = ParameterDirection.Output
-            });
-
-            var results = await ExecuteRefcursorAsync(cmd, MapPlanSummary, ct);
+            var results = await GetCommitteeCreatedPlansAsync(
+                conn,
+                tx,
+                fiscalYear,
+                department,
+                status,
+                pageSize,
+                (page - 1) * pageSize,
+                sortBy,
+                sortDir,
+                ct);
             await tx.CommitAsync(ct);
 
             return Ok(new
@@ -233,6 +227,16 @@ public class ProcurementPlansController : ControllerBase
             await tx.CommitAsync(ct);
             return Created($"/api/procurement-plans/{result.PlanId}", result);
         }
+        catch (PostgresException ex) when (ex.SqlState == "23505" && ex.ConstraintName == "procurement_plans_unique_title_ux")
+        {
+            _logger.LogWarning(ex, "Duplicate procurement plan prevented.");
+            return Conflict("Procurement plan already exists for this title, department, and fiscal year.");
+        }
+        catch (PostgresException ex) when (ex.SqlState == "P0001")
+        {
+            _logger.LogWarning(ex, "Procurement plan validation failed.");
+            return Conflict(ex.MessageText);
+        }
         catch (PostgresException ex)
         {
             _logger.LogError(ex, "Error creating procurement plan.");
@@ -324,6 +328,198 @@ public class ProcurementPlansController : ControllerBase
         }
     }
 
+    [HttpPost("{planId:guid}/approval-decision")]
+    public async Task<IActionResult> DecideAppApproval(
+        Guid planId,
+        [FromBody] ProcurementPlanApprovalDecisionRequest request,
+        CancellationToken ct)
+    {
+        var roleKey = WorkflowActionGrantService.ResolveRoleKey(User);
+        if (!string.Equals(roleKey, "comptroller_procurement", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(roleKey, "accounting_officer", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(roleKey, "admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return Forbid();
+        }
+
+        var normalizedDecision = NormalizeApprovalDecision(request.Decision);
+        if (normalizedDecision is null)
+        {
+            return BadRequest("Decision must be one of: approve, return, reject.");
+        }
+
+        var connectionString = GetConnectionString();
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            return Problem("Connection string 'Primary' is not configured.", statusCode: 500);
+        }
+
+        try
+        {
+            await using var conn = new NpgsqlConnection(connectionString);
+            await conn.OpenAsync(ct);
+            await using var tx = await conn.BeginTransactionAsync(ct);
+
+            var plan = await GetPlanDetailAsync(conn, tx, planId, ct);
+            if (plan is null)
+            {
+                return NotFound();
+            }
+
+            if (!string.Equals(plan.CurrentStageKey, "app_approval", StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest("Plan is not currently awaiting APP approval.");
+            }
+
+            var actor = User.FindFirstValue(ClaimTypes.Email) ?? User.FindFirstValue(ClaimTypes.Name) ?? User.Identity?.Name;
+            var noteEntry = BuildApprovalDecisionNote(normalizedDecision, request.Note, actor);
+            var target = ResolveApprovalDecisionTarget(normalizedDecision);
+
+            await UpdatePlanForApprovalDecisionAsync(conn, tx, planId, target.PlanStatus, noteEntry, target.ApprovedAt, ct);
+            await _workflowRuntimeTracker.SyncAsync(
+                conn,
+                tx,
+                new WorkflowRuntimeSyncRequest(
+                    "procurement_plan",
+                    planId,
+                    target.StageKey,
+                    target.WorkflowStatus,
+                    plan.PlanTitle,
+                    null,
+                    null,
+                    plan.TotalBudget,
+                    null,
+                    null,
+                    noteEntry,
+                    actor,
+                    "app_approval_decision"),
+                ct);
+
+            await tx.CommitAsync(ct);
+
+            return Ok(new ProcurementPlanApprovalDecisionResponse(
+                planId,
+                normalizedDecision,
+                target.Message,
+                target.StageKey,
+                target.StageTitle,
+                target.WorkflowStatus,
+                target.PlanStatus,
+                target.ApprovedAt));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error applying APP approval decision for plan {PlanId}.", planId);
+            return Problem("Internal server error applying APP approval decision.");
+        }
+    }
+
+    [HttpPost("{planId:guid}/initiate-procurement")]
+    public async Task<IActionResult> InitiateProcurement(Guid planId, CancellationToken ct)
+    {
+        var roleKey = WorkflowActionGrantService.ResolveRoleKey(User);
+        if (!string.Equals(roleKey, "comptroller_procurement", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(roleKey, "requisitioning_officer", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(roleKey, "admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return Forbid();
+        }
+
+        var connectionString = GetConnectionString();
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            return Problem("Connection string 'Primary' is not configured.", statusCode: 500);
+        }
+
+        try
+        {
+            await using var conn = new NpgsqlConnection(connectionString);
+            await conn.OpenAsync(ct);
+            await using var tx = await conn.BeginTransactionAsync(ct);
+
+            var plan = await GetPlanDetailAsync(conn, tx, planId, ct);
+            if (plan is null)
+            {
+                return NotFound();
+            }
+
+            if (!string.Equals(plan.CurrentStageKey, "procurement_initiation", StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest("Plan is not currently at procurement initiation.");
+            }
+
+            var transition = await _workflowPolicyGuard.EvaluateTransitionAsync(
+                conn,
+                tx,
+                "procurement_plan",
+                planId,
+                "threshold_resolution",
+                ct);
+
+            if (!transition.IsAllowed)
+            {
+                return BadRequest(transition.Message ?? "Threshold resolution is not allowed for this plan.");
+            }
+
+            var routeDecision = await _workflowPolicyGuard.ResolveRouteDecisionAsync(
+                conn,
+                tx,
+                "procurement_plan",
+                planId,
+                ct);
+
+            var actor = User.FindFirstValue(ClaimTypes.Email) ?? User.FindFirstValue(ClaimTypes.Name) ?? User.Identity?.Name;
+            var routeSummary = routeDecision is null
+                ? "Procurement initiated without an active threshold match."
+                : $"Procurement initiated. Threshold route: {routeDecision.ApprovalAuthorityLabel ?? routeDecision.ApprovalRoute ?? "Unspecified"}.";
+
+            await _workflowRuntimeTracker.SyncAsync(
+                conn,
+                tx,
+                new WorkflowRuntimeSyncRequest(
+                    "procurement_plan",
+                    planId,
+                    "threshold_resolution",
+                    "Under Review",
+                    plan.PlanTitle,
+                    null,
+                    null,
+                    plan.TotalBudget,
+                    routeDecision?.ProcurementType,
+                    routeDecision?.ThresholdId,
+                    routeSummary,
+                    actor,
+                    "procurement_initiation"),
+                ct);
+
+            await tx.CommitAsync(ct);
+
+            return Ok(new ProcurementInitiationResponse(
+                planId,
+                routeSummary,
+                "threshold_resolution",
+                "Threshold Resolution",
+                "Under Review",
+                routeDecision?.ThresholdId,
+                routeDecision?.ApprovalRoute,
+                routeDecision?.ApprovalAuthorityCode,
+                routeDecision?.ApprovalAuthorityLabel,
+                routeDecision?.RequiresCgisApproval ?? false,
+                routeDecision?.RequiresBoard ?? false,
+                routeDecision?.RequiresBpp ?? false,
+                routeDecision?.GovernanceBodyId,
+                routeDecision?.GovernanceBodyName,
+                routeDecision?.Amount,
+                routeDecision?.ProcurementType,
+                routeDecision?.Notes));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error initiating procurement for plan {PlanId}.", planId);
+            return Problem("Internal server error initiating procurement.");
+        }
+    }
+
     [HttpDelete("{planId:guid}")]
     public async Task<IActionResult> DeletePlan(Guid planId, CancellationToken ct)
     {
@@ -398,6 +594,8 @@ public class ProcurementPlansController : ControllerBase
             r.GetString(r.GetOrdinal("department")),
             r.GetInt32(r.GetOrdinal("fiscal_year")),
             r.GetString(r.GetOrdinal("status")),
+            GetNullableString(r, "current_stage_key"),
+            GetNullableString(r, "current_stage_title"),
             r.GetFieldValue<decimal>(r.GetOrdinal("total_budget")),
             GetNullableString(r, "notes"),
             GetNullableDateTime(r, "submitted_at"),
@@ -442,7 +640,22 @@ public class ProcurementPlansController : ControllerBase
         string? status,
         CancellationToken ct)
     {
-        const string sql = "SELECT procurement_workflow.get_procurement_plans_count(@p_fiscal_year, @p_department, @p_status);";
+        const string sql = @"
+SELECT COUNT(*)
+FROM procurement_workflow.procurement_plans p
+WHERE
+    (EXISTS (
+        SELECT 1
+        FROM procurement_workflow.planning_committee_plan_links l
+        WHERE l.plan_id = p.plan_id
+    ) OR EXISTS (
+        SELECT 1
+        FROM procurement_workflow.planning_committee_decisions d
+        WHERE d.plan_id = p.plan_id
+    ))
+    AND (@p_fiscal_year IS NULL OR p.fiscal_year = @p_fiscal_year)
+    AND (@p_department IS NULL OR p.department ILIKE '%' || @p_department || '%')
+    AND (@p_status IS NULL OR p.status ILIKE @p_status);";
         await using var cmd = new NpgsqlCommand(sql, conn, tx);
         cmd.Parameters.AddWithValue("p_fiscal_year", NpgsqlDbType.Integer, (object?)fiscalYear ?? DBNull.Value);
         cmd.Parameters.AddWithValue("p_department", NpgsqlDbType.Varchar, (object?)department ?? DBNull.Value);
@@ -450,6 +663,77 @@ public class ProcurementPlansController : ControllerBase
 
         var result = await cmd.ExecuteScalarAsync(ct);
         return result is null ? 0 : Convert.ToInt64(result);
+    }
+
+    private static async Task<List<ProcurementPlanSummary>> GetCommitteeCreatedPlansAsync(
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        int? fiscalYear,
+        string? department,
+        string? status,
+        int limit,
+        int offset,
+        string sortBy,
+        string sortDir,
+        CancellationToken ct)
+    {
+        const string sql = @"
+SELECT
+    p.plan_id,
+    p.plan_title,
+    p.department,
+    p.fiscal_year,
+    p.status,
+    p.total_budget,
+    p.created_at
+FROM procurement_workflow.procurement_plans p
+WHERE
+    (EXISTS (
+        SELECT 1
+        FROM procurement_workflow.planning_committee_plan_links l
+        WHERE l.plan_id = p.plan_id
+    ) OR EXISTS (
+        SELECT 1
+        FROM procurement_workflow.planning_committee_decisions d
+        WHERE d.plan_id = p.plan_id
+    ))
+    AND (@p_fiscal_year IS NULL OR p.fiscal_year = @p_fiscal_year)
+    AND (@p_department IS NULL OR p.department ILIKE '%' || @p_department || '%')
+    AND (@p_status IS NULL OR p.status ILIKE @p_status)
+ORDER BY
+    CASE WHEN lower(@p_sort_by) = 'plan_title' AND lower(@p_sort_dir) = 'asc' THEN p.plan_title END ASC,
+    CASE WHEN lower(@p_sort_by) = 'plan_title' AND lower(@p_sort_dir) = 'desc' THEN p.plan_title END DESC,
+    CASE WHEN lower(@p_sort_by) = 'department' AND lower(@p_sort_dir) = 'asc' THEN p.department END ASC,
+    CASE WHEN lower(@p_sort_by) = 'department' AND lower(@p_sort_dir) = 'desc' THEN p.department END DESC,
+    CASE WHEN lower(@p_sort_by) = 'fiscal_year' AND lower(@p_sort_dir) = 'asc' THEN p.fiscal_year END ASC,
+    CASE WHEN lower(@p_sort_by) = 'fiscal_year' AND lower(@p_sort_dir) = 'desc' THEN p.fiscal_year END DESC,
+    CASE WHEN lower(@p_sort_by) = 'status' AND lower(@p_sort_dir) = 'asc' THEN p.status END ASC,
+    CASE WHEN lower(@p_sort_by) = 'status' AND lower(@p_sort_dir) = 'desc' THEN p.status END DESC,
+    CASE WHEN lower(@p_sort_by) = 'total_budget' AND lower(@p_sort_dir) = 'asc' THEN p.total_budget END ASC,
+    CASE WHEN lower(@p_sort_by) = 'total_budget' AND lower(@p_sort_dir) = 'desc' THEN p.total_budget END DESC,
+    CASE WHEN lower(@p_sort_by) = 'created_at' AND lower(@p_sort_dir) = 'asc' THEN p.created_at END ASC,
+    CASE WHEN lower(@p_sort_by) = 'created_at' AND lower(@p_sort_dir) = 'desc' THEN p.created_at END DESC,
+    p.created_at DESC
+LIMIT @p_limit
+OFFSET @p_offset;";
+
+        await using var cmd = new NpgsqlCommand(sql, conn, tx);
+        cmd.Parameters.AddWithValue("p_fiscal_year", NpgsqlDbType.Integer, (object?)fiscalYear ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("p_department", NpgsqlDbType.Varchar, (object?)department ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("p_status", NpgsqlDbType.Varchar, (object?)status ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("p_sort_by", NpgsqlDbType.Varchar, sortBy);
+        cmd.Parameters.AddWithValue("p_sort_dir", NpgsqlDbType.Varchar, sortDir);
+        cmd.Parameters.AddWithValue("p_limit", NpgsqlDbType.Integer, limit);
+        cmd.Parameters.AddWithValue("p_offset", NpgsqlDbType.Integer, offset);
+
+        await using var reader = await cmd.ExecuteReaderAsync(ct);
+        var results = new List<ProcurementPlanSummary>();
+        while (await reader.ReadAsync(ct))
+        {
+            results.Add(MapPlanSummary(reader));
+        }
+
+        return results;
     }
 
     private static async Task<ProcurementPlanDetail?> GetPlanDetailAsync(
@@ -466,6 +750,8 @@ public class ProcurementPlansController : ControllerBase
                 p.department,
                 p.fiscal_year,
                 p.status,
+                wi.current_stage_key,
+                sc.stage_title AS current_stage_title,
                 p.total_budget,
                 p.notes,
                 p.submitted_at,
@@ -473,6 +759,11 @@ public class ProcurementPlansController : ControllerBase
                 p.created_at,
                 p.updated_at
             FROM procurement_workflow.procurement_plans p
+            LEFT JOIN procurement_workflow.workflow_instances wi
+                ON wi.entity_type = 'procurement_plan'
+               AND wi.entity_id = p.plan_id
+            LEFT JOIN procurement_workflow.workflow_stage_catalog sc
+                ON sc.stage_key = wi.current_stage_key
             WHERE p.plan_id = @p_plan_id;
             """;
 
@@ -493,18 +784,49 @@ public class ProcurementPlansController : ControllerBase
         Guid planId,
         CancellationToken ct)
     {
-        await using var cmd = new NpgsqlCommand("procurement_workflow.get_procurement_plan_items_sp", conn, tx)
-        {
-            CommandType = CommandType.StoredProcedure
-        };
+        const string sql = @"
+            SELECT
+                i.plan_item_id,
+                i.plan_id,
+                i.item_code,
+                i.description,
+                i.budget_code,
+                i.procurement_type,
+                i.estimated_amount,
+                i.status,
+                i.notes,
+                i.created_at,
+                i.updated_at
+            FROM procurement_workflow.procurement_plan_items i
+            WHERE i.plan_id = @p_plan_id
+              AND (
+                    NOT EXISTS (
+                        SELECT 1
+                        FROM procurement_workflow.requisitions r
+                        WHERE r.app_item_id = i.plan_item_id
+                    )
+                    OR EXISTS (
+                        SELECT 1
+                        FROM procurement_workflow.requisitions r
+                        JOIN procurement_workflow.planning_committee_decisions d
+                          ON d.requisition_id = r.requisition_id
+                        WHERE r.app_item_id = i.plan_item_id
+                          AND d.overall_decision = 'Recommended'
+                    )
+                  )
+            ORDER BY i.created_at ASC;";
 
+        await using var cmd = new NpgsqlCommand(sql, conn, tx);
         cmd.Parameters.AddWithValue("p_plan_id", NpgsqlDbType.Uuid, planId);
-        cmd.Parameters.Add(new NpgsqlParameter("p_result", NpgsqlDbType.Refcursor)
-        {
-            Direction = ParameterDirection.Output
-        });
+        await using var reader = await cmd.ExecuteReaderAsync(ct);
 
-        return await ExecuteRefcursorAsync(cmd, MapPlanItemDetail, ct);
+        var results = new List<ProcurementPlanItemDetail>();
+        while (await reader.ReadAsync(ct))
+        {
+            results.Add(MapPlanItemDetail(reader));
+        }
+
+        return results;
     }
 
     private static bool IsStatusValid(string? status, out string? normalizedStatus)
@@ -599,4 +921,99 @@ public class ProcurementPlansController : ControllerBase
 
         return null;
     }
+
+    private static string? NormalizeApprovalDecision(string? decision)
+    {
+        if (string.IsNullOrWhiteSpace(decision))
+        {
+            return null;
+        }
+
+        return decision.Trim().ToLowerInvariant() switch
+        {
+            "approve" => "approve",
+            "return" => "return",
+            "reject" => "reject",
+            _ => null
+        };
+    }
+
+    private static string BuildApprovalDecisionNote(string decision, string? note, string? actor)
+    {
+        var stamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss 'UTC'");
+        var actorLabel = string.IsNullOrWhiteSpace(actor) ? "system" : actor.Trim();
+        var message = string.IsNullOrWhiteSpace(note) ? "No note supplied." : note.Trim();
+        return $"[{stamp}] APP approval {decision}: {message} (actor: {actorLabel})";
+    }
+
+    private static ApprovalDecisionTarget ResolveApprovalDecisionTarget(string decision)
+    {
+        return decision switch
+        {
+            "approve" => new ApprovalDecisionTarget(
+                "procurement_initiation",
+                "Procurement Initiation",
+                "Approved",
+                "Approved",
+                "APP approved and released to procurement initiation.",
+                DateTime.UtcNow),
+            "return" => new ApprovalDecisionTarget(
+                "comptroller_procurement_review",
+                "Comptroller Procurement Review",
+                "Returned",
+                "Submitted",
+                "APP returned to Comptroller Procurement Review for correction.",
+                null),
+            "reject" => new ApprovalDecisionTarget(
+                "app_approval",
+                "APP Approval",
+                "Rejected",
+                "Rejected",
+                "APP rejected at approval stage.",
+                null),
+            _ => throw new InvalidOperationException("Unknown APP approval decision.")
+        };
+    }
+
+    private static async Task UpdatePlanForApprovalDecisionAsync(
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        Guid planId,
+        string planStatus,
+        string noteEntry,
+        DateTime? approvedAt,
+        CancellationToken ct)
+    {
+        const string sql = @"
+UPDATE procurement_workflow.procurement_plans
+SET
+    status = @p_status,
+    approved_at = @p_approved_at,
+    notes = CASE
+        WHEN NULLIF(BTRIM(notes), '') IS NULL THEN @p_note
+        ELSE notes || E'\n\n' || @p_note
+    END,
+    updated_at = NOW()
+WHERE plan_id = @p_plan_id;";
+
+        await using var cmd = new NpgsqlCommand(sql, conn, tx);
+        cmd.Parameters.AddWithValue("p_plan_id", NpgsqlDbType.Uuid, planId);
+        cmd.Parameters.AddWithValue("p_status", NpgsqlDbType.Varchar, planStatus);
+        cmd.Parameters.AddWithValue("p_note", NpgsqlDbType.Text, noteEntry);
+        cmd.Parameters.AddWithValue("p_approved_at", NpgsqlDbType.Timestamp, (object?)approvedAt ?? DBNull.Value);
+
+        var affected = await cmd.ExecuteNonQueryAsync(ct);
+        if (affected == 0)
+        {
+            throw new InvalidOperationException("Procurement plan could not be updated.");
+        }
+    }
+
+    private sealed record ApprovalDecisionTarget(
+        string StageKey,
+        string StageTitle,
+        string WorkflowStatus,
+        string PlanStatus,
+        string Message,
+        DateTime? ApprovedAt);
 }

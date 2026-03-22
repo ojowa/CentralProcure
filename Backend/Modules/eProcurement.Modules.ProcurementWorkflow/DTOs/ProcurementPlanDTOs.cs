@@ -15,12 +15,47 @@ public record ProcurementPlanDetail(
     string Department,
     int FiscalYear,
     string Status,
+    string? CurrentStageKey,
+    string? CurrentStageTitle,
     decimal TotalBudget,
     string? Notes,
     DateTime? SubmittedAt,
     DateTime? ApprovedAt,
     DateTime CreatedAt,
     DateTime UpdatedAt);
+
+public record ProcurementPlanApprovalDecisionRequest(
+    string Decision,
+    string? Note);
+
+public record ProcurementPlanApprovalDecisionResponse(
+    Guid PlanId,
+    string Decision,
+    string Message,
+    string StageKey,
+    string StageTitle,
+    string WorkflowStatus,
+    string PlanStatus,
+    DateTime? ApprovedAt);
+
+public record ProcurementInitiationResponse(
+    Guid PlanId,
+    string Message,
+    string StageKey,
+    string StageTitle,
+    string WorkflowStatus,
+    Guid? ThresholdId,
+    string? ApprovalRoute,
+    string? ApprovalAuthorityCode,
+    string? ApprovalAuthorityLabel,
+    bool RequiresCgisApproval,
+    bool RequiresBoard,
+    bool RequiresBpp,
+    Guid? GovernanceBodyId,
+    string? GovernanceBodyName,
+    decimal? Amount,
+    string? ProcurementType,
+    string? Notes);
 
 public record ProcurementPlanCreateRequest(
     string PlanTitle,

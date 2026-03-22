@@ -1,3 +1,5 @@
+using eProcurement.Shared.Workflow;
+
 namespace eProcurement.Modules.PostAward.DTOs;
 
 public record PaymentTrackingItem(
@@ -22,7 +24,8 @@ public record PaymentTrackingItem(
     Guid? CloseoutId,
     string? CloseoutReference,
     string? CloseoutStatus,
-    DateTime? ArchivedAt);
+    DateTime? ArchivedAt,
+    WorkflowRuntimeDisplay? WorkflowDisplay);
 
 public record PaymentRecordRequest(
     string ContractCode,

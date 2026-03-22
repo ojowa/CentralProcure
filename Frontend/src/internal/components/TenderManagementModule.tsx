@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import type { InternalModule, TenderSummary, TenderDetail, RequisitionSummary } from '../types/internal';
 import { fetchTenderDetails, createTender, publishTender, fetchApprovedRequisitions } from '../services/moduleService';
+import { fetchTenderWorkflowDisplay, type TenderWorkflowDisplayResponse } from '../services/tenderWorkflowService';
 import { WorkflowProgressStepper } from './WorkflowProgressStepper';
 import { getHumanStatus } from '../utils/workflow';
+import type { WorkflowRuntimeDisplay } from './workflowDisplayTypes';
 
 interface Props {
   module: InternalModule;
@@ -16,6 +18,7 @@ export const TenderManagementModule = ({ module, token, role, initialData }: Pro
   const [tenders, setTenders] = useState<TenderSummary[]>([]);
   const [approvedRequisitions, setApprovedRequisitions] = useState<RequisitionSummary[]>([]);
   const [selectedTender, setSelectedTender] = useState<TenderDetail | null>(null);
+  const [selectedTenderWorkflow, setSelectedTenderWorkflow] = useState<TenderWorkflowDisplayResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -85,7 +88,9 @@ export const TenderManagementModule = ({ module, token, role, initialData }: Pro
     setLoading(true);
     try {
       const data = await fetchTenderDetails(tenderId, token);
+      const workflow = await fetchTenderWorkflowDisplay(tenderId, token);
       setSelectedTender(data);
+      setSelectedTenderWorkflow(workflow);
       setView('publish');
     } catch (err: any) {
       setError(err.message);
@@ -239,14 +244,17 @@ export const TenderManagementModule = ({ module, token, role, initialData }: Pro
             <h3>{selectedTender.Title}</h3>
             <div className="plan-summary-card__grid">
               <div><small>Reference</small><p>{selectedTender.TenderId.slice(0, 8).toUpperCase()}</p></div>
-              <div><small>Status</small><p>{getHumanStatus(selectedTender.CurrentStage, selectedTender.Status)}</p></div>
+              <div><small>Status</small><p>{getHumanStatus(selectedTenderWorkflow?.CurrentStageKey, selectedTenderWorkflow?.CurrentStageTitle || selectedTender.Status)}</p></div>
               <div><small>Budget</small><p>{new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(selectedTender.Budget || 0)}</p></div>
             </div>
           </div>
 
-          {selectedTender.CurrentStage ? (
+          {selectedTenderWorkflow?.CurrentStageKey ? (
             <div style={{ marginBottom: '20px' }}>
-              <WorkflowProgressStepper currentStageKey={selectedTender.CurrentStage} />
+              <WorkflowProgressStepper
+                currentStageKey={selectedTenderWorkflow.CurrentStageKey}
+                display={selectedTenderWorkflow.WorkflowDisplay as WorkflowRuntimeDisplay | null | undefined}
+              />
             </div>
           ) : null}
 

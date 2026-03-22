@@ -14,7 +14,6 @@ const stageOptions = [
   { value: 'budget_code_allocation', label: 'Budget Code Allocation' },
   { value: 'comptroller_procurement_review', label: 'Comptroller Procurement Review' },
   { value: 'planning_committee_review', label: 'Planning Committee Review' },
-  { value: 'budget_confirmation', label: 'Budget Final Confirmation' },
   { value: 'app_approval', label: 'APP Approval' }
 ];
 

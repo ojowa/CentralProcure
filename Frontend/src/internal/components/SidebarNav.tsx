@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from 'react';
+import Link from 'next/link';
 import type { InternalModule } from '../types/internal';
+import { getInternalDashboardPath } from '../utils/internalRoutes';
 
 interface SidebarProps {
   modules: InternalModule[];
@@ -66,26 +68,26 @@ export const SidebarNav = ({ modules, activeModuleId, onModuleChange }: SidebarP
       </label>
       <section className="portal-sidebar-section">
         <h3>Workspace</h3>
-        <button
-          type="button"
+        <Link
+          href={getInternalDashboardPath()}
           className={activeModuleId === 'dashboard' ? 'active' : ''}
           onClick={() => onModuleChange('dashboard')}
         >
           Dashboard
-        </button>
+        </Link>
       </section>
       {sortedSections.map(([section, sectionModules]) => (
         <section key={section} className="portal-sidebar-section">
           <h3>{section}</h3>
           {sectionModules.map((module) => (
-            <button
-              type="button"
+            <Link
+              href={getInternalDashboardPath(module.id)}
               key={module.id}
               className={module.id === activeModuleId ? 'active' : ''}
               onClick={() => onModuleChange(module.id)}
             >
               {module.title}
-            </button>
+            </Link>
           ))}
         </section>
       ))}

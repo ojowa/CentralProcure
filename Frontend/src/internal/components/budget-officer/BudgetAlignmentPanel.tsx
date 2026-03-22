@@ -190,7 +190,7 @@ export const BudgetAlignmentPanel = ({ token, requisition, onAligned, onClose }:
       });
       setStatus({
         type: 'success',
-        message: 'Budget code allocated and committed. The requisition is ready for planning committee review.'
+        message: 'Budget code allocated and committed. The requisition is ready for Comptroller Procurement Review.'
       });
       onAligned?.();
     } catch (error) {

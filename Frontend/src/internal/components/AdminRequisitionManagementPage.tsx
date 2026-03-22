@@ -1,16 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import {
-  editableRequisitionStatuses,
-  thresholdBands,
-  type BudgetLineItem
-} from '../data/internalData';
 import { fetchRequisitionDetail, fetchRequisitions, updateRequisition, deleteRequisition } from '../services/requisitionService';
-import {
-  fetchWorkflowRuntime,
-  fetchWorkflowRuntimeHistory
-} from '../services/workflowContextService';
+import { fetchWorkflowRuntime, fetchWorkflowRuntimeHistory } from '../services/workflowContextService';
 import type {
   InternalModule,
   RequisitionDetail,
@@ -19,18 +11,9 @@ import type {
   WorkflowRuntimeHistoryEntry,
   WorkflowRuntimeSnapshot
 } from '../types/internal';
-import { toTitle } from '../utils/procureUtils';
-import {
-  getPageSize,
-  getStepIndex,
-  type FiltersState
-} from './requisitionWorkspace/helpers';
-import {
-  RequisitionDetailContent
-} from './requisitionWorkspace/detailViews';
-import {
-  RequisitionHistoryView
-} from './requisitionWorkspace/sectionViews';
+import { getPageSize, getStepIndex, type FiltersState } from './requisitionWorkspace/helpers';
+import { RequisitionDetailContent } from './requisitionWorkspace/detailViews';
+import { RequisitionHistoryView } from './requisitionWorkspace/sectionViews';
 
 interface Props {
   module: InternalModule;
@@ -39,6 +22,14 @@ interface Props {
   userEmail?: string | null;
   onModuleChange?: (moduleId: string) => void;
 }
+
+type RequisitionAuthority = {
+  IsEditable?: boolean;
+  CanEdit?: boolean;
+  CanDelete?: boolean;
+  CanRoute?: boolean;
+};
+type RequisitionDetailWithAuthority = RequisitionDetail & { Authority?: RequisitionAuthority };
 
 export const AdminRequisitionManagementPage = ({ module, token, role, userEmail, onModuleChange }: Props) => {
   const mode = 'history';
@@ -57,7 +48,7 @@ export const AdminRequisitionManagementPage = ({ module, token, role, userEmail,
   const [isListLoading, setIsListLoading] = useState(false);
   const [listError, setListError] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [selectedDetail, setSelectedDetail] = useState<RequisitionDetail | null>(null);
+  const [selectedDetail, setSelectedDetail] = useState<RequisitionDetailWithAuthority | null>(null);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -68,11 +59,11 @@ export const AdminRequisitionManagementPage = ({ module, token, role, userEmail,
   const [isWorkflowLoading, setIsWorkflowLoading] = useState(false);
 
   const activeStepIndex = getStepIndex(selectedDetail);
-  const canEditDrafts = role === 'admin' || role === 'procurement_officer';
-  const canDelete = role === 'admin' || role === 'procurement_officer';
-  const canRoute = role === 'admin' || role === 'procurement_officer';
-  const isSelectedEditable = Boolean(selectedDetail && editableRequisitionStatuses.has(selectedDetail.Status));
-  const canApproveForPlanningCommittee = selectedDetail?.Status === 'Initial';
+  const canEditDrafts = Boolean(selectedDetail?.Authority?.CanEdit);
+  const canDelete = Boolean(selectedDetail?.Authority?.CanDelete);
+  const canRoute = Boolean(selectedDetail?.Authority?.CanRoute);
+  const isSelectedEditable = Boolean(selectedDetail?.Authority?.IsEditable);
+  const canApproveForPlanningCommittee = canRoute && selectedDetail?.Status === 'Initial';
 
   const summary = useMemo(() => {
     const counts = requisitions.reduce<Record<string, number>>((accumulator, record) => {
@@ -137,7 +128,7 @@ export const AdminRequisitionManagementPage = ({ module, token, role, userEmail,
     fetchRequisitionDetail(token, selectedId)
       .then((detail) => {
         if (isMounted) {
-          setSelectedDetail(detail);
+          setSelectedDetail(detail as RequisitionDetailWithAuthority);
         }
       })
       .catch((error) => {
@@ -317,15 +308,15 @@ export const AdminRequisitionManagementPage = ({ module, token, role, userEmail,
       <div className="requisition-header">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded tracking-wider ${role === 'procurement_officer' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
-              {role === 'procurement_officer' ? 'Comptroller Procurement' : 'Admin Only'}
+            <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded tracking-wider ${role === 'comptroller_procurement' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+              {role === 'comptroller_procurement' ? 'Comptroller Procurement' : 'Admin Only'}
             </span>
             <h2 className="text-2xl font-bold text-slate-900">
-              {role === 'procurement_officer' ? 'Comptroller Procurement' : module.title}
+              {role === 'comptroller_procurement' ? 'Comptroller Procurement' : module.title}
             </h2>
           </div>
           <p className="text-slate-500">
-            {role === 'procurement_officer'
+            {role === 'comptroller_procurement'
               ? 'Review submitted requisitions and clear them for Planning Committee review.'
               : 'Global administrative oversight and management of all agency procurement requisitions.'}
           </p>
@@ -341,7 +332,7 @@ export const AdminRequisitionManagementPage = ({ module, token, role, userEmail,
         <div><span>Active Workflow</span><strong>{summary.active}</strong></div>
         <div><span>Approved</span><strong>{summary.approved}</strong></div>
         <div>
-          <span>{role === 'procurement_officer' ? 'Procurement Control' : 'Admin Control'}</span>
+          <span>{role === 'comptroller_procurement' ? 'Procurement Control' : 'Admin Control'}</span>
           <strong>Active</strong>
         </div>
       </div>
@@ -371,12 +362,12 @@ export const AdminRequisitionManagementPage = ({ module, token, role, userEmail,
             <div className="requisition-card__header">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className={`px-1.5 py-0.5 text-white text-[9px] font-bold uppercase rounded tracking-wider ${role === 'procurement_officer' ? 'bg-emerald-600' : 'bg-red-600'}`}>
-                    {role === 'procurement_officer' ? 'Procurement Review' : 'Admin Console'}
+                  <span className={`px-1.5 py-0.5 text-white text-[9px] font-bold uppercase rounded tracking-wider ${role === 'comptroller_procurement' ? 'bg-emerald-600' : 'bg-red-600'}`}>
+                    {role === 'comptroller_procurement' ? 'Procurement Review' : 'Admin Console'}
                   </span>
                   <h3>Requisition Detail</h3>
                 </div>
-                <p>{role === 'procurement_officer' ? 'Validate readiness before Planning Committee review.' : 'Global oversight of request content and routing history.'}</p>
+                <p>{role === 'comptroller_procurement' ? 'Validate readiness before Planning Committee review.' : 'Global oversight of request content and routing history.'}</p>
               </div>
               <button type="button" className="plan-link" onClick={() => setIsDetailModalOpen(false)}>
                 Close
@@ -402,7 +393,7 @@ export const AdminRequisitionManagementPage = ({ module, token, role, userEmail,
 
             {modalError ? <div className="portal-alert" style={{ marginTop: '12px' }}>{modalError}</div> : null}
             
-            {role === 'procurement_officer' && selectedDetail?.Status === 'Initial' && (
+            {role === 'comptroller_procurement' && selectedDetail?.Status === 'Initial' && (
               <div className="plan-actions" style={{ marginTop: '16px' }}>
                 <button type="button" className="plan-button" onClick={() => void approveForPlanningCommittee()} disabled={!canRoute || isSaving}>
                   Approve for Planning Committee
@@ -444,3 +435,4 @@ export const AdminRequisitionManagementPage = ({ module, token, role, userEmail,
     </section>
   );
 };
+

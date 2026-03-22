@@ -1,7 +1,12 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import type { AdministrativeReviewCreateRequest, AdministrativeReviewDetail } from '../types/internal';
+import {
+  createAdministrativeReview,
+  fetchAdministrativeReviewFilingContext,
+  type AdministrativeReviewFilingContext
+} from '../services/administrativeReviewService';
 
 interface Props {
   entityType: string;
@@ -11,8 +16,6 @@ interface Props {
   onComplaintFiled?: (complaint: AdministrativeReviewDetail) => void;
   token?: string | null;
 }
-
-const API_BASE = '/api/administrative-reviews';
 
 export const ComplaintFilingModule = ({
   entityType,
@@ -26,6 +29,8 @@ export const ComplaintFilingModule = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [filingContext, setFilingContext] = useState<AdministrativeReviewFilingContext | null>(null);
+  const [isLoadingContext, setIsLoadingContext] = useState(false);
 
   const [formData, setFormData] = useState<AdministrativeReviewCreateRequest>({
     EntityType: entityType,
@@ -38,8 +43,38 @@ export const ComplaintFilingModule = ({
     FiledBy: ''
   });
 
-  const allowedStages = ['solicitation', 'evaluation', 'award_and_publication'];
-  const canFileComplaint = allowedStages.includes(currentStage.toLowerCase());
+  useEffect(() => {
+    if (!token) {
+      setFilingContext(null);
+      return;
+    }
+
+    let disposed = false;
+    setIsLoadingContext(true);
+    fetchAdministrativeReviewFilingContext(token, entityType, entityId)
+      .then((context) => {
+        if (!disposed) {
+          setFilingContext(context);
+        }
+      })
+      .catch((err: Error) => {
+        if (!disposed) {
+          setError(err.message || 'Unable to load complaint filing context.');
+        }
+      })
+      .finally(() => {
+        if (!disposed) {
+          setIsLoadingContext(false);
+        }
+      });
+
+    return () => {
+      disposed = true;
+    };
+  }, [token, entityType, entityId]);
+
+  const canFileComplaint = Boolean(filingContext?.CanFile);
+  const effectiveStage = filingContext?.CurrentStageTitle ?? filingContext?.CurrentStageKey ?? currentStage;
 
   const handleInputChange = (field: keyof AdministrativeReviewCreateRequest, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -73,21 +108,7 @@ export const ComplaintFilingModule = ({
     setError(null);
 
     try {
-      const response = await fetch(API_BASE, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(formData)
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || 'Failed to file complaint');
-      }
-
-      const result = await response.json() as AdministrativeReviewDetail;
+      const result = await createAdministrativeReview(token, formData);
       setSuccess(`Complaint filed successfully: ${result.ComplaintReference}`);
       onComplaintFiled?.(result);
 
@@ -117,7 +138,9 @@ export const ComplaintFilingModule = ({
     return (
       <div className="complaint-filing-disabled">
         <p className="text-sm text-gray-500">
-          Complaints can only be filed from solicitation, evaluation, or award stages.
+          {isLoadingContext
+            ? 'Checking complaint filing eligibility...'
+            : filingContext?.Reason || 'Complaint filing is not available for this record.'}
         </p>
       </div>
     );
@@ -151,7 +174,7 @@ export const ComplaintFilingModule = ({
           <div className="complaint-entity-info">
             <p><strong>Entity:</strong> {entityTitle}</p>
             <p><strong>Type:</strong> {entityType}</p>
-            <p><strong>Current Stage:</strong> {currentStage}</p>
+            <p><strong>Current Stage:</strong> {effectiveStage}</p>
           </div>
 
           {error && (
@@ -277,8 +300,7 @@ export const ComplaintFilingModule = ({
 
           <div className="complaint-notice">
             <p className="text-sm text-gray-600">
-              <strong>Note:</strong> Filing this complaint will suspend the procurement workflow
-              and route it to the Administrative Review process under Section 54 of PPA 2007.
+              <strong>Note:</strong> {filingContext?.FilingEffectNote ?? 'If filed, this record will be routed into Administrative Review.'}
             </p>
           </div>
         </div>

@@ -1,3 +1,5 @@
+using eProcurement.Shared.Workflow;
+
 namespace eProcurement.Modules.Governance.DTOs;
 
 public record BudgetAvailabilityResponse(decimal Available);
@@ -114,6 +116,7 @@ public record BudgetConfirmationDetail(
     int ItemCount,
     DateTime CreatedAt,
     DateTime UpdatedAt,
+    WorkflowRuntimeDisplay? WorkflowDisplay,
     IReadOnlyList<BudgetPlanBudgetLine> BudgetLines,
     IReadOnlyList<BudgetPlanItemSummary> PlanItems,
     IReadOnlyList<BudgetDecisionHistoryEntry> History);

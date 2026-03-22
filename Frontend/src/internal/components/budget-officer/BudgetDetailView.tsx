@@ -4,10 +4,15 @@ import { useState } from 'react';
 import type { BudgetConfirmationDetail } from '../../types/internal';
 import { formatCurrency, formatDate, formatDateTimeShort, toTitle, getVarianceColor } from '../../utils/procureUtils';
 import { WorkflowProgressStepper } from '../WorkflowProgressStepper';
+import type { WorkflowRuntimeDisplay } from '../workflowDisplayTypes';
 
 type Props = {
   detail: BudgetConfirmationDetail | null;
   isLoading: boolean;
+};
+
+type BudgetConfirmationDetailWithDisplay = BudgetConfirmationDetail & {
+  WorkflowDisplay?: WorkflowRuntimeDisplay | null;
 };
 
 const getStatusTone = (value?: string | null): string => {
@@ -29,6 +34,7 @@ type TabKey = 'summary' | 'budget-lines' | 'items' | 'history';
 
 export const BudgetDetailView = ({ detail, isLoading }: Props) => {
   const [activeTab, setActiveTab] = useState<TabKey>('summary');
+  const detailWithDisplay = detail as BudgetConfirmationDetailWithDisplay | null;
 
   if (isLoading) {
     return (
@@ -75,7 +81,7 @@ export const BudgetDetailView = ({ detail, isLoading }: Props) => {
               <div className="text-3xl font-bold variance-positive">{formatCurrency(detail.Available)}</div>
               <div className="text-sm text-slate-500 uppercase tracking-wide">Available</div>
             </div>
-            <WorkflowProgressStepper currentStageKey={detail.CurrentStageKey} />
+            <WorkflowProgressStepper currentStageKey={detail.CurrentStageKey} display={detailWithDisplay?.WorkflowDisplay} />
           </div>
         </div>
       </div>

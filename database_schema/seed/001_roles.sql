@@ -4,7 +4,7 @@ VALUES
     ('Admin', 'System administrator'),
     ('RequisitioningOfficer', 'Initiates and tracks requisitions'),
     ('DepartmentHead', 'Approves departmental requisitions'),
-    ('ProcurementOfficer', 'Maintains APP, creates and publishes tenders, manages bid opening'),
+    ('ComptrollerProcurement', 'Maintains APP, creates and publishes tenders, manages bid opening'),
     ('ProcurementManager', 'Oversees procurement operations and compliance'),
     ('TechnicalEvaluator', 'Performs technical evaluation only'),
     ('FinancialEvaluator', 'Performs financial evaluation only'),
@@ -25,3 +25,4 @@ VALUES
     ('AuditOfficer', 'Read-only audit and compliance access'),
     ('SystemAdministrator', 'User, role, and system configuration management')
 ON CONFLICT (role_name) DO NOTHING;
+

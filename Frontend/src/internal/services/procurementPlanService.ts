@@ -1,5 +1,8 @@
 import { serviceBaseUrls } from './moduleService';
 import type {
+  ProcurementInitiationResponse,
+  ProcurementPlanApprovalDecisionRequest,
+  ProcurementPlanApprovalDecisionResponse,
   ProcurementPlanCreateRequest,
   ProcurementPlanDetail,
   ProcurementPlanListResponse,
@@ -134,4 +137,35 @@ export const deleteProcurementPlan = async (token: string, planId: string): Prom
   });
 
   return parseResponse<ProcurementPlanDetail>(response);
+};
+
+export const decideProcurementPlanApproval = async (
+  token: string,
+  planId: string,
+  payload: ProcurementPlanApprovalDecisionRequest
+): Promise<ProcurementPlanApprovalDecisionResponse> => {
+  const response = await fetch(`${baseUrl}/${planId}/approval-decision`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
+
+  return parseResponse<ProcurementPlanApprovalDecisionResponse>(response);
+};
+
+export const initiateProcurementPlan = async (
+  token: string,
+  planId: string
+): Promise<ProcurementInitiationResponse> => {
+  const response = await fetch(`${baseUrl}/${planId}/initiate-procurement`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+
+  return parseResponse<ProcurementInitiationResponse>(response);
 };

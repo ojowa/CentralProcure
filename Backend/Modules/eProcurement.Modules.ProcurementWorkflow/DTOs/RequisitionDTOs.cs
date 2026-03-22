@@ -1,5 +1,29 @@
 namespace eProcurement.Modules.ProcurementWorkflow.DTOs;
 
+public record RequisitionAuthority(
+    bool IsEditable,
+    bool CanEdit,
+    bool CanDelete,
+    bool CanRoute,
+    bool CanFileComplaint,
+    IReadOnlyList<string> AllowedActionKeys,
+    string? CurrentStageKey = null,
+    string? CurrentStageTitle = null);
+
+public record RequisitionRouteDecision(
+    Guid? ThresholdId,
+    string? ApprovalRoute,
+    string? ApprovalAuthorityCode,
+    string? ApprovalAuthorityLabel,
+    bool RequiresCgisApproval,
+    bool RequiresBoard,
+    bool RequiresBpp,
+    Guid? GovernanceBodyId,
+    string? GovernanceBodyName,
+    decimal? Amount,
+    string? ProcurementType,
+    string? Notes);
+
 public record RequisitionLineItemDto(
     string? ItemId,
     string Description,
@@ -12,20 +36,27 @@ public record RequisitionSummary(
     string Title,
     string Department,
     Guid? UnitId,
+    Guid? CommitteePlanId,
+    string? CommitteePlanTitle,
     Guid? AppItemId,
     string? AppItemDescription,
+    string? FinalCommitteeDecision,
     string Status,
     string? Priority,
     string? FundingSource,
     decimal TotalEstimate,
     DateTime? RequiredBy,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    RequisitionAuthority? Authority = null);
 
 public record RequisitionDetail(
     Guid RequisitionId,
     string Title,
     string Department,
     Guid? UnitId,
+    Guid? CommitteePlanId,
+    string? CommitteePlanTitle,
+    string? FinalCommitteeDecision,
     string Status,
     string? Priority,
     string? FundingSource,
@@ -41,7 +72,9 @@ public record RequisitionDetail(
     string? RiskNotes,
     List<RequisitionLineItemDto> LineItems,
     DateTime UpdatedAt,
-    string? CurrentStage);
+    string? CurrentStage,
+    RequisitionAuthority? Authority = null,
+    RequisitionRouteDecision? RouteDecision = null);
 
 public record RequisitionCreateRequest(
     string Title,

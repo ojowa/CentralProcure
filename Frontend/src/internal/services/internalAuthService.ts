@@ -37,6 +37,10 @@ const API_ENDPOINTS = {
   INTERNAL_PROFILE: withBasePath('/api/Auth/internal/profile'),
   INTERNAL_USERS: withBasePath('/api/Auth/internal/users'),
   INTERNAL_USER_ROLE: withBasePath('/api/Auth/internal/users/role'),
+  INTERNAL_MODULES_CATALOG: withBasePath('/api/Auth/internal/modules/catalog'),
+  INTERNAL_MODULE_ACCESS_ROLES: withBasePath('/api/Auth/internal/module-access/roles'),
+  INTERNAL_MODULE_ACCESS_USERS: withBasePath('/api/Auth/internal/module-access/users'),
+  INTERNAL_MODULE_ACCESS_AUDIT: withBasePath('/api/Auth/internal/module-access/audit'),
 };
 
 export const CSRF_COOKIE = 'XSRF-TOKEN';
@@ -45,12 +49,11 @@ const VALID_ROLES: RoleKey[] = [
   'admin',
   'requisitioning_officer',
   'department_head',
-  'procurement_officer',
+  'comptroller_procurement',
   'procurement_manager',
   'planning_statistics_officer',
   'financial_unit_officer',
   'procurement_secretary',
-  'comptroller_procurement',
   'legal_reviewer',
   'technical_evaluator',
   'financial_evaluator',
@@ -125,16 +128,17 @@ const ROLE_ALIASES: Record<string, RoleKey> = {
   requisitioning_officer: 'requisitioning_officer',
   department_user: 'requisitioning_officer',
   department_head: 'department_head',
-  procurement_officer: 'procurement_officer',
+  comptroller_procurement: 'comptroller_procurement',
   procurement_manager: 'procurement_manager',
   procurement_planning_committee: 'planning_statistics_officer',
   planning_statistics_officer: 'planning_statistics_officer',
   financial_unit_officer: 'financial_unit_officer',
   procurement_secretary: 'procurement_secretary',
   procurementsecretary: 'procurement_secretary',
-  comptroller_procurement: 'comptroller_procurement',
   comptrollerprocurement: 'comptroller_procurement',
   legal_reviewer: 'legal_reviewer',
+  legal_review_officer: 'legal_reviewer',
+  legalreviewofficer: 'legal_reviewer',
   technical_evaluator: 'technical_evaluator',
   financial_evaluator: 'financial_evaluator',
   evaluation_committee: 'evaluation_committee',
@@ -201,7 +205,10 @@ const parseResponse = async <T>(response: Response, fallbackError: string): Prom
         : (payload as { ErrorMessage?: string; message?: string; error?: string } | null)?.ErrorMessage ||
           (payload as { ErrorMessage?: string; message?: string; error?: string } | null)?.message ||
           (payload as { ErrorMessage?: string; message?: string; error?: string } | null)?.error;
-    throw new Error(messageFromPayload || fallbackError);
+    const statusMessage = response.statusText
+      ? `${response.status} ${response.statusText}`
+      : `${response.status}`;
+    throw new Error(messageFromPayload || `${fallbackError} (${statusMessage})`);
   }
 
   return payload as T;
@@ -381,6 +388,262 @@ export const fetchInternalModules = async (token?: string | null): Promise<Inter
     }));
 };
 
+export const fetchInternalModulesCatalog = async (token?: string | null): Promise<InternalModule[]> => {
+  const response = await fetch(API_ENDPOINTS.INTERNAL_MODULES_CATALOG, {
+    method: 'GET',
+    credentials: 'include',
+    headers: buildAuthHeaders(token)
+  });
+
+  const payload = await parseResponse<any>(response, 'Unable to load internal module catalog.');
+
+  if (!Array.isArray(payload)) {
+    return [];
+  }
+
+  return payload
+    .filter((module) => {
+      return Boolean(module) &&
+        typeof module.Id === 'string' &&
+        typeof module.Title === 'string' &&
+        typeof module.Section === 'string' &&
+        typeof module.Description === 'string' &&
+        typeof module.Microservice === 'string' &&
+        typeof module.ControlPurpose === 'string';
+    })
+    .map((module) => ({
+      id: module.Id,
+      title: module.Title,
+      section: module.Section,
+      description: module.Description,
+      microservice: module.Microservice,
+      controlPurpose: module.ControlPurpose,
+      actions: Array.isArray(module.Actions)
+        ? module.Actions.filter((action: unknown): action is string => typeof action === 'string')
+        : [],
+      catalogActions: Array.isArray(module.CatalogActions)
+        ? module.CatalogActions.filter((action: unknown): action is string => typeof action === 'string')
+        : [],
+      allowedRoles: Array.isArray(module.AllowedRoles)
+        ? module.AllowedRoles
+            .map((roleValue: unknown) => normalizeAllowedRole(roleValue))
+            .filter((roleValue: RoleKey | null): roleValue is RoleKey => Boolean(roleValue))
+        : []
+    }));
+};
+
+export type RoleModuleAccessGrant = {
+  RoleName: string;
+  ModuleId: string;
+  IsEnabled: boolean;
+  UpdatedAt: string;
+};
+
+export type UserModuleAccessGrant = {
+  InternalUserId: string;
+  Email: string;
+  Username: string;
+  RoleName: string;
+  ModuleId: string;
+  IsEnabled: boolean;
+  UpdatedAt: string;
+};
+
+export const fetchRoleModuleAccessGrants = async (token: string): Promise<RoleModuleAccessGrant[]> => {
+  const response = await fetch(API_ENDPOINTS.INTERNAL_MODULE_ACCESS_ROLES, {
+    method: 'GET',
+    credentials: 'include',
+    headers: buildAuthHeaders(token)
+  });
+
+  return parseResponse<RoleModuleAccessGrant[]>(response, 'Unable to load role module access grants.');
+};
+
+export const fetchUserModuleAccessGrants = async (token: string): Promise<UserModuleAccessGrant[]> => {
+  const response = await fetch(API_ENDPOINTS.INTERNAL_MODULE_ACCESS_USERS, {
+    method: 'GET',
+    credentials: 'include',
+    headers: buildAuthHeaders(token)
+  });
+
+  return parseResponse<UserModuleAccessGrant[]>(response, 'Unable to load user module access grants.');
+};
+
+export const updateRoleModuleAccessGrant = async (
+  token: string,
+  data: { RoleName: string; ModuleId: string; IsEnabled: boolean }
+): Promise<RoleModuleAccessGrant> => {
+  const response = await fetch(API_ENDPOINTS.INTERNAL_MODULE_ACCESS_ROLES, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...buildAuthHeaders(token),
+      ...buildCsrfHeaders()
+    },
+    body: JSON.stringify(data)
+  });
+
+  return parseResponse<RoleModuleAccessGrant>(response, 'Unable to update role module access.');
+};
+
+export const deleteRoleModuleAccessGrant = async (
+  token: string,
+  params: { RoleName: string; ModuleId: string }
+): Promise<void> => {
+  const query = new URLSearchParams({
+    roleName: params.RoleName,
+    moduleId: params.ModuleId
+  });
+
+  const response = await fetch(`${API_ENDPOINTS.INTERNAL_MODULE_ACCESS_ROLES}?${query.toString()}`, {
+    method: 'DELETE',
+    credentials: 'include',
+    headers: buildAuthHeaders(token)
+  });
+
+  await parseResponse<unknown>(response, 'Unable to reset role module access.');
+};
+
+export const bulkUpdateRoleModuleAccessGrants = async (
+  token: string,
+  data: { RoleName: string; Grants: Array<{ ModuleId: string; IsEnabled: boolean }> }
+): Promise<void> => {
+  const response = await fetch(`${API_ENDPOINTS.INTERNAL_MODULE_ACCESS_ROLES}/bulk`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...buildAuthHeaders(token),
+      ...buildCsrfHeaders()
+    },
+    body: JSON.stringify(data)
+  });
+
+  await parseResponse<unknown>(response, 'Unable to bulk update role module access.');
+};
+
+export const bulkResetRoleModuleAccessGrants = async (
+  token: string,
+  params: { RoleName: string }
+): Promise<void> => {
+  const query = new URLSearchParams({
+    roleName: params.RoleName
+  });
+
+  const response = await fetch(`${API_ENDPOINTS.INTERNAL_MODULE_ACCESS_ROLES}/bulk?${query.toString()}`, {
+    method: 'DELETE',
+    credentials: 'include',
+    headers: buildAuthHeaders(token)
+  });
+
+  await parseResponse<unknown>(response, 'Unable to reset role module access.');
+};
+
+export const updateUserModuleAccessGrant = async (
+  token: string,
+  data: { InternalUserId: string; ModuleId: string; IsEnabled: boolean }
+): Promise<UserModuleAccessGrant> => {
+  const response = await fetch(API_ENDPOINTS.INTERNAL_MODULE_ACCESS_USERS, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...buildAuthHeaders(token),
+      ...buildCsrfHeaders()
+    },
+    body: JSON.stringify(data)
+  });
+
+  return parseResponse<UserModuleAccessGrant>(response, 'Unable to update user module access.');
+};
+
+export const bulkUpdateUserModuleAccessGrants = async (
+  token: string,
+  data: { InternalUserId: string; Grants: Array<{ ModuleId: string; IsEnabled: boolean }> }
+): Promise<void> => {
+  const response = await fetch(`${API_ENDPOINTS.INTERNAL_MODULE_ACCESS_USERS}/bulk`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...buildAuthHeaders(token),
+      ...buildCsrfHeaders()
+    },
+    body: JSON.stringify(data)
+  });
+
+  await parseResponse<unknown>(response, 'Unable to bulk update user module access.');
+};
+
+export const bulkResetUserModuleAccessGrants = async (
+  token: string,
+  params: { InternalUserId: string }
+): Promise<void> => {
+  const query = new URLSearchParams({
+    internalUserId: params.InternalUserId
+  });
+
+  const response = await fetch(`${API_ENDPOINTS.INTERNAL_MODULE_ACCESS_USERS}/bulk?${query.toString()}`, {
+    method: 'DELETE',
+    credentials: 'include',
+    headers: buildAuthHeaders(token)
+  });
+
+  await parseResponse<unknown>(response, 'Unable to reset user module access.');
+};
+
+export const deleteUserModuleAccessGrant = async (
+  token: string,
+  params: { InternalUserId: string; ModuleId: string }
+): Promise<void> => {
+  const query = new URLSearchParams({
+    internalUserId: params.InternalUserId,
+    moduleId: params.ModuleId
+  });
+
+  const response = await fetch(`${API_ENDPOINTS.INTERNAL_MODULE_ACCESS_USERS}?${query.toString()}`, {
+    method: 'DELETE',
+    credentials: 'include',
+    headers: buildAuthHeaders(token)
+  });
+
+  await parseResponse<unknown>(response, 'Unable to reset user module access.');
+};
+
+export type ModuleAccessAuditEntry = {
+  AuditId: string;
+  TargetType: string;
+  RoleName?: string | null;
+  InternalUserId?: string | null;
+  Email?: string | null;
+  Username?: string | null;
+  ModuleId: string;
+  PreviousState?: boolean | null;
+  NewState?: boolean | null;
+  ChangedBy?: string | null;
+  ChangeSource: string;
+  ChangedAt: string;
+};
+
+export const fetchModuleAccessAudit = async (
+  token: string,
+  params: { RoleName?: string; InternalUserId?: string; Limit?: number }
+): Promise<ModuleAccessAuditEntry[]> => {
+  const query = new URLSearchParams();
+  if (params.RoleName) query.set('roleName', params.RoleName);
+  if (params.InternalUserId) query.set('internalUserId', params.InternalUserId);
+  if (params.Limit) query.set('limit', String(params.Limit));
+
+  const response = await fetch(`${API_ENDPOINTS.INTERNAL_MODULE_ACCESS_AUDIT}?${query.toString()}`, {
+    method: 'GET',
+    credentials: 'include',
+    headers: buildAuthHeaders(token)
+  });
+
+  return parseResponse<ModuleAccessAuditEntry[]>(response, 'Unable to load module access audit.');
+};
+
 export const fetchInternalUserProfile = async (token?: string | null): Promise<InternalUserProfile> => {
   const response = await fetch(API_ENDPOINTS.INTERNAL_PROFILE, {
     method: 'GET',
@@ -437,4 +700,5 @@ export const updateInternalUserRole = async (
 
   return parseResponse<any>(response, 'Unable to update user role.');
 };
+
 

@@ -159,7 +159,6 @@ FROM queue q
         ["budget_alignment"] = new[] { "Endorsed", "Initial", "Under Review" },
         ["budget_code_allocation"] = new[] { "Endorsed", "Initial" },
         ["comptroller_procurement_review"] = new[] { "Endorsed", "Initial" },
-        ["budget_confirmation"] = new[] { "Under Review" },
         ["planning_committee_review"] = new[] { "Evaluation", "Board Review" },
         ["app_approval"] = new[] { "Approved" }
     };

@@ -8,7 +8,7 @@ INSERT INTO procurement_workflow.workflow_role_tasks (
 SELECT *
 FROM (
     VALUES
-        ('procurement_officer', 'Procurement Officer', 'bid_opening', 'Schedule, open, and record public bid opening sessions.', 'Bid opening records are complete and ready for evaluation.'),
+        ('comptroller_procurement', 'Comptroller Procurement', 'bid_opening', 'Schedule, open, and record public bid opening sessions.', 'Bid opening records are complete and ready for evaluation.'),
         ('procurement_manager', 'Procurement Manager', 'bid_opening', 'Supervise bid opening readiness and validate opening records.', 'Bid opening oversight is exercised before evaluation proceeds.'),
         ('technical_evaluator', 'Technical Evaluator', 'bid_opening', 'Review opening records and confirm bid packages received for technical evaluation.', 'Technical evaluation starts from a complete opening record.'),
         ('financial_evaluator', 'Financial Evaluator', 'bid_opening', 'Review opening records and declared bid figures for downstream financial evaluation.', 'Financial evaluation starts from the official opening record.'),
@@ -29,3 +29,5 @@ WHERE NOT EXISTS (
       AND existing.stage_key = seed.stage_key
       AND existing.task_description = seed.task_description
 );
+
+

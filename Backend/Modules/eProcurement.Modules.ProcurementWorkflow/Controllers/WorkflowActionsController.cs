@@ -53,6 +53,7 @@ public class WorkflowActionsController : ControllerBase
             snapshot.CurrentStageTitle,
             snapshot.RoleKey,
             Actions = snapshot.Actions,
+            Authority = snapshot.Authority,
             RouteDecision = routeDecision
         });
     }

@@ -57,10 +57,6 @@ const getDecisionOptions = (detail: BudgetConfirmationDetail | null) => {
     return options;
   }
 
-  if (detail.CurrentStageKey === 'budget_confirmation') {
-    options.unshift('confirm');
-  }
-
   return options;
 };
 
@@ -233,7 +229,7 @@ export const BudgetOfficerWorkspacePage = ({ module, token, role }: Props) => {
   );
 
   const handleBudgetAligned = () => {
-    setFeedback('Budget code aligned. Requisition now waits for final budget confirmation.');
+    setFeedback('Budget code aligned. Requisition now waits for APP approval.');
     setIsAlignmentModalOpen(false);
     setSelectedRequisitionId(null);
     void loadQueueAndDashboard();

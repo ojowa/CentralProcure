@@ -129,7 +129,7 @@ SELECT
     q.*,
     GREATEST(q.requested_amount - q.available, 0) AS variance
 FROM queue q
-WHERE q.current_stage_key IN ('comptroller_procurement_review', 'planning_committee_review', 'budget_confirmation', 'app_approval')
+WHERE q.current_stage_key IN ('comptroller_procurement_review', 'planning_committee_review', 'app_approval')
   AND (@p_fiscal_year IS NULL OR q.fiscal_year = @p_fiscal_year)
   AND (@p_department IS NULL OR q.department = @p_department)
   AND (@p_stage IS NULL OR q.current_stage_key = @p_stage)
@@ -176,8 +176,8 @@ WHERE q.current_stage_key IN ('comptroller_procurement_review', 'planning_commit
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error loading budget confirmation queue.");
-            return Problem("Internal server error loading budget confirmation queue.");
+            Logger.LogError(ex, "Error loading budget queue.");
+            return Problem("Internal server error loading budget queue.");
         }
     }
 

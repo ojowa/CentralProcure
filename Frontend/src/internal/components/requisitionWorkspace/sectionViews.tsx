@@ -317,7 +317,7 @@ export const RequisitionHistoryView = ({
     </div>
 
     <table className="plan-table">
-      <thead><tr><th>Title</th><th>Department</th><th>Priority</th><th>Status</th><th>Total</th><th>Required By</th><th>Created</th><th>Action</th></tr></thead>
+      <thead><tr><th>Title</th><th>Department</th><th>Priority</th><th>Status</th><th>Final Decision</th><th>Total</th><th>Required By</th><th>Created</th><th>Action</th></tr></thead>
       <tbody>
         {requisitions.map((record) => (
           <tr key={record.RequisitionId}>
@@ -325,13 +325,14 @@ export const RequisitionHistoryView = ({
             <td>{record.Department}</td>
             <td>{record.Priority || 'Not set'}</td>
             <td><span className={`admin-status ${requisitionStatusTone(record.Status)}`.trim()}>{record.Status}</span></td>
+            <td>{record.FinalCommitteeDecision || 'Pending'}</td>
             <td>{formatCurrency(record.TotalEstimate)}</td>
             <td>{formatDate(record.RequiredBy)}</td>
             <td>{formatDate(record.CreatedAt)}</td>
             <td><button type="button" className="plan-link" onClick={() => onOpenDetail(record.RequisitionId, true)}>{isDepartmentHead ? 'Review' : 'View'}</button></td>
           </tr>
         ))}
-        {!requisitions.length ? <tr><td colSpan={8} className="plan-empty">No requisitions match the current filters.</td></tr> : null}
+        {!requisitions.length ? <tr><td colSpan={9} className="plan-empty">No requisitions match the current filters.</td></tr> : null}
       </tbody>
     </table>
 
@@ -409,6 +410,9 @@ export const RequisitionTrackingView = ({
               <div><h4>{record.Title}</h4><p>{record.Department} · {formatDate(record.CreatedAt)}</p></div>
               <div className="requisition-badges">
                 <span className={`req-badge ${requisitionStatusTone(record.Status)}`.trim()}>{record.Status}</span>
+                {record.FinalCommitteeDecision ? (
+                  <span className="req-badge req-badge--soft">{record.FinalCommitteeDecision}</span>
+                ) : null}
                 <span className="req-badge req-badge--soft">{formatCurrency(record.TotalEstimate)}</span>
               </div>
             </button>

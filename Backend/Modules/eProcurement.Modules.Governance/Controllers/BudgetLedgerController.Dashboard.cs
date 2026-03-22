@@ -137,7 +137,7 @@ WITH queue AS (
 {queueCte}
 SELECT
     COUNT(*)::int AS queue_count,
-    COUNT(*) FILTER (WHERE current_stage_key IN ('comptroller_procurement_review', 'planning_committee_review', 'budget_confirmation'))::int AS awaiting_budget_review_count,
+    COUNT(*) FILTER (WHERE current_stage_key IN ('comptroller_procurement_review', 'planning_committee_review'))::int AS awaiting_budget_review_count,
     COUNT(*) FILTER (WHERE workflow_status = 'On Hold')::int AS on_hold_count,
     COUNT(*) FILTER (WHERE current_stage_key = 'app_approval')::int AS ready_for_approval_count,
     COUNT(*) FILTER (WHERE requested_amount > available)::int AS at_risk_count

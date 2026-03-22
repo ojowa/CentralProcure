@@ -26,7 +26,7 @@ public partial class BidOpeningController : ControllerBase
     private static readonly HashSet<string> AllowedSortDirections = new(StringComparer.OrdinalIgnoreCase) { "asc", "desc" };
     private static readonly HashSet<string> ReadRoles = new(StringComparer.OrdinalIgnoreCase)
     {
-        "procurement_officer",
+        "comptroller_procurement",
         "technical_evaluator",
         "financial_evaluator",
         "evaluation_committee",
@@ -38,7 +38,7 @@ public partial class BidOpeningController : ControllerBase
     };
     private static readonly HashSet<string> ManageRoles = new(StringComparer.OrdinalIgnoreCase)
     {
-        "procurement_officer",
+        "comptroller_procurement",
         "ict_admin"
     };
     private static readonly Dictionary<string, string> RoleAliases = new(StringComparer.OrdinalIgnoreCase)
@@ -77,3 +77,4 @@ public partial class BidOpeningController : ControllerBase
 
     private string GetConnectionString() => _config.GetConnectionString("Primary") ?? string.Empty;
 }
+

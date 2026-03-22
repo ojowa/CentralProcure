@@ -35,6 +35,7 @@ DECLARE
     v_procurement_category VARCHAR(100);
     v_funding_source VARCHAR(255);
     v_procurement_method VARCHAR(255);
+    v_duplicate_id UUID;
 BEGIN
     SELECT p.plan_title, p.department, p.fiscal_year
     INTO v_plan_title, v_department, v_fiscal_year
@@ -79,6 +80,19 @@ BEGIN
     v_procurement_category := COALESCE(p_procurement_type, 'Goods');
     v_funding_source := 'Budget';
     v_procurement_method := 'Open Competitive Bidding';
+
+    SELECT i.plan_item_id
+    INTO v_duplicate_id
+    FROM procurement_workflow.procurement_plan_items i
+    WHERE i.plan_id = p_plan_id
+      AND lower(trim(i.description)) = lower(trim(p_description))
+      AND lower(trim(i.budget_code)) = lower(trim(p_budget_code))
+      AND lower(trim(COALESCE(i.procurement_type, ''))) = lower(trim(COALESCE(p_procurement_type, '')))
+    LIMIT 1;
+
+    IF v_duplicate_id IS NOT NULL THEN
+        RAISE EXCEPTION USING ERRCODE = 'P0001', MESSAGE = 'Duplicate APP item: same description, budget code, and procurement type already exists for this plan.';
+    END IF;
 
     IF NOT EXISTS (
         SELECT 1

@@ -1,3 +1,5 @@
+using System.Data;
+using System.Security.Claims;
 using System.Text.RegularExpressions;
 using eProcurement.Modules.Identity.Services;
 using eProcurement.Shared.Configurations;
@@ -6,6 +8,8 @@ using eProcurement.Shared.Security;
 using eProcurement.Shared.Workflow;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using Npgsql;
+using NpgsqlTypes;
 
 namespace eProcurement.Modules.Identity.Controllers
 {
@@ -40,6 +44,37 @@ namespace eProcurement.Modules.Identity.Controllers
             _workflowActionGrantService = workflowActionGrantService;
             _internalSessionActivityProtector = internalSessionActivityProtector;
             _internalSessionOptions = internalSessionOptions.Value;
+        }
+
+        protected bool IsIdentityAdministrator()
+        {
+            var role = User.FindFirstValue("role") ?? User.FindFirstValue(ClaimTypes.Role);
+            if (string.IsNullOrWhiteSpace(role))
+            {
+                return false;
+            }
+
+            // Accept both legacy and normalized internal admin role labels.
+            return string.Equals(role, "IdentityAdministrator", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(role, "SystemAdministrator", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(role, "ict_admin", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(role, "system_administrator", StringComparison.OrdinalIgnoreCase);
+        }
+
+        protected bool TryGetAuthenticatedInternalUserId(out Guid internalUserId, out IActionResult? errorResult)
+        {
+            internalUserId = Guid.Empty;
+            errorResult = null;
+
+            var userIdClaim = User.FindFirstValue("internalUserId") ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(userIdClaim) || !Guid.TryParse(userIdClaim, out internalUserId))
+            {
+                errorResult = Unauthorized(new { message = "Authenticated internal user ID is missing or invalid." });
+                return false;
+            }
+
+            return true;
         }
     }
 }

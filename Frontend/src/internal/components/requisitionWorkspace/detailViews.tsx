@@ -1,120 +1,29 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { requisitionSteps, thresholdBands, type BudgetLineItem } from '../../data/internalData';
-import type {
-  RequisitionDetail,
-  RequisitionSummary,
-  WorkflowActionSnapshotResponse,
-  WorkflowRuntimeHistoryEntry,
-  WorkflowRuntimeSnapshot
-} from '../../types/internal';
-import {
-  formatCurrency,
-  formatDate,
-  formatDateTimeShort,
-  requisitionStatusTone,
-  resolveThresholdRouting,
-  toTitle
-} from '../../utils/procureUtils';
+import { requisitionSteps, type BudgetLineItem } from '../../data/internalData';
+import type { RequisitionDetail, WorkflowActionSnapshotResponse, WorkflowRuntimeHistoryEntry, WorkflowRuntimeSnapshot } from '../../types/internal';
+import { formatCurrency, formatDate, formatDateTimeShort, requisitionStatusTone, toTitle } from '../../utils/procureUtils';
 import { getHumanStatus } from '../../utils/workflow';
 import { WorkflowProgressStepper } from '../WorkflowProgressStepper';
+import type { WorkflowRuntimeWithDisplay } from '../workflowDisplayTypes';
 import { buildDepartmentHeadChecklist, resolveDepartmentHeadAction, type WorkspaceMode } from './helpers';
+import { DepartmentHeadQueueCard, RequisitionQuickLinks } from './quickLinks';
 
-interface QuickLinksProps {
-  mode: WorkspaceMode;
-  onModuleChange?: (moduleId: string) => void;
-}
+export { DepartmentHeadQueueCard, RequisitionQuickLinks } from './quickLinks';
 
-export const RequisitionQuickLinks = ({ mode, onModuleChange }: QuickLinksProps) => (
-  <div className="requisition-actions">
-    <button
-      type="button"
-      className={`plan-button ${mode === 'create' ? '' : 'plan-button--secondary'}`}
-      onClick={() => onModuleChange?.('create-requisition')}
-    >
-      Create Requisition
-    </button>
-    <button
-      type="button"
-      className={`plan-button ${mode === 'history' ? '' : 'plan-button--secondary'}`}
-      onClick={() => onModuleChange?.('requisition-history')}
-    >
-      Requisition History
-    </button>
-    <button
-      type="button"
-      className={`plan-button ${mode === 'tracking' ? '' : 'plan-button--secondary'}`}
-      onClick={() => onModuleChange?.('requisition-tracking')}
-    >
-      Requisition Tracking
-    </button>
-  </div>
-);
-
-interface DepartmentHeadQueueCardProps {
-  queue: RequisitionSummary[];
-  selectedId: string | null;
-  onOpenDetail: (requisitionId: string, modal?: boolean) => void;
-}
-
-export const DepartmentHeadQueueCard = ({
-  queue,
-  selectedId,
-  onOpenDetail
-}: DepartmentHeadQueueCardProps) => {
-  const submittedCount = queue.filter((record) => record.Status === 'Submitted').length;
-  const draftCount = queue.filter((record) => record.Status === 'Draft' || record.Status === 'Rejected').length;
-  const underReviewCount = queue.filter((record) => record.Status === 'Under Review').length;
-
-  return (
-    <article className="requisition-card">
-      <div className="requisition-card__header">
-        <div>
-          <h3>Department Review Queue</h3>
-          <p>Open departmental requests that still need head validation, endorsement, or follow-up.</p>
-        </div>
-        <span className="requisition-tag requisition-tag--accent">{queue.length} in queue</span>
-      </div>
-
-      <div className="requisition-summary">
-        <div>
-          <span>Needs submission</span>
-          <strong>{draftCount}</strong>
-        </div>
-        <div>
-          <span>Awaiting confirmation</span>
-          <strong>{submittedCount}</strong>
-        </div>
-        <div>
-          <span>Already under review</span>
-          <strong>{underReviewCount}</strong>
-        </div>
-      </div>
-
-      <div className="requisition-tracking-cards">
-        {queue.slice(0, 5).map((record) => (
-          <button
-            type="button"
-            key={`department-head-${record.RequisitionId}`}
-            className={`requisition-track-card ${record.RequisitionId === selectedId ? 'requisition-track-card--active' : ''}`.trim()}
-            onClick={() => onOpenDetail(record.RequisitionId, true)}
-          >
-            <div>
-              <h4>{record.Title}</h4>
-              <p>{record.Department} · {formatDate(record.RequiredBy)}</p>
-            </div>
-            <div className="requisition-badges">
-              <span className={`req-badge ${requisitionStatusTone(record.Status)}`.trim()}>{record.Status}</span>
-              <span className="req-badge req-badge--soft">{formatCurrency(record.TotalEstimate)}</span>
-            </div>
-          </button>
-        ))}
-        {!queue.length ? <div className="plan-empty">No requisitions currently need department head intervention.</div> : null}
-      </div>
-    </article>
-  );
+type RequisitionRouteDecision = {
+  ApprovalRoute?: string | null;
+  ApprovalAuthorityCode?: string | null;
+  ApprovalAuthorityLabel?: string | null;
+  RequiresCgisApproval?: boolean;
+  RequiresBoard?: boolean;
+  RequiresBpp?: boolean;
+  GovernanceBodyName?: string | null;
+  Notes?: string | null;
 };
+
+type RequisitionDetailWithRouteDecision = RequisitionDetail & { RouteDecision?: RequisitionRouteDecision | null };
 
 interface DepartmentHeadPanelProps {
   detail: RequisitionDetail;
@@ -158,6 +67,7 @@ export const DepartmentHeadPanel = ({
   const runtimeStage = workflowRuntime?.CurrentStageTitle || workflowSnapshot?.CurrentStageTitle || detail.CurrentStage || detail.Status;
   const routeDecision = workflowSnapshot?.RouteDecision;
   const grantedActions = workflowSnapshot?.Actions ?? [];
+  const runtimeWithDisplay = workflowRuntime as WorkflowRuntimeWithDisplay | null;
 
   return (
     <>
@@ -240,7 +150,7 @@ export const DepartmentHeadPanel = ({
 
       <div className="requisition-detail-note">
         <h4>Workflow Timeline</h4>
-        <p>{workflowRuntime?.CurrentPhaseKey ? `Current phase: ${toTitle(workflowRuntime.CurrentPhaseKey)}` : 'Live workflow timeline for this requisition.'}</p>
+        <p>{runtimeWithDisplay?.Display?.CurrentPhaseLabel ? `Current phase: ${runtimeWithDisplay.Display.CurrentPhaseLabel}` : workflowRuntime?.CurrentPhaseKey ? `Current phase: ${toTitle(workflowRuntime.CurrentPhaseKey)}` : 'Live workflow timeline for this requisition.'}</p>
 
         {workflowRuntime?.NextTransitions?.length ? (
           <div className="routing-steps" style={{ marginTop: '12px' }}>
@@ -319,7 +229,10 @@ export const RequisitionDetailContent = ({
   onDeleteRequisition,
   departmentHeadPanel
 }: RequisitionDetailContentProps) => {
-  const band = resolveThresholdRouting(detail.TotalEstimate, thresholdBands);
+  const routeDecision = (detail as RequisitionDetailWithRouteDecision).RouteDecision;
+  const runtimeWithDisplay = workflowRuntime as WorkflowRuntimeWithDisplay | null;
+  const routingSummary = routeDecision?.ApprovalAuthorityLabel || routeDecision?.ApprovalRoute || 'Route not resolved';
+  const routingNotes = routeDecision?.Notes || 'Live approval route and threshold decision from backend workflow policy.';
 
   return (
     <>
@@ -336,7 +249,7 @@ export const RequisitionDetailContent = ({
 
       {workflowRuntime?.CurrentStageKey ? (
         <div style={{ marginBottom: '20px' }}>
-          <WorkflowProgressStepper currentStageKey={workflowRuntime.CurrentStageKey} />
+          <WorkflowProgressStepper currentStageKey={workflowRuntime.CurrentStageKey} display={runtimeWithDisplay?.Display} />
         </div>
       ) : null}
 
@@ -347,6 +260,7 @@ export const RequisitionDetailContent = ({
         <div><span>Procurement Type</span><strong>{detail.ProcurementType || 'Not set'}</strong></div>
         <div><span>Required By</span><strong>{formatDate(detail.RequiredBy)}</strong></div>
         <div><span>Current Stage</span><strong>{getHumanStatus(detail.CurrentStage, detail.Status)}</strong></div>
+        <div><span>Final Committee Decision</span><strong>{detail.FinalCommitteeDecision || 'Pending'}</strong></div>
         <div><span>Budget Code</span><strong>{detail.BudgetCode || 'Not linked'}</strong></div>
         <div><span>APP Item</span><strong>{detail.AppItemId || 'Not linked'}</strong></div>
         <div><span>Project Code</span><strong>{detail.ProjectCode || 'Not set'}</strong></div>
@@ -356,16 +270,18 @@ export const RequisitionDetailContent = ({
         <div className="routing-panel__header">
           <div>
             <h4>Routing Outlook</h4>
-            <p>{band.escalation}</p>
+            <p>{routingNotes}</p>
           </div>
           <div className="routing-panel__badges">
-            <span className="requisition-tag">{band.label}</span>
-            <span className="requisition-tag requisition-tag--accent">{band.approvalLevel}</span>
+            <span className="requisition-tag">{routingSummary}</span>
+            <span className="requisition-tag requisition-tag--accent">{routeDecision?.ApprovalAuthorityCode || 'Pending'}</span>
           </div>
         </div>
         <div className="routing-panel__grid">
-          <div><span>Timeline</span><strong>{band.timeline}</strong></div>
-          <div><span>BPP Requirement</span><strong>{band.requiresBpp ? 'Required' : 'Not required'}</strong></div>
+          <div><span>Governance Body</span><strong>{routeDecision?.GovernanceBodyName || 'Direct executive route'}</strong></div>
+          <div><span>BPP Requirement</span><strong>{routeDecision?.RequiresBpp ? 'Required' : 'Not required'}</strong></div>
+          <div><span>CGIS Review</span><strong>{routeDecision?.RequiresCgisApproval ? 'Required' : 'Not required'}</strong></div>
+          <div><span>Board Review</span><strong>{routeDecision?.RequiresBoard ? 'Required' : 'Not required'}</strong></div>
         </div>
       </div>
 

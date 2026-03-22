@@ -18,7 +18,7 @@ BEGIN
     )
     SELECT 'procurement@nis.gov.ng', 'procurement', 'Procurement', NULL, 'Officer', 'NIS-00002', v_password_hash, role_id, 'Active'
     FROM identity.roles
-    WHERE role_name = 'ProcurementOfficer'
+    WHERE role_name = 'ComptrollerProcurement'
     ON CONFLICT (email) DO UPDATE
     SET password_hash = EXCLUDED.password_hash,
         username = EXCLUDED.username,
@@ -114,3 +114,4 @@ WHERE (
      OR (iu.email = 'ict@nis.gov.ng' AND ou.unit_name = 'ICT and Cyber Security')
 )
 AND iu.email IN ('procurement@nis.gov.ng', 'finance@nis.gov.ng', 'audit@nis.gov.ng', 'ict@nis.gov.ng');
+

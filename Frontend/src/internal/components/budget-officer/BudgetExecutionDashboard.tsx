@@ -57,7 +57,7 @@ export const BudgetExecutionDashboard = ({ dashboard, onSelectPlan }: Props) => 
           <h3>Funding flow from appropriation to available balance</h3>
           <p className="plan-muted">
             Track where the current budget stands, how much has been released into execution, and which plans are
-            likely to fail budget confirmation.
+            likely to fail APP approval readiness.
           </p>
         </div>
         <div className="budget-execution-dashboard__health">

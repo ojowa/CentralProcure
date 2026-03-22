@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import type { AuditCloseoutCreateRequest, InternalModule, PaymentTrackingItem, PaymentRecordRequest } from '../types/internal';
 import { createAuditCloseout } from '../services/auditService';
 import { fetchPaymentTracking, recordPayment } from '../services/paymentTrackingService';
-import { WorkflowProgressStepper } from './WorkflowProgressStepper';
+import { PaymentTrackingModals } from './PaymentTrackingModals';
+import type { WorkflowRuntimeDisplay } from './workflowDisplayTypes';
 import { getHumanStatus } from '../utils/workflow';
 
 const PAYMENT_STAGES = [
@@ -49,8 +50,12 @@ type Props = {
   userEmail?: string | null;
 };
 
+type PaymentTrackingItemWithDisplay = PaymentTrackingItem & {
+  WorkflowDisplay?: WorkflowRuntimeDisplay | null;
+};
+
 export const PaymentTrackingModulePage = ({ module, token, userEmail }: Props) => {
-  const [records, setRecords] = useState<PaymentTrackingItem[]>([]);
+  const [records, setRecords] = useState<PaymentTrackingItemWithDisplay[]>([]);
   const [filters, setFilters] = useState({
     status: '',
     query: '',
@@ -59,7 +64,7 @@ export const PaymentTrackingModulePage = ({ module, token, userEmail }: Props) =
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
-  const [selectedRecord, setSelectedRecord] = useState<PaymentTrackingItem | null>(null);
+  const [selectedRecord, setSelectedRecord] = useState<PaymentTrackingItemWithDisplay | null>(null);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState(0);
   const [paymentNotes, setPaymentNotes] = useState('');
@@ -83,7 +88,7 @@ export const PaymentTrackingModulePage = ({ module, token, userEmail }: Props) =
         status: filters.status || undefined,
         query: filters.query.trim() || undefined,
         closeoutEligible: filters.closeoutEligibleOnly ? true : undefined
-      });
+      }) as PaymentTrackingItemWithDisplay[];
       setRecords(next);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Unable to load payment tracking.');
@@ -106,7 +111,7 @@ export const PaymentTrackingModulePage = ({ module, token, userEmail }: Props) =
     [records]
   );
 
-  const openPayment = (record: PaymentTrackingItem) => {
+  const openPayment = (record: PaymentTrackingItemWithDisplay) => {
     setSelectedRecord(record);
     setPaymentAmount(record.ContractValue);
     setPaymentNotes(`Final payment for ${record.ContractCode} - ${record.TenderTitle}`);
@@ -114,7 +119,7 @@ export const PaymentTrackingModulePage = ({ module, token, userEmail }: Props) =
     setError('');
   };
 
-  const openCloseout = (record: PaymentTrackingItem) => {
+  const openCloseout = (record: PaymentTrackingItemWithDisplay) => {
     setSelectedRecord(record);
     setCloseoutSummary(`Close out ${record.ContractCode} after accepted inspection and final payment completion.`);
     setArchiveLocation('');
@@ -321,115 +326,28 @@ export const PaymentTrackingModulePage = ({ module, token, userEmail }: Props) =
         </tbody>
       </table>
 
-      {selectedRecord && isPaymentModalOpen ? (
-        <div className="plan-modal" role="dialog" aria-modal="true">
-          <div className="plan-modal__backdrop" onClick={() => { setSelectedRecord(null); setIsPaymentModalOpen(false); }} />
-          <div className="plan-modal__content requisition-detail-modal">
-            <div className="requisition-card__header">
-              <div>
-                <h3>Record Final Payment</h3>
-                <p>{selectedRecord.ContractCode} · {selectedRecord.TenderTitle}</p>
-              </div>
-              <button type="button" className="plan-link" onClick={() => { setSelectedRecord(null); setIsPaymentModalOpen(false); }}>
-                Close
-              </button>
-            </div>
-
-            <div style={{ marginBottom: '20px' }}>
-              <WorkflowProgressStepper currentStageKey={selectedRecord.CurrentStageKey || ''} />
-            </div>
-
-            <div className="plan-form-grid">
-              <label className="plan-field plan-field--span">
-                <span>Payment Amount (NGN)</span>
-                <input
-                  type="number"
-                  className="plan-input"
-                  value={paymentAmount}
-                  onChange={(event) => setPaymentAmount(Number(event.target.value))}
-                />
-              </label>
-              <label className="plan-field plan-field--span">
-                <span>Payment Notes</span>
-                <textarea
-                  className="plan-textarea"
-                  rows={3}
-                  value={paymentNotes}
-                  onChange={(event) => setPaymentNotes(event.target.value)}
-                />
-              </label>
-            </div>
-
-            <div className="requisition-detail-note">
-              <h4>Readiness Check</h4>
-              <p>Contract Status: {selectedRecord.ContractStatus}</p>
-              <p>Accepted inspection: {selectedRecord.FinalAcceptanceCompleted ? 'Yes' : 'No'}</p>
-              <p>Contract Value: {formatCurrency(selectedRecord.ContractValue)}</p>
-            </div>
-
-            <div className="plan-actions">
-              <button type="button" className="plan-button" onClick={handleRecordPayment} disabled={isSaving}>
-                {isSaving ? 'Recording...' : 'Record Payment'}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {selectedRecord && !isPaymentModalOpen ? (
-        <div className="plan-modal" role="dialog" aria-modal="true">
-          <div className="plan-modal__backdrop" onClick={() => setSelectedRecord(null)} />
-          <div className="plan-modal__content requisition-detail-modal">
-            <div className="requisition-card__header">
-              <div>
-                <h3>Create Closeout</h3>
-                <p>{selectedRecord.ContractCode} · {selectedRecord.TenderTitle}</p>
-              </div>
-              <button type="button" className="plan-link" onClick={() => setSelectedRecord(null)}>
-                Close
-              </button>
-            </div>
-
-            <div style={{ marginBottom: '20px' }}>
-              <WorkflowProgressStepper currentStageKey={selectedRecord.CurrentStageKey || ''} />
-            </div>
-
-            <div className="plan-form-grid">
-              <label className="plan-field plan-field--span">
-                <span>Closeout Summary</span>
-                <textarea
-                  className="plan-textarea"
-                  rows={4}
-                  value={closeoutSummary}
-                  onChange={(event) => setCloseoutSummary(event.target.value)}
-                />
-              </label>
-              <label className="plan-field plan-field--span">
-                <span>Archive Location</span>
-                <input
-                  className="plan-input"
-                  value={archiveLocation}
-                  onChange={(event) => setArchiveLocation(event.target.value)}
-                  placeholder="Optional archive path or reference"
-                />
-              </label>
-            </div>
-
-            <div className="requisition-detail-note">
-              <h4>Readiness Check</h4>
-              <p>Accepted inspection: {selectedRecord.FinalAcceptanceCompleted ? 'Yes' : 'No'}</p>
-              <p>Final payment will be recorded by this closeout action.</p>
-              <p>Latest inspection completed: {formatDateTimeShort(selectedRecord.InspectionCompletedDate)}</p>
-            </div>
-
-            <div className="plan-actions">
-              <button type="button" className="plan-button" onClick={handleCloseout} disabled={isSaving}>
-                {isSaving ? 'Archiving...' : 'Archive Closeout'}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <PaymentTrackingModals
+        selectedRecord={selectedRecord}
+        isPaymentModalOpen={isPaymentModalOpen}
+        isSaving={isSaving}
+        paymentAmount={paymentAmount}
+        paymentNotes={paymentNotes}
+        closeoutSummary={closeoutSummary}
+        archiveLocation={archiveLocation}
+        formatCurrency={formatCurrency}
+        formatDateTimeShort={formatDateTimeShort}
+        onClosePayment={() => {
+          setSelectedRecord(null);
+          setIsPaymentModalOpen(false);
+        }}
+        onCloseCloseout={() => setSelectedRecord(null)}
+        onPaymentAmountChange={setPaymentAmount}
+        onPaymentNotesChange={setPaymentNotes}
+        onCloseoutSummaryChange={setCloseoutSummary}
+        onArchiveLocationChange={setArchiveLocation}
+        onRecordPayment={handleRecordPayment}
+        onCreateCloseout={handleCloseout}
+      />
     </section>
   );
 };

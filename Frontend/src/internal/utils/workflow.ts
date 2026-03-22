@@ -16,7 +16,6 @@ const PHASE_MAP: Record<string, WorkflowPhase> = {
   budget_code_allocation: 'Planning',
   comptroller_procurement_review: 'Planning',
   planning_committee_review: 'Planning',
-  budget_confirmation: 'Planning',
   app_approval: 'Planning',
   procurement_initiation: 'Planning',
   threshold_resolution: 'Planning',

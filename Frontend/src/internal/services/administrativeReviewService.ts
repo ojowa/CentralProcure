@@ -1,63 +1,55 @@
-import type {
-  AdministrativeReviewCreateRequest,
-  AdministrativeReviewDetail,
-  AdministrativeReviewSummary,
-  AdministrativeReviewUpdateRequest
-} from '../types/internal';
-import { serviceBaseUrls } from './moduleService';
+import type { AdministrativeReviewCreateRequest, AdministrativeReviewDetail } from '../types/internal';
+import type { AdministrativeReviewSummary, AdministrativeReviewUpdateRequest } from '../types/internal';
 
-const getCookieValue = (name: string): string | null => {
-  if (typeof document === 'undefined') {
-    return null;
-  }
+const baseUrl = '/api/administrative-reviews';
 
-  const match = document.cookie.match(new RegExp(`(^|; )${name}=([^;]*)`));
-  return match ? decodeURIComponent(match[2]) : null;
+export type AdministrativeReviewFilingContext = {
+  EntityType: string;
+  EntityId: string;
+  RecordTitle?: string | null;
+  CurrentStageKey: string;
+  CurrentStageTitle?: string | null;
+  CanFile: boolean;
+  Reason?: string | null;
+  FilingEffectNote: string;
 };
 
-const buildHeaders = (token: string, withJson = false): Record<string, string> => {
-  const headers: Record<string, string> = {
-    Authorization: `Bearer ${token}`
-  };
-
-  if (withJson) {
-    headers['Content-Type'] = 'application/json';
-  }
-
-  const csrfToken = getCookieValue('XSRF-TOKEN');
-  if (csrfToken) {
-    headers['X-CSRF-Token'] = csrfToken;
-  }
-
-  return headers;
-};
-
-const parseBody = async (response: Response): Promise<unknown> => {
+const parse = async <T>(response: Response): Promise<T> => {
   const text = await response.text();
-  if (!text) {
-    return null;
+  if (!response.ok) {
+    throw new Error(text || `Request failed (${response.status}).`);
   }
 
-  try {
-    return JSON.parse(text) as unknown;
-  } catch {
-    return text;
-  }
+  return text ? JSON.parse(text) as T : ({} as T);
 };
 
-const parseResponse = async <T>(response: Response, fallbackError: string): Promise<T> => {
-  const payload = await parseBody(response);
+export const fetchAdministrativeReviewFilingContext = async (
+  token: string,
+  entityType: string,
+  entityId: string
+): Promise<AdministrativeReviewFilingContext> => {
+  const params = new URLSearchParams({ entityType, entityId });
+  const response = await fetch(`${baseUrl}/filing-context?${params.toString()}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    credentials: 'include'
+  });
+  return parse<AdministrativeReviewFilingContext>(response);
+};
 
-  if (!response.ok) {
-    const messageFromPayload =
-      typeof payload === 'string'
-        ? payload
-        : (payload as { message?: string; error?: string } | null)?.message ||
-          (payload as { message?: string; error?: string } | null)?.error;
-    throw new Error(messageFromPayload || fallbackError);
-  }
-
-  return payload as T;
+export const createAdministrativeReview = async (
+  token: string,
+  payload: AdministrativeReviewCreateRequest
+): Promise<AdministrativeReviewDetail> => {
+  const response = await fetch(baseUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    credentials: 'include',
+    body: JSON.stringify(payload)
+  });
+  return parse<AdministrativeReviewDetail>(response);
 };
 
 export const fetchAdministrativeReviews = async (
@@ -65,50 +57,26 @@ export const fetchAdministrativeReviews = async (
   filters?: { entityType?: string; entityId?: string; status?: string }
 ): Promise<AdministrativeReviewSummary[]> => {
   const params = new URLSearchParams();
-  if (filters?.entityType) {
-    params.set('entityType', filters.entityType);
-  }
-  if (filters?.entityId) {
-    params.set('entityId', filters.entityId);
-  }
-  if (filters?.status) {
-    params.set('status', filters.status);
-  }
-
-  const query = params.toString();
-  const response = await fetch(
-    `${serviceBaseUrls.workflow}/api/administrative-reviews${query ? `?${query}` : ''}`,
-    {
-      headers: buildHeaders(token)
-    }
-  );
-
-  return parseResponse<AdministrativeReviewSummary[]>(response, 'Unable to load administrative reviews.');
+  if (filters?.entityType) params.set('entityType', filters.entityType);
+  if (filters?.entityId) params.set('entityId', filters.entityId);
+  if (filters?.status) params.set('status', filters.status);
+  const suffix = params.toString() ? `?${params.toString()}` : '';
+  const response = await fetch(`${baseUrl}${suffix}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    credentials: 'include'
+  });
+  return parse<AdministrativeReviewSummary[]>(response);
 };
 
 export const fetchAdministrativeReviewDetail = async (
   token: string,
   complaintId: string
 ): Promise<AdministrativeReviewDetail> => {
-  const response = await fetch(`${serviceBaseUrls.workflow}/api/administrative-reviews/${complaintId}`, {
-    headers: buildHeaders(token)
+  const response = await fetch(`${baseUrl}/${complaintId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    credentials: 'include'
   });
-
-  return parseResponse<AdministrativeReviewDetail>(response, 'Unable to load administrative review detail.');
-};
-
-export const createAdministrativeReview = async (
-  token: string,
-  payload: AdministrativeReviewCreateRequest
-): Promise<AdministrativeReviewDetail> => {
-  const response = await fetch(`${serviceBaseUrls.workflow}/api/administrative-reviews`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: buildHeaders(token, true),
-    body: JSON.stringify(payload)
-  });
-
-  return parseResponse<AdministrativeReviewDetail>(response, 'Unable to create administrative review.');
+  return parse<AdministrativeReviewDetail>(response);
 };
 
 export const updateAdministrativeReview = async (
@@ -116,12 +84,14 @@ export const updateAdministrativeReview = async (
   complaintId: string,
   payload: AdministrativeReviewUpdateRequest
 ): Promise<AdministrativeReviewDetail> => {
-  const response = await fetch(`${serviceBaseUrls.workflow}/api/administrative-reviews/${complaintId}`, {
+  const response = await fetch(`${baseUrl}/${complaintId}`, {
     method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
     credentials: 'include',
-    headers: buildHeaders(token, true),
     body: JSON.stringify(payload)
   });
-
-  return parseResponse<AdministrativeReviewDetail>(response, 'Unable to update administrative review.');
+  return parse<AdministrativeReviewDetail>(response);
 };

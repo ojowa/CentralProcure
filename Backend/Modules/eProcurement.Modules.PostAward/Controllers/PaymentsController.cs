@@ -182,7 +182,8 @@ ORDER BY
                     GetNullableGuid(reader, "closeout_id"),
                     GetNullableString(reader, "closeout_reference"),
                     GetNullableString(reader, "closeout_status"),
-                    GetNullableDateTime(reader, "archived_at")));
+                    GetNullableDateTime(reader, "archived_at"),
+                    BuildWorkflowDisplay(reader)));
             }
 
             return Ok(results);
@@ -307,4 +308,16 @@ WHERE contract_code = @p_contract_code;";
 
     private static string? NormalizeNullable(string? value)
         => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static WorkflowRuntimeDisplay? BuildWorkflowDisplay(NpgsqlDataReader reader)
+    {
+        var currentStageKey = GetNullableString(reader, "current_stage_key");
+        var currentStageTitle = GetNullableString(reader, "current_stage_title");
+        if (string.IsNullOrWhiteSpace(currentStageKey) || string.IsNullOrWhiteSpace(currentStageTitle))
+        {
+            return null;
+        }
+
+        return WorkflowDisplayMapper.Build(currentStageKey, currentStageTitle);
+    }
 }

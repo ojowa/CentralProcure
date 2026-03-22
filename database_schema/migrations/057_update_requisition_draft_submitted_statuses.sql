@@ -41,9 +41,9 @@ BEGIN
     RETURN CASE
         WHEN p_status IS NULL THEN 'department_need_capture'
         WHEN p_status ILIKE 'Draft' THEN 'department_need_capture'
-        WHEN p_status ILIKE 'Submitted' THEN 'department_need_capture'
-        WHEN p_status ILIKE 'Endorsed' THEN 'department_head_endorsement'
-        WHEN p_status ILIKE 'Initial' THEN 'budget_code_allocation'
+        WHEN p_status ILIKE 'Submitted' THEN 'department_head_endorsement'
+        WHEN p_status ILIKE 'Endorsed' THEN 'budget_code_allocation'
+        WHEN p_status ILIKE 'Initial' THEN 'comptroller_procurement_review'
         WHEN p_status ILIKE 'Under Review' THEN 'planning_committee_review'
         WHEN p_status ILIKE 'Evaluation' THEN 'evaluation'
         WHEN p_status ILIKE 'Board Review' THEN 'tenders_board_review'

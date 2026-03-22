@@ -4,7 +4,7 @@ namespace eProcurement.Modules.Identity.DTOs
 {
     public record LoginRequest(string Email, string Password);
     public record InternalLoginRequest(string Email, string Password);
-    
+
     public record VendorRegistrationRequest(
         string Email,
         string Password,
@@ -26,8 +26,40 @@ namespace eProcurement.Modules.Identity.DTOs
         Guid? UnitId,
         string? Role = "Internal");
 
+    public record UpdateInternalUserRequest(
+        string Username,
+        string FirstName,
+        string? MiddleName,
+        string Surname,
+        string ServiceNumber,
+        Guid? UnitId,
+        bool IsActive);
+
+    public record UpdateUserStatusRequest(string Status, bool IsActive);
+
+    public record AdminResetPasswordRequest(string NewPassword, bool RequireChangeOnNextLogin = true);
+
+    public record SelfPasswordResetRequest(string CurrentPassword, string NewPassword);
+
     public record CreateRoleRequest(string RoleName, string? Description);
-    public record UpdateInternalUserRoleRequest(Guid InternalUserId, string Role);
+
+    public record UpdateRoleRequest(string RoleName, string? Description);
+
+    public record UpdateInternalUserRoleRequest
+    {
+        public Guid? InternalUserId { get; init; }
+        public string Role { get; init; } = string.Empty;
+    }
+
+    public record UpdateRoleModuleAccessRequest(string RoleName, string ModuleId, bool IsEnabled);
+
+    public record UpdateUserModuleAccessRequest(Guid InternalUserId, string ModuleId, bool IsEnabled);
+
+    public record ModuleAccessGrantInput(string ModuleId, bool IsEnabled);
+
+    public record BulkRoleModuleAccessRequest(string RoleName, IReadOnlyList<ModuleAccessGrantInput> Grants);
+
+    public record BulkUserModuleAccessRequest(Guid InternalUserId, IReadOnlyList<ModuleAccessGrantInput> Grants);
 
     public record AuthResponse(string Token, string Email, string Status, string? Role = null);
 
@@ -48,7 +80,9 @@ namespace eProcurement.Modules.Identity.DTOs
         string? ErrorMessage);
 
     public record InternalUserRegistrationResult(Guid InternalUserId, string Email, string Role, Guid? UnitId = null, string? UnitName = null);
+
     public record InternalUserRoleResult(Guid InternalUserId, string Email, string Role);
+
     public record InternalUserProfileResult(
         Guid InternalUserId,
         string Email,
@@ -63,6 +97,7 @@ namespace eProcurement.Modules.Identity.DTOs
         string Status,
         DateTime? LastLogin,
         DateTime CreatedAt);
+
     public record UpdateInternalUserProfileRequest(
         string Username,
         string FirstName,
@@ -70,6 +105,11 @@ namespace eProcurement.Modules.Identity.DTOs
         string Surname);
 
     public record RoleResult(Guid RoleId, string RoleName, string? Description, bool IsActive);
+
+    public record RoleDetailResult(Guid RoleId, string RoleName, string? Description, bool IsActive, int UserCount);
+
+    public record RoleUserResult(Guid InternalUserId, string Email, string Username, string FirstName, string Surname, string Status);
+
     public record InternalOrganizationalUnitResult(
         Guid UnitId,
         string UnitName,
@@ -89,5 +129,46 @@ namespace eProcurement.Modules.Identity.DTOs
         string ControlPurpose,
         IReadOnlyList<string> Actions,
         IReadOnlyList<string> CatalogActions,
-        IReadOnlyList<string> AllowedRoles);
+        IReadOnlyList<string> AllowedRoles,
+        string GrantSource = "catalog_role",
+        bool IsVisible = true,
+        bool HasRoleOverride = false,
+        bool HasUserOverride = false);
+
+    public record RoleModuleAccessGrantResult(
+        string RoleName,
+        string ModuleId,
+        bool IsEnabled,
+        DateTime UpdatedAt);
+
+    public record UserModuleAccessGrantResult(
+        Guid InternalUserId,
+        string Email,
+        string Username,
+        string RoleName,
+        string ModuleId,
+        bool IsEnabled,
+        DateTime UpdatedAt);
+
+    public record ModuleAccessAuditResult(
+        Guid AuditId,
+        string TargetType,
+        string? RoleName,
+        Guid? InternalUserId,
+        string? Email,
+        string? Username,
+        string ModuleId,
+        bool? PreviousState,
+        bool? NewState,
+        Guid? ChangedBy,
+        string ChangeSource,
+        DateTime ChangedAt);
+
+    public record PasswordAuditResult(
+        Guid AuditId,
+        Guid InternalUserId,
+        string Email,
+        string Action,
+        string? ChangedBy,
+        DateTime ChangedAt);
 }

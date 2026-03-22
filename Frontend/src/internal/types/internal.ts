@@ -2,12 +2,11 @@ export type RoleKey =
   | 'admin'
   | 'requisitioning_officer'
   | 'department_head'
-  | 'procurement_officer'
+  | 'comptroller_procurement'
   | 'procurement_manager'
   | 'planning_statistics_officer'
   | 'financial_unit_officer'
   | 'procurement_secretary'
-  | 'comptroller_procurement'
   | 'legal_reviewer'
   | 'technical_evaluator'
   | 'financial_evaluator'
@@ -192,6 +191,8 @@ export interface ProcurementPlanSummary {
 }
 
 export interface ProcurementPlanDetail extends ProcurementPlanSummary {
+    CurrentStageKey?: string | null;
+    CurrentStageTitle?: string | null;
     Notes?: string | null;
     SubmittedAt?: string | null;
     ApprovedAt?: string | null;
@@ -230,6 +231,42 @@ export interface ProcurementPlanUpdateRequest {
     Notes?: string | null;
     SubmittedAt?: string | null;
     ApprovedAt?: string | null;
+}
+
+export interface ProcurementPlanApprovalDecisionRequest {
+    Decision: 'approve' | 'return' | 'reject';
+    Note?: string | null;
+}
+
+export interface ProcurementPlanApprovalDecisionResponse {
+    PlanId: string;
+    Decision: string;
+    Message: string;
+    StageKey: string;
+    StageTitle: string;
+    WorkflowStatus: string;
+    PlanStatus: string;
+    ApprovedAt?: string | null;
+}
+
+export interface ProcurementInitiationResponse {
+    PlanId: string;
+    Message: string;
+    StageKey: string;
+    StageTitle: string;
+    WorkflowStatus: string;
+    ThresholdId?: string | null;
+    ApprovalRoute?: string | null;
+    ApprovalAuthorityCode?: string | null;
+    ApprovalAuthorityLabel?: string | null;
+    RequiresCgisApproval: boolean;
+    RequiresBoard: boolean;
+    RequiresBpp: boolean;
+    GovernanceBodyId?: string | null;
+    GovernanceBodyName?: string | null;
+    Amount?: number | null;
+    ProcurementType?: string | null;
+    Notes?: string | null;
 }
 
 export interface ProcurementPlanListResponse {
@@ -932,8 +969,11 @@ export interface RequisitionSummary {
     Title: string;
     Department: string;
     UnitId?: string | null;
+    CommitteePlanId?: string | null;
+    CommitteePlanTitle?: string | null;
     AppItemId?: string | null;
     AppItemDescription?: string | null;
+    FinalCommitteeDecision?: string | null;
     Status: string;
     Priority?: string | null;
     FundingSource?: string | null;
@@ -1310,3 +1350,4 @@ export interface RequisitionListResponse {
     PageSize: number;
     Total: number;
 }
+

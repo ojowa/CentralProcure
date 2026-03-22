@@ -1,11 +1,12 @@
 using eProcurement.Shared.Workflow;
 using Microsoft.AspNetCore.Mvc;
+using eProcurement.Modules.ProcurementWorkflow.DTOs;
 
 namespace eProcurement.Modules.ProcurementWorkflow.Controllers;
 
 [ApiController]
 [Route("api/workflow-runtime")]
-public class WorkflowRuntimeController : ControllerBase
+public partial class WorkflowRuntimeController : ControllerBase
 {
     private readonly IConfiguration _config;
     private readonly WorkflowRuntimeTracker _workflowRuntimeTracker;
@@ -26,7 +27,7 @@ public class WorkflowRuntimeController : ControllerBase
         }
 
         var snapshot = await _workflowRuntimeTracker.GetAsync(connectionString, entityType, entityId, ct);
-        return snapshot is null ? NotFound() : Ok(snapshot);
+        return snapshot is null ? NotFound() : Ok(MapDisplayResponse(snapshot));
     }
 
     [HttpGet("{entityType}/{entityId:guid}/history")]

@@ -1,128 +1,164 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
-import type { InternalModule, InternalUserProfile, InternalRoleRecord, InternalOrganizationalUnitRecord } from '../types/internal';
-import { 
-  fetchInternalUsers, 
-  fetchInternalRoles, 
-  fetchInternalUnits,
-  registerInternalUser,
-  updateInternalUserRole 
-} from '../services/internalAuthService';
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import type { InternalModule, InternalUserProfile, InternalRoleRecord, InternalOrganizationalUnitRecord, InternalRegistrationData } from '../types/internal';
+import { useUserManagement } from '../hooks/useUserManagement';
+import { useRoleManagement } from '../hooks/useRoleManagement';
+import { useModuleAccess } from '../hooks/useModuleAccess';
+import { fetchInternalUnits, fetchInternalModulesCatalog, registerInternalUser } from '../services/internalAuthService';
+import {
+  UserList, RoleList, ModuleAccessPanel, EditUserModal, ResetPasswordModal,
+  CreateRoleModal, EditRoleModal, OnboardingForm, CommitteeMembersPanel
+} from './user-role-management';
+import * as roleService from '../services/roleManagementService';
 
-type Props = {
-  module: InternalModule;
-  token?: string | null;
+type Props = { module: InternalModule; token?: string | null; };
+type Tab = 'users' | 'roles' | 'modules' | 'committee' | 'onboarding';
+const TABS: Tab[] = ['users', 'roles', 'modules', 'committee', 'onboarding'];
+const TAB_LABELS: Record<Tab, string> = {
+  users: 'Active Directory',
+  roles: 'Role Catalog',
+  modules: 'Module Access',
+  committee: 'Committee Members',
+  onboarding: 'User Onboarding'
 };
 
 export const UserRoleManagementModule = ({ module, token }: Props) => {
-  const [users, setUsers] = useState<InternalUserProfile[]>([]);
-  const [roles, setRoles] = useState<InternalRoleRecord[]>([]);
-  const [units, setUnits] = useState<InternalOrganizationalUnitRecord[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<Tab>('users');
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'users' | 'roles' | 'onboarding'>('users');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [units, setUnits] = useState<InternalOrganizationalUnitRecord[]>([]);
+  const [moduleCatalog, setModuleCatalog] = useState<InternalModule[]>([]);
+  const [editingUser, setEditingUser] = useState<InternalUserProfile | null>(null);
+  const [resettingUser, setResettingUser] = useState<InternalUserProfile | null>(null);
+  const [editingRole, setEditingRole] = useState<InternalRoleRecord | null>(null);
+  const [isCreateRoleOpen, setIsCreateRoleOpen] = useState(false);
 
-  // Onboarding Form State
-  const [onboardingForm, setOnboardingForm] = useState({
-    Email: '',
-    Username: '',
-    FirstName: '',
-    MiddleName: '',
-    Surname: '',
-    ServiceNumber: '',
-    UnitId: '',
-    Password: '',
-    Role: 'Internal'
-  });
+  const {
+    users, isLoading: isLoadingUsers, filteredUsers, searchQuery, setSearchQuery,
+    activeCount, pendingCount, refreshUsers, updateUserRole, updateUser, resetPassword
+  } = useUserManagement({ token });
 
-  const loadData = async () => {
-    if (!token) return;
-    setIsLoading(true);
-    setError(null);
-    try {
-      const [u, r, un] = await Promise.all([
-        fetchInternalUsers(token),
-        fetchInternalRoles(),
-        fetchInternalUnits()
-      ]);
-      setUsers(u);
-      setRoles(r);
-      setUnits(un);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load management data.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { roles, isLoading: isLoadingRoles, refreshRoles, createRole, updateRole, deactivateRole } = useRoleManagement({ token });
+
+  const {
+    roleModuleGrants, userModuleGrants, isLoading: isLoadingModules,
+    refreshGrants, updateRoleGrant, updateUserGrant, deleteRoleGrant, deleteUserGrant,
+    bulkUpdateRoleGrants, bulkUpdateUserGrants, bulkResetRoleGrants, bulkResetUserGrants
+  } = useModuleAccess({ token });
+
+  const isLoading = isLoadingUsers || isLoadingRoles || isLoadingModules;
 
   useEffect(() => {
+    const requestedTab = searchParams.get('tab');
+    if (requestedTab && TABS.includes(requestedTab as Tab)) {
+      setActiveTab(requestedTab as Tab);
+      return;
+    }
+
+    setActiveTab('users');
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!token) return;
+    const loadData = async () => {
+      try {
+        const [unitsData, modulesData] = await Promise.all([
+          fetchInternalUnits(), fetchInternalModulesCatalog(token)
+        ]);
+        setUnits(unitsData);
+        setModuleCatalog(modulesData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load initial data');
+      }
+    };
     void loadData();
   }, [token]);
 
-  const filteredUsers = useMemo(() => {
-    const q = searchQuery.toLowerCase().trim();
-    if (!q) return users;
-    return users.filter(u => 
-      u.Email.toLowerCase().includes(q) || 
-      u.Username.toLowerCase().includes(q) ||
-      u.FirstName.toLowerCase().includes(q) ||
-      u.Surname.toLowerCase().includes(q) ||
-      u.ServiceNumber.toLowerCase().includes(q)
-    );
-  }, [users, searchQuery]);
+  useEffect(() => { setError(null); setSuccess(null); }, [activeTab]);
 
-  const handleOnboard = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const showError = (msg: string) => setError(msg);
+  const showSuccess = (msg: string) => setSuccess(msg);
+  const clearMessages = () => { setError(null); setSuccess(null); };
+  const setTab = (tab: Tab) => {
+    setActiveTab(tab);
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.set('tab', tab);
+    router.replace(`${pathname}?${nextParams.toString()}`, { scroll: false });
+  };
+
+  const handleOnboard = async (data: Omit<InternalRegistrationData, 'ConfirmPassword'>) => {
     if (!token) return;
-    setIsLoading(true);
-    setError(null);
-    setSuccess(null);
+    clearMessages();
     try {
       await registerInternalUser({
-        ...onboardingForm,
-        UnitId: onboardingForm.UnitId as any
-      } as any);
-      setSuccess(`User ${onboardingForm.Email} onboarded successfully.`);
-      setOnboardingForm({
-        Email: '',
-        Username: '',
-        FirstName: '',
-        MiddleName: '',
-        Surname: '',
-        ServiceNumber: '',
-        UnitId: '',
-        Password: '',
-        Role: 'Internal'
+        ...data,
+        ConfirmPassword: data.Password
       });
-      await loadData();
-      setActiveTab('users');
+      showSuccess(`User ${data.Email} onboarded successfully.`);
+      await refreshUsers();
+      setTab('users');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to onboard user.');
-    } finally {
-      setIsLoading(false);
+      showError(err instanceof Error ? err.message : 'Failed to onboard user.');
     }
   };
 
   const handleRoleChange = async (userId: string, newRole: string) => {
-    if (!token) return;
-    setIsLoading(true);
-    setError(null);
-    setSuccess(null);
+    clearMessages();
+    try { await updateUserRole(userId, newRole); showSuccess('User role updated successfully.'); }
+    catch (err) { showError(err instanceof Error ? err.message : 'Failed to update role.'); }
+  };
+
+  const handleEditUser = async (userId: string, data: Parameters<typeof updateUser>[1]) => {
+    clearMessages();
+    try { await updateUser(userId, data); setEditingUser(null); showSuccess('User updated successfully.'); }
+    catch (err) { showError(err instanceof Error ? err.message : 'Failed to update user.'); }
+  };
+
+  const handleResetPassword = async (userId: string, newPassword: string) => {
+    clearMessages();
+    try { await resetPassword(userId, newPassword, true); setResettingUser(null); showSuccess('Password reset successfully.'); }
+    catch (err) { showError(err instanceof Error ? err.message : 'Failed to reset password.'); }
+  };
+
+  const handleCreateRole = async (data: roleService.CreateRoleRequest) => {
+    clearMessages();
+    try { await createRole(data); setIsCreateRoleOpen(false); showSuccess('Role created successfully.'); }
+    catch (err) { showError(err instanceof Error ? err.message : 'Failed to create role.'); }
+  };
+
+  const handleEditRole = async (roleId: string, data: roleService.UpdateRoleRequest) => {
+    clearMessages();
+    try { await updateRole(roleId, data); setEditingRole(null); showSuccess('Role updated successfully.'); }
+    catch (err) { showError(err instanceof Error ? err.message : 'Failed to update role.'); }
+  };
+
+  const handleDeactivateRole = async (role: InternalRoleRecord) => {
+    if (!confirm(`Deactivate role "${role.RoleName}"?`)) return;
+    clearMessages();
+    try { await deactivateRole(role.RoleId); showSuccess('Role deactivated successfully.'); }
+    catch (err) { showError(err instanceof Error ? err.message : 'Failed to deactivate role.'); }
+  };
+
+  const handleAssignCommitteeMember = async (userId: string, roleName: string) => {
+    clearMessages();
     try {
-      await updateInternalUserRole(token, {
-        InternalUserId: userId,
-        Role: newRole
-      });
-      setSuccess('User role updated successfully.');
-      await loadData();
+      await updateUserRole(userId, roleName);
+      showSuccess(`Committee assignment updated: ${roleName}.`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update role.');
-    } finally {
-      setIsLoading(false);
+      showError(err instanceof Error ? err.message : 'Failed to assign committee member.');
     }
+  };
+
+  const refreshAll = async () => {
+    clearMessages();
+    await Promise.all([refreshUsers(), refreshGrants()]);
+    showSuccess('Data refreshed successfully.');
   };
 
   return (
@@ -139,14 +175,8 @@ export const UserRoleManagementModule = ({ module, token }: Props) => {
           </div>
         </div>
         <div className="admin-metrics">
-           <div className="admin-metric">
-              <strong>{users.filter(u => u.Status === 'Active').length}</strong>
-              <span>Active</span>
-           </div>
-           <div className="admin-metric">
-              <strong>{users.filter(u => u.Status === 'Pending').length}</strong>
-              <span>Pending</span>
-           </div>
+          <div className="admin-metric"><strong>{activeCount}</strong><span>Active</span></div>
+          <div className="admin-metric"><strong>{pendingCount}</strong><span>Pending</span></div>
         </div>
       </header>
 
@@ -154,176 +184,71 @@ export const UserRoleManagementModule = ({ module, token }: Props) => {
       {success && <div className="plan-success">{success}</div>}
 
       <div className="workflow-config-tabs">
-        <button type="button" className={activeTab === 'users' ? 'active' : ''} onClick={() => setActiveTab('users')}>Active Directory</button>
-        <button type="button" className={activeTab === 'roles' ? 'active' : ''} onClick={() => setActiveTab('roles')}>Role Catalog</button>
-        <button type="button" className={activeTab === 'onboarding' ? 'active' : ''} onClick={() => setActiveTab('onboarding')}>User Onboarding</button>
+        {TABS.map(tab => (
+          <Link
+            key={tab}
+            href={`${pathname}?tab=${tab}`}
+            className={activeTab === tab ? 'active' : ''}
+            onClick={() => setTab(tab)}
+          >
+            {TAB_LABELS[tab]}
+          </Link>
+        ))}
         <div style={{ flex: 1 }} />
-        <button type="button" className="workflow-config-refresh" onClick={loadData} disabled={isLoading}>
+        <button type="button" className="workflow-config-refresh" onClick={refreshAll} disabled={isLoading}>
           {isLoading ? 'Syncing...' : 'Refresh Directory'}
         </button>
       </div>
 
       <div className="management-viewport" style={{ marginTop: '24px' }}>
         {activeTab === 'users' && (
-          <article className="portal-module-card">
-            <div className="plan-toolbar" style={{ marginBottom: '20px' }}>
-              <div className="plan-filters">
-                <label className="plan-field" style={{ width: '400px' }}>
-                  <span>Search Directory</span>
-                  <input 
-                    className="plan-input" 
-                    placeholder="Search by name, email, or service number..." 
-                    value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                  />
-                </label>
-              </div>
-            </div>
-
-            <div className="plan-table-wrapper">
-              <table className="plan-table">
-                <thead>
-                  <tr>
-                    <th>Identity</th>
-                    <th>Service Info</th>
-                    <th>Role & Unit</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredUsers.map(user => (
-                    <tr key={user.InternalUserId}>
-                      <td>
-                        <div style={{ fontWeight: 600 }}>{user.FirstName} {user.Surname}</div>
-                        <div className="plan-muted">{user.Email}</div>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--portal-slate)' }}>@{user.Username}</div>
-                      </td>
-                      <td>
-                        <div>{user.ServiceNumber}</div>
-                        <div className="plan-muted" style={{ fontSize: '0.75rem' }}>
-                          Last Login: {user.LastLogin ? new Date(user.LastLogin).toLocaleDateString() : 'Never'}
-                        </div>
-                      </td>
-                      <td>
-                        <div className="plan-code">{user.RoleName}</div>
-                        <div className="plan-muted" style={{ fontSize: '0.75rem' }}>{user.UnitName || 'No Unit'}</div>
-                      </td>
-                      <td>
-                        <span className={`admin-status ${user.Status === 'Active' ? 'admin-status--good' : 'admin-status--warn'}`}>
-                          {user.Status}
-                        </span>
-                      </td>
-                      <td>
-                        <select 
-                          className="plan-select" 
-                          style={{ fontSize: '0.75rem', padding: '4px 8px' }}
-                          value={user.RoleName}
-                          onChange={e => handleRoleChange(user.InternalUserId, e.target.value)}
-                          disabled={isLoading}
-                        >
-                          {roles.map(r => <option key={r.RoleId} value={r.RoleName}>{r.RoleName}</option>)}
-                        </select>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </article>
+          <UserList users={filteredUsers} roles={roles} isLoading={isLoading} onRoleChange={handleRoleChange}
+            onEditUser={setEditingUser} onResetPassword={setResettingUser}
+            searchQuery={searchQuery} onSearchChange={setSearchQuery} />
         )}
 
         {activeTab === 'roles' && (
-          <div className="roles-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-            {roles.map(role => (
-              <article key={role.RoleId} className="portal-module-card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <h3 style={{ margin: 0 }}>{role.RoleName}</h3>
-                  <span className={`admin-status ${role.IsActive ? 'admin-status--good' : ''}`}>
-                    {role.IsActive ? 'Active' : 'Disabled'}
-                  </span>
-                </div>
-                <p className="plan-muted" style={{ marginTop: '12px', fontSize: '0.875rem' }}>
-                  {role.Description || 'No description provided for this statutory role.'}
-                </p>
-                <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--portal-border)' }}>
-                   <div style={{ fontSize: '0.75rem', color: 'var(--portal-slate)' }}>
-                     Users Assigned: <strong>{users.filter(u => u.RoleName === role.RoleName).length}</strong>
-                   </div>
-                </div>
-              </article>
-            ))}
-          </div>
+          <RoleList roles={roles} users={users} isLoading={isLoading}
+            onEditRole={setEditingRole} onCreateRole={() => setIsCreateRoleOpen(true)}
+            onDeactivateRole={handleDeactivateRole} />
+        )}
+
+        {activeTab === 'modules' && (
+          <ModuleAccessPanel modules={moduleCatalog} roles={roles} users={users} token={token}
+            roleModuleGrants={roleModuleGrants} userModuleGrants={userModuleGrants}
+            isLoading={isLoading}
+            onUpdateRoleGrant={updateRoleGrant} onUpdateUserGrant={updateUserGrant}
+            onDeleteRoleGrant={deleteRoleGrant} onDeleteUserGrant={deleteUserGrant}
+            onBulkUpdateRoleGrants={bulkUpdateRoleGrants} onBulkUpdateUserGrants={bulkUpdateUserGrants}
+            onBulkResetRoleGrants={bulkResetRoleGrants} onBulkResetUserGrants={bulkResetUserGrants} />
+        )}
+
+        {activeTab === 'committee' && (
+          <CommitteeMembersPanel
+            roles={roles}
+            users={users}
+            token={token}
+            isLoading={isLoading}
+            onAssignRole={handleAssignCommitteeMember}
+          />
         )}
 
         {activeTab === 'onboarding' && (
-          <article className="portal-module-card" style={{ maxWidth: '800px', margin: '0 auto' }}>
-            <h3>New Staff Onboarding</h3>
-            <p className="plan-muted">Create a new internal identity and assign initial statutory permissions.</p>
-            
-            <form onSubmit={handleOnboard} style={{ marginTop: '24px', display: 'grid', gap: '20px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px' }}>
-                <label className="plan-field">
-                  <span>Surname</span>
-                  <input className="plan-input" required value={onboardingForm.Surname} onChange={e => setOnboardingForm(p => ({ ...p, Surname: e.target.value }))} />
-                </label>
-                <label className="plan-field">
-                  <span>First Name</span>
-                  <input className="plan-input" required value={onboardingForm.FirstName} onChange={e => setOnboardingForm(p => ({ ...p, FirstName: e.target.value }))} />
-                </label>
-                <label className="plan-field">
-                  <span>Middle Name <small className="plan-muted">(Optional)</small></span>
-                  <input className="plan-input" value={onboardingForm.MiddleName} onChange={e => setOnboardingForm(p => ({ ...p, MiddleName: e.target.value }))} />
-                </label>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                <label className="plan-field">
-                  <span>Email Address</span>
-                  <input type="email" className="plan-input" required value={onboardingForm.Email} onChange={e => setOnboardingForm(p => ({ ...p, Email: e.target.value }))} />
-                </label>
-                <label className="plan-field">
-                  <span>Username</span>
-                  <input className="plan-input" required value={onboardingForm.Username} onChange={e => setOnboardingForm(p => ({ ...p, Username: e.target.value }))} />
-                </label>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                <label className="plan-field">
-                  <span>Service Number</span>
-                  <input className="plan-input" required value={onboardingForm.ServiceNumber} onChange={e => setOnboardingForm(p => ({ ...p, ServiceNumber: e.target.value }))} />
-                </label>
-                <label className="plan-field">
-                  <span>Initial Role</span>
-                  <select className="plan-select" value={onboardingForm.Role} onChange={e => setOnboardingForm(p => ({ ...p, Role: e.target.value }))}>
-                    {roles.map(r => <option key={r.RoleId} value={r.RoleName}>{r.RoleName}</option>)}
-                  </select>
-                </label>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                <label className="plan-field">
-                  <span>Organizational Unit</span>
-                  <select className="plan-select" required value={onboardingForm.UnitId} onChange={e => setOnboardingForm(p => ({ ...p, UnitId: e.target.value }))}>
-                    <option value="">Select Unit</option>
-                    {units.map(u => <option key={u.UnitId} value={u.UnitId}>{u.UnitName} ({u.UnitCode})</option>)}
-                  </select>
-                </label>
-                <label className="plan-field">
-                  <span>Initial Password</span>
-                  <input type="password" className="plan-input" required value={onboardingForm.Password} onChange={e => setOnboardingForm(p => ({ ...p, Password: e.target.value }))} />
-                </label>
-              </div>
-
-              <div className="plan-actions" style={{ marginTop: '12px' }}>
-                <button type="submit" className="plan-button" disabled={isLoading}>
-                  {isLoading ? 'Creating Identity...' : 'Complete Onboarding'}
-                </button>
-              </div>
-            </form>
-          </article>
+          <OnboardingForm roles={roles} units={units} isLoading={isLoading} onSubmit={handleOnboard} />
         )}
       </div>
+
+      <EditUserModal user={editingUser} roles={roles} units={units} isOpen={!!editingUser}
+        isLoading={isLoading} onClose={() => setEditingUser(null)} onSave={handleEditUser} />
+
+      <ResetPasswordModal user={resettingUser} isOpen={!!resettingUser}
+        isLoading={isLoading} onClose={() => setResettingUser(null)} onConfirm={handleResetPassword} />
+
+      <CreateRoleModal isOpen={isCreateRoleOpen} isLoading={isLoading}
+        onClose={() => setIsCreateRoleOpen(false)} onConfirm={handleCreateRole} />
+
+      <EditRoleModal role={editingRole} isOpen={!!editingRole} isLoading={isLoading}
+        onClose={() => setEditingRole(null)} onConfirm={handleEditRole} />
     </section>
   );
 };

@@ -180,3 +180,26 @@ export const updateRequisition = async (
 
   return parseResponse<RequisitionDetail>(response);
 };
+
+export const unlinkRequisitionAppItem = async (
+  token: string,
+  requisitionId: string,
+  payload: { Reason: string }
+): Promise<void> => {
+  const response = await fetch(`${baseUrl}/${requisitionId}/unlink-app`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      ...buildCsrfHeaders()
+    },
+    credentials: 'include'
+    ,
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || `Unlink failed (${response.status}).`);
+  }
+};

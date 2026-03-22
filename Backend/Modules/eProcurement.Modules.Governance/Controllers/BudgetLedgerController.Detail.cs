@@ -1,4 +1,5 @@
 using eProcurement.Modules.Governance.DTOs;
+using eProcurement.Shared.Workflow;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
@@ -191,8 +192,8 @@ ORDER BY i.estimated_amount DESC, i.description ASC;";
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error loading budget confirmation detail for plan {PlanId}.", planId);
-            return Problem("Internal server error loading budget confirmation detail.");
+            Logger.LogError(ex, "Error loading budget detail for plan {PlanId}.", planId);
+            return Problem("Internal server error loading budget detail.");
         }
     }
 
@@ -221,6 +222,9 @@ ORDER BY i.estimated_amount DESC, i.description ASC;";
             reader.GetInt32(reader.GetOrdinal("item_count")),
             reader.GetDateTime(reader.GetOrdinal("created_at")),
             reader.GetDateTime(reader.GetOrdinal("updated_at")),
+            WorkflowDisplayMapper.Build(
+                reader.GetString(reader.GetOrdinal("current_stage_key")),
+                reader.GetString(reader.GetOrdinal("current_stage_title"))),
             Array.Empty<BudgetPlanBudgetLine>(),
             Array.Empty<BudgetPlanItemSummary>(),
             Array.Empty<BudgetDecisionHistoryEntry>());

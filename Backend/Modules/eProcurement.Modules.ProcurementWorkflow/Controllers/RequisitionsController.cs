@@ -113,150 +113,24 @@ public partial class RequisitionsController : ControllerBase
         }
     }
 
-    [HttpGet]
-    public async Task<IActionResult> GetRequisitions(
-        [FromQuery] string? status,
-        [FromQuery] string? department,
-        [FromQuery] string? priority,
-        [FromQuery] string? query,
-        [FromQuery] DateTime? dateFrom,
-        [FromQuery] DateTime? dateTo,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = DefaultPageSize,
-        [FromQuery] string? sortBy = "created_at",
-        [FromQuery] string? sortDir = "desc",
-        CancellationToken ct = default)
-    {
-        if (!IsStatusValid(status, out _))
-        {
-            return BadRequest($"Status must be one of: {string.Join(", ", AllowedStatuses)}.");
-        }
-
-        if (!IsPriorityValid(priority, out _))
-        {
-            return BadRequest($"Priority must be one of: {string.Join(", ", AllowedPriorities)}.");
-        }
-
-        if (page < 1)
-        {
-            return BadRequest("Page must be 1 or greater.");
-        }
-
-        if (pageSize < 1 || pageSize > MaxPageSize)
-        {
-            return BadRequest($"PageSize must be between 1 and {MaxPageSize}.");
-        }
-
-        sortBy = string.IsNullOrWhiteSpace(sortBy) ? "created_at" : sortBy.Trim().ToLowerInvariant();
-        sortDir = string.IsNullOrWhiteSpace(sortDir) ? "desc" : sortDir.Trim().ToLowerInvariant();
-
-        if (!AllowedSortFields.Contains(sortBy))
-        {
-            return BadRequest($"SortBy must be one of: {string.Join(", ", AllowedSortFields)}.");
-        }
-
-        if (!AllowedSortDirections.Contains(sortDir))
-        {
-            return BadRequest("SortDir must be 'asc' or 'desc'.");
-        }
-
-        var connectionString = GetConnectionString();
-        if (string.IsNullOrWhiteSpace(connectionString))
-        {
-            return Problem("Connection string 'Primary' is not configured.", statusCode: 500);
-        }
-
-        try
-        {
-            await using var conn = new NpgsqlConnection(connectionString);
-            await conn.OpenAsync(ct);
-            await using var tx = await conn.BeginTransactionAsync(ct);
-
-            var total = await GetRequisitionCountAsync(conn, tx, status, department, priority, query, dateFrom, dateTo, ct);
-
-            await using var cmd = new NpgsqlCommand("procurement_workflow.get_requisitions_sp", conn, tx)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
-
-            cmd.Parameters.AddWithValue("p_status", NpgsqlDbType.Varchar, (object?)status ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("p_department", NpgsqlDbType.Varchar, (object?)department ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("p_priority", NpgsqlDbType.Varchar, (object?)priority ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("p_query", NpgsqlDbType.Text, (object?)query ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("p_date_from", NpgsqlDbType.Timestamp, (object?)dateFrom ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("p_date_to", NpgsqlDbType.Timestamp, (object?)dateTo ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("p_sort_by", NpgsqlDbType.Varchar, sortBy);
-            cmd.Parameters.AddWithValue("p_sort_dir", NpgsqlDbType.Varchar, sortDir);
-            cmd.Parameters.AddWithValue("p_limit", NpgsqlDbType.Integer, pageSize);
-            cmd.Parameters.AddWithValue("p_offset", NpgsqlDbType.Integer, (page - 1) * pageSize);
-            cmd.Parameters.Add(new NpgsqlParameter("p_result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.Output });
-
-            var results = await ExecuteRefcursorAsync(cmd, MapSummary, ct);
-            await tx.CommitAsync(ct);
-
-            return Ok(new
-            {
-                Items = results,
-                Page = page,
-                PageSize = pageSize,
-                Total = total
-            });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving requisitions.");
-            return Problem("Internal server error retrieving requisitions.");
-        }
-    }
-
-    [HttpGet("{requisitionId:guid}")]
-    public async Task<IActionResult> GetRequisitionDetail(Guid requisitionId, CancellationToken ct)
-    {
-        var connectionString = GetConnectionString();
-        if (string.IsNullOrWhiteSpace(connectionString))
-        {
-            return Problem("Connection string 'Primary' is not configured.", statusCode: 500);
-        }
-
-        try
-        {
-            await using var conn = new NpgsqlConnection(connectionString);
-            await conn.OpenAsync(ct);
-            await using var tx = await conn.BeginTransactionAsync(ct);
-
-            await using var cmd = new NpgsqlCommand("procurement_workflow.get_requisition_detail_sp", conn, tx)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
-
-            cmd.Parameters.AddWithValue("p_requisition_id", NpgsqlDbType.Uuid, requisitionId);
-            cmd.Parameters.Add(new NpgsqlParameter("p_result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.Output });
-
-            var details = await ExecuteRefcursorAsync(cmd, MapDetailWithoutItems, ct);
-            var detail = details.FirstOrDefault();
-            if (detail is null)
-            {
-                return NotFound();
-            }
-
-            var lineItems = await GetLineItemsAsync(conn, tx, requisitionId, ct);
-            await tx.CommitAsync(ct);
-
-            return Ok(detail with { LineItems = lineItems });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving requisition {RequisitionId}.", requisitionId);
-            return Problem("Internal server error retrieving requisition.");
-        }
-    }
-
     [HttpPost]
     public async Task<IActionResult> CreateRequisition([FromBody] RequisitionCreateRequest request, CancellationToken ct)
     {
+        var roleKey = WorkflowActionGrantService.ResolveRoleKey(User);
+        if (!string.Equals(roleKey, "requisitioning_officer", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(roleKey, "admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return Forbid();
+        }
+
         if (request is null)
         {
             return BadRequest("Request body is required.");
+        }
+
+        if (request.AppItemId.HasValue)
+        {
+            return BadRequest("APP item assignment is controlled by finalized planning committee review and cannot be set directly.");
         }
 
         var validationError = ValidateCreateRequest(request, out var normalizedStatus);
@@ -300,7 +174,7 @@ public partial class RequisitionsController : ControllerBase
             cmd.Parameters.Add(new NpgsqlParameter("p_result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.Output });
 
             var results = await ExecuteRefcursorAsync(cmd, MapDetailWithoutItems, ct);
-            var detail = results.FirstOrDefault();
+            var detail = (await ApplyFinalCommitteeDecisionsAsync(conn, tx, results, ct)).FirstOrDefault();
             if (detail is null)
             {
                 return Problem("Requisition creation failed.");
@@ -310,6 +184,8 @@ public partial class RequisitionsController : ControllerBase
             var response = detail with { LineItems = lineItems };
             await SyncWorkflowRuntimeAsync(conn, tx, response, "Requisition created.", ct);
             await tx.CommitAsync(ct);
+            response = await EnrichDetailWithAuthorityAsync(connectionString, response, ct);
+            response = await EnrichDetailWithRoutingAsync(connectionString, response, ct);
             return Created($"/api/requisitions/{response.RequisitionId}", response);
         }
         catch (PostgresException ex) when (ex.SqlState == "23505" && ex.ConstraintName == "requisitions_app_item_id_ux")
@@ -355,6 +231,25 @@ public partial class RequisitionsController : ControllerBase
             await conn.OpenAsync(ct);
             await using var tx = await conn.BeginTransactionAsync(ct);
 
+            var hasAction = await _workflowActionGrantService.HasRequiredActionAsync(
+                conn,
+                tx,
+                User,
+                "requisition",
+                requisitionId,
+                "requisition.update",
+                ct);
+            if (!hasAction)
+            {
+                return Forbid();
+            }
+
+            var existingAppItemId = await GetExistingAppItemIdAsync(conn, tx, requisitionId, ct);
+            if (request.AppItemId.HasValue && request.AppItemId != existingAppItemId)
+            {
+                return BadRequest("APP item assignment is controlled by finalized planning committee review and cannot be changed directly.");
+            }
+
             if (!string.IsNullOrWhiteSpace(normalizedStatus))
             {
                 var threshold = await ResolveThresholdForRequestAsync(conn, tx, requisitionId, request, ct);
@@ -396,7 +291,7 @@ public partial class RequisitionsController : ControllerBase
             cmd.Parameters.Add(new NpgsqlParameter("p_result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.Output });
 
             var results = await ExecuteRefcursorAsync(cmd, MapDetailWithoutItems, ct);
-            var detail = results.FirstOrDefault();
+            var detail = (await ApplyFinalCommitteeDecisionsAsync(conn, tx, results, ct)).FirstOrDefault();
             if (detail is null)
             {
                 return NotFound();
@@ -406,7 +301,8 @@ public partial class RequisitionsController : ControllerBase
             var response = detail with { LineItems = lineItems };
             await SyncWorkflowRuntimeAsync(conn, tx, response, "Requisition updated.", ct);
             await tx.CommitAsync(ct);
-
+            response = await EnrichDetailWithAuthorityAsync(connectionString, response, ct);
+            response = await EnrichDetailWithRoutingAsync(connectionString, response, ct);
             return Ok(response);
         }
         catch (PostgresException ex) when (ex.SqlState == "23505" && ex.ConstraintName == "requisitions_app_item_id_ux")
@@ -423,6 +319,67 @@ public partial class RequisitionsController : ControllerBase
         {
             _logger.LogError(ex, "Error updating requisition {RequisitionId}.", requisitionId);
             return Problem("Internal server error updating requisition.");
+        }
+    }
+
+    public sealed record UnlinkAppRequest(string Reason);
+
+    [HttpPost("{requisitionId:guid}/unlink-app")]
+    public async Task<IActionResult> UnlinkAppItem(Guid requisitionId, [FromBody] UnlinkAppRequest request, CancellationToken ct)
+    {
+        var roleKey = WorkflowActionGrantService.ResolveRoleKey(User);
+        if (!string.Equals(roleKey, "financial_unit_officer", StringComparison.OrdinalIgnoreCase))
+        {
+            return Forbid();
+        }
+
+        var connectionString = GetConnectionString();
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            return Problem("Connection string 'Primary' is not configured.", statusCode: 500);
+        }
+
+        try
+        {
+            await using var conn = new NpgsqlConnection(connectionString);
+            await conn.OpenAsync(ct);
+            await using var tx = await conn.BeginTransactionAsync(ct);
+
+            await using var cmd = new NpgsqlCommand("procurement_workflow.unlink_requisition_app_item_sp", conn, tx)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+
+            cmd.Parameters.AddWithValue("p_requisition_id", NpgsqlDbType.Uuid, requisitionId);
+            cmd.Parameters.AddWithValue("p_reason", NpgsqlDbType.Text, request?.Reason ?? string.Empty);
+            cmd.Parameters.AddWithValue("p_unlinked_by", NpgsqlDbType.Varchar, User.Identity?.Name ?? string.Empty);
+            cmd.Parameters.Add(new NpgsqlParameter("p_result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.Output });
+
+            var results = await ExecuteRefcursorAsync(cmd, r => new
+            {
+                RequisitionId = r.GetGuid(r.GetOrdinal("requisition_id")),
+                AppItemId = GetNullableGuid(r, "app_item_id"),
+                UpdatedAt = r.GetDateTime(r.GetOrdinal("updated_at"))
+            }, ct);
+
+            var result = results.FirstOrDefault();
+            if (result is null)
+            {
+                return NotFound();
+            }
+
+            await tx.CommitAsync(ct);
+            return Ok(result);
+        }
+        catch (PostgresException ex) when (ex.SqlState == "P0001")
+        {
+            _logger.LogWarning(ex, "Unlink validation failed for requisition {RequisitionId}.", requisitionId);
+            return BadRequest(ex.MessageText);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error unlinking APP item for requisition {RequisitionId}.", requisitionId);
+            return Problem("Internal server error unlinking APP item.");
         }
     }
 }

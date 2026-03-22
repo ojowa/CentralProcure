@@ -58,15 +58,9 @@ public class ProcurementPlanItemsController : ControllerBase
         }
     }
 
-    [HttpPost("api/procurement-plans/{planId:guid}/items")]
-    public async Task<IActionResult> CreatePlanItem(Guid planId, [FromBody] ProcurementPlanItemCreateRequest request, CancellationToken ct)
+    [HttpGet("api/procurement-plan-items/{planItemId:guid}")]
+    public async Task<IActionResult> GetPlanItem(Guid planItemId, CancellationToken ct)
     {
-        var validationError = ValidateCreateRequest(request, out var normalizedStatus, out var normalizedType);
-        if (validationError is not null)
-        {
-            return BadRequest(validationError);
-        }
-
         var connectionString = GetConnectionString();
         if (string.IsNullOrWhiteSpace(connectionString))
         {
@@ -77,39 +71,42 @@ public class ProcurementPlanItemsController : ControllerBase
         {
             await using var conn = new NpgsqlConnection(connectionString);
             await conn.OpenAsync(ct);
-            await using var tx = await conn.BeginTransactionAsync(ct);
-            var results = await ExecuteStoredProcedureAsync(
-                conn,
-                tx,
-                "CALL procurement_workflow.create_procurement_plan_item_sp(@p_plan_id, @p_item_code, @p_description, @p_budget_code, @p_procurement_type, @p_estimated_amount, @p_status, @p_notes, NULL::refcursor);",
-                parameters =>
-                {
-                    parameters.AddWithValue("p_plan_id", NpgsqlDbType.Uuid, planId);
-                    parameters.AddWithValue("p_item_code", NpgsqlDbType.Varchar, (object?)request.ItemCode ?? DBNull.Value);
-                    parameters.AddWithValue("p_description", NpgsqlDbType.Text, request.Description);
-                    parameters.AddWithValue("p_budget_code", NpgsqlDbType.Varchar, request.BudgetCode);
-                    parameters.AddWithValue("p_procurement_type", NpgsqlDbType.Varchar, (object?)normalizedType ?? DBNull.Value);
-                    parameters.AddWithValue("p_estimated_amount", NpgsqlDbType.Numeric, (object?)request.EstimatedAmount ?? DBNull.Value);
-                    parameters.AddWithValue("p_status", NpgsqlDbType.Varchar, (object?)normalizedStatus ?? DBNull.Value);
-                    parameters.AddWithValue("p_notes", NpgsqlDbType.Text, (object?)request.Notes ?? DBNull.Value);
-                },
-                MapPlanItem,
-                ct);
-            await tx.CommitAsync(ct);
+            const string sql = @"
+                SELECT plan_item_id,
+                       plan_id,
+                       item_code,
+                       description,
+                       budget_code,
+                       procurement_type,
+                       estimated_amount,
+                       status,
+                       notes,
+                       created_at,
+                       updated_at
+                  FROM procurement_workflow.procurement_plan_items
+                 WHERE plan_item_id = @p_plan_item_id;";
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("p_plan_item_id", NpgsqlDbType.Uuid, planItemId);
+            await using var reader = await cmd.ExecuteReaderAsync(ct);
+            if (!await reader.ReadAsync(ct))
+            {
+                return NotFound();
+            }
 
-            var result = results.FirstOrDefault();
-            return result is null ? Problem("Procurement plan item creation failed.") : Created($"/api/procurement-plan-items/{result.PlanItemId}", result);
-        }
-        catch (PostgresException ex)
-        {
-            _logger.LogError(ex, "Error creating procurement plan item for {PlanId}.", planId);
-            return BadRequest(ex.MessageText);
+            var result = MapPlanItem(reader);
+            return Ok(result);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating procurement plan item for {PlanId}.", planId);
-            return Problem("Internal server error creating procurement plan item.");
+            _logger.LogError(ex, "Error retrieving procurement plan item {PlanItemId}.", planItemId);
+            return Problem("Internal server error retrieving procurement plan item.");
         }
+    }
+
+    [HttpPost("api/procurement-plans/{planId:guid}/items")]
+    public async Task<IActionResult> CreatePlanItem(Guid planId, [FromBody] ProcurementPlanItemCreateRequest request, CancellationToken ct)
+    {
+        return BadRequest("Manual APP item creation is disabled. APP items are created only from requisitions that have received finalized committee approval.");
     }
 
     [HttpPut("api/procurement-plan-items/{planItemId:guid}")]

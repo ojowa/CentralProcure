@@ -62,9 +62,9 @@ public partial class RequisitionsController
         return status switch
         {
             "Draft" => "department_need_capture",
-            "Submitted" => "department_need_capture",
-            "Endorsed" => "department_head_endorsement",
-            "Initial" => "budget_code_allocation",
+            "Submitted" => "department_head_endorsement",
+            "Endorsed" => "budget_code_allocation",
+            "Initial" => "comptroller_procurement_review",
             "Under Review" => "planning_committee_review",
             "Evaluation" => "evaluation",
             "Board Review" => "tenders_board_review",

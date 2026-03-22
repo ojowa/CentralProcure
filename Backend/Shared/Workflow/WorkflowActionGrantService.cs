@@ -10,25 +10,33 @@ public sealed record WorkflowGrantedAction(
     string DisplayName,
     string TaskDescription);
 
+public sealed record WorkflowAuthority(
+    bool IsEditable,
+    bool CanEdit,
+    bool CanDelete,
+    bool CanRoute,
+    bool CanFileComplaint,
+    IReadOnlyList<string> AllowedActionKeys);
+
 public sealed record WorkflowActionGrantSnapshot(
     string EntityType,
     Guid EntityId,
     string CurrentStageKey,
     string CurrentStageTitle,
     string RoleKey,
-    IReadOnlyList<WorkflowGrantedAction> Actions);
+    IReadOnlyList<WorkflowGrantedAction> Actions,
+    WorkflowAuthority Authority);
 
 public sealed class WorkflowActionGrantService
 {
     private static readonly IReadOnlyDictionary<string, string[]> StageActionMap =
         new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
         {
-            ["department_need_capture"] = ["procurement_plan.create", "procurement_plan.update"],
-            ["department_head_endorsement"] = ["procurement_plan.update"],
-            ["budget_code_allocation"] = ["budget.confirm"],
-            ["comptroller_procurement_review"] = ["procurement_plan.update"],
+            ["department_need_capture"] = ["requisition.create", "requisition.update"],
+            ["department_head_endorsement"] = ["requisition.update"],
+            ["budget_code_allocation"] = ["requisition.update", "budget.confirm"],
+            ["comptroller_procurement_review"] = ["requisition.update"],
             ["planning_committee_review"] = ["planning_committee.review"],
-            ["budget_confirmation"] = ["budget.confirm"],
             ["app_approval"] = ["procurement_plan.approve"],
             ["procurement_initiation"] = ["requisition.create", "requisition.update"],
             ["threshold_resolution"] = ["threshold.resolve", "approval.review"],
@@ -49,12 +57,11 @@ public sealed class WorkflowActionGrantService
     private static readonly IReadOnlyDictionary<string, string[]> StageModuleActionMap =
         new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
         {
-            ["department_need_capture"] = ["procurement_plan.manage", "requisition.create", "requisition.view", "requisition.track"],
-            ["department_head_endorsement"] = ["procurement_plan.manage", "requisition.create", "requisition.view", "requisition.track"],
-            ["budget_code_allocation"] = ["planning_committee.view"],
-            ["comptroller_procurement_review"] = ["planning_committee.view"],
+            ["department_need_capture"] = ["requisition.create", "requisition.view", "requisition.track"],
+            ["department_head_endorsement"] = ["requisition.view", "requisition.track"],
+            ["budget_code_allocation"] = ["requisition.view", "requisition.track", "planning_committee.view"],
+            ["comptroller_procurement_review"] = ["requisition.view", "requisition.track", "planning_committee.view"],
             ["planning_committee_review"] = ["planning_committee.view"],
-            ["budget_confirmation"] = ["planning_committee.view"],
             ["app_approval"] = ["procurement_plan.manage", "requisition.view", "requisition.track"],
             ["procurement_initiation"] = ["requisition.create", "requisition.view", "requisition.track"],
             ["threshold_resolution"] = ["approval.review"],
@@ -115,7 +122,8 @@ public sealed class WorkflowActionGrantService
             current.StageKey,
             current.StageTitle,
             roleKey,
-            actions);
+            actions,
+            BuildAuthority(entityType, current.StageKey, roleKey, actions));
     }
 
     public async Task<bool> HasRequiredActionAsync(
@@ -184,6 +192,34 @@ WHERE role_key = @p_role_key;", conn);
         }
 
         return results.OrderBy(action => action, StringComparer.OrdinalIgnoreCase).ToArray();
+    }
+
+    public static WorkflowAuthority BuildAuthority(
+        string entityType,
+        string currentStageKey,
+        string roleKey,
+        IReadOnlyList<WorkflowGrantedAction> actions)
+    {
+        var allowedActionKeys = actions
+            .Select(action => action.ActionKey)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(action => action, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        var canEdit = allowedActionKeys.Contains("requisition.update", StringComparer.OrdinalIgnoreCase);
+        var canDelete = string.Equals(entityType, "requisition", StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals(roleKey, "admin", StringComparison.OrdinalIgnoreCase);
+        var canRoute = string.Equals(entityType, "requisition", StringComparison.OrdinalIgnoreCase) &&
+                       canEdit &&
+                       string.Equals(currentStageKey, "comptroller_procurement_review", StringComparison.OrdinalIgnoreCase);
+        var canFileComplaint = allowedActionKeys.Contains("administrative_review.create", StringComparer.OrdinalIgnoreCase);
+
+        return new WorkflowAuthority(
+            canEdit,
+            canEdit,
+            canDelete,
+            canRoute,
+            canFileComplaint,
+            allowedActionKeys);
     }
 
     private static string? NormalizeRoleKey(string? role)

@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import type { WorkflowRuntimeDisplay } from './workflowDisplayTypes';
 
 export type WorkflowPhase = 'Planning' | 'Advert / Invitation / EOI / RFP' | 'Evaluation' | 'Approval' | 'Post-Award';
 
@@ -21,7 +22,6 @@ const PHASES: PhaseConfig[] = [
       'budget_code_allocation',
       'comptroller_procurement_review',
       'planning_committee_review',
-      'budget_confirmation',
       'app_approval',
       'procurement_initiation',
       'threshold_resolution',
@@ -57,21 +57,32 @@ const PHASES: PhaseConfig[] = [
 
 interface Props {
   currentStageKey: string;
+  display?: WorkflowRuntimeDisplay | null;
 }
 
-export const WorkflowProgressStepper: React.FC<Props> = ({ currentStageKey }) => {
+export const WorkflowProgressStepper: React.FC<Props> = ({ currentStageKey, display }) => {
   const normalizedKey = (currentStageKey || '').toLowerCase();
-  
-  // Determine current phase index
-  const currentPhaseIndex = PHASES.findIndex(phase => 
-    phase.states.includes(normalizedKey)
-  );
+  const currentPhaseIndex = PHASES.findIndex((phase) => phase.states.includes(normalizedKey));
+  const displayPhases = display?.Phases?.length
+    ? display.Phases.map((phase) => ({
+        id: phase.PhaseKey,
+        label: phase.PhaseLabel,
+        color: phase.Color,
+        status: phase.Status
+      }))
+    : null;
+  const phases = displayPhases ?? PHASES.map((phase, index) => ({
+    id: phase.id,
+    label: phase.label,
+    color: phase.color,
+    status: index < currentPhaseIndex ? 'completed' : index === currentPhaseIndex ? 'active' : 'pending'
+  }));
 
   return (
     <div className="workflow-stepper">
-      {PHASES.map((phase, index) => {
-        const isCompleted = index < currentPhaseIndex;
-        const isActive = index === currentPhaseIndex;
+      {phases.map((phase, index) => {
+        const isCompleted = phase.status === 'completed';
+        const isActive = phase.status === 'active';
         const statusClass = isCompleted ? 'completed' : isActive ? 'active' : 'pending';
 
         return (

@@ -454,8 +454,8 @@ BEGIN
         WHEN p_status IS NULL THEN 'department_user'
         WHEN p_status ILIKE 'Submitted' THEN 'department_head'
         WHEN p_status ILIKE 'Endorsed' THEN 'department_head'
-        WHEN p_status ILIKE 'Initial' THEN 'procurement_officer'
-        WHEN p_status ILIKE 'Under Review' THEN 'procurement_officer'
+        WHEN p_status ILIKE 'Initial' THEN 'comptroller_procurement'
+        WHEN p_status ILIKE 'Under Review' THEN 'comptroller_procurement'
         WHEN p_status ILIKE 'Evaluation' THEN 'evaluation_committee'
         WHEN p_status ILIKE 'Board Review' THEN 'tenders_board'
         WHEN p_status ILIKE 'Approved' THEN 'accounting_officer'
@@ -1570,3 +1570,4 @@ END;
 $$;
 
 COMMIT;
+

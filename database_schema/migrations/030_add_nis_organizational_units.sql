@@ -93,7 +93,7 @@ WHERE r.role_id = iu.role_id
         WHEN lower(iu.email) = 'accountingofficer@nis.gov.ng' THEN 'Finance and Accounts'
         WHEN lower(iu.email) IN ('contractmanager@nis.gov.ng', 'inspectionofficer@nis.gov.ng') THEN 'Works and Logistics'
         WHEN r.role_name IN ('SystemAdministrator') THEN 'ICT and Cyber Security'
-        WHEN r.role_name IN ('ProcurementOfficer', 'ProcurementManager', 'BPPLiaison', 'TendersBoardMember', 'TendersBoardSecretary') THEN 'Procurement'
+        WHEN r.role_name IN ('ComptrollerProcurement', 'ProcurementManager', 'BPPLiaison', 'TendersBoardMember', 'TendersBoardSecretary') THEN 'Procurement'
         WHEN r.role_name IN ('PaymentOfficer', 'AccountingOfficer', 'FinancialEvaluator') THEN 'Finance and Accounts'
         WHEN r.role_name IN ('AuditOfficer') THEN 'Internal Audits'
         WHEN r.role_name IN ('RequisitioningOfficer', 'DepartmentHead', 'ContractManager', 'InspectionOfficer') THEN 'Works and Logistics'
@@ -138,3 +138,4 @@ AND (
 \ir ../stored_procedures/GetRequisitionDetails_SP.sql
 
 COMMIT;
+

@@ -6,7 +6,7 @@ WHERE stage_key = 'tenders_board_review';
 
 UPDATE procurement_workflow.workflow_role_tasks
 SET display_name = 'Comptroller Procurement'
-WHERE role_key = 'procurement_officer';
+WHERE role_key = 'comptroller_procurement';
 
 UPDATE procurement_workflow.workflow_role_tasks
 SET task_description = 'Prepare board papers and record the decision log for the NIS Tenders Board chaired by CGIS.'
@@ -34,3 +34,4 @@ SET approval_authority_label = CASE
         ELSE notes
     END
 WHERE requires_board = TRUE;
+

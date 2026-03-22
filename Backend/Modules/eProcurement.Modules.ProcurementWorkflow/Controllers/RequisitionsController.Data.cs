@@ -29,8 +29,11 @@ public partial class RequisitionsController
             r.GetString(r.GetOrdinal("title")),
             r.GetString(r.GetOrdinal("department")),
             GetNullableGuid(r, "unit_id"),
+            GetNullableGuid(r, "committee_plan_id"),
+            GetNullableString(r, "committee_plan_title"),
             GetNullableGuid(r, "app_item_id"),
             GetNullableString(r, "app_item_description"),
+            GetNullableString(r, "final_committee_decision"),
             r.GetString(r.GetOrdinal("status")),
             GetNullableString(r, "priority"),
             GetNullableString(r, "funding_source"),
@@ -44,6 +47,9 @@ public partial class RequisitionsController
             r.GetString(r.GetOrdinal("title")),
             r.GetString(r.GetOrdinal("department")),
             GetNullableGuid(r, "unit_id"),
+            GetNullableGuid(r, "committee_plan_id"),
+            GetNullableString(r, "committee_plan_title"),
+            GetNullableString(r, "final_committee_decision"),
             r.GetString(r.GetOrdinal("status")),
             GetNullableString(r, "priority"),
             GetNullableString(r, "funding_source"),
@@ -132,6 +138,102 @@ WHERE requisition_id = @p_requisition_id;";
         return new RequisitionWorkflowContext(
             reader.IsDBNull(reader.GetOrdinal("total_estimate")) ? null : reader.GetFieldValue<decimal>(reader.GetOrdinal("total_estimate")),
             GetNullableString(reader, "procurement_type"));
+    }
+
+    private static async Task<Guid?> GetExistingAppItemIdAsync(
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        Guid requisitionId,
+        CancellationToken ct)
+    {
+        const string sql = @"
+SELECT app_item_id
+FROM procurement_workflow.requisitions
+WHERE requisition_id = @p_requisition_id;";
+
+        await using var cmd = new NpgsqlCommand(sql, conn, tx);
+        cmd.Parameters.AddWithValue("p_requisition_id", NpgsqlDbType.Uuid, requisitionId);
+        var result = await cmd.ExecuteScalarAsync(ct);
+        return result is null || result is DBNull ? null : (Guid?)result;
+    }
+
+    private static async Task<List<RequisitionSummary>> ApplyFinalCommitteeDecisionsAsync(
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        List<RequisitionSummary> requisitions,
+        CancellationToken ct)
+    {
+        if (requisitions.Count == 0)
+        {
+            return requisitions;
+        }
+
+        var decisionMap = await GetFinalCommitteeDecisionMapAsync(
+            conn,
+            tx,
+            requisitions.Select(item => item.RequisitionId).ToArray(),
+            ct);
+
+        return requisitions
+            .Select(item => item with
+            {
+                FinalCommitteeDecision = decisionMap.TryGetValue(item.RequisitionId, out var decision)
+                    ? decision
+                    : item.FinalCommitteeDecision
+            })
+            .ToList();
+    }
+
+    private static async Task<List<RequisitionDetail>> ApplyFinalCommitteeDecisionsAsync(
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        List<RequisitionDetail> requisitions,
+        CancellationToken ct)
+    {
+        if (requisitions.Count == 0)
+        {
+            return requisitions;
+        }
+
+        var decisionMap = await GetFinalCommitteeDecisionMapAsync(
+            conn,
+            tx,
+            requisitions.Select(item => item.RequisitionId).ToArray(),
+            ct);
+
+        return requisitions
+            .Select(item => item with
+            {
+                FinalCommitteeDecision = decisionMap.TryGetValue(item.RequisitionId, out var decision)
+                    ? decision
+                    : item.FinalCommitteeDecision
+            })
+            .ToList();
+    }
+
+    private static async Task<Dictionary<Guid, string>> GetFinalCommitteeDecisionMapAsync(
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        Guid[] requisitionIds,
+        CancellationToken ct)
+    {
+        const string sql = @"
+SELECT requisition_id, overall_decision
+FROM procurement_workflow.planning_committee_decisions
+WHERE requisition_id = ANY(@p_requisition_ids);";
+
+        await using var cmd = new NpgsqlCommand(sql, conn, tx);
+        cmd.Parameters.AddWithValue("p_requisition_ids", NpgsqlDbType.Array | NpgsqlDbType.Uuid, requisitionIds);
+        await using var reader = await cmd.ExecuteReaderAsync(ct);
+
+        var decisions = new Dictionary<Guid, string>();
+        while (await reader.ReadAsync(ct))
+        {
+            decisions[reader.GetGuid(reader.GetOrdinal("requisition_id"))] =
+                reader.GetString(reader.GetOrdinal("overall_decision"));
+        }
+
+        return decisions;
     }
 
     private static int GetOptionalOrdinal(NpgsqlDataReader r, string n)

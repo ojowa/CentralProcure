@@ -150,25 +150,4 @@ public partial class AuthController
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
-
-    private bool TryGetAuthenticatedInternalUserId(out Guid internalUserId, out IActionResult? errorResult)
-    {
-        internalUserId = Guid.Empty;
-        errorResult = null;
-
-        var userIdValue = User.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrWhiteSpace(userIdValue))
-        {
-            errorResult = Unauthorized(new { message = "Authenticated user id is missing." });
-            return false;
-        }
-
-        if (!Guid.TryParse(userIdValue, out internalUserId))
-        {
-            errorResult = Unauthorized(new { message = "Authenticated user id is invalid." });
-            return false;
-        }
-
-        return true;
-    }
 }

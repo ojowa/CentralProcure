@@ -2,7 +2,7 @@ email,role_name
 admin@nis.gov.ng,Admin
 requisitioningofficer@nis.gov.ng,RequisitioningOfficer
 departmenthead@nis.gov.ng,DepartmentHead
-procurement@nis.gov.ng,ProcurementOfficer
+procurement@nis.gov.ng,ComptrollerProcurement
 procurementmanager@nis.gov.ng,ProcurementManager
 technicalevaluator@nis.gov.ng,TechnicalEvaluator
 financialevaluator@nis.gov.ng,FinancialEvaluator
@@ -20,3 +20,4 @@ financialunitofficer@nis.gov.ng,FinancialUnitOfficer
 legalreviewer@nis.gov.ng,LegalReviewer
 bppreviewer@nis.gov.ng,BPPReviewer
 complaintsreviewofficer@nis.gov.ng,ComplaintsReviewOfficer
+

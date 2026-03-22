@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { loginInternalUser } from '../services/internalAuthService';
 import { useAuth } from '../hooks/useAuth';
-import { RoleKey } from '../types/internal';
 
 type LoginForm = {
   usernameOrEmail: string;
@@ -91,7 +90,7 @@ export default function LoginPage() {
 
       login({
         email: response.Email ?? identifier,
-        role: response.Role as RoleKey
+        role: response.Role
       });
 
       router.push('/internal/dashboard');

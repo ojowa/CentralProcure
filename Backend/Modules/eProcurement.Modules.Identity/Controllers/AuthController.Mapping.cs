@@ -90,4 +90,60 @@ public partial class AuthController
             r.GetInt32(r.GetOrdinal("sort_order")),
             r.GetBoolean(r.GetOrdinal("is_assignable")));
     }
+
+    private static RoleModuleAccessGrantResult MapRoleModuleAccessGrantResult(NpgsqlDataReader r)
+    {
+        return new RoleModuleAccessGrantResult(
+            r.GetString(r.GetOrdinal("role_name")),
+            r.GetString(r.GetOrdinal("module_id")),
+            r.GetBoolean(r.GetOrdinal("is_enabled")),
+            r.GetDateTime(r.GetOrdinal("updated_at")));
+    }
+
+    private static UserModuleAccessGrantResult MapUserModuleAccessGrantResult(NpgsqlDataReader r)
+    {
+        return new UserModuleAccessGrantResult(
+            r.GetGuid(r.GetOrdinal("internal_user_id")),
+            r.GetString(r.GetOrdinal("email")),
+            r.GetString(r.GetOrdinal("username")),
+            r.GetString(r.GetOrdinal("role_name")),
+            r.GetString(r.GetOrdinal("module_id")),
+            r.GetBoolean(r.GetOrdinal("is_enabled")),
+            r.GetDateTime(r.GetOrdinal("updated_at")));
+    }
+
+    private static ModuleAccessAuditResult MapModuleAccessAuditResult(NpgsqlDataReader r)
+    {
+        return new ModuleAccessAuditResult(
+            r.GetGuid(r.GetOrdinal("audit_id")),
+            r.GetString(r.GetOrdinal("target_type")),
+            GetNullableString(r, "role_name"),
+            GetNullableGuid(r, "internal_user_id"),
+            GetNullableString(r, "email"),
+            GetNullableString(r, "username"),
+            r.GetString(r.GetOrdinal("module_id")),
+            GetNullableBool(r, "previous_state"),
+            GetNullableBool(r, "new_state"),
+            GetNullableGuid(r, "changed_by"),
+            r.GetString(r.GetOrdinal("change_source")),
+            r.GetDateTime(r.GetOrdinal("changed_at")));
+    }
+
+    private static PasswordAuditResult MapPasswordAuditResult(NpgsqlDataReader r)
+    {
+        return new PasswordAuditResult(
+            r.GetGuid(r.GetOrdinal("audit_id")),
+            r.GetGuid(r.GetOrdinal("internal_user_id")),
+            r.GetString(r.GetOrdinal("email")),
+            r.GetString(r.GetOrdinal("action")),
+            GetNullableString(r, "changed_by"),
+            r.GetDateTime(r.GetOrdinal("created_at")));
+    }
+
+    private static bool? GetNullableBool(NpgsqlDataReader r, string columnName)
+    {
+        var ordinal = r.GetOrdinal(columnName);
+        return r.IsDBNull(ordinal) ? null : r.GetBoolean(ordinal);
+    }
+
 }

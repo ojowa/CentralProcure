@@ -148,9 +148,8 @@ FOR UPDATE;";
         return decision switch
         {
             "start_review" when string.Equals(currentStageKey, "planning_committee_review", StringComparison.OrdinalIgnoreCase)
-                => new DecisionTarget("budget_confirmation", "Budget Final Confirmation", "Under Review", "Initial", "Budget review started."),
+                => new DecisionTarget("app_approval", "APP Approval", "Under Review", "Initial", "Review started and routed for APP approval."),
             "confirm" when string.Equals(currentStageKey, "planning_committee_review", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(currentStageKey, "budget_confirmation", StringComparison.OrdinalIgnoreCase)
                 => new DecisionTarget("app_approval", "APP Approval", "Budget Confirmed", "Initial", "Funding confirmed and routed for APP approval."),
             "hold"
                 => new DecisionTarget(currentStageKey, currentStageTitle, "On Hold", currentPlanStatus, "Plan placed on hold for budget clarification."),

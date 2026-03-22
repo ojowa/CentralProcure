@@ -211,11 +211,27 @@ public partial class AuthController
             return Unauthorized(new { message = "Authenticated role is missing." });
         }
 
+        if (!TryGetAuthenticatedInternalUserId(out var internalUserId, out var authError))
+        {
+            return authError!;
+        }
+
         var connectionString = GetConnectionString();
         var workflowActions = string.IsNullOrWhiteSpace(connectionString)
             ? Array.Empty<string>()
             : await _workflowActionGrantService.GetRoleModuleActionsAsync(connectionString, role, ct);
 
-        return Ok(InternalModuleCatalog.GetModulesForRole(role, workflowActions));
+        var baseModules = InternalModuleCatalog.GetModulesForRole(role, workflowActions);
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            return Ok(baseModules);
+        }
+
+        var catalogModules = InternalModuleCatalog.GetAllModules(workflowActions);
+        var roleGrants = await LoadRoleModuleGrantsAsync(connectionString, role, ct);
+        var userGrants = await LoadUserModuleGrantsAsync(connectionString, internalUserId, ct);
+
+        var finalModules = ApplyModuleGrants(baseModules, catalogModules, roleGrants, userGrants);
+        return Ok(finalModules);
     }
 }

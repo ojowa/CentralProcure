@@ -24,7 +24,20 @@ LANGUAGE plpgsql
 AS $$
 DECLARE
     v_plan_id UUID;
+    v_duplicate_id UUID;
 BEGIN
+    SELECT p.plan_id
+    INTO v_duplicate_id
+    FROM procurement_workflow.procurement_plans p
+    WHERE lower(trim(p.plan_title)) = lower(trim(p_plan_title))
+      AND lower(trim(p.department)) = lower(trim(p_department))
+      AND p.fiscal_year = p_fiscal_year
+    LIMIT 1;
+
+    IF v_duplicate_id IS NOT NULL THEN
+        RAISE EXCEPTION USING ERRCODE = 'P0001', MESSAGE = 'Procurement plan already exists for this title, department, and fiscal year.';
+    END IF;
+
     INSERT INTO procurement_workflow.procurement_plans (
         plan_title,
         department,

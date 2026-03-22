@@ -12,7 +12,7 @@ SET
     task_description = 'Publish advert, invitation, EOI, or RFP using the required route.',
     expected_outcome = 'Competition is opened lawfully through the approved publication route.'
 WHERE stage_key = 'solicitation'
-  AND role_key = 'procurement_officer';
+  AND role_key = 'comptroller_procurement';
 
 UPDATE procurement_workflow.workflow_stage_transitions
 SET
@@ -25,3 +25,4 @@ SET
     transition_condition = 'Complaint resolved and procurement resumes from advert / invitation / EOI / RFP stage.'
 WHERE from_stage_key = 'administrative_review'
   AND to_stage_key = 'solicitation';
+
