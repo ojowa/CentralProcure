@@ -24,6 +24,7 @@ import { ContractManagementModule } from './ContractManagementModule';
 import { BppEscalationModule } from './BppEscalationModule';
 import { VendorRegistrationApprovalModule } from './VendorRegistrationApprovalModule';
 import { AdminRequisitionManagementPage } from './AdminRequisitionManagementPage';
+import { BudgetOfficerWorkspacePage } from './BudgetOfficerWorkspacePage';
 
 export type InternalModuleRendererProps = {
   module: InternalModule;
@@ -78,6 +79,7 @@ export const moduleRenderers: Partial<Record<string, (props: InternalModuleRende
   'requisition-history': (props) => <RequisitionHistoryPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} onModuleChange={props.onModuleChange} />,
   'requisition-tracking': (props) => <RequisitionTrackingPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} onModuleChange={props.onModuleChange} />,
   'requisition-management': (props) => <AdminRequisitionManagementPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} onModuleChange={props.onModuleChange} />,
+  'budget-workspace': (props) => <BudgetOfficerWorkspacePage module={props.module} token={props.token} role={props.role} />,
   'audit-dashboard': (props) => <AuditDashboardWorkspace module={props.module} token={props.token} />,
   'audit-trail-viewer': (props) => <AuditTrailWorkspace module={props.module} token={props.token} />,
   'compliance-reports': (props) => <ComplianceReportsWorkspace module={props.module} token={props.token} />,
