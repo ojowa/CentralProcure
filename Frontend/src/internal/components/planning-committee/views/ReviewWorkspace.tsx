@@ -69,6 +69,10 @@ export const ReviewWorkspace: React.FC<ReviewWorkspaceProps> = ({
     }
   };
 
+  const reviewComments = memberReviews
+    .filter((review) => review.Remarks?.trim())
+    .sort((left, right) => new Date(right.UpdatedAt).getTime() - new Date(left.UpdatedAt).getTime());
+
   const getStepStatus = () => {
     if (!requisition) return { link: 'pending', review: 'pending', decision: 'pending' };
     if (!requisition.AppItemId && !requisition.CommitteePlanId) {
@@ -159,6 +163,39 @@ export const ReviewWorkspace: React.FC<ReviewWorkspaceProps> = ({
             </div>
           </div>
         )}
+
+        <div className={styles.summaryCard}>
+          <h4>Member Comments</h4>
+          {reviewComments.length > 0 ? (
+            <div style={{ display: 'grid', gap: '12px', marginTop: '12px' }}>
+              {reviewComments.map((review) => (
+                <div key={review.ReviewId} className={styles.summaryCard}>
+                  <div className={styles.summaryGrid}>
+                    <div className={styles.summaryItem}>
+                      <small>Reviewer</small>
+                      <p>{review.ReviewerRole.replace(/_/g, ' ')}</p>
+                    </div>
+                    <div className={styles.summaryItem}>
+                      <small>Decision</small>
+                      <p>{review.Decision}</p>
+                    </div>
+                    <div className={styles.summaryItem}>
+                      <small>Updated</small>
+                      <p>{new Date(review.UpdatedAt).toLocaleString()}</p>
+                    </div>
+                  </div>
+                  <p className={styles.sidebarDescription} style={{ marginTop: '12px', marginBottom: 0 }}>
+                    {review.Remarks}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className={styles.sidebarDescription} style={{ marginBottom: 0 }}>
+              No member comments have been recorded for this requisition yet.
+            </p>
+          )}
+        </div>
 
         {/* APP Line Items removed from workspace display */}
       </div>
