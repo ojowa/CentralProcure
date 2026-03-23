@@ -31,14 +31,15 @@ public partial class PlanningCommitteeWorkspaceController
     private static PlanningCommitteeQueueAuthority BuildQueueAuthority(string? roleKey)
         => new(true, true, true);
 
-    private static PlanningCommitteeWorkspaceAuthority BuildWorkspaceAuthority(string? roleKey, RequisitionSummary requisition)
+    private static PlanningCommitteeWorkspaceAuthority BuildWorkspaceAuthority(string? roleKey, RequisitionSummary requisition, CommitteeDecisionResponse? decision)
     {
         var normalized = roleKey?.Trim().ToLowerInvariant();
         var canUnlink = normalized is "financial_unit_officer" or "admin";
+        var hasFinalDecision = decision is not null;
         return new PlanningCommitteeWorkspaceAuthority(
-            requisition.AppItemId is null,
-            normalized is not null && normalized != ChairRoleKey && MemberRoleKeys.Contains(normalized, StringComparer.OrdinalIgnoreCase),
-            string.Equals(normalized, ChairRoleKey, StringComparison.OrdinalIgnoreCase),
+            requisition.AppItemId is null && !hasFinalDecision,
+            !hasFinalDecision && normalized is not null && normalized != ChairRoleKey && MemberRoleKeys.Contains(normalized, StringComparer.OrdinalIgnoreCase),
+            !hasFinalDecision && string.Equals(normalized, ChairRoleKey, StringComparison.OrdinalIgnoreCase),
             canUnlink,
             requisition.AppItemId is not null);
     }
@@ -70,7 +71,7 @@ public partial class PlanningCommitteeWorkspaceController
             reviews,
             statuses,
             decision,
-            BuildWorkspaceAuthority(roleKey, requisition));
+            BuildWorkspaceAuthority(roleKey, requisition, decision));
     }
 
     private static RequisitionSummary MapSummary(NpgsqlDataReader reader)

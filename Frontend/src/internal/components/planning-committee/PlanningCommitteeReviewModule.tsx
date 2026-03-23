@@ -334,6 +334,7 @@ export const PlanningCommitteeReviewModule: React.FC<Props> = ({
           planItems={state.planItems}
           memberReviews={state.memberReviews}
           memberStatuses={state.memberStatuses}
+          decision={state.selectedDecision}
           authority={state.workspaceAuthority}
           loading={loading.action}
           onSubmitReview={handleSubmitReview}

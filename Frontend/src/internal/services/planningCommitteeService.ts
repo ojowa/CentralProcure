@@ -17,7 +17,7 @@ type MemberReviewResponse = {
   UpdatedAt: string;
 };
 
-type CommitteeDecisionResponse = {
+export type CommitteeDecisionResponse = {
   DecisionId: string;
   RequisitionId: string;
   PlanId: string;

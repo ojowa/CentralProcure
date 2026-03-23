@@ -32,23 +32,35 @@ public partial class PlanningCommitteeWorkspaceController
             ?? throw new InvalidOperationException("Failed to submit committee decision.");
         var nextStage = request.OverallDecision switch
         {
-            "Recommended" => "app_approval",
+            "Recommended" => "planning_committee_review",
             "Returned" => "department_head_endorsement",
-            _ => "app_approval"
+            _ => "planning_committee_review"
+        };
+        var workflowStatus = request.OverallDecision switch
+        {
+            "Recommended" => "Under Review",
+            "Returned" => "Draft",
+            _ => "Rejected"
+        };
+        var transitionReason = request.OverallDecision switch
+        {
+            "Recommended" => "Committee finalized requisition and created APP item. Awaiting APP recommendation by Procurement Secretary.",
+            "Returned" => request.CommitteeRemarks ?? "Committee returned requisition for correction.",
+            _ => request.CommitteeRemarks ?? "Committee rejected requisition."
         };
 
         await _workflowRuntimeTracker.SyncAsync(conn, tx, new WorkflowRuntimeSyncRequest(
             "procurement_plan",
             planId,
             nextStage,
-            request.OverallDecision == "Recommended" ? "Submitted" : request.OverallDecision == "Returned" ? "Draft" : "Rejected",
+            workflowStatus,
             $"Committee Decision: {request.OverallDecision}",
             null,
             null,
             null,
             null,
             null,
-            request.CommitteeRemarks ?? "Committee decision recorded.",
+            transitionReason,
             actor), ct);
 
         if (string.Equals(request.OverallDecision, "Recommended", StringComparison.OrdinalIgnoreCase))

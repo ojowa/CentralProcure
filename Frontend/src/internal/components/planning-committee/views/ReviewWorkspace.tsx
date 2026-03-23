@@ -5,6 +5,7 @@ import { MemberReviewForm } from '../components/MemberReviewForm';
 import { FinalDecisionForm } from '../components/FinalDecisionForm';
 import type { RequisitionSummary, ProcurementPlanDetail, ProcurementPlanItemDetail, PlanningCommitteeMemberStatus } from '../../../types/internal';
 import type { MemberReview, PlanningCommitteeWorkspaceAuthority } from '../hooks/planningCommitteeTypes';
+import type { CommitteeDecisionResponse } from '../../../services/planningCommitteeService';
 
 interface ReviewWorkspaceProps {
   requisition: RequisitionSummary | null;
@@ -12,6 +13,7 @@ interface ReviewWorkspaceProps {
   planItems: ProcurementPlanItemDetail[];
   memberReviews: MemberReview[];
   memberStatuses: PlanningCommitteeMemberStatus[];
+  decision: CommitteeDecisionResponse | null;
   authority: PlanningCommitteeWorkspaceAuthority | null;
   loading: boolean;
   onSubmitReview: (decision: string, remarks: string) => Promise<boolean>;
@@ -28,6 +30,7 @@ export const ReviewWorkspace: React.FC<ReviewWorkspaceProps> = ({
   planItems,
   memberReviews,
   memberStatuses,
+  decision,
   authority,
   loading,
   onSubmitReview,
@@ -43,6 +46,7 @@ export const ReviewWorkspace: React.FC<ReviewWorkspaceProps> = ({
   const canSubmitFinalDecision = Boolean(authority?.CanSubmitFinalDecision);
   const canUnlink = Boolean(authority?.CanUnlink);
   const requiresUnlinkReason = Boolean(authority?.RequiresUnlinkReason);
+  const hasFinalDecision = Boolean(decision);
 
   const handleReviewSubmit = async (decision: string, remarks: string) => {
     const success = await onSubmitReview(decision, remarks);
@@ -71,7 +75,6 @@ export const ReviewWorkspace: React.FC<ReviewWorkspaceProps> = ({
       return { link: 'active', review: 'pending', decision: 'pending' };
     }
     const hasReviews = memberReviews.length > 0;
-    const hasFinalDecision = plan?.Status === 'Approved' || plan?.Status === 'Rejected';
 
     return {
       link: 'completed',
@@ -203,22 +206,41 @@ export const ReviewWorkspace: React.FC<ReviewWorkspaceProps> = ({
         )}
 
         {/* Member Review Form */}
-        {canSubmitMemberReview && plan && (
+        {canSubmitMemberReview && plan && !hasFinalDecision ? (
           <div style={{ marginTop: '16px' }}>
             <MemberReviewForm
               onSubmit={handleReviewSubmit}
               disabled={loading}
             />
           </div>
-        )}
+        ) : null}
 
         {/* Final Decision Form */}
-        {canSubmitFinalDecision && plan && (
+        {hasFinalDecision ? (
+          <div className={styles.summaryCard}>
+            <h4>Final Decision Closed</h4>
+            <div className={styles.summaryGrid}>
+              <div className={styles.summaryItem}>
+                <small>Decision</small>
+                <p>{decision?.OverallDecision}</p>
+              </div>
+              <div className={styles.summaryItem}>
+                <small>Meeting Date</small>
+                <p>{decision?.MeetingDate ? new Date(decision.MeetingDate).toLocaleDateString() : 'Recorded'}</p>
+              </div>
+            </div>
+            <p className={styles.sidebarDescription} style={{ marginTop: '12px' }}>
+              {decision?.CommitteeRemarks || 'A final committee decision has already been recorded for this requisition.'}
+            </p>
+          </div>
+        ) : null}
+
+        {!hasFinalDecision && canSubmitFinalDecision && plan ? (
           <FinalDecisionForm
             onSubmit={handleFinalSubmit}
             disabled={loading}
           />
-        )}
+        ) : null}
       </aside>
     </div>
   );

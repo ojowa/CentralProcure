@@ -30,6 +30,7 @@ const defaultState: CommitteeState = {
   appItems: [],
   memberReviews: [],
   memberStatuses: [],
+  selectedDecision: null,
   workspaceAuthority: null
 };
 
@@ -112,6 +113,7 @@ export function usePlanningCommittee(token: string | null) {
         planItems: workspace.PlanItems ?? [],
         memberReviews: workspace.MemberReviews ?? [],
         memberStatuses: workspace.MemberStatuses ?? [],
+        selectedDecision: workspace.Decision ?? null,
         workspaceAuthority: workspace.Authority ?? null
       }));
     } catch (err: any) {

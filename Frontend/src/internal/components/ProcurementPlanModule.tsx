@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { InternalModule, ProcurementPlanSummary, ProcurementPlanDetail, ProcurementPlanItemDetail } from '../types/internal';
 import { fetchPlanDetails } from '../services/moduleService';
-import { decideProcurementPlanApproval, initiateProcurementPlan } from '../services/procurementPlanService';
+import { decideProcurementPlanApproval, fetchProcurementPlanRecommendationReadiness, initiateProcurementPlan, recommendProcurementPlanForApproval, type ProcurementPlanRecommendationReadinessResponse } from '../services/procurementPlanService';
+import { ProcurementPlanActionsPanel } from './ProcurementPlanActionsPanel';
 
 interface Props {
   module: InternalModule;
@@ -25,8 +26,9 @@ export const ProcurementPlanModule = ({ module, token, role, initialData }: Prop
   const [approvalNote, setApprovalNote] = useState('');
   const [query, setQuery] = useState('');
   const [thresholdSummary, setThresholdSummary] = useState<string | null>(null);
-  const canTakeApprovalDecision =
-    role === 'comptroller_procurement' || role === 'accounting_officer' || role === 'admin';
+  const [recommendationReadiness, setRecommendationReadiness] = useState<ProcurementPlanRecommendationReadinessResponse | null>(null);
+  const canRecommendApp = role === 'procurement_secretary' || role === 'admin';
+  const canTakeApprovalDecision = role === 'comptroller_procurement' || role === 'accounting_officer' || role === 'admin';
   const isAwaitingAppApproval = selectedPlan?.CurrentStageKey === 'app_approval';
   const isAtProcurementInitiation = selectedPlan?.CurrentStageKey === 'procurement_initiation';
 
@@ -72,9 +74,13 @@ export const ProcurementPlanModule = ({ module, token, role, initialData }: Prop
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchPlanDetails(planId, token);
+      const [data, readiness] = await Promise.all([
+        fetchPlanDetails(planId, token),
+        fetchProcurementPlanRecommendationReadiness(token, planId)
+      ]);
       setSelectedPlan(data.Plan);
       setPlanItems(data.Items || []);
+      setRecommendationReadiness(readiness);
       setThresholdSummary(null);
       setView('details');
       if (pushUrl) {
@@ -106,10 +112,47 @@ export const ProcurementPlanModule = ({ module, token, role, initialData }: Prop
       });
 
       setFeedback(result.Message);
-      const refreshed = await fetchPlanDetails(selectedPlan.PlanId, token);
+      const [refreshed, readiness] = await Promise.all([
+        fetchPlanDetails(selectedPlan.PlanId, token),
+        fetchProcurementPlanRecommendationReadiness(token, selectedPlan.PlanId)
+      ]);
       setSelectedPlan(refreshed.Plan);
       setPlanItems(refreshed.Items || []);
+      setRecommendationReadiness(readiness);
       setApprovalNote('');
+      setPlans((current) =>
+        current.map((plan) =>
+          plan.PlanId === selectedPlan.PlanId
+            ? { ...plan, Status: result.PlanStatus }
+            : plan
+        )
+      );
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRecommendForApproval = async () => {
+    if (!token || !selectedPlan) return;
+
+    const confirmed = window.confirm(`Recommend APP "${selectedPlan.PlanTitle}" to Comptroller Procurement for approval?`);
+    if (!confirmed) return;
+
+    setLoading(true);
+    setError(null);
+    setFeedback(null);
+    try {
+      const result = await recommendProcurementPlanForApproval(token, selectedPlan.PlanId);
+      setFeedback(result.Message);
+      const [refreshed, readiness] = await Promise.all([
+        fetchPlanDetails(selectedPlan.PlanId, token),
+        fetchProcurementPlanRecommendationReadiness(token, selectedPlan.PlanId)
+      ]);
+      setSelectedPlan(refreshed.Plan);
+      setPlanItems(refreshed.Items || []);
+      setRecommendationReadiness(readiness);
       setPlans((current) =>
         current.map((plan) =>
           plan.PlanId === selectedPlan.PlanId
@@ -141,9 +184,13 @@ export const ProcurementPlanModule = ({ module, token, role, initialData }: Prop
           ? `Threshold route: ${result.ApprovalAuthorityLabel || result.ApprovalRoute}`
           : 'Threshold route resolved.'
       );
-      const refreshed = await fetchPlanDetails(selectedPlan.PlanId, token);
+      const [refreshed, readiness] = await Promise.all([
+        fetchPlanDetails(selectedPlan.PlanId, token),
+        fetchProcurementPlanRecommendationReadiness(token, selectedPlan.PlanId)
+      ]);
       setSelectedPlan(refreshed.Plan);
       setPlanItems(refreshed.Items || []);
+      setRecommendationReadiness(readiness);
       setPlans((current) =>
         current.map((plan) =>
           plan.PlanId === selectedPlan.PlanId
@@ -267,75 +314,21 @@ export const ProcurementPlanModule = ({ module, token, role, initialData }: Prop
             </div>
           </div>
 
-          {canTakeApprovalDecision ? (
-            <div className="portal-module-card" style={{ marginTop: '16px' }}>
-              <h3>APP Approval Decision</h3>
-              <p className="plan-muted">
-                {isAwaitingAppApproval
-                  ? 'This plan is awaiting APP approval. Record your decision below.'
-                  : 'This plan is not currently in APP Approval stage.'}
-              </p>
-              <label className="plan-field" style={{ marginTop: '12px' }}>
-                <span>Approval Note</span>
-                <textarea
-                  className="plan-input"
-                  rows={3}
-                  value={approvalNote}
-                  onChange={(event) => setApprovalNote(event.target.value)}
-                  placeholder="Record approval rationale, return instruction, or rejection reason."
-                  disabled={loading || !isAwaitingAppApproval}
-                />
-              </label>
-              <div className="portal-form-actions">
-                <button
-                  type="button"
-                  className="plan-button"
-                  disabled={loading || !isAwaitingAppApproval}
-                  onClick={() => void handleApprovalDecision('approve')}
-                >
-                  Approve APP
-                </button>
-                <button
-                  type="button"
-                  className="plan-button plan-button--secondary"
-                  disabled={loading || !isAwaitingAppApproval}
-                  onClick={() => void handleApprovalDecision('return')}
-                >
-                  Return APP
-                </button>
-                <button
-                  type="button"
-                  className="plan-button plan-button--ghost"
-                  disabled={loading || !isAwaitingAppApproval}
-                  onClick={() => void handleApprovalDecision('reject')}
-                >
-                  Reject APP
-                </button>
-              </div>
-            </div>
-          ) : null}
-
-          {canTakeApprovalDecision ? (
-            <div className="portal-module-card" style={{ marginTop: '16px' }}>
-              <h3>Procurement Initiation</h3>
-              <p className="plan-muted">
-                {isAtProcurementInitiation
-                  ? 'This APP has been approved. Move it into Threshold Resolution to determine the live approval route.'
-                  : 'This step becomes available after APP approval moves the plan into Procurement Initiation.'}
-              </p>
-              {thresholdSummary ? <p className="plan-muted" style={{ marginTop: '8px' }}>{thresholdSummary}</p> : null}
-              <div className="portal-form-actions">
-                <button
-                  type="button"
-                  className="plan-button"
-                  disabled={loading || !isAtProcurementInitiation}
-                  onClick={() => void handleInitiateProcurement()}
-                >
-                  Resolve Threshold Route
-                </button>
-              </div>
-            </div>
-          ) : null}
+          <ProcurementPlanActionsPanel
+            selectedPlan={selectedPlan}
+            loading={loading}
+            approvalNote={approvalNote}
+            thresholdSummary={thresholdSummary}
+            canRecommendApp={canRecommendApp}
+            canTakeApprovalDecision={canTakeApprovalDecision}
+            recommendationReadiness={recommendationReadiness}
+            isAwaitingAppApproval={isAwaitingAppApproval}
+            isAtProcurementInitiation={isAtProcurementInitiation}
+            onApprovalNoteChange={setApprovalNote}
+            onRecommendForApproval={() => void handleRecommendForApproval()}
+            onApprovalDecision={(decision) => void handleApprovalDecision(decision)}
+            onInitiateProcurement={() => void handleInitiateProcurement()}
+          />
 
           <div className="plan-items-section">
             <h3>APP Line Items</h3>

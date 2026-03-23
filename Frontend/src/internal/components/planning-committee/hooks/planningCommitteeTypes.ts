@@ -6,6 +6,7 @@ import type {
   RequisitionSummary,
   PlanningCommitteeMemberStatus
 } from '../../../types/internal';
+import type { CommitteeDecisionResponse } from '../../../services/planningCommitteeService';
 
 export interface MemberReview {
   ReviewId: string;
@@ -39,6 +40,7 @@ export interface PlanningCommitteeWorkspaceResponse {
   PlanItems: ProcurementPlanItemDetail[];
   MemberReviews: MemberReview[];
   MemberStatuses: PlanningCommitteeMemberStatus[];
+  Decision: CommitteeDecisionResponse | null;
   Authority: PlanningCommitteeWorkspaceAuthority;
 }
 
@@ -54,6 +56,7 @@ export interface CommitteeState {
   appItems: ProcurementPlanItemDetail[];
   memberReviews: MemberReview[];
   memberStatuses: PlanningCommitteeMemberStatus[];
+  selectedDecision: CommitteeDecisionResponse | null;
   workspaceAuthority: PlanningCommitteeWorkspaceAuthority | null;
 }
 

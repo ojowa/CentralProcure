@@ -9,6 +9,38 @@ import type {
   ProcurementPlanUpdateRequest
 } from '../types/internal';
 
+export type ProcurementPlanRecommendationResponse = {
+  PlanId: string;
+  Message: string;
+  StageKey: string;
+  StageTitle: string;
+  WorkflowStatus: string;
+  PlanStatus: string;
+  SubmittedAt: string;
+};
+
+export type ProcurementPlanRecommendationReadinessResponse = {
+  PlanId: string;
+  TotalTrackedRequisitions: number;
+  RecommendedRequisitions: number;
+  PendingFinalDecisionRequisitions: number;
+  NonRecommendedRequisitions: number;
+  AppItemCount: number;
+  CanRecommend: boolean;
+  Message: string;
+  Requisitions: ProcurementPlanRecommendationRequisitionResponse[];
+};
+
+export type ProcurementPlanRecommendationRequisitionResponse = {
+  RequisitionId: string;
+  Title: string;
+  Department: string;
+  TotalEstimate: number;
+  FinalCommitteeDecision?: string | null;
+  AppItemId?: string | null;
+  IsReadyForRecommendation: boolean;
+};
+
 export type ProcurementPlanFilters = {
   fiscalYear?: number;
   department?: string;
@@ -154,6 +186,33 @@ export const decideProcurementPlanApproval = async (
   });
 
   return parseResponse<ProcurementPlanApprovalDecisionResponse>(response);
+};
+
+export const recommendProcurementPlanForApproval = async (
+  token: string,
+  planId: string
+): Promise<ProcurementPlanRecommendationResponse> => {
+  const response = await fetch(`${baseUrl}/${planId}/recommend-for-approval`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+
+  return parseResponse<ProcurementPlanRecommendationResponse>(response);
+};
+
+export const fetchProcurementPlanRecommendationReadiness = async (
+  token: string,
+  planId: string
+): Promise<ProcurementPlanRecommendationReadinessResponse> => {
+  const response = await fetch(`${baseUrl}/${planId}/recommendation-readiness`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+
+  return parseResponse<ProcurementPlanRecommendationReadinessResponse>(response);
 };
 
 export const initiateProcurementPlan = async (
