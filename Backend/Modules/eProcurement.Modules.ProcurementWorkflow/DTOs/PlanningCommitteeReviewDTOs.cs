@@ -17,6 +17,7 @@ public record MemberReviewResponse(
     string ReviewerUserId,
     string Decision,
     string? Remarks,
+    int ReviewRound,
     DateTime CreatedAt,
     DateTime UpdatedAt
 );
@@ -96,7 +97,8 @@ public record PlanningCommitteeWorkspaceAuthority(
     bool CanSubmitMemberReview,
     bool CanSubmitFinalDecision,
     bool CanUnlink,
-    bool RequiresUnlinkReason
+    bool RequiresUnlinkReason,
+    bool IsReviewReopened
 );
 
 public record PlanningCommitteeWorkspaceQueueResponse(

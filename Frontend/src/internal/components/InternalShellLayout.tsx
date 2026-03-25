@@ -24,7 +24,6 @@ const moduleFetchSkipList = new Set<string>([
   'workflow-blueprint',
   'annual-procurement-plan',
   'create-tender',
-  'publish-tender',
   'bid-opening-session',
   'bpp-escalation',
   'contract-award',
@@ -291,7 +290,7 @@ export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShel
   }, [accessibleModules, hasResolvedModules, modulesLoading, routeSegment, router, token]);
 
   const activeModuleRenderer = activeModule ? moduleRenderers[activeModule.id] : null;
-
+  const moduleIds = accessibleModules.map((module) => module.id);
   return (
     <div className="portal-shell">
       <InternalHeader role={headerRoleDefinition} onSignOut={handleSignOut} />

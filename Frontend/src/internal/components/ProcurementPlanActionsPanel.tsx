@@ -1,18 +1,16 @@
 import type { ProcurementPlanDetail } from '../types/internal';
-import type { ProcurementPlanRecommendationReadinessResponse } from '../services/procurementPlanService';
 
 type Props = {
   selectedPlan: ProcurementPlanDetail;
   loading: boolean;
+  actionError: string | null;
   approvalNote: string;
   thresholdSummary: string | null;
-  canRecommendApp: boolean;
   canTakeApprovalDecision: boolean;
-  recommendationReadiness: ProcurementPlanRecommendationReadinessResponse | null;
   isAwaitingAppApproval: boolean;
+  isAwaitingCgisApproval: boolean;
   isAtProcurementInitiation: boolean;
   onApprovalNoteChange: (value: string) => void;
-  onRecommendForApproval: () => void;
   onApprovalDecision: (decision: 'approve' | 'return' | 'reject') => void;
   onInitiateProcurement: () => void;
 };
@@ -20,132 +18,135 @@ type Props = {
 export const ProcurementPlanActionsPanel = ({
   selectedPlan,
   loading,
+  actionError,
   approvalNote,
   thresholdSummary,
-  canRecommendApp,
   canTakeApprovalDecision,
-  recommendationReadiness,
   isAwaitingAppApproval,
+  isAwaitingCgisApproval,
   isAtProcurementInitiation,
   onApprovalNoteChange,
-  onRecommendForApproval,
   onApprovalDecision,
   onInitiateProcurement
 }: Props) => (
   <>
-    {canRecommendApp ? (
-      <div className="portal-module-card" style={{ marginTop: '16px' }}>
-        <h3>Secretary Recommendation</h3>
-        <p className="plan-muted">
-          {recommendationReadiness?.Message || 'Recommendation readiness is loading.'}
-        </p>
-        {recommendationReadiness ? (
-          <>
-            <div className="plan-summary-card__grid" style={{ marginTop: '12px' }}>
-              <div>
-                <small>Tracked Requisitions</small>
-                <p>{recommendationReadiness.TotalTrackedRequisitions}</p>
-              </div>
-              <div>
-                <small>Recommended</small>
-                <p>{recommendationReadiness.RecommendedRequisitions}</p>
-              </div>
-              <div>
-                <small>Pending Final Decision</small>
-                <p>{recommendationReadiness.PendingFinalDecisionRequisitions}</p>
-              </div>
-              <div>
-                <small>Returned / Rejected</small>
-                <p>{recommendationReadiness.NonRecommendedRequisitions}</p>
-              </div>
-            </div>
-            {recommendationReadiness.Requisitions.length > 0 ? (
-              <div style={{ marginTop: '16px' }}>
-                <h4 style={{ marginBottom: '8px' }}>Tied Requisitions</h4>
-                <div style={{ display: 'grid', gap: '8px' }}>
-                  {recommendationReadiness.Requisitions.map((item) => (
-                    <div key={item.RequisitionId} className="plan-summary-card">
-                      <div className="plan-summary-card__grid">
-                        <div>
-                          <small>Requisition</small>
-                          <p>{item.Title}</p>
-                        </div>
-                        <div>
-                          <small>Department</small>
-                          <p>{item.Department}</p>
-                        </div>
-                        <div>
-                          <small>Committee Decision</small>
-                          <p>{item.FinalCommitteeDecision || 'Pending'}</p>
-                        </div>
-                        <div>
-                          <small>APP Item</small>
-                          <p>{item.AppItemId ? 'Created' : 'Not Created'}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-          </>
-        ) : null}
-        <div className="portal-form-actions">
-          <button type="button" className="plan-button" disabled={loading || !recommendationReadiness?.CanRecommend} onClick={onRecommendForApproval}>
-            Recommend APP to Comptroller
-          </button>
+    {canTakeApprovalDecision && isAwaitingAppApproval ? (
+      <section className="app-card app-card--action">
+        <div className="app-card__header">
+          <div className="app-section-title">
+            <span className="app-section-title__icon">✓</span>
+            <h3 className="app-section-title__text">APP Approval Decision</h3>
+          </div>
         </div>
-      </div>
-    ) : null}
 
-    {canTakeApprovalDecision ? (
-      <div className="portal-module-card" style={{ marginTop: '16px' }}>
-        <h3>APP Approval Decision</h3>
-        <p className="plan-muted">
-          {isAwaitingAppApproval
-            ? 'This plan is awaiting APP approval. Record your decision below.'
-            : 'This plan is not currently in APP Approval stage.'}
-        </p>
-        <label className="plan-field" style={{ marginTop: '12px' }}>
-          <span>Approval Note</span>
+        <div className="app-status-banner app-status-banner--info">
+          <span className="app-status-banner__icon">ℹ</span>
+          <p className="app-status-banner__text">This APP is awaiting approval. Record your decision below with supporting notes.</p>
+        </div>
+
+        <div className="app-form-group">
+          <label className="app-form-label" htmlFor="approval-note">
+            Approval Note
+          </label>
           <textarea
-            className="plan-input"
-            rows={3}
+            id="approval-note"
+            className="app-textarea"
+            rows={4}
             value={approvalNote}
             onChange={(event) => onApprovalNoteChange(event.target.value)}
-            placeholder="Record approval rationale, return instruction, or rejection reason."
-            disabled={loading || !isAwaitingAppApproval}
+            placeholder="Record approval rationale, return instruction, or rejection reason..."
+            disabled={loading}
           />
-        </label>
-        <div className="portal-form-actions">
-          <button type="button" className="plan-button" disabled={loading || !isAwaitingAppApproval} onClick={() => onApprovalDecision('approve')}>
+        </div>
+
+        {actionError ? (
+          <div className="app-alert app-alert--error" style={{ marginBottom: '16px' }}>
+            <span className="app-alert__icon">⚠</span>
+            {actionError}
+          </div>
+        ) : null}
+
+        <div className="app-action-group">
+          <button
+            type="button"
+            className="app-btn app-btn--success app-btn--lg"
+            disabled={loading}
+            onClick={() => onApprovalDecision('approve')}
+          >
+            <span className="app-btn__icon">✓</span>
             Approve APP
           </button>
-          <button type="button" className="plan-button plan-button--secondary" disabled={loading || !isAwaitingAppApproval} onClick={() => onApprovalDecision('return')}>
+          <button
+            type="button"
+            className="app-btn app-btn--warning app-btn--lg"
+            disabled={loading}
+            onClick={() => onApprovalDecision('return')}
+          >
+            <span className="app-btn__icon">↩</span>
             Return APP
           </button>
-          <button type="button" className="plan-button plan-button--ghost" disabled={loading || !isAwaitingAppApproval} onClick={() => onApprovalDecision('reject')}>
+          <button
+            type="button"
+            className="app-btn app-btn--danger app-btn--lg"
+            disabled={loading}
+            onClick={() => onApprovalDecision('reject')}
+          >
+            <span className="app-btn__icon">✕</span>
             Reject APP
           </button>
         </div>
-      </div>
+      </section>
     ) : null}
 
-    {canTakeApprovalDecision ? (
-      <div className="portal-module-card" style={{ marginTop: '16px' }}>
-        <h3>Procurement Initiation</h3>
-        <p className="plan-muted">
-          {isAtProcurementInitiation
-            ? 'This APP has been approved. Move it into Threshold Resolution to determine the live approval route.'
-            : 'This step becomes available after APP approval moves the plan into Procurement Initiation.'}
-        </p>
-        {thresholdSummary ? <p className="plan-muted" style={{ marginTop: '8px' }}>{thresholdSummary}</p> : null}
-        <div className="portal-form-actions">
-          <button type="button" className="plan-button" disabled={loading || !isAtProcurementInitiation} onClick={onInitiateProcurement}>
+    {isAwaitingCgisApproval ? (
+      <section className="app-card app-card--action">
+        <div className="app-card__header">
+          <div className="app-section-title">
+            <span className="app-section-title__icon">🛡</span>
+            <h3 className="app-section-title__text">Awaiting CGIS Approval</h3>
+          </div>
+        </div>
+
+        <div className="app-status-banner app-status-banner--info">
+          <span className="app-status-banner__icon">ℹ</span>
+          <p className="app-status-banner__text">Comptroller Procurement has approved this departmental plan. It has now been forwarded to CGIS for approval before procurement process begins.</p>
+        </div>
+      </section>
+    ) : null}
+
+    {canTakeApprovalDecision && isAtProcurementInitiation ? (
+      <section className="app-card app-card--action">
+        <div className="app-card__header">
+          <div className="app-section-title">
+            <span className="app-section-title__icon">🚀</span>
+            <h3 className="app-section-title__text">Procurement Initiation</h3>
+          </div>
+        </div>
+
+        <div className="app-status-banner app-status-banner--success">
+          <span className="app-status-banner__icon">✓</span>
+          <p className="app-status-banner__text">This APP has been approved. Proceed to Threshold Resolution to determine the approval route.</p>
+        </div>
+
+        {thresholdSummary ? (
+          <div className="app-threshold-info">
+            <span className="app-threshold-info__label">Resolved Route:</span>
+            <span className="app-threshold-info__value">{thresholdSummary}</span>
+          </div>
+        ) : null}
+
+        <div className="app-card__footer">
+          <button
+            type="button"
+            className="app-btn app-btn--primary app-btn--lg"
+            disabled={loading}
+            onClick={onInitiateProcurement}
+          >
+            <span className="app-btn__icon">🚀</span>
             Resolve Threshold Route
           </button>
         </div>
-      </div>
+      </section>
     ) : null}
   </>
 );

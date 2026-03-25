@@ -67,7 +67,7 @@ public class ProcurementPlanRecommendationsController : ControllerBase
     }
 
     [HttpPost("{planId:guid}/recommend-for-approval")]
-    public async Task<IActionResult> RecommendForApproval(Guid planId, CancellationToken ct)
+    public async Task<IActionResult> RecommendForApproval(Guid planId, [FromBody] ProcurementPlanRecommendationRequest? request, CancellationToken ct)
     {
         var roleKey = WorkflowActionGrantService.ResolveRoleKey(User);
         if (!string.Equals(roleKey, "procurement_secretary", StringComparison.OrdinalIgnoreCase) &&
@@ -106,8 +106,14 @@ public class ProcurementPlanRecommendationsController : ControllerBase
             }
 
             var actor = User.FindFirstValue(ClaimTypes.Email) ?? User.FindFirstValue(ClaimTypes.Name) ?? User.Identity?.Name ?? "system";
-            var note = $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss 'UTC'}] APP recommended by Procurement Secretary for Comptroller Procurement approval. (actor: {actor})";
-            var submittedAt = DateTime.UtcNow;
+            var userNote = string.IsNullOrWhiteSpace(request?.Note) ? null : request.Note.Trim();
+            var utcNow = DateTime.UtcNow;
+            var submittedAt = DateTime.SpecifyKind(utcNow, DateTimeKind.Unspecified);
+            var note = $"[{utcNow:yyyy-MM-dd HH:mm:ss 'UTC'}] APP recommended by Procurement Secretary for Comptroller Procurement approval. (actor: {actor})";
+            if (!string.IsNullOrWhiteSpace(userNote))
+            {
+                note = $"{note}{Environment.NewLine}Recommendation Note: {userNote}";
+            }
 
             await UpdatePlanAsync(conn, tx, planId, note, submittedAt, ct);
             await _workflowRuntimeTracker.SyncAsync(
@@ -143,7 +149,7 @@ public class ProcurementPlanRecommendationsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error recommending APP {PlanId} for approval.", planId);
-            return Problem("Internal server error recommending APP for approval.");
+            return Problem($"Internal server error recommending APP for approval. {ex.Message}");
         }
     }
 

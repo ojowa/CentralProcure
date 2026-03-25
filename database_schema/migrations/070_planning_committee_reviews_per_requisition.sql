@@ -145,16 +145,23 @@ RETURNS TABLE (
     reviewer_user_id VARCHAR(255),
     decision VARCHAR(50),
     remarks TEXT,
-    created_at TIMESTAMP WITHOUT TIME ZONE
+    review_round INT,
+    created_at TIMESTAMP WITHOUT TIME ZONE,
+    updated_at TIMESTAMP WITHOUT TIME ZONE
 )
 LANGUAGE plpgsql
 AS $$
-DECLARE
-    v_review_id UUID;
-    v_role_key VARCHAR(80);
-    v_status_label VARCHAR(80);
-BEGIN
-    v_role_key := LOWER(REPLACE(REPLACE(p_reviewer_role, '-', '_'), ' ', '_'));
+    DECLARE
+        v_review_id UUID;
+        v_role_key VARCHAR(80);
+        v_status_label VARCHAR(80);
+        v_review_round INT;
+    BEGIN
+        v_role_key := LOWER(REPLACE(REPLACE(p_reviewer_role, '-', '_'), ' ', '_'));
+        SELECT COALESCE(p.review_round, 1)
+          INTO v_review_round
+        FROM procurement_workflow.procurement_plans p
+        WHERE p.plan_id = p_plan_id;
 
     v_status_label := CASE
         WHEN v_role_key = 'planning_statistics_officer' THEN 'PSO Reviewed'
@@ -180,9 +187,10 @@ BEGIN
         p_reviewer_role,
         p_reviewer_user_id,
         p_decision,
-        p_remarks
+        p_remarks,
+        v_review_round
     )
-    ON CONFLICT ON CONSTRAINT uq_member_review_req_role_user DO UPDATE
+    ON CONFLICT ON CONSTRAINT uq_member_review_req_role_user_round DO UPDATE
     SET
         decision = EXCLUDED.decision,
         remarks = EXCLUDED.remarks,
@@ -207,7 +215,9 @@ BEGIN
         r.reviewer_user_id,
         r.decision,
         r.remarks,
-        r.created_at
+        r.review_round,
+        r.created_at,
+        r.updated_at
     FROM procurement_workflow.planning_committee_member_reviews r
     WHERE r.review_id = v_review_id;
 END;

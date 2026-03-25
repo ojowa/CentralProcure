@@ -25,12 +25,27 @@ RETURNS TABLE (
 )
 LANGUAGE plpgsql
 AS $$
+DECLARE
+    v_fiscal_year INT;
+    v_yearly_app_id UUID;
 BEGIN
+    SELECT COALESCE(p_fiscal_year, p.fiscal_year)
+    INTO v_fiscal_year
+    FROM procurement_workflow.procurement_plans p
+    WHERE p.plan_id = p_plan_id;
+
+    IF v_fiscal_year IS NULL THEN
+        RETURN;
+    END IF;
+
+    v_yearly_app_id := procurement_workflow.ensure_yearly_app(v_fiscal_year);
+
     UPDATE procurement_workflow.procurement_plans
     SET
+        yearly_app_id = v_yearly_app_id,
         plan_title = COALESCE(p_plan_title, plan_title),
         department = COALESCE(p_department, department),
-        fiscal_year = COALESCE(p_fiscal_year, fiscal_year),
+        fiscal_year = v_fiscal_year,
         status = COALESCE(p_status, status),
         total_budget = COALESCE(p_total_budget, total_budget),
         notes = COALESCE(p_notes, notes),

@@ -17,8 +17,9 @@ RETURNS TABLE (
 )
 LANGUAGE plpgsql
 AS $$
+DECLARE
+    v_deleted RECORD;
 BEGIN
-    RETURN QUERY
     DELETE FROM procurement_workflow.procurement_plan_items
     WHERE plan_item_id = p_plan_item_id
     RETURNING
@@ -32,7 +33,30 @@ BEGIN
         status,
         notes,
         created_at,
-        updated_at;
+        updated_at
+    INTO v_deleted;
+
+    IF v_deleted IS NULL THEN
+        RETURN;
+    END IF;
+
+    IF v_deleted.plan_id IS NOT NULL THEN
+        PERFORM procurement_workflow.sync_procurement_plan_total_budget(v_deleted.plan_id);
+    END IF;
+
+    RETURN QUERY
+    SELECT
+        v_deleted.plan_item_id,
+        v_deleted.plan_id,
+        v_deleted.item_code,
+        v_deleted.description,
+        v_deleted.budget_code,
+        v_deleted.procurement_type,
+        v_deleted.estimated_amount,
+        v_deleted.status,
+        v_deleted.notes,
+        v_deleted.created_at,
+        v_deleted.updated_at;
 END;
 $$;
 

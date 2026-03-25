@@ -32,16 +32,16 @@ DECLARE
     v_budget_code VARCHAR(60);
     v_fiscal_year INT;
 BEGIN
-    UPDATE vendor_sourcing.tenders
+    UPDATE vendor_sourcing.tenders AS t
     SET
         status = 'Published',
         publish_date = COALESCE(p_publish_date, NOW()),
-        opening_date = COALESCE(p_opening_date, opening_date),
-        closing_date = COALESCE(p_closing_date, closing_date),
-        fiscal_year = COALESCE(fiscal_year, EXTRACT(YEAR FROM COALESCE(p_publish_date, NOW()))::int),
+        opening_date = COALESCE(p_opening_date, t.opening_date),
+        closing_date = COALESCE(p_closing_date, t.closing_date),
+        fiscal_year = COALESCE(t.fiscal_year, EXTRACT(YEAR FROM COALESCE(p_publish_date, NOW()))::int),
         updated_at = NOW()
-    WHERE tender_id = p_tender_id
-    RETURNING budget, department, budget_code, fiscal_year
+    WHERE t.tender_id = p_tender_id
+    RETURNING t.budget, t.department, t.budget_code, t.fiscal_year
     INTO v_budget, v_department, v_budget_code, v_fiscal_year;
 
     PERFORM procurement_workflow.reserve_budget_for_tender(

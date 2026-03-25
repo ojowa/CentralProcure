@@ -13,6 +13,7 @@ type MemberReviewResponse = {
   ReviewerUserId: string;
   Decision: string;
   Remarks?: string | null;
+  ReviewRound: number;
   CreatedAt: string;
   UpdatedAt: string;
 };
@@ -31,10 +32,40 @@ const baseUrl = `${serviceBaseUrls.workflow}/api/planning-committee/workspace`;
 
 type JsonBody = Record<string, unknown> | null;
 
+type ProblemDetails = {
+  title?: string;
+  detail?: string;
+  status?: number;
+  errors?: Record<string, string[]>;
+};
+
+const formatProblemDetails = (payload: ProblemDetails) => {
+  const fieldErrors = payload.errors
+    ? Object.values(payload.errors)
+        .flat()
+        .filter(Boolean)
+    : [];
+
+  if (fieldErrors.length > 0) {
+    return fieldErrors.join(' ');
+  }
+
+  return payload.detail || payload.title || (payload.status ? `Request failed (${payload.status}).` : 'Request failed.');
+};
+
 const parseJson = async <T>(response: Response): Promise<T> => {
   const text = await response.text();
   if (!response.ok) {
-    throw new Error(text || `Request failed (${response.status}).`);
+    if (text) {
+      try {
+        const problem = JSON.parse(text) as ProblemDetails;
+        throw new Error(formatProblemDetails(problem));
+      } catch {
+        throw new Error(text);
+      }
+    }
+
+    throw new Error(`Request failed (${response.status}).`);
   }
 
   return text ? JSON.parse(text) as T : ({} as T);

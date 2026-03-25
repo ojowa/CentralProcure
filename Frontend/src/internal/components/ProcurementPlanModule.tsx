@@ -1,90 +1,275 @@
-import React, { useState, useEffect } from 'react';
+'use client';
+
+import React, { useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import type { InternalModule, ProcurementPlanSummary, ProcurementPlanDetail, ProcurementPlanItemDetail } from '../types/internal';
+import type { InternalModule, ProcurementPlanDetail, ProcurementPlanItemDetail } from '../types/internal';
 import { fetchPlanDetails } from '../services/moduleService';
-import { decideProcurementPlanApproval, fetchProcurementPlanRecommendationReadiness, initiateProcurementPlan, recommendProcurementPlanForApproval, type ProcurementPlanRecommendationReadinessResponse } from '../services/procurementPlanService';
-import { ProcurementPlanActionsPanel } from './ProcurementPlanActionsPanel';
+import {
+  decideProcurementPlanApproval,
+  fetchProcurementPlanRecommendationReadiness,
+  fetchYearlyAppDetails,
+  fetchYearlyApps,
+  initiateProcurementPlan,
+  recommendProcurementPlanForApproval,
+  type ProcurementPlanRecommendationReadinessResponse,
+  type YearlyAppDetail,
+  type YearlyAppPlanSummary,
+  type YearlyAppSummary
+} from '../services/procurementPlanService';
+import { ProcurementPlanDiagnostics } from './ProcurementPlanDiagnostics';
+import { ProcurementPlanListView } from './ProcurementPlanListView';
+import { ProcurementPlanYearlyAppDetail } from './ProcurementPlanYearlyAppDetail';
+import { YearlyAppModal } from './YearlyAppModal';
+import {
+  createYearlyApp,
+  updateYearlyApp,
+  submitYearlyAppForApproval,
+  type YearlyAppCreateRequest,
+  type YearlyAppUpdateRequest
+} from '../services/procurementPlanService';
 
 interface Props {
   module: InternalModule;
   token: string | null;
   role?: string | null;
-  initialData?: any;
+  initialData?: unknown;
 }
 
-export const ProcurementPlanModule = ({ module, token, role, initialData }: Props) => {
+export const ProcurementPlanModule = ({ module, token, role }: Props) => {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [view, setView] = useState<'list' | 'details'>('list');
-  const [plans, setPlans] = useState<ProcurementPlanSummary[]>(Array.isArray(initialData) ? initialData : []);
+  const [yearlyApps, setYearlyApps] = useState<YearlyAppSummary[]>([]);
+  const [selectedYearlyApp, setSelectedYearlyApp] = useState<YearlyAppDetail | null>(null);
+  const [includedPlans, setIncludedPlans] = useState<YearlyAppPlanSummary[]>([]);
+  const [pendingPlans, setPendingPlans] = useState<YearlyAppPlanSummary[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<ProcurementPlanDetail | null>(null);
   const [planItems, setPlanItems] = useState<ProcurementPlanItemDetail[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [approvalNote, setApprovalNote] = useState('');
   const [query, setQuery] = useState('');
   const [thresholdSummary, setThresholdSummary] = useState<string | null>(null);
   const [recommendationReadiness, setRecommendationReadiness] = useState<ProcurementPlanRecommendationReadinessResponse | null>(null);
+  const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalProcessing, setIsModalProcessing] = useState(false);
+  const [editingYearlyApp, setEditingYearlyApp] = useState<YearlyAppDetail | null>(null);
+
   const canRecommendApp = role === 'procurement_secretary' || role === 'admin';
   const canTakeApprovalDecision = role === 'comptroller_procurement' || role === 'accounting_officer' || role === 'admin';
   const isAwaitingAppApproval = selectedPlan?.CurrentStageKey === 'app_approval';
+  const isAwaitingCgisApproval = selectedPlan?.CurrentStageKey === 'accounting_officer_review';
   const isAtProcurementInitiation = selectedPlan?.CurrentStageKey === 'procurement_initiation';
 
   useEffect(() => {
-    if (initialData && Array.isArray(initialData)) {
-      setPlans(initialData);
-    }
-  }, [initialData]);
+    if (token) void loadBaseData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   useEffect(() => {
+    if (!token) return;
+    const yearlyAppId = searchParams.get('yearlyAppId');
     const planId = searchParams.get('planId');
-    const requestedView = searchParams.get('view');
-
-    if (planId && token) {
-      void handleViewDetails(planId, false);
-      return;
-    }
-
-    if (!planId) {
-      setView('list');
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (yearlyAppId) void openYearlyApp(yearlyAppId, false, planId ?? undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, token]);
 
-  const filteredPlans = plans.filter((plan) => {
+  const filteredYearlyApps = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    if (!needle) return true;
-    return (
-      plan.PlanTitle.toLowerCase().includes(needle) ||
-      plan.Department.toLowerCase().includes(needle) ||
-      plan.Status.toLowerCase().includes(needle) ||
-      String(plan.FiscalYear).includes(needle)
-    );
+    if (!needle) return yearlyApps;
+    return yearlyApps.filter((app) => app.Title.toLowerCase().includes(needle) || app.Status.toLowerCase().includes(needle) || String(app.FiscalYear).includes(needle));
+  }, [query, yearlyApps]);
+  const statusCounts = useMemo(() => yearlyApps.reduce<Record<string, number>>((acc, app) => ({ ...acc, [app.Status]: (acc[app.Status] ?? 0) + 1 }), {}), [yearlyApps]);
+
+  const splitLegacyPlans = (plans: YearlyAppPlanSummary[]) => ({
+    included: plans.filter((plan) => plan.Status === 'Approved'),
+    pending: plans.filter((plan) => plan.Status !== 'Approved')
   });
 
-  const statusCounts = plans.reduce<Record<string, number>>((acc, plan) => {
-    acc[plan.Status] = (acc[plan.Status] ?? 0) + 1;
-    return acc;
-  }, {});
+  const syncUrl = (yearlyAppId?: string | null, planId?: string | null) => {
+    const params = new URLSearchParams();
+    if (yearlyAppId) params.set('yearlyAppId', yearlyAppId);
+    if (planId) params.set('planId', planId);
+    const queryString = params.toString();
+    router.replace(queryString ? `${pathname}?${queryString}` : pathname, { scroll: false });
+  };
 
-  const handleViewDetails = async (planId: string, pushUrl = true) => {
+  const loadBaseData = async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const apps = await fetchYearlyApps(token);
+      setYearlyApps(apps);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openPlan = async (planId: string, pushUrl = true, yearlyAppIdOverride?: string) => {
     if (!token) return;
     setLoading(true);
     setError(null);
     try {
-      const [data, readiness] = await Promise.all([
+      const [details, readiness] = await Promise.all([
         fetchPlanDetails(planId, token),
         fetchProcurementPlanRecommendationReadiness(token, planId)
       ]);
-      setSelectedPlan(data.Plan);
-      setPlanItems(data.Items || []);
+      setActionError(null);
+      setSelectedPlan(details.Plan);
+      setPlanItems(details.Items || []);
       setRecommendationReadiness(readiness);
-      setThresholdSummary(null);
       setView('details');
-      if (pushUrl) {
-        router.replace(`${pathname}?planId=${encodeURIComponent(planId)}&view=details`, { scroll: false });
+      if (pushUrl) syncUrl(yearlyAppIdOverride ?? selectedYearlyApp?.YearlyAppId ?? details.Plan.YearlyAppId ?? null, planId);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openYearlyApp = async (yearlyAppId: string, pushUrl = true, planIdToOpen?: string) => {
+    if (!token) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const appData = await fetchYearlyAppDetails(token, yearlyAppId);
+      const legacyPlans = appData.Plans ?? [];
+      const groupedLegacyPlans = splitLegacyPlans(legacyPlans);
+      setSelectedYearlyApp(appData.App);
+      setIncludedPlans(appData.IncludedPlans ?? groupedLegacyPlans.included);
+      setPendingPlans(appData.PendingPlans ?? groupedLegacyPlans.pending);
+      setSelectedPlan(null);
+      setPlanItems([]);
+      setRecommendationReadiness(null);
+      setView('details');
+      if (planIdToOpen) await openPlan(planIdToOpen, false, yearlyAppId);
+      else if (pushUrl) syncUrl(yearlyAppId, null);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const refreshCurrent = async (planId?: string) => {
+    await loadBaseData();
+    if (selectedYearlyApp) await openYearlyApp(selectedYearlyApp.YearlyAppId, false, planId);
+  };
+
+  const handleRecommendForApproval = async () => {
+    if (!token || !selectedPlan) return;
+    if (!window.confirm(`Recommend departmental plan "${selectedPlan.PlanTitle}" to Comptroller Procurement for approval?`)) return;
+    setLoading(true);
+    setError(null);
+    setActionError(null);
+    setFeedback(null);
+    try {
+      const result = await recommendProcurementPlanForApproval(token, selectedPlan.PlanId);
+      setFeedback(result.Message);
+      await refreshCurrent(selectedPlan.PlanId);
+    } catch (err: any) {
+      setActionError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApprovalDecision = async (decision: 'approve' | 'return' | 'reject') => {
+    if (!token || !selectedPlan) return;
+    if (!window.confirm(`${decision === 'approve' ? 'Approve' : decision === 'return' ? 'Return' : 'Reject'} plan "${selectedPlan.PlanTitle}"?`)) return;
+    setLoading(true);
+    setError(null);
+    setActionError(null);
+    setFeedback(null);
+    setThresholdSummary(null);
+    try {
+      const result = await decideProcurementPlanApproval(token, selectedPlan.PlanId, { Decision: decision, Note: approvalNote.trim() || undefined });
+      setFeedback(result.Message);
+      setApprovalNote('');
+      await refreshCurrent(selectedPlan.PlanId);
+    } catch (err: any) {
+      setActionError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInitiateProcurement = async () => {
+    if (!token || !selectedPlan) return;
+    if (!window.confirm(`Move plan "${selectedPlan.PlanTitle}" to Threshold Resolution?`)) return;
+    setLoading(true);
+    setError(null);
+    setFeedback(null);
+    try {
+      const result = await initiateProcurementPlan(token, selectedPlan.PlanId);
+      setFeedback(result.Message);
+      setThresholdSummary(result.ApprovalAuthorityLabel || result.ApprovalRoute ? `Threshold route: ${result.ApprovalAuthorityLabel || result.ApprovalRoute}` : 'Threshold route resolved.');
+      await refreshCurrent(selectedPlan.PlanId);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openCreateModal = () => {
+    setModalMode('create');
+    setEditingYearlyApp(null);
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (app: YearlyAppDetail) => {
+    setModalMode('edit');
+    setEditingYearlyApp(app);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setEditingYearlyApp(null);
+    setIsModalProcessing(false);
+  };
+
+  const handleModalConfirm = async (data: YearlyAppCreateRequest | YearlyAppUpdateRequest) => {
+    if (!token) return;
+    setIsModalProcessing(true);
+    setError(null);
+    setFeedback(null);
+    try {
+      if (modalMode === 'create') {
+        await createYearlyApp(token, data as YearlyAppCreateRequest);
+        setFeedback('Yearly APP created successfully.');
+      } else if (editingYearlyApp) {
+        await updateYearlyApp(token, editingYearlyApp.YearlyAppId, data as YearlyAppUpdateRequest);
+        setFeedback('Yearly APP updated successfully.');
+      }
+      closeModal();
+      await loadBaseData();
+    } catch (err: any) {
+      setError(err.message || 'Failed to save Yearly APP');
+    } finally {
+      setIsModalProcessing(false);
+    }
+  };
+
+  const handleSubmitYearlyApp = async (yearlyAppId: string, title: string) => {
+    if (!token) return;
+    if (!window.confirm(`Submit "${title}" for approval? This cannot be undone.`)) return;
+    setLoading(true);
+    setError(null);
+    setFeedback(null);
+    try {
+      const result = await submitYearlyAppForApproval(token, yearlyAppId);
+      setFeedback(result.Message);
+      await loadBaseData();
+      if (selectedYearlyApp?.YearlyAppId === yearlyAppId) {
+        await openYearlyApp(yearlyAppId, false);
       }
     } catch (err: any) {
       setError(err.message);
@@ -93,273 +278,96 @@ export const ProcurementPlanModule = ({ module, token, role, initialData }: Prop
     }
   };
 
-  const handleApprovalDecision = async (decision: 'approve' | 'return' | 'reject') => {
-    if (!token || !selectedPlan) return;
-
-    const confirmed = window.confirm(
-      `${decision === 'approve' ? 'Approve' : decision === 'return' ? 'Return' : 'Reject'} APP "${selectedPlan.PlanTitle}"?`
-    );
-    if (!confirmed) return;
-
-    setLoading(true);
-    setError(null);
-    setFeedback(null);
-    setThresholdSummary(null);
-    try {
-      const result = await decideProcurementPlanApproval(token, selectedPlan.PlanId, {
-        Decision: decision,
-        Note: approvalNote.trim() || undefined
-      });
-
-      setFeedback(result.Message);
-      const [refreshed, readiness] = await Promise.all([
-        fetchPlanDetails(selectedPlan.PlanId, token),
-        fetchProcurementPlanRecommendationReadiness(token, selectedPlan.PlanId)
-      ]);
-      setSelectedPlan(refreshed.Plan);
-      setPlanItems(refreshed.Items || []);
-      setRecommendationReadiness(readiness);
-      setApprovalNote('');
-      setPlans((current) =>
-        current.map((plan) =>
-          plan.PlanId === selectedPlan.PlanId
-            ? { ...plan, Status: result.PlanStatus }
-            : plan
-        )
-      );
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRecommendForApproval = async () => {
-    if (!token || !selectedPlan) return;
-
-    const confirmed = window.confirm(`Recommend APP "${selectedPlan.PlanTitle}" to Comptroller Procurement for approval?`);
-    if (!confirmed) return;
-
-    setLoading(true);
-    setError(null);
-    setFeedback(null);
-    try {
-      const result = await recommendProcurementPlanForApproval(token, selectedPlan.PlanId);
-      setFeedback(result.Message);
-      const [refreshed, readiness] = await Promise.all([
-        fetchPlanDetails(selectedPlan.PlanId, token),
-        fetchProcurementPlanRecommendationReadiness(token, selectedPlan.PlanId)
-      ]);
-      setSelectedPlan(refreshed.Plan);
-      setPlanItems(refreshed.Items || []);
-      setRecommendationReadiness(readiness);
-      setPlans((current) =>
-        current.map((plan) =>
-          plan.PlanId === selectedPlan.PlanId
-            ? { ...plan, Status: result.PlanStatus }
-            : plan
-        )
-      );
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleInitiateProcurement = async () => {
-    if (!token || !selectedPlan) return;
-
-    const confirmed = window.confirm(`Move APP "${selectedPlan.PlanTitle}" from Procurement Initiation to Threshold Resolution?`);
-    if (!confirmed) return;
-
-    setLoading(true);
-    setError(null);
-    setFeedback(null);
-    try {
-      const result = await initiateProcurementPlan(token, selectedPlan.PlanId);
-      setFeedback(result.Message);
-      setThresholdSummary(
-        result.ApprovalAuthorityLabel || result.ApprovalRoute
-          ? `Threshold route: ${result.ApprovalAuthorityLabel || result.ApprovalRoute}`
-          : 'Threshold route resolved.'
-      );
-      const [refreshed, readiness] = await Promise.all([
-        fetchPlanDetails(selectedPlan.PlanId, token),
-        fetchProcurementPlanRecommendationReadiness(token, selectedPlan.PlanId)
-      ]);
-      setSelectedPlan(refreshed.Plan);
-      setPlanItems(refreshed.Items || []);
-      setRecommendationReadiness(readiness);
-      setPlans((current) =>
-        current.map((plan) =>
-          plan.PlanId === selectedPlan.PlanId
-            ? { ...plan, Status: refreshed.Plan.Status }
-            : plan
-        )
-      );
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
-    <section className="portal-module">
-      <header className="portal-module__header">
-        <div>
-          <h2>{module.title}</h2>
-          <p>{module.description}</p>
+    <section className="app-module">
+      <header className="app-module__header">
+        <div className="app-module__title-group">
+          <h2 className="app-module__title">{module.title}</h2>
+          <p className="app-module__description">{module.description}</p>
         </div>
         {view !== 'list' && (
-          <button className="plan-button plan-button--secondary" onClick={() => {
-            setView('list');
-            setSelectedPlan(null);
-            setPlanItems([]);
-            router.replace(pathname, { scroll: false });
-          }}>Back to List</button>
+          <button
+            className="app-btn app-btn--secondary"
+            onClick={() => {
+              setView('list');
+              setSelectedYearlyApp(null);
+              setSelectedPlan(null);
+              setPlanItems([]);
+              setRecommendationReadiness(null);
+              syncUrl();
+            }}
+          >
+            <span className="app-btn__icon">←</span>
+            Back to List
+          </button>
         )}
       </header>
 
-      {error && <div className="portal-alert">{error}</div>}
-      {feedback && <div className="plan-success">{feedback}</div>}
-
-      {view === 'list' && (
-        <>
-          <div className="portal-form-grid" style={{ marginBottom: '16px' }}>
-            <div className="portal-stat-card">
-              <span className="portal-stat-card__label">Total APPs</span>
-              <strong>{plans.length}</strong>
-            </div>
-            <div className="portal-stat-card">
-              <span className="portal-stat-card__label">Under Review</span>
-              <strong>{statusCounts['Under Review'] ?? 0}</strong>
-            </div>
-            <div className="portal-stat-card">
-              <span className="portal-stat-card__label">Approved</span>
-              <strong>{statusCounts['Approved'] ?? 0}</strong>
-            </div>
-            <div className="portal-stat-card">
-              <span className="portal-stat-card__label">Rejected</span>
-              <strong>{statusCounts['Rejected'] ?? 0}</strong>
-            </div>
-          </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <input
-              className="plan-input"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search APP by title, department, status, or year"
-            />
-          </div>
-
-          <div className="portal-table-container">
-            <table className="portal-table">
-              <thead>
-                <tr>
-                  <th>Fiscal Year</th>
-                  <th>APP Title</th>
-                  <th>Department</th>
-                  <th>Status</th>
-                  <th>Total Budget</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredPlans.map(p => (
-                  <tr key={p.PlanId}>
-                    <td><strong>{p.FiscalYear}</strong></td>
-                    <td>{p.PlanTitle}</td>
-                    <td>{p.Department}</td>
-                    <td><span className={`plan-badge plan-badge--${p.Status.toLowerCase()}`}>{p.Status}</span></td>
-                    <td>{new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(p.TotalBudget)}</td>
-                    <td>
-                      <button className="plan-button plan-button--sm" onClick={() => void handleViewDetails(p.PlanId)}>Open APP</button>
-                    </td>
-                  </tr>
-                ))}
-                {filteredPlans.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="plan-empty">No APPs match your search.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
-
-      {view === 'details' && selectedPlan && (
-        <div className="plan-details-view">
-          <div className="plan-summary-card">
-            <div className="plan-summary-card__grid">
-              <div>
-                <small>Fiscal Year</small>
-                <p>{selectedPlan.FiscalYear}</p>
-              </div>
-              <div>
-                <small>Status</small>
-                <p><span className={`plan-badge plan-badge--${selectedPlan.Status.toLowerCase()}`}>{selectedPlan.Status}</span></p>
-              </div>
-              <div>
-                <small>Current Workflow Stage</small>
-                <p>{selectedPlan.CurrentStageTitle || selectedPlan.CurrentStageKey || 'Not available'}</p>
-              </div>
-              <div>
-                <small>Total Estimated Budget</small>
-                <p><strong>{new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(selectedPlan.TotalBudget)}</strong></p>
-              </div>
-            </div>
-          </div>
-
-          <ProcurementPlanActionsPanel
-            selectedPlan={selectedPlan}
-            loading={loading}
-            approvalNote={approvalNote}
-            thresholdSummary={thresholdSummary}
-            canRecommendApp={canRecommendApp}
-            canTakeApprovalDecision={canTakeApprovalDecision}
-            recommendationReadiness={recommendationReadiness}
-            isAwaitingAppApproval={isAwaitingAppApproval}
-            isAtProcurementInitiation={isAtProcurementInitiation}
-            onApprovalNoteChange={setApprovalNote}
-            onRecommendForApproval={() => void handleRecommendForApproval()}
-            onApprovalDecision={(decision) => void handleApprovalDecision(decision)}
-            onInitiateProcurement={() => void handleInitiateProcurement()}
-          />
-
-          <div className="plan-items-section">
-            <h3>APP Line Items</h3>
-            <p className="plan-muted" style={{ marginBottom: '12px' }}>
-              APP line items are created automatically from requisitions that have received final committee approval.
-            </p>
-            <table className="portal-table">
-              <thead>
-                <tr>
-                  <th>Code</th>
-                  <th>Description</th>
-                  <th>Procurement Type</th>
-                  <th>Estimated Amount</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {planItems.map(item => (
-                  <tr key={item.PlanItemId}>
-                    <td>{item.ItemCode}</td>
-                    <td>{item.Description}</td>
-                    <td>{item.ProcurementType}</td>
-                    <td>{new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(item.EstimatedAmount)}</td>
-                    <td>{item.Status}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      {error && (
+        <div className="app-alert app-alert--error">
+          <span className="app-alert__icon">⚠</span>
+          {error}
         </div>
       )}
+
+      {feedback && (
+        <div className="app-alert app-alert--success">
+          <span className="app-alert__icon">✓</span>
+          {feedback}
+        </div>
+      )}
+
+      <ProcurementPlanDiagnostics
+        role={role}
+        selectedYearlyApp={selectedYearlyApp}
+        selectedPlan={selectedPlan}
+        canRecommendApp={canRecommendApp}
+        recommendationReadiness={recommendationReadiness}
+      />
+
+      {view === 'list' ? (
+        <ProcurementPlanListView
+          yearlyApps={yearlyApps}
+          filteredYearlyApps={filteredYearlyApps}
+          query={query}
+          role={role}
+          statusCounts={statusCounts}
+          onQueryChange={setQuery}
+          onOpenYearlyApp={(yearlyAppId) => void openYearlyApp(yearlyAppId)}
+          onCreateYearlyApp={openCreateModal}
+        />
+      ) : selectedYearlyApp ? (
+        <ProcurementPlanYearlyAppDetail
+          selectedYearlyApp={selectedYearlyApp}
+          includedPlans={includedPlans}
+          pendingPlans={pendingPlans}
+          selectedPlan={selectedPlan}
+          planItems={planItems}
+          loading={loading}
+          actionError={actionError}
+          approvalNote={approvalNote}
+          thresholdSummary={thresholdSummary}
+          canTakeApprovalDecision={canTakeApprovalDecision}
+          isAwaitingAppApproval={isAwaitingAppApproval}
+          isAwaitingCgisApproval={isAwaitingCgisApproval}
+          isAtProcurementInitiation={isAtProcurementInitiation}
+          onApprovalNoteChange={setApprovalNote}
+          onApprovalDecision={(decision) => void handleApprovalDecision(decision)}
+          onInitiateProcurement={() => void handleInitiateProcurement()}
+          onOpenPlan={(planId) => void openPlan(planId)}
+          onEditYearlyApp={openEditModal}
+          onSubmitYearlyApp={(app) => void handleSubmitYearlyApp(app.YearlyAppId, app.Title)}
+        />
+      ) : null}
+
+      <YearlyAppModal
+        mode={modalMode}
+        isOpen={isModalOpen}
+        isProcessing={isModalProcessing}
+        initialData={editingYearlyApp}
+        onConfirm={handleModalConfirm}
+        onCancel={closeModal}
+      />
     </section>
   );
 };

@@ -5,9 +5,9 @@ import { createCanonicalMetadata } from '../../../seo';
 export function generateMetadata({
   params
 }: {
-  params: { tenderId: string };
-}): Metadata {
-  return createCanonicalMetadata(`/bid-submission/${params.tenderId}`);
+  params: Promise<{ tenderId: string }>;
+}): Promise<Metadata> {
+  return params.then(({ tenderId }) => createCanonicalMetadata(`/bid-submission/${tenderId}`));
 }
 
 export default function Page() {

@@ -95,6 +95,7 @@ public class PlanningCommitteeReviewController : ControllerBase
                         reader.GetString(reader.GetOrdinal("reviewer_user_id")),
                         reader.GetString(reader.GetOrdinal("decision")),
                         reader.IsDBNull(reader.GetOrdinal("remarks")) ? null : reader.GetString(reader.GetOrdinal("remarks")),
+                        reader.GetInt32(reader.GetOrdinal("review_round")),
                         reader.GetDateTime(reader.GetOrdinal("created_at")),
                         reader.GetDateTime(reader.GetOrdinal("updated_at"))
                     ));
@@ -127,11 +128,12 @@ public class PlanningCommitteeReviewController : ControllerBase
                        reviewer_user_id,
                        decision,
                        remarks,
+                       review_round,
                        created_at,
                        updated_at
                   FROM procurement_workflow.planning_committee_member_reviews
                  WHERE plan_id = @p_plan_id
-                 ORDER BY updated_at DESC;";
+                 ORDER BY review_round DESC, updated_at DESC;";
             await using var cmd = new NpgsqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("p_plan_id", NpgsqlDbType.Uuid, planId);
             await using var reader = await cmd.ExecuteReaderAsync(ct);
@@ -147,6 +149,7 @@ public class PlanningCommitteeReviewController : ControllerBase
                     reader.GetString(reader.GetOrdinal("reviewer_user_id")),
                     reader.GetString(reader.GetOrdinal("decision")),
                     reader.IsDBNull(reader.GetOrdinal("remarks")) ? null : reader.GetString(reader.GetOrdinal("remarks")),
+                    reader.GetInt32(reader.GetOrdinal("review_round")),
                     reader.GetDateTime(reader.GetOrdinal("created_at")),
                     reader.GetDateTime(reader.GetOrdinal("updated_at"))
                 ));
@@ -519,8 +522,9 @@ public class PlanningCommitteeReviewController : ControllerBase
                         reader.GetString(reader.GetOrdinal("reviewer_user_id")),
                         reader.GetString(reader.GetOrdinal("decision")),
                         reader.IsDBNull(reader.GetOrdinal("remarks")) ? null : reader.GetString(reader.GetOrdinal("remarks")),
+                        reader.GetInt32(reader.GetOrdinal("review_round")),
                         reader.GetDateTime(reader.GetOrdinal("created_at")),
-                        reader.GetDateTime(reader.GetOrdinal("created_at"))
+                        reader.GetDateTime(reader.GetOrdinal("updated_at"))
                     );
                 }
             }
@@ -606,7 +610,7 @@ public class PlanningCommitteeReviewController : ControllerBase
             string nextStage = request.OverallDecision switch
             {
                 "Recommended" => "app_approval",
-                "Returned" => "department_head_endorsement",
+                "ReturnedToDepartment" => "department_head_endorsement",
                 _ => "app_approval"
             };
 
@@ -614,7 +618,7 @@ public class PlanningCommitteeReviewController : ControllerBase
                 "procurement_plan",
                 planId.Value,
                 nextStage,
-                request.OverallDecision == "Recommended" ? "Submitted" : request.OverallDecision == "Returned" ? "Draft" : "Rejected",
+                request.OverallDecision == "Recommended" ? "Submitted" : request.OverallDecision == "ReturnedToDepartment" ? "Draft" : "Rejected",
                 $"Committee Decision: {request.OverallDecision}",
                 null,
                 null,

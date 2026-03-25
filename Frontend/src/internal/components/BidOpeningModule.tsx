@@ -56,7 +56,7 @@ export const BidOpeningModule = ({ module, token, role, initialData }: Props) =>
     setLoading(true);
     try {
       // Fetch published tenders to link a session to
-      const tenderData: any = await fetchModuleData('publish-tender', token);
+      const tenderData: any = await fetchModuleData('create-tender', token);
       setPublishedTenders(tenderData?.Items || []);
       setView('create');
     } catch (err: any) {

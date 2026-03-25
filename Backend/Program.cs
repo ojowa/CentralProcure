@@ -22,6 +22,10 @@ const string InternalAuthCookieName = "internalAuthToken";
 const string DefaultDevelopmentUrl = "http://127.0.0.1:5080";
 
 var configuredUrls = builder.Configuration["Server:Urls"]?.Trim();
+var httpsPort = builder.Configuration["HTTPS_PORT"]?.Trim()
+    ?? builder.Configuration["ASPNETCORE_HTTPS_PORT"]?.Trim()
+    ?? Environment.GetEnvironmentVariable("HTTPS_PORT")?.Trim()
+    ?? Environment.GetEnvironmentVariable("ASPNETCORE_HTTPS_PORT")?.Trim();
 
 if (!string.IsNullOrWhiteSpace(renderPort))
 {
@@ -168,7 +172,11 @@ app.UseForwardedHeaders();
 app.UseMiddleware<ExceptionMiddleware>();
 app.UseMiddleware<CsrfMiddleware>();
 
-app.UseHttpsRedirection();
+if (HasConfiguredHttpsEndpoint(configuredUrls, httpsPort))
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseCors(FrontendCorsPolicy);
 app.UseAuthentication();
 app.UseMiddleware<InternalSessionIdleTimeoutMiddleware>();
@@ -247,11 +255,23 @@ static bool UsesVendorCookie(PathString path)
         || path.StartsWithSegments("/api/Vendor", StringComparison.OrdinalIgnoreCase)
         || path.StartsWithSegments("/api/vendors", StringComparison.OrdinalIgnoreCase)
         || path.StartsWithSegments("/api/Tender", StringComparison.OrdinalIgnoreCase)
-        || path.StartsWithSegments("/api/tenders", StringComparison.OrdinalIgnoreCase)
         || path.StartsWithSegments("/api/bids", StringComparison.OrdinalIgnoreCase);
 }
 
 static bool UsesInternalCookie(PathString path)
 {
-    return path.StartsWithSegments("/api/Auth/internal", StringComparison.OrdinalIgnoreCase);
+    return path.StartsWithSegments("/api/Auth/internal", StringComparison.OrdinalIgnoreCase)
+        || path.StartsWithSegments("/api/tenders", StringComparison.OrdinalIgnoreCase)
+        || path.StartsWithSegments("/api/internal/tenders", StringComparison.OrdinalIgnoreCase);
+}
+
+static bool HasConfiguredHttpsEndpoint(string? configuredUrls, string? httpsPort)
+{
+    if (!string.IsNullOrWhiteSpace(httpsPort))
+    {
+        return true;
+    }
+
+    return !string.IsNullOrWhiteSpace(configuredUrls)
+        && configuredUrls.Contains("https://", StringComparison.OrdinalIgnoreCase);
 }

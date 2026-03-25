@@ -24,7 +24,14 @@ RETURNS TABLE (
 )
 LANGUAGE plpgsql
 AS $$
+DECLARE
+    v_plan_id UUID;
 BEGIN
+    SELECT i.plan_id
+    INTO v_plan_id
+    FROM procurement_workflow.procurement_plan_items i
+    WHERE i.plan_item_id = p_plan_item_id;
+
     UPDATE procurement_workflow.procurement_plan_items
     SET
         item_code = COALESCE(p_item_code, item_code),
@@ -36,6 +43,10 @@ BEGIN
         notes = COALESCE(p_notes, notes),
         updated_at = NOW()
     WHERE plan_item_id = p_plan_item_id;
+
+    IF v_plan_id IS NOT NULL THEN
+        PERFORM procurement_workflow.sync_procurement_plan_total_budget(v_plan_id);
+    END IF;
 
     RETURN QUERY
     SELECT

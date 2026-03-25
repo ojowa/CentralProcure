@@ -17,7 +17,7 @@ export type TenderFilters = {
   sortDir?: string;
 };
 
-const baseUrl = `${serviceBaseUrls.vendorSourcing}/api/tenders`;
+const baseUrl = `${serviceBaseUrls.vendorSourcing}/api/internal/tenders`;
 
 const buildQuery = (filters?: TenderFilters): string => {
   if (!filters) {

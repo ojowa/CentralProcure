@@ -35,7 +35,6 @@ const resolveModuleUrl = (moduleId: string): string => {
     case 'procurement-planning-committee':
       return `${serviceBaseUrls.workflow}/api/procurement-plans`;
     case 'create-tender':
-    case 'publish-tender':
       return `${serviceBaseUrls.vendorSourcing}/api/tenders`;
     case 'bid-opening-session':
       return `${serviceBaseUrls.vendorSourcing}/api/bid-opening/sessions`;

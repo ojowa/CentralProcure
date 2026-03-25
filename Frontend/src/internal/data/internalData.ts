@@ -110,6 +110,16 @@ const requisitionDepartmentModules: InternalModule[] = [
     controlPurpose: 'Read-only timeline for accountable traceability.',
     actions: ['requisition.track'],
     allowedRoles: ['requisitioning_officer', 'department_head', 'complaints_review_officer', 'audit_oversight', 'admin']
+  },
+  {
+    id: 'department-head-review',
+    title: 'Department Head Review',
+    section: 'Requisitioning Departments',
+    description: 'Review, endorse, return, or reject departmental requisitions awaiting approval.',
+    microservice: 'Requisition Service',
+    controlPurpose: 'Department-level validation before procurement processing.',
+    actions: ['requisition.endorse', 'requisition.return', 'requisition.reject'],
+    allowedRoles: ['department_head']
   }
 ];
 
@@ -148,22 +158,12 @@ const financialControlModules: InternalModule[] = [];
 const tenderManagementModules: InternalModule[] = [
   {
     id: 'create-tender',
-    title: 'Tender Creation',
+    title: 'Tender Management',
     section: 'Tendering & Sourcing',
-    description: 'Initialize procurement advertisements and bidding documents.',
+    description: 'Create tender drafts from approved requisitions and publish draft tenders from one workspace.',
     microservice: 'Vendor Sourcing Service',
-    controlPurpose: 'Controlled creation of bidding opportunities.',
-    actions: ['tender.create'],
-    allowedRoles: ['comptroller_procurement']
-  },
-  {
-    id: 'publish-tender',
-    title: 'Publish Tenders',
-    section: 'Tendering & Sourcing',
-    description: 'Manage advertisement deadlines and push tenders to the public portal.',
-    microservice: 'Vendor Sourcing Service',
-    controlPurpose: 'Compliance with mandatory advertising periods.',
-    actions: ['tender.publish'],
+    controlPurpose: 'Controlled drafting and publication of bidding opportunities.',
+    actions: ['tender.create', 'tender.publish'],
     allowedRoles: ['comptroller_procurement']
   },
   {
@@ -246,6 +246,16 @@ const oversightModules: InternalModule[] = [
     microservice: 'Requisition Service',
     controlPurpose: 'Ultimate administrative control over requisition lifecycle.',
     actions: ['requisition.delete', 'requisition.view.all'],
+    allowedRoles: ['admin', 'comptroller_procurement']
+  },
+  {
+    id: 'threshold-configuration',
+    title: 'Threshold Configuration',
+    section: 'System Administration',
+    description: 'Configure procurement thresholds, approval routes, and governance rules.',
+    microservice: 'Procurement Workflow Service',
+    controlPurpose: 'Centralized management of threshold bands and approval authorities.',
+    actions: ['threshold.view', 'threshold.edit', 'threshold.configure'],
     allowedRoles: ['admin', 'comptroller_procurement']
   },
   {
@@ -469,4 +479,3 @@ export const thresholdBands: ThresholdBand[] = [
     steps: ['Requisition Review', 'Evaluation', 'Tenders Board Review', 'BPP No Objection', 'Award Publication']
   }
 ];
-

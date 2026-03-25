@@ -156,7 +156,9 @@ export function usePlanningCommittee(token: string | null) {
   }, [token, state.selectedRequisition, loadWorkspaceData, showSuccess, showError]);
 
   const submitFinalDecision = useCallback(async (decision: string, remarks: string) => {
-    if (!token || !state.selectedRequisition) return false;
+    if (!token || !state.selectedRequisition) {
+      return { success: false, error: 'A requisition must be selected before submitting a final decision.' };
+    }
     setLoading((prev) => ({ ...prev, action: true }));
     try {
       await finalizePlanningCommitteeReview(token, state.selectedRequisition.RequisitionId, {
@@ -165,12 +167,17 @@ export function usePlanningCommittee(token: string | null) {
       });
       await loadRequisitions();
       await loadWorkspaceData(state.selectedRequisition);
-      showSuccess('Final requisition decision submitted successfully');
-      return true;
+      showSuccess(
+        decision === 'ReturnedToDepartment'
+          ? 'Requisition returned to department for correction.'
+          : 'Final requisition decision submitted successfully'
+      );
+      return { success: true, error: null };
     } catch (err: any) {
       const detail = `Requisition: ${state.selectedRequisition.Title} (${state.selectedRequisition.RequisitionId}).`;
-      showError(`${err.message || 'Unable to submit final decision.'} ${detail}`);
-      return false;
+      const message = `${err.message || 'Unable to submit final decision.'} ${detail}`;
+      showError(message);
+      return { success: false, error: message };
     } finally {
       setLoading((prev) => ({ ...prev, action: false }));
     }
@@ -182,25 +189,36 @@ export function usePlanningCommittee(token: string | null) {
     planConfig: { title?: string; fiscalYear?: number; existingPlanId?: string },
     onNotice?: (notice: string | null) => void
   ) => {
-    if (!token) return false;
+    if (!token) {
+      return { success: false, error: 'Authentication is required to assign this requisition to a committee plan.' };
+    }
     setLoading((prev) => ({ ...prev, action: true }));
     setError(null);
     onNotice?.(null);
     try {
+      const payload = mode === 'attach'
+        ? {
+            Mode: mode,
+            ExistingPlanId: planConfig.existingPlanId
+          }
+        : {
+            Mode: mode,
+            PlanTitle: planConfig.title,
+            FiscalYear: planConfig.fiscalYear
+          };
+
       const result = await linkPlanningCommitteeWorkspaceRequisition(token, requisition.RequisitionId, {
-        Mode: mode,
-        ExistingPlanId: planConfig.existingPlanId,
-        PlanTitle: planConfig.title,
-        FiscalYear: planConfig.fiscalYear
+        ...payload
       });
       onNotice?.(result.Notice ?? null);
       await loadRequisitions();
       await loadWorkspaceData(requisition);
       showSuccess('Requisition linked to committee plan. APP item will be created only after finalized review.');
-      return true;
+      return { success: true, error: null };
     } catch (err: any) {
-      showError(err.message || 'Unable to assign requisition to committee plan.');
-      return false;
+      const message = err.message || 'Unable to assign requisition to committee plan.';
+      showError(message);
+      return { success: false, error: message };
     } finally {
       setLoading((prev) => ({ ...prev, action: false }));
     }

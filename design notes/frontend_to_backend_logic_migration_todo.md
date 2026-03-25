@@ -1,4 +1,4 @@
-#c Frontend-to-Backend Authority Migration TODO
+# Frontend-to-Backend Authority Migration TODO
 
 ## Goal
 
@@ -51,7 +51,7 @@ Current problems:
 
 - editable statuses are maintained in frontend sets
 - role checks such as `admin`, `department_head`, `comptroller_procurement` are made in UI code
-- departmenct head queues are built from client-side status buckets
+- department head queues are built from client-side status buckets
 - screens infer permissions from `role + status` instead of consuming backend grants
 
 Backend target:

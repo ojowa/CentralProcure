@@ -7,7 +7,15 @@
       "Bash(grep -r \"TODO\\\\|FIXME\\\\|XXX\" Frontend/src/ --include=\"*.ts\" --include=\"*.tsx\" 2>/dev/null | head -20)",
       "Bash(grep -l \"administrative\" Frontend/src/internal/services/*.ts)",
       "Bash(npx tsc:*)",
-      "Bash(dotnet build:*)"
+      "Bash(dotnet build:*)",
+      "Bash(:wc -l Frontend/src/app/portal.css)",
+      "Bash(: echo:*)",
+      "Bash(ls -la Frontend/src/internal/components/Tender*.tsx Frontend/src/vendors/features/tender/pages/*.tsx)",
+      "Bash(npm run:*)",
+      "Bash(ls:*)",
+      "Bash(: find:*)",
+      "Bash(: stat:*)",
+      "Bash(: tail:*)"
     ]
   }
 }

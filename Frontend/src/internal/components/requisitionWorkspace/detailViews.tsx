@@ -9,6 +9,7 @@ import { WorkflowProgressStepper } from '../WorkflowProgressStepper';
 import type { WorkflowRuntimeWithDisplay } from '../workflowDisplayTypes';
 import { buildDepartmentHeadChecklist, resolveDepartmentHeadAction, type WorkspaceMode } from './helpers';
 import { DepartmentHeadQueueCard, RequisitionQuickLinks } from './quickLinks';
+import { RequisitionRoutingTimeline } from '../RequisitionRoutingTimeline';
 
 export { DepartmentHeadQueueCard, RequisitionQuickLinks } from './quickLinks';
 
@@ -209,6 +210,8 @@ interface RequisitionDetailContentProps {
   canEditDrafts: boolean;
   isSaving: boolean;
   workflowRuntime: WorkflowRuntimeSnapshot | null;
+  workflowHistory?: WorkflowRuntimeHistoryEntry[];
+  isWorkflowLoading?: boolean;
   onOpenSelectedForEdit: () => void;
   onSubmitSelectedDraft: () => void;
   onDeleteRequisition: () => void;
@@ -224,6 +227,8 @@ export const RequisitionDetailContent = ({
   canEditDrafts,
   isSaving,
   workflowRuntime,
+  workflowHistory = [],
+  isWorkflowLoading = false,
   onOpenSelectedForEdit,
   onSubmitSelectedDraft,
   onDeleteRequisition,
@@ -346,6 +351,15 @@ export const RequisitionDetailContent = ({
             );
           })}
         </div>
+      </div>
+
+      {/* Routing Timeline */}
+      <div className="requisition-detail-note">
+        <RequisitionRoutingTimeline
+          history={workflowHistory}
+          currentStage={workflowRuntime?.CurrentStageTitle || detail.CurrentStage}
+          isLoading={isWorkflowLoading}
+        />
       </div>
 
       <div className="requisition-actions">

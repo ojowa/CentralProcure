@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import type { InternalModule, TenderSummary, TenderDetail, RequisitionSummary } from '../types/internal';
-import { fetchTenderDetails, createTender, publishTender, fetchApprovedRequisitions } from '../services/moduleService';
-import { fetchTenderWorkflowDisplay, type TenderWorkflowDisplayResponse } from '../services/tenderWorkflowService';
+import { useRouter } from 'next/navigation';
+import type { InternalModule, TenderSummary } from '../types/internal';
+import { fetchTenderDetails } from '../services/moduleService';
+import { fetchTenders } from '../services/tenderService';
+import { fetchTenderWorkflowDisplay } from '../services/tenderWorkflowService';
 import { WorkflowProgressStepper } from './WorkflowProgressStepper';
 import { getHumanStatus } from '../utils/workflow';
 import type { WorkflowRuntimeDisplay } from './workflowDisplayTypes';
+import { getInternalDashboardPath } from '../utils/internalRoutes';
 
 interface Props {
   module: InternalModule;
@@ -14,68 +17,56 @@ interface Props {
 }
 
 export const TenderManagementModule = ({ module, token, role, initialData }: Props) => {
-  const [view, setView] = useState<'list' | 'create' | 'publish'>('list');
+  const router = useRouter();
   const [tenders, setTenders] = useState<TenderSummary[]>([]);
-  const [approvedRequisitions, setApprovedRequisitions] = useState<RequisitionSummary[]>([]);
-  const [selectedTender, setSelectedTender] = useState<TenderDetail | null>(null);
-  const [selectedTenderWorkflow, setSelectedTenderWorkflow] = useState<TenderWorkflowDisplayResponse | null>(null);
+  const [activeTab, setActiveTab] = useState<'all' | 'draft' | 'published'>('all');
+  const [selectedTender, setSelectedTender] = useState<any>(null);
+  const [selectedWorkflow, setSelectedWorkflow] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Form states
-  const [newTender, setNewTender] = useState({ 
-    Title: '', Description: '', Category: 'Goods', Budget: 0, 
-    Department: '', BudgetCode: '', FiscalYear: new Date().getFullYear(),
-    RequisitionId: ''
-  });
-  const [publishData, setPublishData] = useState({ 
-    PublishDate: new Date().toISOString().split('T')[0],
-    OpeningDate: '',
-    ClosingDate: ''
-  });
-
   useEffect(() => {
-    if (initialData && initialData.Items) {
+    if (activeTab === 'all' && initialData?.Items) {
       setTenders(initialData.Items);
+    } else if (token) {
+      void loadTenders(activeTab);
     }
-  }, [initialData]);
+  }, [activeTab, initialData, token]);
 
-  const handleStartCreate = async () => {
+  const loadTenders = async (tab: 'all' | 'draft' | 'published' = activeTab) => {
     if (!token) return;
     setLoading(true);
+    setError(null);
     try {
-      const requisitions = await fetchApprovedRequisitions(token);
-      setApprovedRequisitions(requisitions);
-      setView('create');
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSelectRequisition = (reqId: string) => {
-    const req = approvedRequisitions.find(r => r.RequisitionId === reqId);
-    if (req) {
-      setNewTender({
-        ...newTender,
-        RequisitionId: req.RequisitionId,
-        Title: req.Title,
-        Department: req.Department,
-        Budget: req.TotalEstimate,
-        Description: `Tender for ${req.Title}. Department: ${req.Department}. Approved Estimate: ${req.TotalEstimate}`
+      const data = await fetchTenders(token, {
+        status: tab === 'all' ? undefined : tab === 'draft' ? 'Draft' : 'Published',
+        page: 1,
+        pageSize: 50,
+        sortBy: 'created_at',
+        sortDir: 'desc'
       });
+      setTenders(data.Items || []);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleCreateTender = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCreate = () => {
+    router.push(`${getInternalDashboardPath('tender-create')}?source=${encodeURIComponent(module.id)}`);
+  };
+
+  const handleView = async (tenderId: string) => {
     if (!token) return;
     setLoading(true);
     try {
-      const created = await createTender(newTender, token);
-      setTenders([created, ...tenders]);
-      setView('list');
+      const [tender, workflow] = await Promise.all([
+        fetchTenderDetails(tenderId, token),
+        fetchTenderWorkflowDisplay(tenderId, token)
+      ]);
+      setSelectedTender(tender);
+      setSelectedWorkflow(workflow);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -83,49 +74,8 @@ export const TenderManagementModule = ({ module, token, role, initialData }: Pro
     }
   };
 
-  const handleViewTender = async (tenderId: string) => {
-    if (!token) return;
-    setLoading(true);
-    try {
-      const data = await fetchTenderDetails(tenderId, token);
-      const workflow = await fetchTenderWorkflowDisplay(tenderId, token);
-      setSelectedTender(data);
-      setSelectedTenderWorkflow(workflow);
-      setView('publish');
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const validatePpaTimeline = () => {
-    if (!publishData.PublishDate || !publishData.ClosingDate) return true;
-    const start = new Date(publishData.PublishDate);
-    const end = new Date(publishData.ClosingDate);
-    const diffDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-    return diffDays >= 42; // Mandatory 6 weeks
-  };
-
-  const handlePublish = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!token || !selectedTender) return;
-    
-    if (!validatePpaTimeline()) {
-      if (!confirm('The advertising period is less than the mandatory 42 days (6 weeks) required by PPA 2007 for NCB. Do you wish to proceed with this exception?')) {
-        return;
-      }
-    }
-
-    setLoading(true);
-    try {
-      await publishTender(selectedTender.TenderId, publishData, token);
-      setView('list');
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+  const handlePublish = (tenderId: string) => {
+    router.push(`${getInternalDashboardPath('tender-create')}?edit=${encodeURIComponent(tenderId)}&source=${encodeURIComponent(module.id)}`);
   };
 
   return (
@@ -135,17 +85,79 @@ export const TenderManagementModule = ({ module, token, role, initialData }: Pro
           <h2>{module.title}</h2>
           <p>{module.description}</p>
         </div>
-        {view === 'list' && (
-          <button className="plan-button" onClick={handleStartCreate}>+ New Tender from Requisition</button>
-        )}
-        {view !== 'list' && (
-          <button className="plan-button plan-button--secondary" onClick={() => setView('list')}>Back to Tenders</button>
-        )}
+        <button className="plan-button" onClick={handleCreate}>+ New Tender</button>
       </header>
+
+      <nav className="workflow-config-tabs" aria-label="Tender management views">
+        <button
+          type="button"
+          className={activeTab === 'all' ? 'active' : undefined}
+          onClick={() => {
+            setSelectedTender(null);
+            setSelectedWorkflow(null);
+            setActiveTab('all');
+          }}
+        >
+          All Tenders
+        </button>
+        <button
+          type="button"
+          className={activeTab === 'draft' ? 'active' : undefined}
+          onClick={() => {
+            setSelectedTender(null);
+            setSelectedWorkflow(null);
+            setActiveTab('draft');
+          }}
+        >
+          Draft Tenders
+        </button>
+        <button
+          type="button"
+          className={activeTab === 'published' ? 'active' : undefined}
+          onClick={() => {
+            setSelectedTender(null);
+            setSelectedWorkflow(null);
+            setActiveTab('published');
+          }}
+        >
+          Published Tenders
+        </button>
+      </nav>
 
       {error && <div className="portal-alert">{error}</div>}
 
-      {view === 'list' && (
+      {selectedTender ? (
+        <div className="app-card">
+          <div className="detail-header">
+            <h3>{selectedTender.Title}</h3>
+            <button className="plan-button plan-button--secondary" onClick={() => setSelectedTender(null)}>
+              Close
+            </button>
+          </div>
+
+          <div className="plan-summary-card__grid">
+            <div><small>Reference</small><p>{selectedTender.TenderId?.slice(0, 8).toUpperCase()}</p></div>
+            <div><small>Status</small><p>{getHumanStatus(selectedWorkflow?.CurrentStageKey, selectedWorkflow?.CurrentStageTitle || selectedTender.Status)}</p></div>
+            <div><small>Budget</small><p>{(selectedTender.Budget || 0).toLocaleString('en-NG', { style: 'currency', currency: 'NGN' })}</p></div>
+            <div><small>Category</small><p>{selectedTender.Category}</p></div>
+          </div>
+
+          {selectedWorkflow?.CurrentStageKey && (
+            <div className="workflow-section">
+              <WorkflowProgressStepper
+                currentStageKey={selectedWorkflow.CurrentStageKey}
+                display={selectedWorkflow.WorkflowDisplay as WorkflowRuntimeDisplay | null | undefined}
+              />
+            </div>
+          )}
+
+          {selectedTender.Status === 'Draft' && (
+            <button className="plan-button" onClick={() => handlePublish(selectedTender.TenderId)}>
+              Publish Tender
+            </button>
+          )}
+        </div>
+      ) : (
         <div className="portal-table-container">
           <table className="portal-table">
             <thead>
@@ -161,148 +173,40 @@ export const TenderManagementModule = ({ module, token, role, initialData }: Pro
             <tbody>
               {tenders.map(t => (
                 <tr key={t.TenderId}>
-                  <td><strong>{t.TenderId.slice(0, 8).toUpperCase()}</strong></td>
+                  <td><strong>{t.TenderId?.slice(0, 8).toUpperCase()}</strong></td>
                   <td>{t.Title}</td>
                   <td>{t.Category}</td>
-                  <td><span className={`plan-badge plan-badge--${t.Status.toLowerCase().replace(' ', '-')}`}>{t.Status}</span></td>
+                  <td>
+                    <span className={`plan-badge plan-badge--${t.Status.toLowerCase().replace(' ', '-')}`}>
+                      {t.Status}
+                    </span>
+                  </td>
                   <td>{t.ClosingDate ? new Date(t.ClosingDate).toLocaleDateString() : 'Not Set'}</td>
                   <td>
                     {t.Status === 'Draft' ? (
-                      <button className="plan-button plan-button--sm" onClick={() => handleViewTender(t.TenderId)}>Publish Ad</button>
+                      <button className="plan-button plan-button--sm" onClick={() => handlePublish(t.TenderId)}>
+                        Publish
+                      </button>
                     ) : (
-                      <button className="plan-button plan-button--sm plan-button--secondary" onClick={() => handleViewTender(t.TenderId)}>View Details</button>
+                      <button className="plan-button plan-button--sm plan-button--secondary" onClick={() => handleView(t.TenderId)}>
+                        View
+                      </button>
                     )}
                   </td>
                 </tr>
               ))}
-              {tenders.length === 0 && (
+              {tenders.length === 0 && !loading && (
                 <tr>
                   <td colSpan={6} className="plan-empty">No tenders found.</td>
                 </tr>
               )}
+              {loading && (
+                <tr>
+                  <td colSpan={6} className="plan-empty">Loading...</td>
+                </tr>
+              )}
             </tbody>
           </table>
-        </div>
-      )}
-
-      {view === 'create' && (
-        <form className="portal-form" onSubmit={handleCreateTender}>
-          <h3>Convert Approved Requisition to Tender Ad</h3>
-          <div className="portal-form-grid">
-            <label className="plan-field">
-              <span>Select Approved Requisition</span>
-              <select 
-                className="plan-input" 
-                required 
-                value={newTender.RequisitionId}
-                onChange={e => handleSelectRequisition(e.target.value)}
-              >
-                <option value="">-- Choose Requisition --</option>
-                {approvedRequisitions.map(r => (
-                  <option key={r.RequisitionId} value={r.RequisitionId}>{r.Title} ({r.Department})</option>
-                ))}
-              </select>
-            </label>
-            <label className="plan-field">
-              <span>Tender Title</span>
-              <input className="plan-input" required value={newTender.Title} onChange={e => setNewTender({...newTender, Title: e.target.value})} />
-            </label>
-            <label className="plan-field">
-              <span>Category</span>
-              <select className="plan-input" value={newTender.Category} onChange={e => setNewTender({...newTender, Category: e.target.value})}>
-                <option>Goods</option>
-                <option>Works</option>
-                <option>Services</option>
-              </select>
-            </label>
-            <label className="plan-field">
-              <span>Budget (NGN)</span>
-              <input type="number" className="plan-input" required value={newTender.Budget} onChange={e => setNewTender({...newTender, Budget: parseFloat(e.target.value)})} />
-            </label>
-            <label className="plan-field">
-              <span>Budget Code</span>
-              <input className="plan-input" required value={newTender.BudgetCode} onChange={e => setNewTender({...newTender, BudgetCode: e.target.value})} />
-            </label>
-            <label className="plan-field">
-              <span>Fiscal Year</span>
-              <input type="number" className="plan-input" required value={newTender.FiscalYear} onChange={e => setNewTender({...newTender, FiscalYear: parseInt(e.target.value)})} />
-            </label>
-          </div>
-          <label className="plan-field">
-            <span>Detailed Scope & Instructions to Bidders</span>
-            <textarea className="plan-input" rows={4} required value={newTender.Description} onChange={e => setNewTender({...newTender, Description: e.target.value})} />
-          </label>
-          <div className="portal-form-actions">
-            <button type="submit" className="plan-button" disabled={loading}>Create Ad Draft</button>
-          </div>
-        </form>
-      )}
-
-      {view === 'publish' && selectedTender && (
-        <div className="tender-publish-view">
-          <div className="plan-summary-card">
-            <h3>{selectedTender.Title}</h3>
-            <div className="plan-summary-card__grid">
-              <div><small>Reference</small><p>{selectedTender.TenderId.slice(0, 8).toUpperCase()}</p></div>
-              <div><small>Status</small><p>{getHumanStatus(selectedTenderWorkflow?.CurrentStageKey, selectedTenderWorkflow?.CurrentStageTitle || selectedTender.Status)}</p></div>
-              <div><small>Budget</small><p>{new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(selectedTender.Budget || 0)}</p></div>
-            </div>
-          </div>
-
-          {selectedTenderWorkflow?.CurrentStageKey ? (
-            <div style={{ marginBottom: '20px' }}>
-              <WorkflowProgressStepper
-                currentStageKey={selectedTenderWorkflow.CurrentStageKey}
-                display={selectedTenderWorkflow.WorkflowDisplay as WorkflowRuntimeDisplay | null | undefined}
-              />
-            </div>
-          ) : null}
-
-          {selectedTender.Status === 'Draft' ? (
-            <form className="portal-form" onSubmit={handlePublish} style={{ marginTop: '24px' }}>
-              <h3>PPA 2007 Publication Control</h3>
-              <div className="portal-form-grid">
-                <label className="plan-field">
-                  <span>Publication Date</span>
-                  <input type="date" className="plan-input" required value={publishData.PublishDate} onChange={e => setPublishData({...publishData, PublishDate: e.target.value})} />
-                </label>
-                <label className="plan-field">
-                  <span>Closing Date (Bid Submission Deadline)</span>
-                  <input type="date" className="plan-input" required value={publishData.ClosingDate} onChange={e => setPublishData({...publishData, ClosingDate: e.target.value})} />
-                </label>
-                <label className="plan-field">
-                  <span>Public Bid Opening Date</span>
-                  <input type="date" className="plan-input" required value={publishData.OpeningDate} onChange={e => setPublishData({...publishData, OpeningDate: e.target.value})} />
-                </label>
-              </div>
-
-              <div className="ppa-checklist" style={{ background: '#f8fafc', padding: '16px', borderRadius: '8px', marginTop: '16px', border: '1px solid #e2e8f0' }}>
-                <h4 style={{ marginTop: 0 }}>Compliance Checklist</h4>
-                <ul style={{ listStyle: 'none', padding: 0 }}>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                    <input type="checkbox" required /> <span>Confirm all bidding documents are ready for download.</span>
-                  </li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                    <input type="checkbox" required /> <span>Confirm eligibility criteria (CAC, Tax, PENCOM, etc.) are explicitly stated.</span>
-                  </li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <input type="checkbox" checked={validatePpaTimeline()} readOnly /> 
-                    <span style={{ color: validatePpaTimeline() ? 'green' : 'red' }}>
-                      {validatePpaTimeline() ? 'Mandatory 6-week advertising period met.' : 'Advertising period is less than 6 weeks (NCB Violation).'}
-                    </span>
-                  </li>
-                </ul>
-              </div>
-
-              <div className="portal-form-actions">
-                <button type="submit" className="plan-button" disabled={loading}>Authorize Publication</button>
-              </div>
-            </form>
-          ) : (
-            <div className="portal-alert portal-alert--success" style={{ marginTop: '24px' }}>
-              This tender advertisement is LIVE. Bidders can now submit proposals until {new Date(selectedTender.ClosingDate!).toLocaleDateString()}.
-            </div>
-          )}
         </div>
       )}
     </section>

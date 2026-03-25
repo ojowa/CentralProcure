@@ -79,6 +79,7 @@ internal static class WorkflowBlueprintCatalog
         new("accounting_officer", "Accounting Officer", "app_approval", "Provide finance-side concurrence before the APP is released for execution.", "APP approval includes accounting control."),
         new("comptroller_procurement", "Comptroller Procurement", "procurement_initiation", "Open a procurement package from an approved APP line as head of the procurement unit.", "Execution stays tied to APP control."),
         new("comptroller_procurement", "Comptroller Procurement", "threshold_resolution", "Resolve whether the case falls to CGIS, the NIS Tenders Board, or BPP prior review as head of the procurement unit.", "Approval path and external review trigger are explicit."),
+        new("comptroller_procurement", "Comptroller Procurement", "method_validation", "Approve the validated procurement method and authorize movement to solicitation.", "Method validation is accepted and the tender can proceed to publication."),
         new("legal_reviewer", "Legal Reviewer", "method_validation", "Validate lawful procurement method and exceptions.", "Method choice is compliant."),
         new("comptroller_procurement", "Comptroller Procurement", "solicitation", "Publish advert, invitation, EOI, or RFP using the required route.", "Competition is opened lawfully through the approved publication route."),
         new("technical_evaluator", "Technical Evaluator", "evaluation", "Perform technical scoring.", "Technical responsiveness is assessed."),

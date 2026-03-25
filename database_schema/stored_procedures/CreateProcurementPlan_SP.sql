@@ -25,6 +25,7 @@ AS $$
 DECLARE
     v_plan_id UUID;
     v_duplicate_id UUID;
+    v_yearly_app_id UUID;
 BEGIN
     SELECT p.plan_id
     INTO v_duplicate_id
@@ -38,7 +39,10 @@ BEGIN
         RAISE EXCEPTION USING ERRCODE = 'P0001', MESSAGE = 'Procurement plan already exists for this title, department, and fiscal year.';
     END IF;
 
+    v_yearly_app_id := procurement_workflow.ensure_yearly_app(p_fiscal_year);
+
     INSERT INTO procurement_workflow.procurement_plans (
+        yearly_app_id,
         plan_title,
         department,
         fiscal_year,
@@ -47,6 +51,7 @@ BEGIN
         notes
     )
     VALUES (
+        v_yearly_app_id,
         p_plan_title,
         p_department,
         p_fiscal_year,

@@ -15,6 +15,7 @@ interface ReviewWorkspaceProps {
   memberStatuses: PlanningCommitteeMemberStatus[];
   decision: CommitteeDecisionResponse | null;
   authority: PlanningCommitteeWorkspaceAuthority | null;
+  finalDecisionError: string | null;
   loading: boolean;
   onSubmitReview: (decision: string, remarks: string) => Promise<boolean>;
   onSubmitFinalDecision: (decision: string, remarks: string) => Promise<boolean>;
@@ -32,6 +33,7 @@ export const ReviewWorkspace: React.FC<ReviewWorkspaceProps> = ({
   memberStatuses,
   decision,
   authority,
+  finalDecisionError,
   loading,
   onSubmitReview,
   onSubmitFinalDecision,
@@ -40,12 +42,19 @@ export const ReviewWorkspace: React.FC<ReviewWorkspaceProps> = ({
   formatCurrency,
   downloadReviewsCsv
 }) => {
+  const formatDecisionLabel = (value?: string | null) => {
+    if (value === 'ReturnedToDepartment') return 'Returned to Department for Correction';
+    if (value === 'Recommended') return 'Recommended for Approval';
+    return value || 'Pending';
+  };
+
   const [unlinkReason, setUnlinkReason] = useState('');
 
   const canSubmitMemberReview = Boolean(authority?.CanSubmitMemberReview);
   const canSubmitFinalDecision = Boolean(authority?.CanSubmitFinalDecision);
   const canUnlink = Boolean(authority?.CanUnlink);
   const requiresUnlinkReason = Boolean(authority?.RequiresUnlinkReason);
+  const isReviewReopened = Boolean(authority?.IsReviewReopened);
   const hasFinalDecision = Boolean(decision);
 
   const handleReviewSubmit = async (decision: string, remarks: string) => {
@@ -71,7 +80,7 @@ export const ReviewWorkspace: React.FC<ReviewWorkspaceProps> = ({
 
   const reviewComments = memberReviews
     .filter((review) => review.Remarks?.trim())
-    .sort((left, right) => new Date(right.UpdatedAt).getTime() - new Date(left.UpdatedAt).getTime());
+    .sort((left, right) => right.ReviewRound - left.ReviewRound || new Date(right.UpdatedAt).getTime() - new Date(left.UpdatedAt).getTime());
 
   const getStepStatus = () => {
     if (!requisition) return { link: 'pending', review: 'pending', decision: 'pending' };
@@ -180,6 +189,10 @@ export const ReviewWorkspace: React.FC<ReviewWorkspaceProps> = ({
                       <p>{review.Decision}</p>
                     </div>
                     <div className={styles.summaryItem}>
+                      <small>Review Round</small>
+                      <p>Round {review.ReviewRound || 1}</p>
+                    </div>
+                    <div className={styles.summaryItem}>
                       <small>Updated</small>
                       <p>{new Date(review.UpdatedAt).toLocaleString()}</p>
                     </div>
@@ -203,12 +216,17 @@ export const ReviewWorkspace: React.FC<ReviewWorkspaceProps> = ({
       {/* Sidebar */}
       <aside className={styles.sidebar}>
         <h4>Requisition Committee Review</h4>
-        <p className={styles.sidebarDescription}>Submit member remarks and then the final decision for this requisition.</p>
+        <p className={styles.sidebarDescription}>
+          {isReviewReopened
+            ? 'This departmental plan was returned to Planning Committee. New member comments and a fresh final decision are required.'
+            : 'Submit member remarks and then the final decision for this requisition.'}
+        </p>
 
         {/* Committee Status */}
         <CommitteeStatusPanel
           reviews={memberReviews}
           statuses={memberStatuses}
+          isReviewReopened={isReviewReopened}
         />
 
         {/* Export Reviews */}
@@ -243,7 +261,7 @@ export const ReviewWorkspace: React.FC<ReviewWorkspaceProps> = ({
         )}
 
         {/* Member Review Form */}
-        {canSubmitMemberReview && plan && !hasFinalDecision ? (
+        {canSubmitMemberReview && plan && (!hasFinalDecision || isReviewReopened) ? (
           <div style={{ marginTop: '16px' }}>
             <MemberReviewForm
               onSubmit={handleReviewSubmit}
@@ -253,13 +271,32 @@ export const ReviewWorkspace: React.FC<ReviewWorkspaceProps> = ({
         ) : null}
 
         {/* Final Decision Form */}
-        {hasFinalDecision ? (
+        {hasFinalDecision && isReviewReopened ? (
+          <div className={styles.summaryCard}>
+            <h4>Previous Final Decision</h4>
+            <div className={styles.summaryGrid}>
+              <div className={styles.summaryItem}>
+                <small>Decision</small>
+                <p>{formatDecisionLabel(decision?.OverallDecision)}</p>
+              </div>
+              <div className={styles.summaryItem}>
+                <small>Meeting Date</small>
+                <p>{decision?.MeetingDate ? new Date(decision.MeetingDate).toLocaleDateString() : 'Recorded'}</p>
+              </div>
+            </div>
+            <p className={styles.sidebarDescription} style={{ marginTop: '12px' }}>
+              {decision?.CommitteeRemarks || 'A previous final committee decision was recorded. The plan has been returned for fresh committee comments.'}
+            </p>
+          </div>
+        ) : null}
+
+        {hasFinalDecision && !isReviewReopened ? (
           <div className={styles.summaryCard}>
             <h4>Final Decision Closed</h4>
             <div className={styles.summaryGrid}>
               <div className={styles.summaryItem}>
                 <small>Decision</small>
-                <p>{decision?.OverallDecision}</p>
+                <p>{formatDecisionLabel(decision?.OverallDecision)}</p>
               </div>
               <div className={styles.summaryItem}>
                 <small>Meeting Date</small>
@@ -272,9 +309,10 @@ export const ReviewWorkspace: React.FC<ReviewWorkspaceProps> = ({
           </div>
         ) : null}
 
-        {!hasFinalDecision && canSubmitFinalDecision && plan ? (
+        {(canSubmitFinalDecision && plan) ? (
           <FinalDecisionForm
             onSubmit={handleFinalSubmit}
+            error={finalDecisionError}
             disabled={loading}
           />
         ) : null}

@@ -20,10 +20,10 @@ public partial class PlanningCommitteeWorkspaceController
     private static async Task<List<MemberReviewResponse>> GetMemberReviewsAsync(NpgsqlConnection conn, NpgsqlTransaction tx, Guid requisitionId, CancellationToken ct)
     {
         const string sql = """
-SELECT review_id, plan_id, requisition_id, reviewer_role, reviewer_user_id, decision, remarks, created_at, updated_at
+SELECT review_id, plan_id, requisition_id, reviewer_role, reviewer_user_id, decision, remarks, review_round, created_at, updated_at
 FROM procurement_workflow.planning_committee_member_reviews
 WHERE requisition_id = @p_requisition_id
-ORDER BY updated_at DESC;
+ORDER BY review_round DESC, updated_at DESC;
 """;
         await using var cmd = new NpgsqlCommand(sql, conn, tx);
         cmd.Parameters.AddWithValue("p_requisition_id", NpgsqlDbType.Uuid, requisitionId);
@@ -39,6 +39,7 @@ ORDER BY updated_at DESC;
                 reader.GetString(reader.GetOrdinal("reviewer_user_id")),
                 reader.GetString(reader.GetOrdinal("decision")),
                 GetNullableString(reader, "remarks"),
+                reader.GetInt32(reader.GetOrdinal("review_round")),
                 reader.GetDateTime(reader.GetOrdinal("created_at")),
                 reader.GetDateTime(reader.GetOrdinal("updated_at"))));
         }
@@ -178,8 +179,9 @@ WHERE requisition_id = @p_requisition_id;
             reader.GetString(reader.GetOrdinal("reviewer_user_id")),
             reader.GetString(reader.GetOrdinal("decision")),
             GetNullableString(reader, "remarks"),
+            reader.GetInt32(reader.GetOrdinal("review_round")),
             reader.GetDateTime(reader.GetOrdinal("created_at")),
-            reader.GetDateTime(reader.GetOrdinal("created_at"))), ct)).FirstOrDefault();
+            reader.GetDateTime(reader.GetOrdinal("updated_at"))), ct)).FirstOrDefault();
 
         if (review is null)
         {

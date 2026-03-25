@@ -216,7 +216,7 @@ LEFT JOIN vendor_sourcing.bids b ON wi.entity_type = 'tender' AND b.tender_id = 
 LEFT JOIN identity.vendors v ON b.vendor_id = v.vendor_id
 WHERE wi.entity_type = @p_entity_type
   AND wi.entity_id = @p_entity_id
-FOR UPDATE;";
+FOR UPDATE OF wi;";
 
         await using var cmd = new NpgsqlCommand(sql, conn, tx);
         cmd.Parameters.AddWithValue("p_entity_type", NpgsqlDbType.Varchar, entityType.Trim().ToLowerInvariant());

@@ -93,13 +93,28 @@ public partial class PlanningCommitteeWorkspaceController : ControllerBase
                 return NotFound();
             }
 
-            var result = await LinkRequisitionAsync(conn, tx, context, request, User.Identity?.Name ?? string.Empty, ct);
+            var result = await LinkRequisitionAsync(conn, tx, context, request, ResolveActorIdentity(User), ct);
             await tx.CommitAsync(ct);
             return Ok(result);
         }
         catch (InvalidOperationException ex)
         {
             return BadRequest(ex.Message);
+        }
+        catch (PostgresException ex) when (ex.SqlState == "23505" && ex.ConstraintName == "procurement_plans_unique_title_ux")
+        {
+            _logger.LogWarning(ex, "Duplicate procurement plan prevented while linking requisition {RequisitionId}.", requisitionId);
+            return Conflict("Procurement plan already exists for this title, department, and fiscal year.");
+        }
+        catch (PostgresException ex) when (ex.SqlState == "P0001")
+        {
+            _logger.LogWarning(ex, "Planning committee workspace link validation failed for requisition {RequisitionId}.", requisitionId);
+            return BadRequest(ex.MessageText);
+        }
+        catch (PostgresException ex)
+        {
+            _logger.LogError(ex, "Database error linking planning committee requisition {RequisitionId}.", requisitionId);
+            return BadRequest(ex.MessageText);
         }
         catch (Exception ex)
         {
@@ -117,7 +132,7 @@ public partial class PlanningCommitteeWorkspaceController : ControllerBase
             await conn.OpenAsync(ct);
             await using var tx = await conn.BeginTransactionAsync(ct);
 
-            await UnlinkRequisitionAsync(conn, tx, requisitionId, WorkflowActionGrantService.ResolveRoleKey(User), User.Identity?.Name ?? string.Empty, request?.Reason, ct);
+            await UnlinkRequisitionAsync(conn, tx, requisitionId, WorkflowActionGrantService.ResolveRoleKey(User), ResolveActorIdentity(User), request?.Reason, ct);
             await tx.CommitAsync(ct);
             return NoContent();
         }
@@ -146,7 +161,7 @@ public partial class PlanningCommitteeWorkspaceController : ControllerBase
             await using var tx = await conn.BeginTransactionAsync(ct);
 
             var roleKey = WorkflowActionGrantService.ResolveRoleKey(User);
-            var response = await SubmitMemberReviewAsync(conn, tx, requisitionId, roleKey, User.Identity?.Name ?? string.Empty, request, ct);
+            var response = await SubmitMemberReviewAsync(conn, tx, requisitionId, roleKey, ResolveActorIdentity(User), request, ct);
             await tx.CommitAsync(ct);
             return Ok(response);
         }
@@ -174,7 +189,7 @@ public partial class PlanningCommitteeWorkspaceController : ControllerBase
             await conn.OpenAsync(ct);
             await using var tx = await conn.BeginTransactionAsync(ct);
 
-            var response = await FinalizeReviewAsync(conn, tx, requisitionId, WorkflowActionGrantService.ResolveRoleKey(User), User.Identity?.Name ?? string.Empty, request, ct);
+            var response = await FinalizeReviewAsync(conn, tx, requisitionId, WorkflowActionGrantService.ResolveRoleKey(User), ResolveActorIdentity(User), request, ct);
             await tx.CommitAsync(ct);
             return Ok(response);
         }

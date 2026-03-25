@@ -1,16 +1,15 @@
 import type { Metadata } from 'next';
-import TenderDetailsPage from '../../../../vendors/features/tender/pages/TenderDetailsPage';
+import TenderPublicPage from '../../../../vendors/features/tender/pages/TenderPublicPage';
 import { createCanonicalMetadata } from '../../../seo';
 
 export function generateMetadata({
   params
 }: {
-  params: { id: string };
-}): Metadata {
-  return createCanonicalMetadata(`/tenders/${params.id}`);
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  return params.then(({ id }) => createCanonicalMetadata(`/tenders/${id}`));
 }
 
 export default function Page() {
-  return <TenderDetailsPage />;
+  return <TenderPublicPage />;
 }
-

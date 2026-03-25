@@ -16,6 +16,7 @@ export interface MemberReview {
   ReviewerUserId: string;
   Decision: string;
   Remarks: string;
+  ReviewRound: number;
   CreatedAt: string;
   UpdatedAt: string;
 }
@@ -26,6 +27,7 @@ export interface PlanningCommitteeWorkspaceAuthority {
   CanSubmitFinalDecision: boolean;
   CanUnlink: boolean;
   RequiresUnlinkReason: boolean;
+  IsReviewReopened: boolean;
 }
 
 export interface PlanningCommitteeQueueResponse {

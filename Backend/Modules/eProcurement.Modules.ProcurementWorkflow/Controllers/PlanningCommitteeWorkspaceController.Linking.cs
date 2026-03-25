@@ -89,9 +89,13 @@ WHERE requisition_id = @p_requisition_id;
     private static async Task<ProcurementPlanSummary?> GetPlanSummaryAsync(NpgsqlConnection conn, NpgsqlTransaction tx, Guid planId, CancellationToken ct)
     {
         const string sql = """
-SELECT plan_id, plan_title, department, fiscal_year, status, total_budget, created_at
-FROM procurement_workflow.procurement_plans
-WHERE plan_id = @p_plan_id;
+SELECT p.plan_id, p.plan_title, p.department, p.fiscal_year, p.status,
+       wi.current_stage_key, sc.stage_title AS current_stage_title,
+       p.total_budget, p.created_at
+FROM procurement_workflow.procurement_plans p
+LEFT JOIN procurement_workflow.workflow_instances wi ON wi.entity_type = 'procurement_plan' AND wi.entity_id = p.plan_id
+LEFT JOIN procurement_workflow.workflow_stage_catalog sc ON sc.stage_key = wi.current_stage_key
+WHERE p.plan_id = @p_plan_id;
 """;
         await using var cmd = new NpgsqlCommand(sql, conn, tx);
         cmd.Parameters.AddWithValue("p_plan_id", NpgsqlDbType.Uuid, planId);
@@ -107,6 +111,8 @@ WHERE plan_id = @p_plan_id;
             reader.GetString(reader.GetOrdinal("department")),
             reader.GetInt32(reader.GetOrdinal("fiscal_year")),
             reader.GetString(reader.GetOrdinal("status")),
+            GetNullableString(reader, "current_stage_key"),
+            GetNullableString(reader, "current_stage_title"),
             reader.GetFieldValue<decimal>(reader.GetOrdinal("total_budget")),
             reader.GetDateTime(reader.GetOrdinal("created_at")));
     }
@@ -114,11 +120,15 @@ WHERE plan_id = @p_plan_id;
     private static async Task<ProcurementPlanSummary?> FindExistingPlanAsync(NpgsqlConnection conn, NpgsqlTransaction tx, string title, string department, int fiscalYear, CancellationToken ct)
     {
         const string sql = """
-SELECT plan_id, plan_title, department, fiscal_year, status, total_budget, created_at
-FROM procurement_workflow.procurement_plans
-WHERE lower(trim(plan_title)) = lower(trim(@p_plan_title))
-  AND lower(trim(department)) = lower(trim(@p_department))
-  AND fiscal_year = @p_fiscal_year
+SELECT p.plan_id, p.plan_title, p.department, p.fiscal_year, p.status,
+       wi.current_stage_key, sc.stage_title AS current_stage_title,
+       p.total_budget, p.created_at
+FROM procurement_workflow.procurement_plans p
+LEFT JOIN procurement_workflow.workflow_instances wi ON wi.entity_type = 'procurement_plan' AND wi.entity_id = p.plan_id
+LEFT JOIN procurement_workflow.workflow_stage_catalog sc ON sc.stage_key = wi.current_stage_key
+WHERE lower(trim(p.plan_title)) = lower(trim(@p_plan_title))
+  AND lower(trim(p.department)) = lower(trim(@p_department))
+  AND p.fiscal_year = @p_fiscal_year
 LIMIT 1;
 """;
         await using var cmd = new NpgsqlCommand(sql, conn, tx);
@@ -137,6 +147,8 @@ LIMIT 1;
             reader.GetString(reader.GetOrdinal("department")),
             reader.GetInt32(reader.GetOrdinal("fiscal_year")),
             reader.GetString(reader.GetOrdinal("status")),
+            GetNullableString(reader, "current_stage_key"),
+            GetNullableString(reader, "current_stage_title"),
             reader.GetFieldValue<decimal>(reader.GetOrdinal("total_budget")),
             reader.GetDateTime(reader.GetOrdinal("created_at")));
     }
@@ -161,14 +173,16 @@ LIMIT 1;
             reader.GetString(reader.GetOrdinal("department")),
             reader.GetInt32(reader.GetOrdinal("fiscal_year")),
             reader.GetString(reader.GetOrdinal("status")),
-            GetNullableString(reader, "current_stage_key"),
-            GetNullableString(reader, "current_stage_title"),
+            GetOptionalNullableString(reader, "current_stage_key"),
+            GetOptionalNullableString(reader, "current_stage_title"),
             reader.GetFieldValue<decimal>(reader.GetOrdinal("total_budget")),
-            GetNullableString(reader, "notes"),
-            GetNullableDateTime(reader, "submitted_at"),
-            GetNullableDateTime(reader, "approved_at"),
+            GetOptionalNullableString(reader, "notes"),
+            GetOptionalNullableDateTime(reader, "submitted_at"),
+            GetOptionalNullableDateTime(reader, "approved_at"),
             reader.GetDateTime(reader.GetOrdinal("created_at")),
-            reader.GetDateTime(reader.GetOrdinal("updated_at"))), ct)).FirstOrDefault()
+            reader.GetDateTime(reader.GetOrdinal("updated_at")),
+            GetOptionalNullableGuid(reader, "yearly_app_id"),
+            GetOptionalNullableString(reader, "yearly_app_title")), ct)).FirstOrDefault()
             ?? throw new InvalidOperationException("Procurement plan creation failed.");
 
         await _workflowRuntimeTracker.SyncAsync(conn, tx, new WorkflowRuntimeSyncRequest(

@@ -188,11 +188,13 @@ export interface ProcurementPlanSummary {
     Status: string;
     TotalBudget: number;
     CreatedAt: string;
+    CurrentStageKey?: string | null;
+    CurrentStageTitle?: string | null;
+    YearlyAppId?: string | null;
+    YearlyAppTitle?: string | null;
 }
 
 export interface ProcurementPlanDetail extends ProcurementPlanSummary {
-    CurrentStageKey?: string | null;
-    CurrentStageTitle?: string | null;
     Notes?: string | null;
     SubmittedAt?: string | null;
     ApprovedAt?: string | null;
@@ -307,6 +309,7 @@ export interface TenderListResponse {
 }
 
 export interface TenderCreateRequest {
+    RequisitionId?: string | null;
     Title: string;
     Description: string;
     Category: string;

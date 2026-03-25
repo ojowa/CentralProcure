@@ -6,6 +6,7 @@ import type { PlanningCommitteeMemberStatus } from '../../../types/internal';
 interface CommitteeStatusPanelProps {
   reviews: MemberReview[];
   statuses: PlanningCommitteeMemberStatus[];
+  isReviewReopened?: boolean;
 }
 
 const committeeRoleLabels: Record<string, string> = {
@@ -23,7 +24,8 @@ const normalizeRole = (value?: string | null) =>
 
 export const CommitteeStatusPanel: React.FC<CommitteeStatusPanelProps> = ({
   reviews,
-  statuses
+  statuses,
+  isReviewReopened = false
 }) => {
   const reviewStatusMap = reviews.reduce<Record<string, MemberReview>>((acc, review) => {
     const key = normalizeRole(review.ReviewerRole);
@@ -59,7 +61,9 @@ export const CommitteeStatusPanel: React.FC<CommitteeStatusPanelProps> = ({
       {Object.entries(committeeRoleLabels).map(([roleKey, label]) => {
         const status = statusMap[roleKey];
         const review = reviewStatusMap[roleKey];
-        const decision = status?.Decision ?? review?.Decision;
+        const decision = isReviewReopened
+          ? (status?.Decision ?? null)
+          : (status?.Decision ?? review?.Decision);
 
         return (
           <div key={roleKey} className={styles.statusRow}>

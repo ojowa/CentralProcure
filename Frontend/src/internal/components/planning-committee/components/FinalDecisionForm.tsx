@@ -3,11 +3,13 @@ import styles from '../styles/planning-committee.module.css';
 
 interface FinalDecisionFormProps {
   onSubmit: (decision: string, remarks: string) => void;
+  error?: string | null;
   disabled?: boolean;
 }
 
 export const FinalDecisionForm: React.FC<FinalDecisionFormProps> = ({
   onSubmit,
+  error = null,
   disabled = false
 }) => {
   const [decision, setDecision] = useState('Recommended');
@@ -35,7 +37,7 @@ export const FinalDecisionForm: React.FC<FinalDecisionFormProps> = ({
           disabled={disabled}
         >
           <option value="Recommended">Recommended for Approval</option>
-          <option value="Returned">Return to Department</option>
+          <option value="ReturnedToDepartment">Returned to Department for Correction</option>
           <option value="Rejected">Rejected</option>
         </select>
       </div>
@@ -49,10 +51,16 @@ export const FinalDecisionForm: React.FC<FinalDecisionFormProps> = ({
           required
           value={remarks}
           onChange={(e) => setRemarks(e.target.value)}
-          placeholder="Summary of committee findings..."
+          placeholder="State why the requisition is being recommended, returned for correction, or rejected..."
           disabled={disabled}
         />
       </div>
+
+      {error ? (
+        <div className="portal-alert" style={{ marginBottom: '12px' }}>
+          {error}
+        </div>
+      ) : null}
 
       <button
         type="submit"

@@ -28,24 +28,26 @@ public partial class PlanningCommitteeWorkspaceController
             await CreateAppItemForRequisitionAsync(conn, tx, planId, requisitionId, ct);
         }
 
+        await UpdateRequisitionStatusForFinalDecisionAsync(conn, tx, requisitionId, request.OverallDecision, ct);
+
         var response = await UpsertCommitteeDecisionAsync(conn, tx, requisitionId, planId, actor, request, ct)
             ?? throw new InvalidOperationException("Failed to submit committee decision.");
         var nextStage = request.OverallDecision switch
         {
             "Recommended" => "planning_committee_review",
-            "Returned" => "department_head_endorsement",
+            "ReturnedToDepartment" => "department_head_endorsement",
             _ => "planning_committee_review"
         };
         var workflowStatus = request.OverallDecision switch
         {
             "Recommended" => "Under Review",
-            "Returned" => "Draft",
+            "ReturnedToDepartment" => "Draft",
             _ => "Rejected"
         };
         var transitionReason = request.OverallDecision switch
         {
-            "Recommended" => "Committee finalized requisition and created APP item. Awaiting APP recommendation by Procurement Secretary.",
-            "Returned" => request.CommitteeRemarks ?? "Committee returned requisition for correction.",
+            "Recommended" => "Committee finalized requisition, created APP item, and approved the requisition into the departmental plan.",
+            "ReturnedToDepartment" => request.CommitteeRemarks ?? "Committee returned requisition to department for correction.",
             _ => request.CommitteeRemarks ?? "Committee rejected requisition."
         };
 
@@ -191,5 +193,31 @@ WHERE requisition_id = @p_requisition_id;
         updateReqCmd.Parameters.AddWithValue("p_app_item_id", NpgsqlDbType.Uuid, createdItem);
         updateReqCmd.Parameters.AddWithValue("p_requisition_id", NpgsqlDbType.Uuid, requisitionId);
         await updateReqCmd.ExecuteNonQueryAsync(ct);
+    }
+
+    private static async Task UpdateRequisitionStatusForFinalDecisionAsync(
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        Guid requisitionId,
+        string overallDecision,
+        CancellationToken ct)
+    {
+        var nextStatus = overallDecision switch
+        {
+            "Recommended" => "Approved",
+            "ReturnedToDepartment" => "Draft",
+            _ => "Rejected"
+        };
+
+        const string sql = """
+UPDATE procurement_workflow.requisitions
+SET status = @p_status,
+    updated_at = NOW()
+WHERE requisition_id = @p_requisition_id;
+""";
+        await using var cmd = new NpgsqlCommand(sql, conn, tx);
+        cmd.Parameters.AddWithValue("p_requisition_id", NpgsqlDbType.Uuid, requisitionId);
+        cmd.Parameters.AddWithValue("p_status", NpgsqlDbType.Varchar, nextStatus);
+        await cmd.ExecuteNonQueryAsync(ct);
     }
 }

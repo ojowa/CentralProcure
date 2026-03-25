@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS procurement_workflow.planning_committee_decisions (
     plan_id UUID NOT NULL UNIQUE,
     chairman_user_id VARCHAR(255) NOT NULL,
     secretary_user_id VARCHAR(255) NOT NULL,
-    overall_decision VARCHAR(50) NOT NULL, -- 'Recommended', 'Returned', 'Rejected'
+    overall_decision VARCHAR(50) NOT NULL, -- 'Recommended', 'ReturnedToDepartment', 'Rejected'
     committee_remarks TEXT NULL,
     meeting_date DATE NOT NULL DEFAULT CURRENT_DATE,
     -- Audit fields
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS procurement_workflow.planning_committee_decisions (
         REFERENCES procurement_workflow.procurement_plans(plan_id)
         ON DELETE CASCADE,
     CONSTRAINT committee_decision_overall_chk
-        CHECK (overall_decision IN ('Recommended', 'Returned', 'Rejected'))
+        CHECK (overall_decision IN ('Recommended', 'ReturnedToDepartment', 'Rejected'))
 );
 
 -- Stored Procedures
@@ -159,7 +159,7 @@ BEGIN
     -- The specific stage is managed by the workflow_runtime_tracker.
     IF p_overall_decision = 'Recommended' THEN
         v_plan_status := 'Submitted'; 
-    ELSIF p_overall_decision = 'Returned' THEN
+    ELSIF p_overall_decision = 'ReturnedToDepartment' THEN
         v_plan_status := 'Draft'; -- Return to department
     ELSIF p_overall_decision = 'Rejected' THEN
         v_plan_status := 'Rejected';

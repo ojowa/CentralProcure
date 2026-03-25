@@ -52,6 +52,7 @@ import {
 } from './requisitionWorkspace/sectionViews';
 import { WorkflowProgressStepper } from './WorkflowProgressStepper';
 import { getHumanStatus } from '../utils/workflow';
+import { RequisitionRoutingTimeline } from './RequisitionRoutingTimeline';
 
 interface Props {
   module: InternalModule;
@@ -323,6 +324,8 @@ export const RequisitionTrackingPage = ({ module, token, role, userEmail, onModu
       canEditDrafts={canEditDrafts}
       isSaving={isSaving}
       workflowRuntime={workflowRuntime}
+      workflowHistory={workflowHistory}
+      isWorkflowLoading={isWorkflowLoading}
       onOpenSelectedForEdit={openSelectedForEdit}
       onSubmitSelectedDraft={() => void submitSelectedDraft()}
       onDeleteRequisition={() => {}}
@@ -417,6 +420,8 @@ export const RequisitionTrackingPage = ({ module, token, role, userEmail, onModu
                 canEditDrafts={canEditDrafts}
                 isSaving={isSaving}
                 workflowRuntime={workflowRuntime}
+                workflowHistory={workflowHistory}
+                isWorkflowLoading={isWorkflowLoading}
                 onOpenSelectedForEdit={openSelectedForEdit}
                 onSubmitSelectedDraft={() => void submitSelectedDraft()}
                 onDeleteRequisition={() => {}}

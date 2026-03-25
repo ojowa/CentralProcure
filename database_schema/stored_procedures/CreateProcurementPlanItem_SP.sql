@@ -157,6 +157,8 @@ BEGIN
     )
     RETURNING procurement_plan_items.plan_item_id INTO v_plan_item_id;
 
+    PERFORM procurement_workflow.sync_procurement_plan_total_budget(p_plan_id);
+
     RETURN QUERY
     SELECT
         i.plan_item_id,

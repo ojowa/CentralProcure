@@ -203,3 +203,22 @@ export const unlinkRequisitionAppItem = async (
     throw new Error(text || `Unlink failed (${response.status}).`);
   }
 };
+
+export const submitDepartmentHeadReview = async (
+  token: string,
+  requisitionId: string,
+  payload: { Decision: 'endorse' | 'return' | 'reject'; Notes: string }
+): Promise<{ message: string; requisitionId: string; newStatus: string }> => {
+  const response = await fetch(`${baseUrl}/${requisitionId}/department-head-review`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      ...buildCsrfHeaders()
+    },
+    credentials: 'include',
+    body: JSON.stringify(payload)
+  });
+
+  return parseResponse<{ message: string; requisitionId: string; newStatus: string }>(response);
+};

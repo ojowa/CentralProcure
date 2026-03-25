@@ -11,15 +11,34 @@ const trimTrailingSlash = (value: string): string => {
 export const normalizeModuleRouteSegment = (value: string): string =>
   value.toLowerCase().replace(/[^a-z0-9]/g, '');
 
+const resolveTenderModuleAlias = (moduleId?: string | null): string | null => {
+  if (!moduleId) {
+    return moduleId ?? null;
+  }
+
+  const normalizedModuleId = normalizeModuleRouteSegment(moduleId);
+  if (
+    normalizedModuleId === normalizeModuleRouteSegment('tender-management') ||
+    normalizedModuleId === normalizeModuleRouteSegment('publish-tender') ||
+    normalizedModuleId === normalizeModuleRouteSegment('tender-create')
+  ) {
+    return 'create-tender';
+  }
+
+  return moduleId;
+};
+
 export const toInternalModuleRouteSegment = (moduleId: string): string =>
-  normalizeModuleRouteSegment(moduleId);
+  normalizeModuleRouteSegment(resolveTenderModuleAlias(moduleId) ?? moduleId);
 
 export const getInternalDashboardPath = (moduleId?: string | null): string => {
-  if (!moduleId || moduleId === 'dashboard') {
+  const resolvedModuleId = resolveTenderModuleAlias(moduleId);
+
+  if (!resolvedModuleId || resolvedModuleId === 'dashboard') {
     return INTERNAL_DASHBOARD_BASE_PATH;
   }
 
-  return `${INTERNAL_DASHBOARD_BASE_PATH}/${toInternalModuleRouteSegment(moduleId)}`;
+  return `${INTERNAL_DASHBOARD_BASE_PATH}/${toInternalModuleRouteSegment(resolvedModuleId)}`;
 };
 
 export const getInternalDashboardRouteSegment = (pathname?: string | null): string | null => {
@@ -50,6 +69,16 @@ export const resolveModuleIdFromRouteSegment = (
   }
 
   const normalizedSegment = normalizeModuleRouteSegment(routeSegment);
+  if (
+    (
+      normalizedSegment === normalizeModuleRouteSegment('publish-tender') ||
+      normalizedSegment === normalizeModuleRouteSegment('tender-management') ||
+      normalizedSegment === normalizeModuleRouteSegment('tender-create')
+    ) &&
+    moduleIds.includes('create-tender')
+  ) {
+    return 'create-tender';
+  }
   return (
     moduleIds.find((moduleId) => normalizeModuleRouteSegment(moduleId) === normalizedSegment) ?? null
   );

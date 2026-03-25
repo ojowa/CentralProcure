@@ -34,10 +34,14 @@ ORDER BY r.created_at DESC;
     private static async Task<List<ProcurementPlanSummary>> GetAvailablePlansAsync(NpgsqlConnection conn, NpgsqlTransaction tx, CancellationToken ct)
     {
         const string sql = """
-SELECT plan_id, plan_title, department, fiscal_year, status, total_budget, created_at
-FROM procurement_workflow.procurement_plans
-WHERE status ILIKE 'Under Review'
-ORDER BY created_at DESC;
+SELECT p.plan_id, p.plan_title, p.department, p.fiscal_year, p.status,
+       wi.current_stage_key, sc.stage_title AS current_stage_title,
+       p.total_budget, p.created_at
+FROM procurement_workflow.procurement_plans p
+LEFT JOIN procurement_workflow.workflow_instances wi ON wi.entity_type = 'procurement_plan' AND wi.entity_id = p.plan_id
+LEFT JOIN procurement_workflow.workflow_stage_catalog sc ON sc.stage_key = wi.current_stage_key
+WHERE p.status ILIKE 'Under Review'
+ORDER BY p.created_at DESC;
 """;
         await using var cmd = new NpgsqlCommand(sql, conn, tx);
         await using var reader = await cmd.ExecuteReaderAsync(ct);
@@ -50,6 +54,8 @@ ORDER BY created_at DESC;
                 reader.GetString(reader.GetOrdinal("department")),
                 reader.GetInt32(reader.GetOrdinal("fiscal_year")),
                 reader.GetString(reader.GetOrdinal("status")),
+                GetNullableString(reader, "current_stage_key"),
+                GetNullableString(reader, "current_stage_title"),
                 reader.GetFieldValue<decimal>(reader.GetOrdinal("total_budget")),
                 reader.GetDateTime(reader.GetOrdinal("created_at"))));
         }

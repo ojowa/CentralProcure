@@ -24,6 +24,12 @@ export const RequisitionDetailModal: React.FC<RequisitionDetailModalProps> = ({
 }) => {
   if (!isOpen || !requisition) return null;
 
+  const formatDecisionLabel = (value?: string | null) => {
+    if (value === 'ReturnedToDepartment') return 'Returned to Department for Correction';
+    if (value === 'Recommended') return 'Recommended for Approval';
+    return value || 'Pending';
+  };
+
   const filteredReviews = memberReviews.filter(
     (r) => !excludedCommitteeRoles.has(normalizeRole(r.ReviewerRole))
   );
@@ -46,7 +52,7 @@ export const RequisitionDetailModal: React.FC<RequisitionDetailModalProps> = ({
           </div>
           <div className={styles.field}>
             <span>Final Committee Decision</span>
-            <strong>{requisition.FinalCommitteeDecision ?? 'Pending'}</strong>
+            <strong>{formatDecisionLabel(requisition.FinalCommitteeDecision)}</strong>
           </div>
           <div className={styles.field}>
             <span>Current Stage</span>

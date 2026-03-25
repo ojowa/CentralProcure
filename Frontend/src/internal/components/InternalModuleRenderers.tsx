@@ -15,7 +15,6 @@ import { ProfilePage } from './ProfilePage';
 import { WorkflowConfigurationModulePage } from './WorkflowConfigurationModulePage';
 import { ProcurementPlanModule } from './ProcurementPlanModule';
 import { PlanningCommitteeReviewModule } from './PlanningCommitteeReviewModule';
-import { TenderManagementModule } from './TenderManagementModule';
 import { EvaluationScoringModule } from './EvaluationScoringModule';
 import { BidOpeningModule } from './BidOpeningModule';
 import { TendersBoardApprovalModule } from './TendersBoardApprovalModule';
@@ -25,6 +24,9 @@ import { BppEscalationModule } from './BppEscalationModule';
 import { VendorRegistrationApprovalModule } from './VendorRegistrationApprovalModule';
 import { AdminRequisitionManagementPage } from './AdminRequisitionManagementPage';
 import { BudgetOfficerWorkspacePage } from './BudgetOfficerWorkspacePage';
+import { DepartmentHeadReviewModule } from './DepartmentHeadReviewModule';
+import { ThresholdConfigurationModule } from './ThresholdConfigurationModule';
+import { TenderCreatePage } from './TenderCreatePage';
 
 export type InternalModuleRendererProps = {
   module: InternalModule;
@@ -91,8 +93,7 @@ export const moduleRenderers: Partial<Record<string, (props: InternalModuleRende
   'workflow-blueprint': (props) => <WorkflowBlueprintPage module={props.module} token={props.token} />,
   'annual-procurement-plan': (props) => <ProcurementPlanModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
   'procurement-planning-committee': (props) => <PlanningCommitteeReviewModule module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} initialData={props.moduleData} />,
-  'create-tender': (props) => <TenderManagementModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
-  'publish-tender': (props) => <TenderManagementModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
+  'create-tender': (props) => <TenderCreatePage token={props.token} module={props.module} />,
   'technical-evaluation': (props) => <EvaluationScoringModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
   'financial-evaluation': (props) => <EvaluationScoringModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
   'user-role-management': (props) => <UserRoleManagementModule module={props.module} token={props.token} />,
@@ -101,5 +102,7 @@ export const moduleRenderers: Partial<Record<string, (props: InternalModuleRende
   'cgis-approval': (props) => <CgisApprovalModule module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} />,
   'workflow-configuration': (props) => <WorkflowConfigurationModulePage module={props.module} moduleData={props.moduleData} moduleError={props.moduleError} token={props.token} />,
   'vendor-registration-approval': (props) => <VendorRegistrationApprovalModule module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} />,
+  'department-head-review': (props) => <DepartmentHeadReviewModule module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} />,
+  'threshold-configuration': (props) => <ThresholdConfigurationModule module={props.module} token={props.token} />,
   'user-profile': (props) => <ProfilePage module={props.module} token={props.token} userEmail={props.userEmail} />
 };

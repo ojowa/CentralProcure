@@ -40,6 +40,7 @@ public record TenderListResponse(
     long Total);
 
 public record TenderCreateRequest(
+    Guid? RequisitionId,
     string Title,
     string Description,
     string Category,

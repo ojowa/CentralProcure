@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import type { InternalModule, RoleKey } from '../types/internal';
-import { fetchModuleData, applyCgisAction } from '../services/moduleService';
-import { CgisDecisionModal } from './CgisDecisionModal';
-import { CgisDocumentsPanel } from './CgisDocumentsPanel';
+import type { InternalModule, ProcurementPlanItemDetail, RoleKey } from '../types/internal';
+import { fetchModuleData, applyCgisAction, fetchPlanDetails } from '../services/moduleService';
+import { CgisDecisionModal } from './cgis/CgisDecisionModal';
+import { CgisDocumentsPanel } from './cgis/CgisDocumentsPanel';
+import { CgisQueueTable, CgisCaseDetail } from './cgis/CgisComponents';
 
 interface CgisQueueItem {
   InstanceId: string;
@@ -26,7 +27,7 @@ interface CgisApprovalModuleProps {
   userEmail?: string | null;
 }
 
-export const CgisApprovalModule = ({ module, token, role, userEmail }: CgisApprovalModuleProps) => {
+export const CgisApprovalModule = ({ module, token, userEmail }: CgisApprovalModuleProps) => {
   const [queue, setQueue] = useState<CgisQueueItem[]>([]);
   const [selectedCase, setSelectedCase] = useState<CgisQueueItem | null>(null);
   const [rationale, setRationale] = useState('');
@@ -34,6 +35,8 @@ export const CgisApprovalModule = ({ module, token, role, userEmail }: CgisAppro
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [pendingAction, setPendingAction] = useState<'approve' | 'reject' | 'return' | 'escalate' | null>(null);
+  const [modalError, setModalError] = useState<string | null>(null);
+  const [planItems, setPlanItems] = useState<ProcurementPlanItemDetail[]>([]);
 
   const loadQueue = async () => {
     if (!token) return;
@@ -53,12 +56,29 @@ export const CgisApprovalModule = ({ module, token, role, userEmail }: CgisAppro
     void loadQueue();
   }, [token]);
 
+  useEffect(() => {
+    const loadPlanItems = async () => {
+      if (!token || !selectedCase || selectedCase.EntityType.toLowerCase() !== 'procurement_plan') {
+        setPlanItems([]);
+        return;
+      }
+      try {
+        const detail = await fetchPlanDetails(selectedCase.EntityId, token);
+        setPlanItems(detail.Items || []);
+      } catch {
+        setPlanItems([]);
+      }
+    };
+    void loadPlanItems();
+  }, [selectedCase, token]);
+
   const initiateAction = (action: 'approve' | 'reject' | 'return' | 'escalate') => {
     if (!rationale.trim()) {
       setError('Rationale is mandatory for all executive decisions.');
       return;
     }
     setError(null);
+    setModalError(null);
     setPendingAction(action);
   };
 
@@ -67,6 +87,7 @@ export const CgisApprovalModule = ({ module, token, role, userEmail }: CgisAppro
 
     setIsProcessing(true);
     setError(null);
+    setModalError(null);
     try {
       await applyCgisAction(pendingAction, {
         EntityType: selectedCase.EntityType,
@@ -74,178 +95,86 @@ export const CgisApprovalModule = ({ module, token, role, userEmail }: CgisAppro
         Rationale: rationale.trim(),
         Actor: userEmail
       }, token);
-      
+
       setRationale('');
+      setModalError(null);
       setPendingAction(null);
       setSelectedCase(null);
       await loadQueue();
     } catch (err) {
-      setError(err instanceof Error ? err.message : `Failed to ${pendingAction} case.`);
-      setPendingAction(null);
+      const message = err instanceof Error ? err.message : `Failed to ${pendingAction} case.`;
+      setError(message);
+      setModalError(message);
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const formatAmount = (val: number | null) => 
-    val !== null ? new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(val) : 'N/A';
+  const handleBack = () => {
+    setSelectedCase(null);
+    setRationale('');
+    setError(null);
+    setModalError(null);
+  };
 
   return (
-    <section className="portal-module">
-      <header className="module-header">
-        <div>
-          <h2>{module.title}</h2>
-          <p>{module.description}</p>
+    <section className="app-module">
+      <header className="app-module__header">
+        <div className="app-module__title-group">
+          <h2 className="app-module__title">{module.title}</h2>
+          <p className="app-module__description">{module.description}</p>
         </div>
-        <button className="plan-button-secondary" onClick={() => void loadQueue()} disabled={isLoading}>
+        <button className="app-btn app-btn--secondary" onClick={() => void loadQueue()} disabled={isLoading}>
           {isLoading ? 'Refreshing...' : 'Refresh Queue'}
         </button>
       </header>
 
-      {error && <div className="portal-alert animate-shake">{error}</div>}
+      {error && (
+        <div className="app-alert app-alert--error animate-shake">
+          <span className="app-alert__icon">⚠</span>
+          {error}
+        </div>
+      )}
 
       {selectedCase ? (
-        <div className="portal-module-detail">
-          <div className="detail-header">
-            <button className="plan-link" onClick={() => setSelectedCase(null)}>&larr; Back to Queue</button>
-            <h3>Reviewing: {selectedCase.RecordTitle || 'Untitled Case'}</h3>
-          </div>
-
-          <div className="portal-module-grid">
-            <article className="portal-module-card">
-              <h4>Case Identity</h4>
-              <p><strong>Type:</strong> {selectedCase.EntityType}</p>
-              <p><strong>ID:</strong> {selectedCase.EntityId}</p>
-              <p><strong>Department:</strong> {selectedCase.Department}</p>
-            </article>
-
-            <article className="portal-module-card">
-              <h4>Financial Summary</h4>
-              <p><strong>Total Amount:</strong> {formatAmount(selectedCase.Amount)}</p>
-              <p><strong>Route:</strong> {selectedCase.ApprovalRoute || 'Low-Value Direct'}</p>
-              <p><strong>Authority:</strong> {selectedCase.ApprovalAuthorityLabel || 'CGIS'}</p>
-            </article>
-
-            <article className="portal-module-card highlight-card">
-              <h4>Recommended Vendor</h4>
-              <p><strong>Company:</strong> {selectedCase.VendorName || 'TBD (Evaluation Pending)'}</p>
-              <p><strong>Status:</strong> <span className="admin-status admin-status--good">Evaluated & Recommended</span></p>
-            </article>
-
-            <article className="portal-module-card">
-              <h4>Why This Reached CGIS</h4>
-              <p>This procurement follows the <strong>{selectedCase.ApprovalRoute || 'Low-Value Direct'}</strong> path, which mandates final executive review by the Accounting Officer (CGIS) as per PPA 2007 guidelines.</p>
-              <p className="days-warning">{selectedCase.DaysPending} days pending in executive queue.</p>
-            </article>
-          </div>
-
-          <CgisDocumentsPanel 
-            entityType={selectedCase.EntityType} 
-            entityId={selectedCase.EntityId} 
-            token={token} 
+        <>
+          <CgisCaseDetail
+            selectedCase={selectedCase}
+            planItems={planItems}
+            rationale={rationale}
+            isProcessing={isProcessing}
+            error={null}
+            token={token}
+            onBack={handleBack}
+            onRationaleChange={setRationale}
+            onActionInitiate={initiateAction}
           />
-
-          <div className="action-panel" style={{ marginTop: '24px', padding: '20px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-            <h4>Executive Decision</h4>
-            <div className="plan-field">
-              <label><span>Rationale / Decision Note (Mandatory)</span></label>
-              <textarea 
-                className="plan-input" 
-                rows={4} 
-                placeholder="Enter the justification for this approval, rejection, or return. This will be recorded in the audit trail."
-                value={rationale}
-                onChange={(e) => setRationale(e.target.value)}
-              />
-            </div>
-
-            <div className="plan-button-group" style={{ marginTop: '16px' }}>
-              <button 
-                className="plan-button" 
-                onClick={() => initiateAction('approve')} 
-                disabled={isProcessing || !rationale.trim()}
-              >
-                Approve Award
-              </button>
-              <button 
-                className="plan-button-secondary plan-button-danger-outline" 
-                onClick={() => initiateAction('reject')} 
-                disabled={isProcessing || !rationale.trim()}
-              >
-                Reject Award
-              </button>
-              <button 
-                className="plan-button-secondary" 
-                onClick={() => initiateAction('return')} 
-                disabled={isProcessing || !rationale.trim()}
-              >
-                Return for Clarification
-              </button>
-              <button 
-                className="plan-button-secondary" 
-                onClick={() => initiateAction('escalate')} 
-                disabled={isProcessing || !rationale.trim()}
-              >
-                Escalate to Board
-              </button>
-            </div>
-          </div>
-
+          <CgisDocumentsPanel
+            entityType={selectedCase.EntityType}
+            entityId={selectedCase.EntityId}
+            token={token}
+          />
           {pendingAction && (
             <CgisDecisionModal
               action={pendingAction}
               recordTitle={selectedCase.RecordTitle || 'Untitled Case'}
               rationale={rationale}
+              error={modalError}
               isProcessing={isProcessing}
               onConfirm={() => void confirmAction()}
-              onCancel={() => setPendingAction(null)}
+              onCancel={() => {
+                setPendingAction(null);
+                setModalError(null);
+              }}
             />
           )}
-        </div>
+        </>
       ) : (
-        <div className="portal-table-container">
-          <table className="plan-table">
-            <thead>
-              <tr>
-                <th>Case Ref</th>
-                <th>Title</th>
-                <th>Department</th>
-                <th>Amount</th>
-                <th>Route</th>
-                <th>Recommendation</th>
-                <th>Days</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {queue.length > 0 ? (
-                queue.map((item) => (
-                  <tr key={item.InstanceId}>
-                    <td className="monospace" style={{ fontSize: '0.85em' }}>{item.EntityId.slice(0, 8)}...</td>
-                    <td><strong>{item.RecordTitle || 'Untitled'}</strong></td>
-                    <td>{item.Department}</td>
-                    <td>{formatAmount(item.Amount)}</td>
-                    <td><span className="plan-badge">{item.ApprovalRoute || 'Direct'}</span></td>
-                    <td>{item.Status || 'Ready for Review'}</td>
-                    <td>
-                      <span className={item.DaysPending > 5 ? 'text-urgent' : ''}>
-                        {item.DaysPending}d
-                      </span>
-                    </td>
-                    <td>
-                      <button className="plan-link" onClick={() => setSelectedCase(item)}>Open Case</button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={8} className="plan-empty">
-                    {isLoading ? 'Loading CGIS queue...' : 'No pending cases in the CGIS approval queue.'}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <CgisQueueTable
+          queue={queue}
+          isLoading={isLoading}
+          onSelectCase={setSelectedCase}
+        />
       )}
     </section>
   );

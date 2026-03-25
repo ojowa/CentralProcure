@@ -45,7 +45,7 @@ const downloadCsv = (filename: string, rows: string[][]) => {
 export const PlanningCommitteeReviewModule: React.FC<Props> = ({
   module,
   token,
-  role: _role,
+  role,
   userEmail: _userEmail,
   initialData: _initialData
 }) => {
@@ -58,6 +58,8 @@ export const PlanningCommitteeReviewModule: React.FC<Props> = ({
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [selectedRequisitionForModal, setSelectedRequisitionForModal] = useState<RequisitionSummary | null>(null);
   const [planNotice, setPlanNotice] = useState<string | null>(null);
+  const [planModalError, setPlanModalError] = useState<string | null>(null);
+  const [finalDecisionError, setFinalDecisionError] = useState<string | null>(null);
   const [selectedPlanForAppItems, setSelectedPlanForAppItems] = useState('');
 
   const {
@@ -115,12 +117,14 @@ export const PlanningCommitteeReviewModule: React.FC<Props> = ({
 
   const openWorkspace = useCallback(async (req: RequisitionSummary) => {
     pushView('workspace');
+    setFinalDecisionError(null);
     await loadWorkspaceData(req);
   }, [pushView, loadWorkspaceData]);
 
   const openLinkModal = useCallback((req: RequisitionSummary) => {
     setSelectedRequisitionForModal(req);
     setPlanNotice(null);
+    setPlanModalError(null);
     setIsLinkModalOpen(true);
     clearNotifications();
   }, [clearNotifications]);
@@ -138,17 +142,19 @@ export const PlanningCommitteeReviewModule: React.FC<Props> = ({
   ) => {
     if (!selectedRequisitionForModal) return false;
 
-    const success = await linkToPlan(
+    const result = await linkToPlan(
       selectedRequisitionForModal,
       mode,
       config,
       setPlanNotice
     );
 
-    if (success) {
+    setPlanModalError(result.error ?? null);
+
+    if (result.success) {
       setIsLinkModalOpen(false);
     }
-    return success;
+    return result.success;
   }, [selectedRequisitionForModal, linkToPlan]);
 
   const handleSubmitReview = useCallback(async (decision: string, remarks: string) => {
@@ -160,16 +166,25 @@ export const PlanningCommitteeReviewModule: React.FC<Props> = ({
 
   const handleSubmitFinalDecision = useCallback(async (decision: string, remarks: string) => {
     if (!token || !state.selectedPlan || !state.selectedRequisition) return false;
-    const success = await submitFinalDecision(decision, remarks);
-    if (success) {
+    setFinalDecisionError(null);
+    const result = await submitFinalDecision(decision, remarks);
+    setFinalDecisionError(result.error ?? null);
+    if (result.success) {
       if (decision === 'Recommended') {
-        router.push(`/internal/dashboard/annualprocurementplan?planId=${encodeURIComponent(state.selectedPlan.PlanId)}&view=details`);
+        const refreshedPlans = await loadPlans();
+        setSelectedPlanForAppItems(state.selectedPlan.PlanId);
+        pushView('app-items');
+        if (!refreshedPlans.some((plan: { PlanId: string }) => plan.PlanId === state.selectedPlan?.PlanId)) {
+          setPlanNotice('The requisition was approved into its departmental plan, but the plan is not in the current planning-committee filter.');
+        } else {
+          setPlanNotice('The requisition was approved successfully by Planning Committee. It is now part of the departmental plan.');
+        }
       } else {
         pushView('linked');
       }
     }
-    return success;
-  }, [token, state.selectedPlan, state.selectedRequisition, submitFinalDecision, pushView, router]);
+    return result.success;
+  }, [token, state.selectedPlan, state.selectedRequisition, submitFinalDecision, pushView, loadPlans]);
 
   const handleUnlink = useCallback(async (reason: string) => {
     if (!state.selectedRequisition) return false;
@@ -206,19 +221,20 @@ export const PlanningCommitteeReviewModule: React.FC<Props> = ({
     downloadCsv('linked_requisitions.csv', rows);
   }, [state.linkedRequisitions]);
 
-  const exportAppItemsCsv = useCallback(() => {
+  const exportDepartmentPlansCsv = useCallback(() => {
     const rows = [
-      ['Code', 'Description', 'Budget Code', 'Amount', 'Status'],
-      ...state.appItems.map((item) => [
-        item.ItemCode ?? '—',
-        item.Description,
-        item.BudgetCode,
-        formatCurrency(item.EstimatedAmount),
-        item.Status
+      ['Department', 'Plan Title', 'Fiscal Year', 'Status', 'Total Budget', 'Created'],
+      ...state.plans.map((plan) => [
+        plan.Department || 'Unassigned',
+        plan.PlanTitle,
+        String(plan.FiscalYear),
+        plan.Status,
+        formatCurrency(plan.TotalBudget),
+        new Date(plan.CreatedAt).toLocaleDateString()
       ])
     ];
-    downloadCsv('app_items.csv', rows);
-  }, [state.appItems]);
+    downloadCsv('department_plans.csv', rows);
+  }, [state.plans]);
 
   const exportReviewsCsv = useCallback(() => {
     const rows = [
@@ -236,7 +252,7 @@ export const PlanningCommitteeReviewModule: React.FC<Props> = ({
   // Load plans for APP items view
   React.useEffect(() => {
     if (token && view === 'app-items' && state.plans.length === 0) {
-      loadPlans('Under Review').then((plans) => {
+      loadPlans().then((plans) => {
         if (plans.length > 0 && !selectedPlanForAppItems) {
           setSelectedPlanForAppItems(plans[0].PlanId);
         }
@@ -251,7 +267,7 @@ export const PlanningCommitteeReviewModule: React.FC<Props> = ({
         <div className={styles.headerTitle}>
           <h2>{module.title || 'Planning Committee Review'}</h2>
           <p className={styles.headerSubtitle}>
-            {module.description || 'Assign requisitions to a committee plan, record requisition-level committee decisions, and move approved requisitions into APP approval.'}
+            {module.description || 'Assign requisitions to a departmental plan, record requisition-level committee decisions, and keep approved requisitions in planning committee until Procurement Secretary recommends the plan.'}
           </p>
         </div>
         <nav className={styles.tabs}>
@@ -271,7 +287,7 @@ export const PlanningCommitteeReviewModule: React.FC<Props> = ({
             className={`${styles.tab} ${view === 'app-items' ? styles.tabActive : ''}`}
             onClick={() => pushView('app-items')}
           >
-            APP Items
+            Department Plans
           </button>
           {state.selectedRequisition && view === 'workspace' && (
             <button
@@ -317,13 +333,16 @@ export const PlanningCommitteeReviewModule: React.FC<Props> = ({
 
       {view === 'app-items' && (
         <AppItemsBrowser
+          token={token}
+          role={role}
           plans={state.plans}
           appItems={state.appItems}
           selectedPlanId={selectedPlanForAppItems}
           onPlanChange={setSelectedPlanForAppItems}
           onLoadItems={loadAppItems}
+          onPlanRecommended={async () => { await loadPlans(); }}
           formatCurrency={formatCurrency}
-          downloadCsv={exportAppItemsCsv}
+          downloadCsv={exportDepartmentPlansCsv}
         />
       )}
 
@@ -336,6 +355,7 @@ export const PlanningCommitteeReviewModule: React.FC<Props> = ({
           memberStatuses={state.memberStatuses}
           decision={state.selectedDecision}
           authority={state.workspaceAuthority}
+          finalDecisionError={finalDecisionError}
           loading={loading.action}
           onSubmitReview={handleSubmitReview}
           onSubmitFinalDecision={handleSubmitFinalDecision}
@@ -362,6 +382,7 @@ export const PlanningCommitteeReviewModule: React.FC<Props> = ({
         onLoadPlans={async () => {
           return state.availablePlans.length > 0 ? state.availablePlans : await loadPlans('Under Review');
         }}
+        error={planModalError}
         notice={planNotice}
       />
 

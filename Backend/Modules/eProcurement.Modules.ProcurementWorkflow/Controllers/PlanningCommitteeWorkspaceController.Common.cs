@@ -1,4 +1,5 @@
 using System.Data;
+using System.Security.Claims;
 using Npgsql;
 using NpgsqlTypes;
 using eProcurement.Modules.ProcurementWorkflow.DTOs;
@@ -17,6 +18,17 @@ public partial class PlanningCommitteeWorkspaceController
         "procurement_secretary"
     };
 
+    private static string NormalizeRoleKey(string? value)
+        => string.IsNullOrWhiteSpace(value)
+            ? string.Empty
+            : value.Trim().ToLowerInvariant().Replace("_", string.Empty).Replace("-", string.Empty).Replace(" ", string.Empty);
+
+    private static string ResolveActorIdentity(ClaimsPrincipal user)
+        => user.FindFirstValue(ClaimTypes.Email)
+            ?? user.FindFirstValue(ClaimTypes.Name)
+            ?? user.Identity?.Name
+            ?? string.Empty;
+
     private sealed record LinkContext(
         Guid RequisitionId,
         string Title,
@@ -31,17 +43,37 @@ public partial class PlanningCommitteeWorkspaceController
     private static PlanningCommitteeQueueAuthority BuildQueueAuthority(string? roleKey)
         => new(true, true, true);
 
-    private static PlanningCommitteeWorkspaceAuthority BuildWorkspaceAuthority(string? roleKey, RequisitionSummary requisition, CommitteeDecisionResponse? decision)
+    private static PlanningCommitteeWorkspaceAuthority BuildWorkspaceAuthority(
+        string? roleKey,
+        RequisitionSummary requisition,
+        ProcurementPlanDetail? plan,
+        IReadOnlyList<MemberStatusResponse> statuses,
+        CommitteeDecisionResponse? decision)
     {
-        var normalized = roleKey?.Trim().ToLowerInvariant();
-        var canUnlink = normalized is "financial_unit_officer" or "admin";
+        var normalized = NormalizeRoleKey(roleKey);
+        var canUnlink = normalized is "financialunitofficer" or "admin";
         var hasFinalDecision = decision is not null;
+        var isReviewReopened =
+            string.Equals(plan?.CurrentStageKey, "planning_committee_review", StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(plan?.Status, "Returned", StringComparison.OrdinalIgnoreCase);
+        var canSubmitReview = !hasFinalDecision || isReviewReopened;
+        var hasSubmittedCurrentReview =
+            !string.IsNullOrWhiteSpace(normalized) &&
+            normalized != NormalizeRoleKey(ChairRoleKey) &&
+            statuses.Any(status =>
+                NormalizeRoleKey(status.RoleKey) == normalized &&
+                !string.IsNullOrWhiteSpace(status.Decision));
         return new PlanningCommitteeWorkspaceAuthority(
-            requisition.AppItemId is null && !hasFinalDecision,
-            !hasFinalDecision && normalized is not null && normalized != ChairRoleKey && MemberRoleKeys.Contains(normalized, StringComparer.OrdinalIgnoreCase),
-            !hasFinalDecision && string.Equals(normalized, ChairRoleKey, StringComparison.OrdinalIgnoreCase),
+            requisition.AppItemId is null && canSubmitReview,
+            canSubmitReview &&
+            !string.IsNullOrWhiteSpace(normalized) &&
+            normalized != NormalizeRoleKey(ChairRoleKey) &&
+            MemberRoleKeys.Any(role => NormalizeRoleKey(role) == normalized) &&
+            !hasSubmittedCurrentReview,
+            canSubmitReview && normalized == NormalizeRoleKey(ChairRoleKey),
             canUnlink,
-            requisition.AppItemId is not null);
+            requisition.AppItemId is not null,
+            isReviewReopened);
     }
 
     private async Task<PlanningCommitteeWorkspaceResponse?> BuildWorkspaceAsync(
@@ -71,7 +103,7 @@ public partial class PlanningCommitteeWorkspaceController
             reviews,
             statuses,
             decision,
-            BuildWorkspaceAuthority(roleKey, requisition, decision));
+            BuildWorkspaceAuthority(roleKey, requisition, plan, statuses, decision));
     }
 
     private static RequisitionSummary MapSummary(NpgsqlDataReader reader)
@@ -113,15 +145,39 @@ public partial class PlanningCommitteeWorkspaceController
         return reader.IsDBNull(ordinal) ? null : reader.GetString(ordinal);
     }
 
+    private static string? GetOptionalNullableString(NpgsqlDataReader reader, string column)
+    {
+        var ordinal = TryGetOrdinal(reader, column);
+        return ordinal.HasValue && !reader.IsDBNull(ordinal.Value) ? reader.GetString(ordinal.Value) : null;
+    }
+
     private static Guid? GetNullableGuid(NpgsqlDataReader reader, string column)
     {
         var ordinal = reader.GetOrdinal(column);
         return reader.IsDBNull(ordinal) ? null : reader.GetGuid(ordinal);
     }
 
+    private static Guid? GetOptionalNullableGuid(NpgsqlDataReader reader, string column)
+    {
+        var ordinal = TryGetOrdinal(reader, column);
+        return ordinal.HasValue && !reader.IsDBNull(ordinal.Value) ? reader.GetGuid(ordinal.Value) : null;
+    }
+
     private static DateTime? GetNullableDateTime(NpgsqlDataReader reader, string column)
     {
         var ordinal = reader.GetOrdinal(column);
         return reader.IsDBNull(ordinal) ? null : reader.GetDateTime(ordinal);
+    }
+
+    private static DateTime? GetOptionalNullableDateTime(NpgsqlDataReader reader, string column)
+    {
+        var ordinal = TryGetOrdinal(reader, column);
+        return ordinal.HasValue && !reader.IsDBNull(ordinal.Value) ? reader.GetDateTime(ordinal.Value) : null;
+    }
+
+    private static int? TryGetOrdinal(NpgsqlDataReader reader, string name)
+    {
+        try { return reader.GetOrdinal(name); }
+        catch (IndexOutOfRangeException) { return null; }
     }
 }

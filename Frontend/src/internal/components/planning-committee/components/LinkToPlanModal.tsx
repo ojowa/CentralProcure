@@ -16,6 +16,7 @@ interface LinkToPlanModalProps {
     }
   ) => Promise<boolean>;
   onLoadPlans: () => Promise<ProcurementPlanSummary[]>;
+  error: string | null;
   notice: string | null;
 }
 
@@ -25,6 +26,7 @@ export const LinkToPlanModal: React.FC<LinkToPlanModalProps> = ({
   onClose,
   onLink,
   onLoadPlans,
+  error,
   notice
 }) => {
   const [mode, setMode] = useState<'create' | 'attach'>('create');
@@ -33,6 +35,7 @@ export const LinkToPlanModal: React.FC<LinkToPlanModalProps> = ({
   const [selectedPlanId, setSelectedPlanId] = useState('');
   const [plans, setPlans] = useState<ProcurementPlanSummary[]>([]);
   const [loading, setLoading] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen && mode === 'attach') {
@@ -42,14 +45,54 @@ export const LinkToPlanModal: React.FC<LinkToPlanModalProps> = ({
 
   useEffect(() => {
     setTitle(`${requisition.Department} Procurement Plan`);
+    setFiscalYear(new Date(requisition.RequiredBy ?? requisition.CreatedAt).getFullYear());
+    setSelectedPlanId('');
+    setLocalError(null);
   }, [requisition]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setLocalError(null);
+    }
+  }, [isOpen, mode]);
+
+  const validate = () => {
+    if (mode === 'create') {
+      const normalizedTitle = title.trim();
+
+      if (!normalizedTitle) {
+        return 'Plan title is required.';
+      }
+
+      if (normalizedTitle.length < 5 || normalizedTitle.length > 255) {
+        return 'Plan title must be between 5 and 255 characters.';
+      }
+
+      if (!Number.isInteger(fiscalYear) || fiscalYear < 2000 || fiscalYear > 2100) {
+        return 'Enter a valid fiscal year.';
+      }
+    }
+
+    if (mode === 'attach' && !selectedPlanId) {
+      return 'Select a committee plan to continue.';
+    }
+
+    return null;
+  };
 
   if (!isOpen) return null;
 
   const handleSubmit = async () => {
+    const validationError = validate();
+    if (validationError) {
+      setLocalError(validationError);
+      return;
+    }
+
+    setLocalError(null);
     setLoading(true);
     const success = await onLink(mode, {
-      title,
+      title: title.trim(),
       fiscalYear,
       existingPlanId: selectedPlanId
     });
@@ -73,6 +116,12 @@ export const LinkToPlanModal: React.FC<LinkToPlanModalProps> = ({
         {notice && (
           <div className="portal-alert portal-alert--info" style={{ marginBottom: '16px' }}>
             {notice}
+          </div>
+        )}
+
+        {(localError || error) && (
+          <div className="portal-alert" style={{ marginBottom: '16px' }}>
+            {localError || error}
           </div>
         )}
 
