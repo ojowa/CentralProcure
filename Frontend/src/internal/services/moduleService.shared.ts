@@ -8,10 +8,7 @@ const normalizeBasePath = (value: string): string => {
   return value.endsWith('/') ? value.slice(0, -1) : value;
 };
 
-const defaultBackendBaseUrl =
-  process.env.NODE_ENV === 'development'
-    ? 'http://localhost:5000'
-    : 'https://centralprocure-backend.onrender.com';
+const defaultBackendBaseUrl = 'https://centralprocure-backend.onrender.com';
 
 const appBasePath = normalizeBasePath(process.env.NEXT_PUBLIC_APP_BASE_PATH ?? '');
 
