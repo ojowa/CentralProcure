@@ -1,25 +1,22 @@
 'use client';
 
 import { useEffect } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '../hooks/useAuth';
 
 const DashboardGuard = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const { isAuthenticated, isReady, hasSessionAttempted } = useAuth();
-  const nextPath =
-    (pathname ?? '/vendors/dashboard') +
-    (searchParams && searchParams.toString() ? `?${searchParams.toString()}` : '');
 
   useEffect(() => {
     if (!isReady) return;
     if (!hasSessionAttempted) return;
     if (!isAuthenticated) {
+      const nextPath = `${pathname ?? '/vendors/dashboard'}${window.location.search}`;
       router.replace(`/vendors/login?next=${encodeURIComponent(nextPath)}`);
     }
-  }, [hasSessionAttempted, isAuthenticated, isReady, nextPath, router]);
+  }, [hasSessionAttempted, isAuthenticated, isReady, pathname, router]);
 
   if (!isReady || (!isAuthenticated && !hasSessionAttempted)) {
     return (

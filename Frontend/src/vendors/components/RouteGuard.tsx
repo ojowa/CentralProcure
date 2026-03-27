@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '../hooks/useAuth';
 
 const LoadingPlaceholder = () => (
@@ -54,12 +54,8 @@ const RouteGuard = ({
 }) => {
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const { isAuthenticated, isReady, hasSessionAttempted } = useAuth();
-
-  const nextPath =
-    pathname +
-    (searchParams && searchParams.toString() ? `?${searchParams.toString()}` : '');
+  const nextPath = pathname ?? '/vendors';
 
   useEffect(() => {
     if (!isReady || !hasSessionAttempted) {
@@ -70,12 +66,13 @@ const RouteGuard = ({
       return;
     }
 
-    router.replace(`/vendors/login?next=${encodeURIComponent(nextPath)}`);
+    const redirectPath = `${pathname ?? '/vendors'}${window.location.search}`;
+    router.replace(`/vendors/login?next=${encodeURIComponent(redirectPath)}`);
   }, [
     isAuthenticated,
     isReady,
     hasSessionAttempted,
-    nextPath,
+    pathname,
     redirect,
     router
   ]);

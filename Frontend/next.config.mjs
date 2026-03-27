@@ -1,8 +1,17 @@
 import { dirname, join } from 'path';
+import util from 'node:util';
 import { fileURLToPath } from 'url';
-import { patchUtilExtend } from './scripts/patch-util-extend.js';
 
-patchUtilExtend();
+if (
+  typeof util._extend === 'function' &&
+  util._extend !== Object.assign
+) {
+  Object.defineProperty(util, '_extend', {
+    value: Object.assign,
+    configurable: true,
+    writable: true
+  });
+}
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const appBasePath = process.env.NEXT_PUBLIC_APP_BASE_PATH ?? '';
