@@ -1,4 +1,5 @@
--- Function for Submitting a Bid (PostgreSQL)
+BEGIN;
+
 CREATE OR REPLACE FUNCTION vendor_sourcing.submit_bid(
     p_tender_id UUID,
     p_vendor_id UUID,
@@ -41,29 +42,10 @@ BEGIN
         p_validity_period_days,
         'Submitted'
     )
-    RETURNING vendor_sourcing.bids.bid_id, vendor_sourcing.bids.tender_id, vendor_sourcing.bids.vendor_id;
+    RETURNING vendor_sourcing.bids.bid_id,
+              vendor_sourcing.bids.tender_id,
+              vendor_sourcing.bids.vendor_id;
 END;
 $$;
 
--- Procedure wrapper for submit_bid (PostgreSQL)
-CREATE OR REPLACE PROCEDURE vendor_sourcing.submit_bid_sp(
-    IN p_tender_id UUID,
-    IN p_vendor_id UUID,
-    IN p_bid_amount DECIMAL(18, 2),
-    IN p_technical_proposal_url TEXT,
-    IN p_validity_period_days INT,
-    OUT p_result refcursor
-)
-LANGUAGE plpgsql
-AS $$
-BEGIN
-    OPEN p_result FOR
-    SELECT * FROM vendor_sourcing.submit_bid(
-        p_tender_id,
-        p_vendor_id,
-        p_bid_amount,
-        p_technical_proposal_url,
-        p_validity_period_days
-    );
-END;
-$$;
+COMMIT;
