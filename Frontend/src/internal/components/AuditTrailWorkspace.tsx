@@ -489,7 +489,7 @@ export const AuditTrailWorkspace = ({ module, token }: Props) => {
         </div>
       </div>
 
-      <div className="audit-trail__surface" style={{ width: '100%', maxWidth: '960px', marginInline: 'auto' }}>
+      <div className="audit-trail__surface">
         <div className="audit-trail__surface-header">
           <div>
             <h3>Audit Grid</h3>
