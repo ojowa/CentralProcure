@@ -152,6 +152,7 @@
   grid-template-columns: 270px 1fr;
   gap: 24px;
   padding: 26px 32px 44px;
+  min-width: 0;
 }
 
 .portal-sidebar {
@@ -220,11 +221,13 @@
   display: flex;
   flex-direction: column;
   gap: 22px;
+  min-width: 0;
 }
 
 .portal-dashboard,
 .portal-module,
 .admin-hub {
+  min-width: 0;
   background: var(--portal-card);
   border: 1px solid var(--portal-border);
   border-radius: 24px;
