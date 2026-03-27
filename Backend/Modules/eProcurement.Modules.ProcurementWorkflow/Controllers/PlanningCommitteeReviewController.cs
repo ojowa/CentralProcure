@@ -4,13 +4,14 @@ using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 using NpgsqlTypes;
 using eProcurement.Modules.ProcurementWorkflow.DTOs;
+using eProcurement.Modules.ProcurementWorkflow.Services;
 using eProcurement.Shared.Workflow;
 
 namespace eProcurement.Modules.ProcurementWorkflow.Controllers;
 
 [ApiController]
 [Route("api/planning-committee")]
-public class PlanningCommitteeReviewController : ControllerBase
+public partial class PlanningCommitteeReviewController : ControllerBase
 {
     private readonly IConfiguration _config;
     private readonly ILogger<PlanningCommitteeReviewController> _logger;

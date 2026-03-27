@@ -71,7 +71,7 @@ WITH queue AS (
         p.plan_title,
         p.department,
         p.fiscal_year,
-        COALESCE(wi.current_stage_key, CASE WHEN p.status = 'Initial' THEN 'budget_code_allocation' ELSE 'department_need_capture' END) AS current_stage_key,
+        COALESCE(wi.current_stage_key, CASE WHEN p.status = 'Initial' THEN 'budget_allocation_and_confirmation' ELSE 'department_need_capture' END) AS current_stage_key,
         COALESCE(wi.current_status, p.status) AS workflow_status,
         COALESCE(items.requested_amount, 0) AS requested_amount,
         COALESCE(budget.available, 0) AS available

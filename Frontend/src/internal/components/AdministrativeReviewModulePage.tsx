@@ -393,91 +393,82 @@ export const AdministrativeReviewModulePage = ({ module, token, role, userEmail 
           </table>
         </article>
 
-        <article className="admin-card admin-card--mid">
-          <h3>File Complaint</h3>
-          {canCreate ? (
-            <>
-              <div className="plan-form-grid">
-                <label className="plan-field">
-                  <span>Entity Type</span>
-                  <select
-                    className="plan-select"
-                    value={createForm.EntityType}
-                    onChange={(event) => setCreateForm((previous) => ({ ...previous, EntityType: event.target.value }))}
-                  >
-                    <option value="tender">Tender</option>
-                    <option value="requisition">Requisition</option>
-                    <option value="contract_award">Contract Award</option>
-                  </select>
-                </label>
-                <label className="plan-field">
-                  <span>Entity ID</span>
-                  <input
-                    className="plan-input"
-                    value={createForm.EntityId}
-                    onChange={(event) => setCreateForm((previous) => ({ ...previous, EntityId: event.target.value }))}
-                    placeholder="Parent workflow UUID"
-                  />
-                </label>
-                <label className="plan-field">
-                  <span>Complaint Channel</span>
-                  <input
-                    className="plan-input"
-                    value={createForm.ComplaintChannel ?? ''}
-                    onChange={(event) => setCreateForm((previous) => ({ ...previous, ComplaintChannel: event.target.value }))}
-                  />
-                </label>
-                <label className="plan-field plan-field--span">
-                  <span>Subject</span>
-                  <input
-                    className="plan-input"
-                    value={createForm.Subject}
-                    onChange={(event) => setCreateForm((previous) => ({ ...previous, Subject: event.target.value }))}
-                  />
-                </label>
-                <label className="plan-field plan-field--span">
-                  <span>Summary</span>
-                  <textarea
-                    className="plan-textarea"
-                    rows={3}
-                    value={createForm.Summary}
-                    onChange={(event) => setCreateForm((previous) => ({ ...previous, Summary: event.target.value }))}
-                  />
-                </label>
-                <label className="plan-field plan-field--span">
-                  <span>Details</span>
-                  <textarea
-                    className="plan-textarea"
-                    rows={5}
-                    value={createForm.Details}
-                    onChange={(event) => setCreateForm((previous) => ({ ...previous, Details: event.target.value }))}
-                  />
-                </label>
-                <label className="plan-field plan-field--span">
-                  <span>Requested Remedy</span>
-                  <textarea
-                    className="plan-textarea"
-                    rows={3}
-                    value={createForm.RequestedRemedy ?? ''}
-                    onChange={(event) => setCreateForm((previous) => ({ ...previous, RequestedRemedy: event.target.value }))}
-                  />
-                </label>
-              </div>
-              <div className="plan-actions">
-                <button type="button" className="plan-button" onClick={handleCreate} disabled={isSaving}>
-                  {isSaving ? 'Saving...' : 'File Complaint'}
-                </button>
-              </div>
-            </>
-          ) : (
-            <div className="portal-alert">
-              Complaint filing is not granted to your current workflow actions in this workspace.
+        {canCreate ? (
+          <article className="admin-card admin-card--mid">
+            <h3>File Complaint</h3>
+            <div className="plan-form-grid">
+              <label className="plan-field">
+                <span>Entity Type</span>
+                <select
+                  className="plan-select"
+                  value={createForm.EntityType}
+                  onChange={(event) => setCreateForm((previous) => ({ ...previous, EntityType: event.target.value }))}
+                >
+                  <option value="tender">Tender</option>
+                  <option value="requisition">Requisition</option>
+                  <option value="contract_award">Contract Award</option>
+                </select>
+              </label>
+              <label className="plan-field">
+                <span>Entity ID</span>
+                <input
+                  className="plan-input"
+                  value={createForm.EntityId}
+                  onChange={(event) => setCreateForm((previous) => ({ ...previous, EntityId: event.target.value }))}
+                  placeholder="Parent workflow UUID"
+                />
+              </label>
+              <label className="plan-field">
+                <span>Complaint Channel</span>
+                <input
+                  className="plan-input"
+                  value={createForm.ComplaintChannel ?? ''}
+                  onChange={(event) => setCreateForm((previous) => ({ ...previous, ComplaintChannel: event.target.value }))}
+                />
+              </label>
+              <label className="plan-field plan-field--span">
+                <span>Subject</span>
+                <input
+                  className="plan-input"
+                  value={createForm.Subject}
+                  onChange={(event) => setCreateForm((previous) => ({ ...previous, Subject: event.target.value }))}
+                />
+              </label>
+              <label className="plan-field plan-field--span">
+                <span>Summary</span>
+                <textarea
+                  className="plan-textarea"
+                  rows={3}
+                  value={createForm.Summary}
+                  onChange={(event) => setCreateForm((previous) => ({ ...previous, Summary: event.target.value }))}
+                />
+              </label>
+              <label className="plan-field plan-field--span">
+                <span>Details</span>
+                <textarea
+                  className="plan-textarea"
+                  rows={5}
+                  value={createForm.Details}
+                  onChange={(event) => setCreateForm((previous) => ({ ...previous, Details: event.target.value }))}
+                />
+              </label>
+              <label className="plan-field plan-field--span">
+                <span>Requested Remedy</span>
+                <textarea
+                  className="plan-textarea"
+                  rows={3}
+                  value={createForm.RequestedRemedy ?? ''}
+                  onChange={(event) => setCreateForm((previous) => ({ ...previous, RequestedRemedy: event.target.value }))}
+                />
+              </label>
             </div>
-          )}
-          <p className="plan-muted" style={{ marginTop: '12px' }}>
-            Active role: {role ? toTitle(role) : 'No active role'}
-          </p>
-        </article>
+            <div className="plan-actions">
+              <button type="button" className="plan-button" onClick={handleCreate} disabled={isSaving}>
+                {isSaving ? 'Saving...' : 'File Complaint'}
+              </button>
+            </div>
+          </article>
+        ) : null}
       </div>
 
       {actionError ? <div className="portal-alert" style={{ marginTop: '16px' }}>{actionError}</div> : null}

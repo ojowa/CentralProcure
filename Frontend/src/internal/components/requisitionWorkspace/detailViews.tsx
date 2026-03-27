@@ -208,6 +208,7 @@ interface RequisitionDetailContentProps {
   isDepartmentHead: boolean;
   isAdmin: boolean;
   canEditDrafts: boolean;
+  canOpenSelectedForEdit?: boolean;
   isSaving: boolean;
   workflowRuntime: WorkflowRuntimeSnapshot | null;
   workflowHistory?: WorkflowRuntimeHistoryEntry[];
@@ -225,6 +226,7 @@ export const RequisitionDetailContent = ({
   isDepartmentHead,
   isAdmin,
   canEditDrafts,
+  canOpenSelectedForEdit = true,
   isSaving,
   workflowRuntime,
   workflowHistory = [],
@@ -373,7 +375,7 @@ export const RequisitionDetailContent = ({
             Delete Requisition
           </button>
         )}
-        {isSelectedEditable && !isDepartmentHead && (
+        {isSelectedEditable && !isDepartmentHead && canOpenSelectedForEdit && (
           <>
             <button type="button" className="plan-button" onClick={onOpenSelectedForEdit}>
               Edit Draft

@@ -44,7 +44,7 @@ FROM (
     VALUES
         ('complaints_review_officer', 'Review Complaint', 'administrative_review', 'Review filed complaint and supporting evidence.', 'Complaint assigned and under review.'),
         ('complaints_review_officer', 'Resolve Complaint', 'administrative_review', 'Record resolution outcome and restore or terminate procurement.', 'Complaint resolved with documented outcome.'),
-        ('accounting_officer', 'Adjudicate Complaint', 'administrative_review', 'Review Accounting Officer-level complaint and decide remedy.', 'Accounting Officer decision recorded.'),
+        ('accounting_officer', 'Adjudicate Complaint', 'administrative_review', 'Review CGIS-level complaint and decide remedy.', 'CGIS decision is recorded.'),
         ('bpp_reviewer', 'BPP Review Complaint', 'administrative_review', 'Review escalated complaint at BPP level.', 'BPP review outcome recorded.')
 ) AS seed (role_key, display_name, stage_key, task_description, expected_outcome)
 WHERE NOT EXISTS (

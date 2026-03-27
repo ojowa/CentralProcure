@@ -10,7 +10,7 @@ const normalizeBasePath = (value: string): string => {
 
 const defaultBackendBaseUrl =
   process.env.NODE_ENV === 'development'
-    ? 'http://127.0.0.1:5080'
+    ? 'http://localhost:5000'
     : 'https://centralprocure-backend.onrender.com';
 
 const appBasePath = normalizeBasePath(process.env.NEXT_PUBLIC_APP_BASE_PATH ?? '');
@@ -41,14 +41,15 @@ const resolveModuleUrl = (moduleId: string): string => {
     case 'assigned-tenders':
     case 'technical-evaluation':
     case 'financial-evaluation':
-    case 'evaluation-report':
       return `${serviceBaseUrls.workflow}/api/evaluations/assigned-tenders/default`;
+    case 'evaluation-report':
+      return `${serviceBaseUrls.workflow}/api/evaluation-reports`;
     case 'tender-review':
     case 'approval-rejection':
     case 'high-value-tenders':
-    case 'final-approval':
       return `${serviceBaseUrls.workflow}/api/approvals`;
     case 'cgis-approval':
+    case 'final-approval':
       return `${serviceBaseUrls.workflow}/api/workflow-runtime/cgis-queue`;
     case 'bpp-escalation':
       return `${serviceBaseUrls.workflow}/api/bpp-no-objections`;

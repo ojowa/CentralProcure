@@ -52,7 +52,40 @@ public class PaymentsController : BaseModuleController
             return Problem("Connection string 'Primary' is not configured.", statusCode: 500);
         }
 
-        const string sql = @"
+        try
+        {
+            await using var conn = new NpgsqlConnection(connectionString);
+            await conn.OpenAsync(ct);
+            var hasPaymentSchema = await HasPaymentSchemaAsync(conn, ct);
+
+            var paymentRecordedExpression = hasPaymentSchema
+                ? "COALESCE(c.is_paid, FALSE)"
+                : "FALSE";
+
+            var closeoutEligibleExpression = hasPaymentSchema
+                ? "(COALESCE(i.outcome = 'Accepted', FALSE) AND c.status = 'Completed' AND COALESCE(c.is_paid, FALSE) = TRUE AND pc.closeout_id IS NULL)"
+                : "(COALESCE(i.outcome = 'Accepted', FALSE) AND c.status = 'Completed' AND pc.closeout_id IS NULL)";
+
+            var paymentStageExpression = hasPaymentSchema
+                ? @"CASE
+            WHEN pc.closeout_id IS NOT NULL THEN 'Archived'
+            WHEN i.inspection_code IS NULL THEN 'Awaiting Inspection'
+            WHEN i.status IN ('Scheduled', 'In Progress') OR COALESCE(i.outcome, 'Pending') = 'Pending' THEN 'Inspection In Progress'
+            WHEN i.outcome = 'Rejected' THEN 'Blocked by Inspection'
+            WHEN c.status <> 'Completed' THEN 'Awaiting Contract Completion'
+            WHEN NOT COALESCE(c.is_paid, FALSE) THEN 'Ready for Final Payment'
+            ELSE 'Ready for Closeout'
+        END"
+                : @"CASE
+            WHEN pc.closeout_id IS NOT NULL THEN 'Archived'
+            WHEN i.inspection_code IS NULL THEN 'Awaiting Inspection'
+            WHEN i.status IN ('Scheduled', 'In Progress') OR COALESCE(i.outcome, 'Pending') = 'Pending' THEN 'Inspection In Progress'
+            WHEN i.outcome = 'Rejected' THEN 'Blocked by Inspection'
+            WHEN c.status <> 'Completed' THEN 'Awaiting Contract Completion'
+            ELSE 'Ready for Final Payment'
+        END";
+
+            var sql = $@"
 WITH payment_rows AS (
     SELECT
         c.contract_id,
@@ -70,17 +103,9 @@ WITH payment_rows AS (
         i.outcome AS inspection_outcome,
         i.completed_date AS inspection_completed_date,
         COALESCE(i.outcome = 'Accepted', FALSE) AS final_acceptance_completed,
-        COALESCE(c.is_paid, FALSE) AS final_payment_recorded,
-        (COALESCE(i.outcome = 'Accepted', FALSE) AND c.status = 'Completed' AND c.is_paid = TRUE AND pc.closeout_id IS NULL) AS closeout_eligible,
-        CASE
-            WHEN pc.closeout_id IS NOT NULL THEN 'Archived'
-            WHEN i.inspection_code IS NULL THEN 'Awaiting Inspection'
-            WHEN i.status IN ('Scheduled', 'In Progress') OR COALESCE(i.outcome, 'Pending') = 'Pending' THEN 'Inspection In Progress'
-            WHEN i.outcome = 'Rejected' THEN 'Blocked by Inspection'
-            WHEN c.status <> 'Completed' THEN 'Awaiting Contract Completion'
-            WHEN NOT c.is_paid THEN 'Ready for Final Payment'
-            ELSE 'Ready for Closeout'
-        END AS payment_stage,
+        {paymentRecordedExpression} AS final_payment_recorded,
+        {closeoutEligibleExpression} AS closeout_eligible,
+        {paymentStageExpression} AS payment_stage,
         pc.closeout_id,
         pc.closeout_reference,
         pc.status AS closeout_status,
@@ -146,11 +171,6 @@ ORDER BY
     closeout_eligible DESC,
     archived_at DESC NULLS LAST,
     contract_code ASC;";
-
-        try
-        {
-            await using var conn = new NpgsqlConnection(connectionString);
-            await conn.OpenAsync(ct);
             await using var cmd = new NpgsqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("p_status", NpgsqlDbType.Varchar, (object?)NormalizeNullable(status) ?? DBNull.Value);
             cmd.Parameters.AddWithValue("p_query", NpgsqlDbType.Text, (object?)NormalizeNullable(query) ?? DBNull.Value);
@@ -193,6 +213,27 @@ ORDER BY
             Logger.LogError(ex, "Error retrieving payment tracking items.");
             return Problem("Internal server error retrieving payment tracking items.");
         }
+    }
+
+    private static async Task<bool> HasPaymentSchemaAsync(NpgsqlConnection conn, CancellationToken ct)
+    {
+        const string sql = @"
+SELECT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'post_award'
+      AND table_name = 'contracts'
+      AND column_name = 'is_paid'
+) AND EXISTS (
+    SELECT 1
+    FROM information_schema.tables
+    WHERE table_schema = 'post_award'
+      AND table_name = 'payments'
+);";
+
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        var result = await cmd.ExecuteScalarAsync(ct);
+        return result is bool flag && flag;
     }
 
     [HttpPost]

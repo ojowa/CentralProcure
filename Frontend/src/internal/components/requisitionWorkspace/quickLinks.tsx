@@ -8,21 +8,34 @@ import { formatCurrency, formatDate } from '../../utils/procureUtils';
 interface QuickLinksProps {
   mode: WorkspaceMode;
   onModuleChange?: (moduleId: string) => void;
+  availableModuleIds?: string[];
 }
 
-export const RequisitionQuickLinks = ({ mode, onModuleChange }: QuickLinksProps) => (
-  <div className="requisition-actions">
-    <button type="button" className={`plan-button ${mode === 'create' ? '' : 'plan-button--secondary'}`} onClick={() => onModuleChange?.('create-requisition')}>
-      Create Requisition
-    </button>
-    <button type="button" className={`plan-button ${mode === 'history' ? '' : 'plan-button--secondary'}`} onClick={() => onModuleChange?.('requisition-history')}>
-      Requisition History
-    </button>
-    <button type="button" className={`plan-button ${mode === 'tracking' ? '' : 'plan-button--secondary'}`} onClick={() => onModuleChange?.('requisition-tracking')}>
-      Requisition Tracking
-    </button>
-  </div>
-);
+export const RequisitionQuickLinks = ({ mode, onModuleChange, availableModuleIds = [] }: QuickLinksProps) => {
+  const canViewCreate = availableModuleIds.includes('create-requisition');
+  const canViewHistory = availableModuleIds.includes('requisition-history');
+  const canViewTracking = availableModuleIds.includes('requisition-tracking');
+
+  return (
+    <div className="requisition-actions">
+      {canViewCreate ? (
+        <button type="button" className={`plan-button ${mode === 'create' ? '' : 'plan-button--secondary'}`} onClick={() => onModuleChange?.('create-requisition')}>
+          Create Requisition
+        </button>
+      ) : null}
+      {canViewHistory ? (
+        <button type="button" className={`plan-button ${mode === 'history' ? '' : 'plan-button--secondary'}`} onClick={() => onModuleChange?.('requisition-history')}>
+          Requisition History
+        </button>
+      ) : null}
+      {canViewTracking ? (
+        <button type="button" className={`plan-button ${mode === 'tracking' ? '' : 'plan-button--secondary'}`} onClick={() => onModuleChange?.('requisition-tracking')}>
+          Requisition Tracking
+        </button>
+      ) : null}
+    </div>
+  );
+};
 
 interface DepartmentHeadQueueCardProps {
   queue: RequisitionSummary[];

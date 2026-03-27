@@ -121,7 +121,7 @@ const getDaysLeft = (value?: string) => {
 
 const ComplianceDocumentsPage: React.FC = () => {
   const router = useRouter();
-  const { isAuthenticated, isReady, user } = useAuth();
+  const { isAuthenticated, isReady, hasSessionAttempted, user } = useAuth();
   const [requirements, setRequirements] = useState<Requirement[]>(fallbackRequirements);
   const [documents, setDocuments] = useState<ComplianceDocumentEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -144,8 +144,12 @@ const ComplianceDocumentsPage: React.FC = () => {
       return;
     }
 
+    if (!hasSessionAttempted) {
+      return;
+    }
+
     if (!isAuthenticated || !user?.UserId) {
-      router.replace('/login?next=%2Fdashboard%2Fcompliance-documents');
+      router.replace('/vendors/login?next=%2Fvendors%2Fdashboard%2Fcompliance-documents');
       return;
     }
 
@@ -218,7 +222,7 @@ const ComplianceDocumentsPage: React.FC = () => {
     return () => {
       active = false;
     };
-  }, [isAuthenticated, isReady, router]);
+  }, [isAuthenticated, isReady, hasSessionAttempted, router]);
 
   const documentsById = useMemo(() => {
     return documents.reduce<Record<string, ComplianceDocumentEntry>>((acc, doc) => {

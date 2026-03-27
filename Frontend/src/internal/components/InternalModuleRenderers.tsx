@@ -27,6 +27,9 @@ import { BudgetOfficerWorkspacePage } from './BudgetOfficerWorkspacePage';
 import { DepartmentHeadReviewModule } from './DepartmentHeadReviewModule';
 import { ThresholdConfigurationModule } from './ThresholdConfigurationModule';
 import { TenderCreatePage } from './TenderCreatePage';
+import { EvaluationReportModule } from './EvaluationReportModule';
+import { AssignedTendersModule } from './AssignedTendersModule';
+import { SystemMonitoringModule } from './SystemMonitoringModule';
 
 export type InternalModuleRendererProps = {
   module: InternalModule;
@@ -36,6 +39,7 @@ export type InternalModuleRendererProps = {
   token: string | null;
   role: RoleKey | null;
   userEmail?: string | null;
+  availableModuleIds: string[];
   onModuleChange: (moduleId: string) => void;
 };
 
@@ -77,10 +81,10 @@ export const renderGenericModuleWorkspace = ({
 };
 
 export const moduleRenderers: Partial<Record<string, (props: InternalModuleRendererProps) => React.ReactNode>> = {
-  'create-requisition': (props) => <CreateRequisitionPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} onModuleChange={props.onModuleChange} />,
-  'requisition-history': (props) => <RequisitionHistoryPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} onModuleChange={props.onModuleChange} />,
-  'requisition-tracking': (props) => <RequisitionTrackingPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} onModuleChange={props.onModuleChange} />,
-  'requisition-management': (props) => <AdminRequisitionManagementPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} onModuleChange={props.onModuleChange} />,
+  'create-requisition': (props) => <CreateRequisitionPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} availableModuleIds={props.availableModuleIds} onModuleChange={props.onModuleChange} />,
+  'requisition-history': (props) => <RequisitionHistoryPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} availableModuleIds={props.availableModuleIds} onModuleChange={props.onModuleChange} />,
+  'requisition-tracking': (props) => <RequisitionTrackingPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} availableModuleIds={props.availableModuleIds} onModuleChange={props.onModuleChange} />,
+  'requisition-management': (props) => <AdminRequisitionManagementPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} availableModuleIds={props.availableModuleIds} onModuleChange={props.onModuleChange} />,
   'budget-workspace': (props) => <BudgetOfficerWorkspacePage module={props.module} token={props.token} role={props.role} />,
   'audit-dashboard': (props) => <AuditDashboardWorkspace module={props.module} token={props.token} />,
   'audit-trail-viewer': (props) => <AuditTrailWorkspace module={props.module} token={props.token} />,
@@ -94,15 +98,19 @@ export const moduleRenderers: Partial<Record<string, (props: InternalModuleRende
   'annual-procurement-plan': (props) => <ProcurementPlanModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
   'procurement-planning-committee': (props) => <PlanningCommitteeReviewModule module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} initialData={props.moduleData} />,
   'create-tender': (props) => <TenderCreatePage token={props.token} module={props.module} />,
+  'assigned-tenders': (props) => <AssignedTendersModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} onModuleChange={props.onModuleChange} />,
   'technical-evaluation': (props) => <EvaluationScoringModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
   'financial-evaluation': (props) => <EvaluationScoringModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
+  'evaluation-report': (props) => <EvaluationReportModule module={props.module} token={props.token} />,
   'user-role-management': (props) => <UserRoleManagementModule module={props.module} token={props.token} />,
   'bid-opening-session': (props) => <BidOpeningModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
   'tenders-board-approval': (props) => <TendersBoardApprovalModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
+  'final-approval': (props) => <CgisApprovalModule module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} />,
   'cgis-approval': (props) => <CgisApprovalModule module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} />,
   'workflow-configuration': (props) => <WorkflowConfigurationModulePage module={props.module} moduleData={props.moduleData} moduleError={props.moduleError} token={props.token} />,
   'vendor-registration-approval': (props) => <VendorRegistrationApprovalModule module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} />,
   'department-head-review': (props) => <DepartmentHeadReviewModule module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} />,
   'threshold-configuration': (props) => <ThresholdConfigurationModule module={props.module} token={props.token} />,
+  'system-monitoring': (props) => <SystemMonitoringModule module={props.module} token={props.token} initialData={props.moduleData} />,
   'user-profile': (props) => <ProfilePage module={props.module} token={props.token} userEmail={props.userEmail} />
 };

@@ -16,7 +16,7 @@ The existing project uses only:
 - `approval_route`
 - `requires_board`
 - `requires_bpp`
-- a generic `Accounting Officer Review` stage
+- a generic `CGIS Approval` stage
 
 That model cannot answer key governance questions:
 

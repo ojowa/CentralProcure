@@ -15,7 +15,7 @@ public static class WorkflowDisplayMapper
     {
         ["department_need_capture"] = "app_planning",
         ["department_head_endorsement"] = "app_planning",
-        ["budget_code_allocation"] = "app_planning",
+        ["budget_allocation_and_confirmation"] = "app_planning",
         ["comptroller_procurement_review"] = "app_planning",
         ["planning_committee_review"] = "app_planning",
         ["app_approval"] = "app_planning",

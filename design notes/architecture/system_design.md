@@ -64,8 +64,8 @@ An electronic procurement request is submitted with justification and cost estim
 The system automatically verifies budget provision and determines the correct approval authority based on monetary thresholds.
 *Governance Value:* Prevents spending without appropriation and mitigates contract splitting.
 
-**5. Approval by Accounting Officer**  
-The Accounting Officer provides mandatory authorization before tendering can commence, confirming compliance.
+**5. Approval by CGIS**  
+The Comptroller General of Immigration Service provides mandatory authorization before tendering can commence, confirming compliance.
 *Governance Value:* Establishes accountability at the highest responsible level.
 
 **6. Tender Advertisement**  
@@ -191,7 +191,7 @@ The user interface is strictly role-driven, ensuring users only see and interact
 - **Procurement Unit:** Manage Annual Procurement Plan (APP), Create & Publish Tenders, Manage Bid Opening.
 - **Evaluation Committees:** Access Assigned Tenders, Perform Technical & Financial Evaluations.
 - **Tenders Board / Approvers:** Review Evaluation Reports, Approve/Reject Recommendations.
-- **Accounting Officer (AO):** Final review and approval for high-value tenders.
+- **CGIS:** Final review and approval for high-value tenders.
 - **Post-Award Management:** Contract Generation, Milestone Tracking, Inspection & Acceptance.
 - **Audit & Oversight:** Read-only access to audit trails and compliance reports.
 - **System Administration (ICT):** User & Role Management, Workflow Configuration, System Health.
@@ -207,7 +207,7 @@ Internal users are provisioned in the Identity Service with strict role separati
 - **Financial Evaluator:** Conduct financial evaluation only (only after technical qualification).
 - **Tenders Board Member:** Review evaluation outcomes and approve or reject recommendations.
 - **Tenders Board Secretary:** Manage board records, minutes, and formal submissions.
-- **Accounting Officer (AO):** Final approval for high-value or regulated procurements.
+- **CGIS:** Final approval for high-value or regulated procurements.
 - **BPP Liaison:** Submit and track "No Objection" requests and responses.
 - **Contract Manager:** Generate awards and manage contract administration.
 - **Inspection Officer:** Record inspection and acceptance of deliverables.
@@ -229,7 +229,7 @@ The system's logic is encapsulated in the following core microservices. Each ser
 | **Vendor Service** | Handles vendor registration, pre-qualification, and status. |
 | **Bid Service** | Ensures secure, encrypted bid submission and storage. |
 | **Evaluation Service** | Manages technical & financial evaluation processes. |
-| **Approval Service** | Orchestrates Tenders Board and Accounting Officer approvals. |
+| **Approval Service** | Orchestrates Tenders Board and CGIS approvals. |
 | **BPP Integration Service** | Manages "No Objection" processing with the BPP. |
 | **Contract Service** | Handles contract award, generation, and management. |
 | **Inspection Service** | Records inspection and acceptance of deliverables. |

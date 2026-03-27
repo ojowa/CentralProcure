@@ -64,7 +64,7 @@ export const createWorkflowThreshold = async (token: string, request: WorkflowTh
     body: JSON.stringify(request)
   });
 
-  return parseResponse(response, 'Unable to create workflow threshold.');
+  return parseResponse<WorkflowConfiguration['Thresholds'][number]>(response, 'Unable to create workflow threshold.');
 };
 
 export const updateWorkflowThreshold = async (token: string, thresholdId: string, request: WorkflowThresholdUpdateRequest) => {
@@ -75,7 +75,7 @@ export const updateWorkflowThreshold = async (token: string, thresholdId: string
     body: JSON.stringify(request)
   });
 
-  return parseResponse(response, 'Unable to update workflow threshold.');
+  return parseResponse<WorkflowConfiguration['Thresholds'][number]>(response, 'Unable to update workflow threshold.');
 };
 
 export const deleteWorkflowThreshold = async (token: string, thresholdId: string) => {

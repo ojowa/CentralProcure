@@ -100,7 +100,7 @@ The CGIS actor needs a simpler, read-mostly decision environment.
 - `CGIS` executive approver
 
 ### 5.2 Current implementation mapping
-Until a dedicated `CGIS` role exists, the workspace can remain mapped to the current `AccountingOfficer` approval slot and be labeled as `CGIS Approval` in the UI.
+Until a dedicated `CGIS` role exists, the workspace can remain mapped to the current executive approval slot and be labeled as `CGIS Approval` in the UI.
 
 ### 5.3 Supporting users
 - `ProcurementOfficer`

@@ -178,6 +178,11 @@ public partial class AuthController
             await using var conn = new NpgsqlConnection(connectionString);
             await conn.OpenAsync(ct);
             await using var tx = await conn.BeginTransactionAsync(ct);
+            var currentIsActive = await GetRoleIsActiveAsync(conn, tx, roleId, ct);
+            if (currentIsActive is null)
+            {
+                return NotFound(new { message = "Role not found." });
+            }
 
             await using var cmd = new NpgsqlCommand("identity.update_role_sp", conn, tx)
             {
@@ -187,6 +192,7 @@ public partial class AuthController
             cmd.Parameters.AddWithValue("p_role_id", NpgsqlDbType.Uuid, roleId);
             cmd.Parameters.AddWithValue("p_role_name", NpgsqlDbType.Varchar, request.RoleName.Trim());
             cmd.Parameters.AddWithValue("p_description", NpgsqlDbType.Text, (object?)request.Description?.Trim() ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("p_is_active", NpgsqlDbType.Boolean, currentIsActive.Value);
             cmd.Parameters.Add(new NpgsqlParameter("p_result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.Output });
 
             var results = await ExecuteRefcursorAsync(cmd, MapRoleResult, ct);
@@ -205,6 +211,19 @@ public partial class AuthController
             Logger.LogError(ex, "Error updating role {RoleId}", roleId);
             return Problem("Internal server error updating role.");
         }
+    }
+
+    private static async Task<bool?> GetRoleIsActiveAsync(
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        Guid roleId,
+        CancellationToken ct)
+    {
+        const string sql = "SELECT is_active FROM identity.roles WHERE role_id = @p_role_id;";
+        await using var cmd = new NpgsqlCommand(sql, conn, tx);
+        cmd.Parameters.AddWithValue("p_role_id", NpgsqlDbType.Uuid, roleId);
+        var result = await cmd.ExecuteScalarAsync(ct);
+        return result is bool isActive ? isActive : null;
     }
 
     [Authorize]

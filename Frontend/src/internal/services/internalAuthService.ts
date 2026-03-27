@@ -41,6 +41,7 @@ const API_ENDPOINTS = {
   INTERNAL_MODULE_ACCESS_ROLES: withBasePath('/api/Auth/internal/module-access/roles'),
   INTERNAL_MODULE_ACCESS_USERS: withBasePath('/api/Auth/internal/module-access/users'),
   INTERNAL_MODULE_ACCESS_AUDIT: withBasePath('/api/Auth/internal/module-access/audit'),
+  CSRF_INIT: withBasePath('/api/Auth/csrf'),
 };
 
 export const CSRF_COOKIE = 'XSRF-TOKEN';
@@ -146,6 +147,7 @@ const ROLE_ALIASES: Record<string, RoleKey> = {
   tenders_board: 'tenders_board',
   tenders_board_secretary: 'tenders_board_secretary',
   accounting_officer: 'accounting_officer',
+  cgis: 'accounting_officer',
   bpp_liaison: 'bpp_liaison',
   bppliaison: 'bpp_liaison',
   bpp_reviewer: 'bpp_reviewer',
@@ -645,11 +647,13 @@ export const fetchModuleAccessAudit = async (
 };
 
 export const fetchInternalUserProfile = async (token?: string | null): Promise<InternalUserProfile> => {
+  console.log('[Internal Auth] Calling profile endpoint:', API_ENDPOINTS.INTERNAL_PROFILE);
   const response = await fetch(API_ENDPOINTS.INTERNAL_PROFILE, {
     method: 'GET',
     headers: buildAuthHeaders(token),
     credentials: 'include'
   });
+  console.log('[Internal Auth] Profile response status:', response.status);
 
   return parseResponse<InternalUserProfile>(response, 'Unable to load your profile.');
 };
@@ -699,6 +703,17 @@ export const updateInternalUserRole = async (
   });
 
   return parseResponse<any>(response, 'Unable to update user role.');
+};
+
+export const fetchCsrfToken = async (): Promise<void> => {
+  try {
+    await fetch(API_ENDPOINTS.CSRF_INIT, {
+      method: 'GET',
+      credentials: 'include'
+    });
+  } catch (error) {
+    console.warn('[Internal Auth] CSRF init failed (ignoring for resilience):', error);
+  }
 };
 
 

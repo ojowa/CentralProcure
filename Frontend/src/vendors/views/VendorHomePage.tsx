@@ -4,13 +4,13 @@ import Link from 'next/link';
 import { useAuth } from '../hooks/useAuth';
 
 const VendorHomePage: React.FC = () => {
-  const { isAuthenticated, isReady } = useAuth();
-  const vendorLoginHref = isReady && isAuthenticated ? '/dashboard' : '/login';
+  const { isAuthenticated, isReady, hasSessionAttempted } = useAuth();
+  const vendorLoginHref = isReady && hasSessionAttempted && isAuthenticated ? '/vendors/dashboard' : '/vendors/login';
 
   const quickActions = [
-    { title: 'Open Tenders', description: 'Browse active procurement opportunities.', to: '/tenders' },
+    { title: 'Open Tenders', description: 'Browse active procurement opportunities.', to: '/vendors/tenders' },
     { title: 'Vendor Login', description: 'Access vendor dashboard and submissions.', to: vendorLoginHref },
-    { title: 'Create Account', description: 'Register your organization for bidding.', to: '/register' }
+    { title: 'Create Account', description: 'Register your organization for bidding.', to: '/vendors/register' }
   ];
 
   const notices = [
@@ -37,13 +37,13 @@ const VendorHomePage: React.FC = () => {
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
-              href="/tenders"
+              href="/vendors/tenders"
               className="rounded-md bg-emerald-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-emerald-400"
             >
               View Open Tenders
             </Link>
             <Link
-              href="/register"
+              href="/vendors/register"
               className="rounded-md border border-white/40 bg-white/10 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/20"
             >
               Register as Vendor
@@ -72,7 +72,7 @@ const VendorHomePage: React.FC = () => {
           <article className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
             <div className="flex items-center justify-between">
               <h3 className="text-xl font-semibold text-slate-900">Procurement Notices</h3>
-              <Link href="/tenders" className="text-sm font-semibold text-teal-700 hover:underline">
+              <Link href="/vendors/tenders" className="text-sm font-semibold text-teal-700 hover:underline">
                 See all notices
               </Link>
             </div>

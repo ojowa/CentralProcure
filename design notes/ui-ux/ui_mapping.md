@@ -36,7 +36,7 @@ This mapping:
 | Financial Evaluation | `procurement-workflow-service` | Controlled financial comparison |
 | Evaluation Report | `procurement-workflow-service` | Consolidated evidence for approvals |
 | Approval Dashboard | `procurement-workflow-service` | Threshold-based decisions |
-| AO Final Approval | `procurement-workflow-service` | Accounting Officer authority enforcement |
+| CGIS Final Approval | `procurement-workflow-service` | CGIS authority enforcement |
 | BPP No-Objection | `procurement-workflow-service` | Regulatory compliance pathway |
 | Workflow Configuration | `procurement-workflow-service` | Policy-aligned orchestration governance |
 | Contract Award | `post-award-service` | Lawful award transition to execution |

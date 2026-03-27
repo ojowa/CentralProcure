@@ -37,7 +37,7 @@ public partial class BudgetLedgerController
             return BadRequest($"PageSize must be between 1 and {MaxPageSize}.");
         }
 
-        var stageFilter = string.IsNullOrWhiteSpace(stage) ? "budget_code_allocation" : stage.Trim();
+        var stageFilter = string.IsNullOrWhiteSpace(stage) ? "budget_allocation_and_confirmation" : stage.Trim();
         var stageStatuses = GetStageStatuses(stageFilter);
         var connectionString = GetConnectionString();
         if (string.IsNullOrWhiteSpace(connectionString))
@@ -157,7 +157,7 @@ FROM queue q
     private static readonly Dictionary<string, string[]> StageStatusLookup = new(StringComparer.OrdinalIgnoreCase)
     {
         ["budget_alignment"] = new[] { "Endorsed", "Initial", "Under Review" },
-        ["budget_code_allocation"] = new[] { "Endorsed", "Initial" },
+        ["budget_allocation_and_confirmation"] = new[] { "Endorsed", "Initial" },
         ["comptroller_procurement_review"] = new[] { "Endorsed", "Initial" },
         ["planning_committee_review"] = new[] { "Evaluation", "Board Review" },
         ["app_approval"] = new[] { "Approved" }

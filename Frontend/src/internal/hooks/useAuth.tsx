@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { RoleKey } from '../types/internal';
 import {
   COOKIE_SESSION_TOKEN,
+  fetchCsrfToken,
   fetchInternalUserProfile,
   logoutInternalUser,
   resolveRole
@@ -17,6 +18,7 @@ type AuthUser = {
 type AuthContextType = {
   isAuthenticated: boolean;
   isReady: boolean;
+  hasSessionAttempted: boolean;
   token: string;
   user: AuthUser | null;
   login: (payload: { email: string; role: RoleKey }) => void;
@@ -48,6 +50,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [token, setToken] = useState('');
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const [hasSessionAttempted, setHasSessionAttempted] = useState(false);
   const idleTimeoutRef = useRef<number | null>(null);
   const logoutInFlightRef = useRef(false);
   const lastActivityWriteRef = useRef(0);
@@ -122,14 +125,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const restoreSession = async () => {
       let sessionExpiredByInactivity = false;
+      let shouldClearSession = false;
 
       try {
+        // First ensure we have a CSRF token for any state-changing requests later
+        await fetchCsrfToken();
+        
+        console.log('[Internal Auth] Fetching user profile...');
         const profile = await fetchInternalUserProfile();
+        console.log('[Internal Auth] Profile fetched:', profile);
         if (!isMounted) {
           return;
         }
 
         const role = resolveRole(profile.RoleName);
+        console.log('[Internal Auth] Resolved role:', role);
         if (!role) {
           throw new Error('Internal user role is not configured.');
         }
@@ -146,9 +156,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           role
         });
         markActivity(true);
-      } catch {
+        console.log('[Internal Auth] Session restored successfully');
+      } catch (error) {
+        console.error('[Internal Auth] Failed to restore session:', error);
         if (!isMounted) {
           return;
+        }
+
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const isAuthError = errorMessage.includes('401') || errorMessage.includes('403') || errorMessage.includes('Unauthorized');
+
+        if (sessionExpiredByInactivity || isAuthError) {
+          shouldClearSession = true;
         }
 
         if (sessionExpiredByInactivity) {
@@ -158,11 +177,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         }
 
-        setToken('');
-        setUser(null);
+        if (shouldClearSession) {
+          setToken('');
+          setUser(null);
+        }
       } finally {
         if (isMounted) {
+          setHasSessionAttempted(true);
           setIsReady(true);
+          console.log('[Internal Auth] Session attempt complete');
         }
       }
     };
@@ -237,12 +260,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     () => ({
       isAuthenticated: Boolean(token && user),
       isReady,
+      hasSessionAttempted,
       token,
       user,
       login,
       logout
     }),
-    [token, user, isReady]
+    [token, user, isReady, hasSessionAttempted]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

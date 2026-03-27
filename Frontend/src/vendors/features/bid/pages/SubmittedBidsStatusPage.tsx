@@ -9,7 +9,7 @@ import { useAuth } from '../../../hooks/useAuth';
 
 const SubmittedBidsStatusPage: React.FC = () => {
     const router = useRouter();
-    const { isAuthenticated, isReady, user } = useAuth();
+    const { isAuthenticated, isReady, hasSessionAttempted, user } = useAuth();
     const [bids, setBids] = useState<SubmittedBid[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
@@ -19,8 +19,12 @@ const SubmittedBidsStatusPage: React.FC = () => {
             return;
         }
 
+        if (!hasSessionAttempted) {
+            return;
+        }
+
         if (!isAuthenticated || !user?.UserId) {
-            router.replace('/login?next=%2Fdashboard%2Fsubmitted-bids');
+            router.replace('/vendors/login?next=%2Fvendors%2Fdashboard%2Fsubmitted-bids');
             return;
         }
 
@@ -37,7 +41,7 @@ const SubmittedBidsStatusPage: React.FC = () => {
         };
 
         fetchBids();
-    }, [isAuthenticated, isReady, router, user?.UserId]);
+    }, [isAuthenticated, isReady, hasSessionAttempted, router, user?.UserId]);
 
     if (loading) {
         return <div className="text-center p-4">Loading submitted bids...</div>;
@@ -92,7 +96,7 @@ const SubmittedBidsStatusPage: React.FC = () => {
                                         <p className="text-gray-900 whitespace-no-wrap">{bid.BidId}</p>
                                     </td>
                                     <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                                        <Link href={`/tenders/${bid.TenderId}`} className="text-blue-600 hover:underline">
+                                        <Link href={`/vendors/tenders/${bid.TenderId}`} className="text-blue-600 hover:underline">
                                             {bid.TenderId}
                                         </Link>
                                     </td>

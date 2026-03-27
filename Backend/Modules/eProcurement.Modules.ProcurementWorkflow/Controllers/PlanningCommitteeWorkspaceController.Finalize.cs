@@ -2,15 +2,20 @@ using System.Data;
 using Npgsql;
 using NpgsqlTypes;
 using eProcurement.Modules.ProcurementWorkflow.DTOs;
+using eProcurement.Modules.ProcurementWorkflow.Services;
 using eProcurement.Shared.Workflow;
 
 namespace eProcurement.Modules.ProcurementWorkflow.Controllers;
 
 public partial class PlanningCommitteeWorkspaceController
 {
-    private async Task<CommitteeDecisionResponse> FinalizeReviewAsync(NpgsqlConnection conn, NpgsqlTransaction tx, Guid requisitionId, string? roleKey, string actor, PlanningCommitteeFinalizeReviewRequest request, CancellationToken ct)
+    private async Task<CommitteeDecisionResponse> FinalizeReviewAsync(NpgsqlConnection conn, NpgsqlTransaction tx, Guid requisitionId, string? roleKey, Guid? currentUserId, string actor, PlanningCommitteeFinalizeReviewRequest request, CancellationToken ct)
     {
-        if (!string.Equals(roleKey, ChairRoleKey, StringComparison.OrdinalIgnoreCase))
+        var isChair = string.Equals(roleKey, ChairRoleKey, StringComparison.OrdinalIgnoreCase);
+        var isAdmin = string.Equals(roleKey, AdminRoleKey, StringComparison.OrdinalIgnoreCase);
+        var assignedChairmanId = await PlanningCommitteeChairmanRegistry.GetAssignedChairmanUserIdAsync(conn, tx, ct);
+        var isAssignedChairman = currentUserId.HasValue && assignedChairmanId == currentUserId.Value;
+        if (!isChair && !isAdmin && !isAssignedChairman)
         {
             throw new UnauthorizedAccessException();
         }
@@ -30,7 +35,8 @@ public partial class PlanningCommitteeWorkspaceController
 
         await UpdateRequisitionStatusForFinalDecisionAsync(conn, tx, requisitionId, request.OverallDecision, ct);
 
-        var response = await UpsertCommitteeDecisionAsync(conn, tx, requisitionId, planId, actor, request, ct)
+        var chairmanIdentity = currentUserId?.ToString() ?? actor;
+        var response = await UpsertCommitteeDecisionAsync(conn, tx, requisitionId, planId, chairmanIdentity, actor, request, ct)
             ?? throw new InvalidOperationException("Failed to submit committee decision.");
         var nextStage = request.OverallDecision switch
         {
@@ -63,7 +69,7 @@ public partial class PlanningCommitteeWorkspaceController
             null,
             null,
             transitionReason,
-            actor), ct);
+            chairmanIdentity), ct);
 
         if (string.Equals(request.OverallDecision, "Recommended", StringComparison.OrdinalIgnoreCase))
         {
@@ -117,11 +123,11 @@ WHERE s.role_key IS NULL;
         return results;
     }
 
-    private static async Task<CommitteeDecisionResponse?> UpsertCommitteeDecisionAsync(NpgsqlConnection conn, NpgsqlTransaction tx, Guid requisitionId, Guid planId, string actor, PlanningCommitteeFinalizeReviewRequest request, CancellationToken ct)
+    private static async Task<CommitteeDecisionResponse?> UpsertCommitteeDecisionAsync(NpgsqlConnection conn, NpgsqlTransaction tx, Guid requisitionId, Guid planId, string chairmanIdentity, string secretaryIdentity, PlanningCommitteeFinalizeReviewRequest request, CancellationToken ct)
     {
         const string sql = """
 INSERT INTO procurement_workflow.planning_committee_decisions (requisition_id, plan_id, chairman_user_id, secretary_user_id, overall_decision, committee_remarks, meeting_date)
-VALUES (@p_requisition_id, @p_plan_id, @p_actor, @p_actor, @p_overall_decision, @p_committee_remarks, CURRENT_DATE)
+VALUES (@p_requisition_id, @p_plan_id, @p_chairman_user_id, @p_secretary_user_id, @p_overall_decision, @p_committee_remarks, CURRENT_DATE)
 ON CONFLICT (requisition_id) DO UPDATE
 SET plan_id = EXCLUDED.plan_id,
     chairman_user_id = EXCLUDED.chairman_user_id,
@@ -135,7 +141,8 @@ RETURNING decision_id, requisition_id, plan_id, overall_decision, committee_rema
         await using var cmd = new NpgsqlCommand(sql, conn, tx);
         cmd.Parameters.AddWithValue("p_requisition_id", NpgsqlDbType.Uuid, requisitionId);
         cmd.Parameters.AddWithValue("p_plan_id", NpgsqlDbType.Uuid, planId);
-        cmd.Parameters.AddWithValue("p_actor", NpgsqlDbType.Varchar, actor);
+        cmd.Parameters.AddWithValue("p_chairman_user_id", NpgsqlDbType.Varchar, chairmanIdentity);
+        cmd.Parameters.AddWithValue("p_secretary_user_id", NpgsqlDbType.Varchar, secretaryIdentity);
         cmd.Parameters.AddWithValue("p_overall_decision", NpgsqlDbType.Varchar, request.OverallDecision);
         cmd.Parameters.AddWithValue("p_committee_remarks", NpgsqlDbType.Text, (object?)request.CommitteeRemarks ?? DBNull.Value);
         await using var reader = await cmd.ExecuteReaderAsync(ct);

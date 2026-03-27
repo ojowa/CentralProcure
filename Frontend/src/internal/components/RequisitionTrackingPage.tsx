@@ -59,10 +59,11 @@ interface Props {
   token?: string | null;
   role?: RoleKey | null;
   userEmail?: string | null;
+  availableModuleIds?: string[];
   onModuleChange?: (moduleId: string) => void;
 }
 
-export const RequisitionTrackingPage = ({ module, token, role, userEmail, onModuleChange }: Props) => {
+export const RequisitionTrackingPage = ({ module, token, role, userEmail, availableModuleIds = [], onModuleChange }: Props) => {
   const mode = 'tracking';
   const pageSize = getPageSize(mode);
   const isDepartmentHead = role === 'department_head';
@@ -98,6 +99,7 @@ export const RequisitionTrackingPage = ({ module, token, role, userEmail, onModu
 
   const activeStepIndex = getStepIndex(selectedDetail);
   const canEditDrafts = Boolean(token && role && (role === 'requisitioning_officer' || role === 'department_head' || role === 'admin'));
+  const canOpenCreateModule = availableModuleIds.includes('create-requisition');
   const isSelectedEditable = Boolean(selectedDetail && editableRequisitionStatuses.has(selectedDetail.Status));
 
   const summary = useMemo(() => {
@@ -374,7 +376,7 @@ export const RequisitionTrackingPage = ({ module, token, role, userEmail, onModu
       </div>
 
       <div style={{ marginTop: '16px' }}>
-        <RequisitionQuickLinks mode={mode} onModuleChange={onModuleChange} />
+        <RequisitionQuickLinks mode={mode} onModuleChange={onModuleChange} availableModuleIds={availableModuleIds} />
       </div>
 
       {!token ? <div className="portal-alert" style={{ marginTop: '16px' }}>Authentication token is missing.</div> : null}
@@ -415,10 +417,11 @@ export const RequisitionTrackingPage = ({ module, token, role, userEmail, onModu
                 detail={selectedDetail}
                 activeStepIndex={activeStepIndex}
                 isSelectedEditable={isSelectedEditable}
-                isDepartmentHead={isDepartmentHead}
-                isAdmin={role === 'admin'}
-                canEditDrafts={canEditDrafts}
-                isSaving={isSaving}
+      isDepartmentHead={isDepartmentHead}
+      isAdmin={role === 'admin'}
+      canEditDrafts={canEditDrafts}
+      canOpenSelectedForEdit={canOpenCreateModule}
+      isSaving={isSaving}
                 workflowRuntime={workflowRuntime}
                 workflowHistory={workflowHistory}
                 isWorkflowLoading={isWorkflowLoading}

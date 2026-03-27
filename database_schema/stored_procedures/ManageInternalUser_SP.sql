@@ -1,6 +1,7 @@
 -- Function for Updating an Internal User (PostgreSQL)
 CREATE OR REPLACE FUNCTION identity.update_internal_user(
     p_internal_user_id UUID,
+    p_email VARCHAR(255),
     p_username VARCHAR(100),
     p_first_name VARCHAR(100),
     p_middle_name VARCHAR(100),
@@ -27,8 +28,9 @@ RETURNS TABLE (
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    UPDATE identity.internal_users
-    SET username = p_username,
+    UPDATE identity.internal_users AS iu
+    SET email = p_email,
+        username = p_username,
         first_name = p_first_name,
         middle_name = NULLIF(p_middle_name, ''),
         surname = p_surname,
@@ -37,7 +39,7 @@ BEGIN
         is_active = p_is_active,
         status = CASE WHEN p_is_active THEN 'Active' ELSE 'Inactive' END,
         updated_at = NOW()
-    WHERE internal_user_id = p_internal_user_id;
+    WHERE iu.internal_user_id = p_internal_user_id;
 
     RETURN QUERY
     SELECT
@@ -64,6 +66,7 @@ $$;
 -- Procedure wrapper for update_internal_user
 CREATE OR REPLACE PROCEDURE identity.update_internal_user_sp(
     IN p_internal_user_id UUID,
+    IN p_email VARCHAR(255),
     IN p_username VARCHAR(100),
     IN p_first_name VARCHAR(100),
     IN p_middle_name VARCHAR(100),
@@ -79,6 +82,7 @@ BEGIN
     OPEN p_result FOR
     SELECT * FROM identity.update_internal_user(
         p_internal_user_id,
+        p_email,
         p_username,
         p_first_name,
         p_middle_name,

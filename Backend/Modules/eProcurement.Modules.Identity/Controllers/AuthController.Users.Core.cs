@@ -63,11 +63,17 @@ public partial class AuthController
             return Problem("Connection string 'Primary' is not configured.", statusCode: 500);
         }
 
-        if (string.IsNullOrWhiteSpace(request.Username) ||
+        if (string.IsNullOrWhiteSpace(request.Email) ||
+            string.IsNullOrWhiteSpace(request.Username) ||
             string.IsNullOrWhiteSpace(request.FirstName) ||
             string.IsNullOrWhiteSpace(request.Surname))
         {
-            return BadRequest(new { message = "Username, first name, and surname are required." });
+            return BadRequest(new { message = "Email, username, first name, and surname are required." });
+        }
+
+        if (!request.Email.Contains('@', StringComparison.Ordinal))
+        {
+            return BadRequest(new { message = "A valid internal email address is required." });
         }
 
         if (!UsernamePattern.IsMatch(request.Username.Trim()))
@@ -87,6 +93,7 @@ public partial class AuthController
             };
 
             cmd.Parameters.AddWithValue("p_internal_user_id", NpgsqlDbType.Uuid, internalUserId);
+            cmd.Parameters.AddWithValue("p_email", NpgsqlDbType.Varchar, request.Email.Trim());
             cmd.Parameters.AddWithValue("p_username", NpgsqlDbType.Varchar, request.Username.Trim());
             cmd.Parameters.AddWithValue("p_first_name", NpgsqlDbType.Varchar, request.FirstName.Trim());
             cmd.Parameters.AddWithValue("p_middle_name", NpgsqlDbType.Varchar, (object?)request.MiddleName?.Trim() ?? string.Empty);
@@ -105,7 +112,7 @@ public partial class AuthController
         catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.UniqueViolation)
         {
             Logger.LogWarning(ex, "User update conflict for internal user {InternalUserId}.", internalUserId);
-            return Conflict(new { message = "Username or service number is already in use." });
+            return Conflict(new { message = "Email, username, or service number is already in use." });
         }
         catch (Exception ex)
         {

@@ -123,7 +123,7 @@ const RegisterPage: React.FC = () => {
                 <h2>Registration Successful!</h2>
                 <p>Your vendor account has been created and is awaiting procurement approval.</p>
                 <p>You will be able to sign in after the account is activated.</p>
-                <button onClick={() => router.push('/')}>Return to Home</button>
+                <button onClick={() => router.push('/vendors')}>Return to Home</button>
             </div>
         );
     }
@@ -288,7 +288,7 @@ const RegisterPage: React.FC = () => {
                 </form>
 
                 <p className="text-center text-gray-600 text-sm mt-4">
-                    Already have an account? <Link href="/login" className="text-blue-600 hover:underline">Login here</Link>
+                    Already have an account? <Link href="/vendors/login" className="text-blue-600 hover:underline">Login here</Link>
                 </p>
             </div>
         </div>

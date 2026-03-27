@@ -1,397 +1,398 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import type { InternalModule } from '../types/internal';
+import React, { useEffect, useMemo, useState } from 'react';
+import type {
+  InternalModule,
+  WorkflowConfigurationGovernanceBody,
+  WorkflowConfigurationThreshold
+} from '../types/internal';
+import {
+  createWorkflowThreshold,
+  deleteWorkflowThreshold,
+  fetchWorkflowConfiguration,
+  updateWorkflowThreshold
+} from '../services/workflowConfigurationService';
 
 interface Props {
   module: InternalModule;
   token: string | null;
 }
 
-export type ThresholdBandConfig = {
-  id: string;
-  label: string;
-  min: number;
-  max: number;
-  approvalLevel: string;
-  timeline: string;
+type ThresholdFilter = 'All' | 'Goods' | 'Works' | 'Services';
+
+type ThresholdFormState = {
+  procurementType: string;
+  minAmount: string;
+  maxAmount: string;
+  approvalRoute: string;
+  approvalAuthorityCode: string;
+  approvalAuthorityLabel: string;
+  governanceBodyId: string;
+  requiresCgisApproval: boolean;
+  requiresBoard: boolean;
   requiresBpp: boolean;
-  escalation: string;
-  steps: string[];
-  isActive: boolean;
+  status: string;
+  notes: string;
 };
 
-const defaultThresholdBands: ThresholdBandConfig[] = [
-  {
-    id: 'cgis-direct',
-    label: 'Below NGN 50M',
-    min: 0,
-    max: 50_000_000,
-    approvalLevel: 'CGIS Direct Approval',
-    timeline: '30 - 45 days',
-    requiresBpp: false,
-    escalation: 'Low-value cases move from evaluation to CGIS approval before award publication.',
-    steps: ['Requisition Review', 'Evaluation', 'CGIS Approval', 'Award Publication'],
-    isActive: true
-  },
-  {
-    id: 'nis-board',
-    label: 'NGN 50M - 100M',
-    min: 50_000_000,
-    max: 100_000_000,
-    approvalLevel: 'NIS Tenders Board',
-    timeline: '45 - 60 days',
-    requiresBpp: false,
-    escalation: 'Board-routed cases are decided by the NIS Tenders Board chaired by CGIS.',
-    steps: ['Requisition Review', 'Evaluation', 'Tenders Board Review', 'Award Publication'],
-    isActive: true
-  },
-  {
-    id: 'bpp-prior-review',
-    label: 'NGN 100M+',
-    min: 100_000_000,
-    max: Number.POSITIVE_INFINITY,
-    approvalLevel: 'NIS Tenders Board + BPP',
-    timeline: '60 - 90 days',
-    requiresBpp: true,
-    escalation: 'High-value cases require board endorsement before BPP no-objection and award publication.',
-    steps: ['Requisition Review', 'Evaluation', 'Tenders Board Review', 'BPP No Objection', 'Award Publication'],
-    isActive: true
-  }
-];
+const filters: ThresholdFilter[] = ['All', 'Goods', 'Works', 'Services'];
 
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(value);
+const emptyForm: ThresholdFormState = {
+  procurementType: 'Goods',
+  minAmount: '0',
+  maxAmount: '',
+  approvalRoute: '',
+  approvalAuthorityCode: '',
+  approvalAuthorityLabel: '',
+  governanceBodyId: '',
+  requiresCgisApproval: true,
+  requiresBoard: false,
+  requiresBpp: false,
+  status: 'Active',
+  notes: ''
+};
+
+const formatCurrency = (value: number | null | undefined) =>
+  value == null
+    ? 'and above'
+    : new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(value);
+
+const toFormState = (threshold: WorkflowConfigurationThreshold): ThresholdFormState => ({
+  procurementType: threshold.ProcurementType || 'Goods',
+  minAmount: String(threshold.MinAmount),
+  maxAmount: threshold.MaxAmount == null ? '' : String(threshold.MaxAmount),
+  approvalRoute: threshold.ApprovalRoute,
+  approvalAuthorityCode: threshold.ApprovalAuthorityCode,
+  approvalAuthorityLabel: threshold.ApprovalAuthorityLabel,
+  governanceBodyId: threshold.GovernanceBodyId || '',
+  requiresCgisApproval: threshold.RequiresCgisApproval,
+  requiresBoard: threshold.RequiresBoard,
+  requiresBpp: threshold.RequiresBpp,
+  status: threshold.Status,
+  notes: threshold.Notes || ''
+});
 
 export const ThresholdConfigurationModule: React.FC<Props> = ({ module, token }) => {
-  const [thresholds, setThresholds] = useState<ThresholdBandConfig[]>(defaultThresholdBands);
+  const [thresholds, setThresholds] = useState<WorkflowConfigurationThreshold[]>([]);
+  const [governanceBodies, setGovernanceBodies] = useState<WorkflowConfigurationGovernanceBody[]>([]);
+  const [selectedThresholdId, setSelectedThresholdId] = useState('');
+  const [filter, setFilter] = useState<ThresholdFilter>('All');
+  const [form, setForm] = useState<ThresholdFormState>(emptyForm);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<ThresholdBandConfig | null>(null);
-
-  useEffect(() => {
-    loadThresholds();
-  }, [token]);
+  const [message, setMessage] = useState<string | null>(null);
 
   const loadThresholds = async () => {
-    if (!token) return;
+    if (!token) {
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
-      setThresholds(defaultThresholdBands);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load threshold configuration');
+      const config = await fetchWorkflowConfiguration(token);
+      setThresholds(config.Thresholds || []);
+      setGovernanceBodies(config.GovernanceBodies || []);
+      if (!selectedThresholdId && config.Thresholds.length) {
+        const first = config.Thresholds[0];
+        setSelectedThresholdId(first.ThresholdId);
+        setForm(toFormState(first));
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load threshold configuration.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleEdit = (band: ThresholdBandConfig) => {
-    setEditingId(band.id);
-    setEditForm({ ...band });
+  useEffect(() => {
+    void loadThresholds();
+  }, [token]);
+
+  const filteredThresholds = useMemo(() => {
+    return thresholds.filter((threshold) =>
+      filter === 'All' ? true : (threshold.ProcurementType || '').toLowerCase() === filter.toLowerCase()
+    );
+  }, [filter, thresholds]);
+
+  const selectedThreshold = useMemo(
+    () => thresholds.find((threshold) => threshold.ThresholdId === selectedThresholdId) ?? null,
+    [selectedThresholdId, thresholds]
+  );
+
+  const handleSelect = (threshold: WorkflowConfigurationThreshold) => {
+    setSelectedThresholdId(threshold.ThresholdId);
+    setForm(toFormState(threshold));
+    setMessage(null);
+    setError(null);
   };
 
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    setEditForm(null);
+  const handleChange = <K extends keyof ThresholdFormState>(key: K, value: ThresholdFormState[K]) => {
+    setForm((current) => ({ ...current, [key]: value }));
   };
 
-  const handleSaveEdit = () => {
-    if (!editForm) return;
-    setThresholds((prev) => prev.map((band) => (band.id === editForm.id ? editForm : band)));
-    setEditingId(null);
-    setEditForm(null);
-    setFeedback('Threshold band updated successfully');
-    setTimeout(() => setFeedback(null), 3000);
-  };
+  const normalizePayload = () => ({
+    ProcurementType: form.procurementType.trim() || null,
+    MinAmount: Number(form.minAmount || '0'),
+    MaxAmount: form.maxAmount.trim() ? Number(form.maxAmount) : null,
+    ApprovalRoute: form.approvalRoute.trim(),
+    ApprovalAuthorityCode: form.approvalAuthorityCode.trim(),
+    ApprovalAuthorityLabel: form.approvalAuthorityLabel.trim(),
+    GovernanceBodyId: form.requiresBoard ? form.governanceBodyId || null : null,
+    RequiresCgisApproval: form.requiresCgisApproval,
+    RequiresBoard: form.requiresBoard,
+    RequiresBpp: form.requiresBpp,
+    Status: form.status,
+    Notes: form.notes.trim() || null
+  });
 
-  const handleToggleActive = (id: string) => {
-    setThresholds((prev) => prev.map((band) => (band.id === id ? { ...band, isActive: !band.isActive } : band)));
-  };
+  const handleSave = async () => {
+    if (!token || !selectedThreshold) {
+      return;
+    }
 
-  const handleFormChange = (field: keyof ThresholdBandConfig, value: any) => {
-    if (!editForm) return;
-    setEditForm({ ...editForm, [field]: value });
-  };
-
-  const handleAddStep = () => {
-    if (!editForm) return;
-    setEditForm({ ...editForm, steps: [...editForm.steps, ''] });
-  };
-
-  const handleUpdateStep = (index: number, value: string) => {
-    if (!editForm) return;
-    const newSteps = [...editForm.steps];
-    newSteps[index] = value;
-    setEditForm({ ...editForm, steps: newSteps });
-  };
-
-  const handleRemoveStep = (index: number) => {
-    if (!editForm) return;
-    const newSteps = editForm.steps.filter((_, i) => i !== index);
-    setEditForm({ ...editForm, steps: newSteps });
-  };
-
-  const handleSaveAll = async () => {
-    if (!token) return;
     setSaving(true);
     setError(null);
-    setFeedback(null);
+    setMessage(null);
     try {
-      setFeedback('Threshold configuration saved successfully');
-      setTimeout(() => setFeedback(null), 3000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to save threshold configuration');
+      const updated = await updateWorkflowThreshold(token, selectedThreshold.ThresholdId, normalizePayload());
+      setThresholds((current) =>
+        current.map((threshold) => (threshold.ThresholdId === updated.ThresholdId ? updated : threshold))
+      );
+      setForm(toFormState(updated));
+      setMessage('Threshold updated successfully.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update threshold.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCreate = async () => {
+    if (!token) {
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const created = await createWorkflowThreshold(token, normalizePayload());
+      setThresholds((current) => [created, ...current]);
+      setSelectedThresholdId(created.ThresholdId);
+      setForm(toFormState(created));
+      setFilter((current) => (current === 'All' ? current : (created.ProcurementType as ThresholdFilter) || current));
+      setMessage('Threshold created successfully.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create threshold.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!token || !selectedThreshold) {
+      return;
+    }
+
+    if (!window.confirm(`Delete threshold ${selectedThreshold.ApprovalAuthorityLabel} for ${selectedThreshold.ProcurementType || 'All'}?`)) {
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    setMessage(null);
+    try {
+      await deleteWorkflowThreshold(token, selectedThreshold.ThresholdId);
+      const next = thresholds.filter((threshold) => threshold.ThresholdId !== selectedThreshold.ThresholdId);
+      setThresholds(next);
+      if (next.length) {
+        setSelectedThresholdId(next[0].ThresholdId);
+        setForm(toFormState(next[0]));
+      } else {
+        setSelectedThresholdId('');
+        setForm(emptyForm);
+      }
+      setMessage('Threshold deleted successfully.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete threshold.');
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <section className="app-module">
-      <header className="app-module__header">
-        <div className="app-module__title-group">
-          <h2 className="app-module__title">{module.title}</h2>
-          <p className="app-module__description">{module.description}</p>
+    <section className="admin-hub">
+      <div className="admin-hero">
+        <div>
+          <div className="admin-kicker">System Administration</div>
+          <h2>{module.title}</h2>
+          <p>{module.description}</p>
+          <div className="admin-tags">
+            <span className="admin-tag">{thresholds.length} threshold bands</span>
+            <span className="admin-tag">{thresholds.filter((item) => item.RequiresBpp).length} BPP bands</span>
+            <span className="admin-tag">{thresholds.filter((item) => item.RequiresCgisApproval).length} CGIS bands</span>
+          </div>
         </div>
-        <div className="app-module__actions">
-          <button
-            className="app-btn app-btn--primary"
-            onClick={handleSaveAll}
-            disabled={saving}
-          >
-            {saving ? 'Saving...' : 'Save Configuration'}
+        <button type="button" className="workflow-config-refresh" onClick={() => void loadThresholds()} disabled={loading || !token}>
+          {loading ? 'Refreshing...' : 'Refresh'}
+        </button>
+      </div>
+
+      {error ? <div className="portal-alert">{error}</div> : null}
+      {message ? <div className="plan-success">{message}</div> : null}
+
+      <div className="workflow-config-tabs">
+        {filters.map((item) => (
+          <button key={item} type="button" className={filter === item ? 'active' : ''} onClick={() => setFilter(item)}>
+            {item}
           </button>
-        </div>
-      </header>
+        ))}
+      </div>
 
-      {error && (
-        <div className="app-alert app-alert--error">
-          <span className="app-alert__icon">⚠</span>
-          {error}
-        </div>
-      )}
+      <div className="admin-grid" style={{ marginTop: '24px' }}>
+        <article className="admin-card admin-card--wide">
+          <h3>Threshold Bands</h3>
+          <table className="plan-table">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Band</th>
+                <th>Authority</th>
+                <th>Route</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredThresholds.map((threshold) => (
+                <tr
+                  key={threshold.ThresholdId}
+                  className={selectedThresholdId === threshold.ThresholdId ? 'plan-row--selected' : undefined}
+                  onClick={() => handleSelect(threshold)}
+                >
+                  <td>{threshold.ProcurementType || 'All'}</td>
+                  <td>{formatCurrency(threshold.MinAmount)} - {formatCurrency(threshold.MaxAmount)}</td>
+                  <td>{threshold.ApprovalAuthorityLabel}</td>
+                  <td>{threshold.ApprovalRoute}</td>
+                  <td>{threshold.Status}</td>
+                </tr>
+              ))}
+              {!filteredThresholds.length ? (
+                <tr>
+                  <td colSpan={5} className="plan-empty">No thresholds found for {filter}.</td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </article>
 
-      {feedback && (
-        <div className="app-alert app-alert--success">
-          <span className="app-alert__icon">✓</span>
-          {feedback}
-        </div>
-      )}
-
-      <div className="app-card">
-        <div className="app-card__header">
-          <div className="app-section-title">
-            <span className="app-section-title__icon">⚙</span>
-            <h3 className="app-section-title__text">Threshold Bands</h3>
-            <span className="app-section-title__count">{thresholds.length}</span>
-          </div>
-        </div>
-        <p className="app-card__description">
-          Configure procurement thresholds that determine approval routes and governance requirements.
-        </p>
-
-        {loading ? (
-          <div className="app-empty-state">
-            <span className="app-empty-state__icon">⏳</span>
-            <p>Loading threshold configuration...</p>
-          </div>
-        ) : (
-          <div className="threshold-bands-list">
-            {thresholds.map((band) => (
-              <div
-                key={band.id}
-                className={`threshold-band-card ${!band.isActive ? 'threshold-band-card--inactive' : ''}`}
+        <article className="admin-card admin-card--mid">
+          <h3>{selectedThreshold ? 'Edit Threshold' : 'Create Threshold'}</h3>
+          <div className="plan-form-grid">
+            <label className="plan-field">
+              <span>Procurement Type</span>
+              <select className="plan-select" value={form.procurementType} onChange={(e) => handleChange('procurementType', e.target.value)}>
+                <option value="Goods">Goods</option>
+                <option value="Works">Works</option>
+                <option value="Services">Services</option>
+              </select>
+            </label>
+            <label className="plan-field">
+              <span>Min Amount</span>
+              <input className="plan-input" type="number" min="0" value={form.minAmount} onChange={(e) => handleChange('minAmount', e.target.value)} />
+            </label>
+            <label className="plan-field">
+              <span>Max Amount</span>
+              <input className="plan-input" type="number" min="0" placeholder="Leave blank for and above" value={form.maxAmount} onChange={(e) => handleChange('maxAmount', e.target.value)} />
+            </label>
+            <label className="plan-field">
+              <span>Approval Route</span>
+              <input className="plan-input" value={form.approvalRoute} onChange={(e) => handleChange('approvalRoute', e.target.value)} />
+            </label>
+            <label className="plan-field">
+              <span>Authority Code</span>
+              <input className="plan-input" value={form.approvalAuthorityCode} onChange={(e) => handleChange('approvalAuthorityCode', e.target.value)} />
+            </label>
+            <label className="plan-field">
+              <span>Authority Label</span>
+              <input className="plan-input" value={form.approvalAuthorityLabel} onChange={(e) => handleChange('approvalAuthorityLabel', e.target.value)} />
+            </label>
+            <label className="plan-field">
+              <span>Governance Body</span>
+              <select
+                className="plan-select"
+                value={form.governanceBodyId}
+                disabled={!form.requiresBoard}
+                onChange={(e) => handleChange('governanceBodyId', e.target.value)}
               >
-                {editingId === band.id && editForm ? (
-                  <div className="threshold-band-form">
-                    <div className="app-form__group">
-                      <label className="app-form__label">Band Label</label>
-                      <input
-                        type="text"
-                        className="app-form__input"
-                        value={editForm.label}
-                        onChange={(e) => handleFormChange('label', e.target.value)}
-                      />
-                    </div>
-
-                    <div className="app-form__row">
-                      <div className="app-form__group">
-                        <label className="app-form__label">Minimum Amount (NGN)</label>
-                        <input
-                          type="number"
-                          className="app-form__input"
-                          value={editForm.min}
-                          onChange={(e) => handleFormChange('min', Number(e.target.value))}
-                        />
-                      </div>
-                      <div className="app-form__group">
-                        <label className="app-form__label">Maximum Amount (NGN)</label>
-                        <input
-                          type="number"
-                          className="app-form__input"
-                          value={editForm.max === Number.POSITIVE_INFINITY ? '' : editForm.max}
-                          placeholder="Unlimited"
-                          onChange={(e) => handleFormChange('max', e.target.value ? Number(e.target.value) : Number.POSITIVE_INFINITY)}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="app-form__group">
-                      <label className="app-form__label">Approval Level</label>
-                      <input
-                        type="text"
-                        className="app-form__input"
-                        value={editForm.approvalLevel}
-                        onChange={(e) => handleFormChange('approvalLevel', e.target.value)}
-                      />
-                    </div>
-
-                    <div className="app-form__row">
-                      <div className="app-form__group">
-                        <label className="app-form__label">Timeline</label>
-                        <input
-                          type="text"
-                          className="app-form__input"
-                          value={editForm.timeline}
-                          onChange={(e) => handleFormChange('timeline', e.target.value)}
-                        />
-                      </div>
-                      <div className="app-form__group app-form__group--checkbox">
-                        <label className="app-form__label">
-                          <input
-                            type="checkbox"
-                            checked={editForm.requiresBpp}
-                            onChange={(e) => handleFormChange('requiresBpp', e.target.checked)}
-                          />
-                          Requires BPP
-                        </label>
-                      </div>
-                    </div>
-
-                    <div className="app-form__group">
-                      <label className="app-form__label">Escalation Description</label>
-                      <textarea
-                        className="app-form__textarea"
-                        rows={3}
-                        value={editForm.escalation}
-                        onChange={(e) => handleFormChange('escalation', e.target.value)}
-                      />
-                    </div>
-
-                    <div className="app-form__group">
-                      <label className="app-form__label">Workflow Steps</label>
-                      <div className="threshold-steps-list">
-                        {editForm.steps.map((step, index) => (
-                          <div key={index} className="threshold-step-input">
-                            <span className="threshold-step-number">{index + 1}</span>
-                            <input
-                              type="text"
-                              className="app-form__input"
-                              value={step}
-                              onChange={(e) => handleUpdateStep(index, e.target.value)}
-                              placeholder={`Step ${index + 1}`}
-                            />
-                            <button
-                              type="button"
-                              className="app-btn app-btn--sm app-btn--danger"
-                              onClick={() => handleRemoveStep(index)}
-                              disabled={editForm.steps.length <= 1}
-                            >
-                              Remove
-                            </button>
-                          </div>
-                        ))}
-                        <button
-                          type="button"
-                          className="app-btn app-btn--sm app-btn--secondary"
-                          onClick={handleAddStep}
-                        >
-                          + Add Step
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="threshold-band-form__actions">
-                      <button
-                        className="app-btn app-btn--secondary"
-                        onClick={handleCancelEdit}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        className="app-btn app-btn--primary"
-                        onClick={handleSaveEdit}
-                      >
-                        Save Changes
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="threshold-band-display">
-                    <div className="threshold-band__header">
-                      <div className="threshold-band__title-group">
-                        <h4 className="threshold-band__title">{band.label}</h4>
-                        <span className={`app-badge ${band.isActive ? 'app-badge--success' : 'app-badge--muted'}`}>
-                          {band.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                      </div>
-                      <div className="threshold-band__actions">
-                        <button
-                          className="app-btn app-btn--sm app-btn--secondary"
-                          onClick={() => handleEdit(band)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          className={`app-btn app-btn--sm ${band.isActive ? 'app-btn--warning' : 'app-btn--success'}`}
-                          onClick={() => handleToggleActive(band.id)}
-                        >
-                          {band.isActive ? 'Deactivate' : 'Activate'}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="threshold-band__grid">
-                      <div className="threshold-band__stat">
-                        <span className="threshold-band__stat-label">Range</span>
-                        <span className="threshold-band__stat-value">
-                          {formatCurrency(band.min)} - {band.max === Number.POSITIVE_INFINITY ? '∞' : formatCurrency(band.max)}
-                        </span>
-                      </div>
-                      <div className="threshold-band__stat">
-                        <span className="threshold-band__stat-label">Approval Level</span>
-                        <span className="threshold-band__stat-value">{band.approvalLevel}</span>
-                      </div>
-                      <div className="threshold-band__stat">
-                        <span className="threshold-band__stat-label">Timeline</span>
-                        <span className="threshold-band__stat-value">{band.timeline}</span>
-                      </div>
-                      <div className="threshold-band__stat">
-                        <span className="threshold-band__stat-label">BPP Required</span>
-                        <span className="threshold-band__stat-value">{band.requiresBpp ? 'Yes' : 'No'}</span>
-                      </div>
-                    </div>
-
-                    <div className="threshold-band__steps">
-                      <span className="threshold-band__steps-label">Workflow Steps:</span>
-                      <ol className="threshold-band__steps-list">
-                        {band.steps.map((step, index) => (
-                          <li key={index}>{step}</li>
-                        ))}
-                      </ol>
-                    </div>
-
-                    <p className="threshold-band__escalation">{band.escalation}</p>
-                  </div>
-                )}
-              </div>
-            ))}
+                <option value="">Direct executive route</option>
+                {governanceBodies.map((body) => (
+                  <option key={body.BodyId} value={body.BodyId}>{body.BodyName}</option>
+                ))}
+              </select>
+            </label>
+            <label className="plan-field">
+              <span>Status</span>
+              <select className="plan-select" value={form.status} onChange={(e) => handleChange('status', e.target.value)}>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </label>
+            <label className="plan-field plan-field--checkbox">
+              <input
+                type="checkbox"
+                checked={form.requiresCgisApproval}
+                onChange={(e) => {
+                  handleChange('requiresCgisApproval', e.target.checked);
+                  if (e.target.checked) {
+                    handleChange('requiresBoard', false);
+                    handleChange('governanceBodyId', '');
+                  }
+                }}
+              />
+              <span>Requires CGIS Approval</span>
+            </label>
+            <label className="plan-field plan-field--checkbox">
+              <input
+                type="checkbox"
+                checked={form.requiresBoard}
+                onChange={(e) => {
+                  handleChange('requiresBoard', e.target.checked);
+                  if (e.target.checked) {
+                    handleChange('requiresCgisApproval', false);
+                  } else {
+                    handleChange('governanceBodyId', '');
+                  }
+                }}
+              />
+              <span>Requires Board</span>
+            </label>
+            <label className="plan-field plan-field--checkbox">
+              <input type="checkbox" checked={form.requiresBpp} onChange={(e) => handleChange('requiresBpp', e.target.checked)} />
+              <span>Requires BPP</span>
+            </label>
+            <label className="plan-field plan-field--span">
+              <span>Notes</span>
+              <textarea className="plan-textarea" rows={4} value={form.notes} onChange={(e) => handleChange('notes', e.target.value)} />
+            </label>
           </div>
-        )}
+
+          <div className="plan-actions">
+            <button type="button" className="plan-button" onClick={() => void handleSave()} disabled={saving || !selectedThreshold}>
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+            <button type="button" className="plan-button plan-button--secondary" onClick={() => { setSelectedThresholdId(''); setForm(emptyForm); }}>
+              New Draft
+            </button>
+            <button type="button" className="plan-button plan-button--secondary" onClick={() => void handleCreate()} disabled={saving}>
+              Create New
+            </button>
+            <button type="button" className="plan-button plan-button--danger" onClick={() => void handleDelete()} disabled={saving || !selectedThreshold}>
+              Delete
+            </button>
+          </div>
+        </article>
       </div>
     </section>
   );

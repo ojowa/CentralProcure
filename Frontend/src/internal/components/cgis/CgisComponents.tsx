@@ -187,7 +187,7 @@ export const CgisCaseDetail = ({
           <p className="app-status-banner app-status-banner--info">
             {isPlanCase
               ? `This departmental plan has been approved by Comptroller Procurement and forwarded to CGIS Approval before procurement process begins.`
-              : `This procurement follows the ${selectedCase.ApprovalRoute || 'Low-Value Direct'} path, which mandates final executive review by the Accounting Officer (CGIS) as per PPA 2007 guidelines.`}
+              : `This procurement follows the ${selectedCase.ApprovalRoute || 'Low-Value Direct'} path, which mandates final executive review by the Comptroller General of Immigration Service as per PPA 2007 guidelines.`}
           </p>
         </div>
       </div>

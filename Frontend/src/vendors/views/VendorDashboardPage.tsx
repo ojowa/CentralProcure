@@ -11,7 +11,7 @@ const VendorDashboardPage = ({ children }: { children?: ReactNode }) => {
 
     const handleLogout = () => {
         logout();
-        router.push('/login');
+        router.push('/vendors/login');
     };
 
     return (
@@ -22,22 +22,22 @@ const VendorDashboardPage = ({ children }: { children?: ReactNode }) => {
                 <nav>
                     <ul>
                         <li className="mb-2">
-                            <Link href="/dashboard/profile-management" className="block py-2 px-3 rounded hover:bg-gray-700 transition duration-200">
+                            <Link href="/vendors/dashboard/profile-management" className="block py-2 px-3 rounded hover:bg-gray-700 transition duration-200">
                                 Profile Management
                             </Link>
                         </li>
                         <li className="mb-2">
-                            <Link href="/dashboard/compliance-documents" className="block py-2 px-3 rounded hover:bg-gray-700 transition duration-200">
+                            <Link href="/vendors/dashboard/compliance-documents" className="block py-2 px-3 rounded hover:bg-gray-700 transition duration-200">
                                 Compliance Documents
                             </Link>
                         </li>
                         <li className="mb-2">
-                            <Link href="/dashboard/tender-listings" className="block py-2 px-3 rounded hover:bg-gray-700 transition duration-200">
+                            <Link href="/vendors/dashboard/tender-listings" className="block py-2 px-3 rounded hover:bg-gray-700 transition duration-200">
                                 Tender Listings
                             </Link>
                         </li>
                         <li className="mb-2">
-                            <Link href="/dashboard/submitted-bids" className="block py-2 px-3 rounded hover:bg-gray-700 transition duration-200">
+                            <Link href="/vendors/dashboard/submitted-bids" className="block py-2 px-3 rounded hover:bg-gray-700 transition duration-200">
                                 Submitted Bids Status
                             </Link>
                         </li>

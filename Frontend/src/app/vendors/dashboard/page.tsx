@@ -5,5 +5,5 @@ import { createCanonicalMetadata } from '../../seo';
 export const metadata: Metadata = createCanonicalMetadata('/dashboard/profile-management');
 
 export default function Page() {
-  permanentRedirect('/dashboard/profile-management');
+  permanentRedirect('/vendors/dashboard/profile-management');
 }

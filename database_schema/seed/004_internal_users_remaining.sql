@@ -188,7 +188,7 @@ BEGIN
         service_number = EXCLUDED.service_number,
         status = 'Active';
 
-    -- AccountingOfficer
+    -- CGIS
     INSERT INTO identity.internal_users (
         email,
         username,
@@ -200,8 +200,8 @@ BEGIN
         role_id,
         status
     )
-    SELECT 'accountingofficer@nis.gov.ng', 'accountingofficer', 'Accounting', NULL, 'Officer', 'NIS-00013', v_password_hash, role_id, 'Active'
-    FROM identity.roles WHERE role_name = 'AccountingOfficer'
+    SELECT 'cgis@nis.gov.ng', 'cgis', 'CGIS', NULL, 'Executive', 'NIS-00013', v_password_hash, role_id, 'Active'
+    FROM identity.roles WHERE role_name = 'CGIS'
     ON CONFLICT (email) DO UPDATE
     SET password_hash = EXCLUDED.password_hash,
         username = EXCLUDED.username,

@@ -37,7 +37,7 @@ The e-Procurement System shall cover:
 - Vendor registration and management
 - Electronic bid submission and opening
 - Technical and financial evaluation
-- Tenders Board and Accounting Officer approvals
+- Tenders Board and CGIS approvals
 - BPP "No Objection" processing
 - Contract award and management
 - Inspection, acceptance, and payment tracking
@@ -83,7 +83,7 @@ The system adopts a layered architecture:
   - Procurement Officers
   - Evaluation Committee Members
   - Tenders Board Members
-  - Accounting Officer
+  - CGIS
   - Auditors
   - Vendors/Contractors
 
@@ -104,7 +104,7 @@ The system adopts a layered architecture:
 - Cost estimation and justification
 - Automated determination of procurement method
 - Threshold-based approval routing
-- Accounting Officer authorization
+- CGIS authorization
 
 ---
 
@@ -149,7 +149,7 @@ The system adopts a layered architecture:
 ### 6.8 Approval & Compliance Module
 
 - Tenders Board review and approvals
-- Accounting Officer final authorization
+- CGIS final authorization
 - BPP "No Objection" request tracking
 - Prevention of contract award without required approvals
 

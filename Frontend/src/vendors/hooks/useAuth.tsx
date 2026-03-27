@@ -1,11 +1,18 @@
 'use client';
 
 import { createContext, useContext, useEffect, useRef, useState, type FC, type ReactNode } from 'react';
-import { getCurrentUser, logoutVendor } from '../features/vendor/services/vendorService';
+import {
+    getCurrentUser,
+    logoutVendor,
+    getStoredVendorAuthToken,
+    setVendorAuthToken,
+    fetchCsrfToken
+} from '../features/vendor/services/vendorService';
 
 interface AuthContextType {
     isAuthenticated: boolean;
     isReady: boolean;
+    hasSessionAttempted: boolean;
     login: (user?: { UserId: string; Email: string; Role: string } | null) => Promise<void>;
     logout: () => void;
     user: { UserId: string; Email: string; Role: string } | null;
@@ -17,9 +24,44 @@ const IDLE_TIMEOUT_MS = 10 * 60 * 1000;
 const WARNING_THRESHOLD_MS = 60 * 1000;
 const LAST_ACTIVE_KEY = 'vendorLastActiveAt';
 
+const parseStoredJwtUser = (token: string): { UserId: string; Email: string; Role: string } | null => {
+    try {
+        const payload = token.split('.')[1];
+        if (!payload) {
+            return null;
+        }
+
+        const normalizedPayload = payload.replace(/-/g, '+').replace(/_/g, '/');
+        const paddedPayload = normalizedPayload + '='.repeat((4 - (normalizedPayload.length % 4)) % 4);
+        const decodedPayload = atob(paddedPayload);
+        const claims = JSON.parse(decodedPayload) as Record<string, unknown>;
+        const userId = typeof claims.sub === 'string' ? claims.sub : null;
+        const email = typeof claims.email === 'string' ? claims.email : null;
+        const role = typeof claims.role === 'string' ? claims.role : null;
+        const expiration = typeof claims.exp === 'number' ? claims.exp : null;
+
+        if (!userId || !email || !role) {
+            return null;
+        }
+
+        if (expiration && (Date.now() >= expiration * 1000)) {
+            return null;
+        }
+
+        return {
+            UserId: userId,
+            Email: email,
+            Role: role
+        };
+    } catch {
+        return null;
+    }
+};
+
 export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
     const [isReady, setIsReady] = useState<boolean>(false);
+    const [hasSessionAttempted, setHasSessionAttempted] = useState<boolean>(false);
     const [user, setUser] = useState<{ UserId: string; Email: string; Role: string } | null>(null);
     const [warningRemainingMs, setWarningRemainingMs] = useState<number | null>(null);
     const idleTimerRef = useRef<number | null>(null);
@@ -28,16 +70,46 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     const keepAliveRef = useRef<(() => void) | null>(null);
 
     useEffect(() => {
-        const syncAuth = async () => {
-            const currentUser = await getCurrentUser();
-            if (currentUser) {
+        const storedToken = getStoredVendorAuthToken();
+        console.log('[Auth] Stored token exists:', !!storedToken);
+        if (storedToken) {
+            setVendorAuthToken(storedToken);
+            const storedUser = parseStoredJwtUser(storedToken);
+            if (storedUser) {
                 setIsAuthenticated(true);
-                setUser(currentUser);
-            } else {
-                setIsAuthenticated(false);
-                setUser(null);
+                setUser(storedUser);
             }
-            setIsReady(true);
+        }
+
+        const syncAuth = async () => {
+            try {
+                // Ensure CSRF cookie is initialized before we do anything
+                await fetchCsrfToken();
+                
+                console.log('[Auth] Fetching current user...');
+                const currentUser = await getCurrentUser();
+                console.log('[Auth] Current user:', currentUser);
+                if (currentUser) {
+                    setIsAuthenticated(true);
+                    setUser(currentUser);
+                } else if (!storedToken) {
+                    setIsAuthenticated(false);
+                    setUser(null);
+                }
+            } catch (error: any) {
+                console.error('[Auth] Failed to get current user:', error);
+                // Only clear session on explicit 401/403
+                const status = error.response?.status;
+                if (status === 401 || status === 403) {
+                    setVendorAuthToken(null);
+                    setIsAuthenticated(false);
+                    setUser(null);
+                }
+            } finally {
+                setHasSessionAttempted(true);
+                setIsReady(true);
+                console.log('[Auth] Session attempt complete.');
+            }
         };
 
         syncAuth();
@@ -64,15 +136,16 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
         setUser(null);
     };
 
-    const logout = async () => {
-        await logoutVendor();
-        setIsAuthenticated(false);
-        setUser(null);
-        localStorage.removeItem('vendorId');
-        localStorage.removeItem('vendorCompanyName');
-        localStorage.removeItem('vendorEmail');
-        localStorage.removeItem(LAST_ACTIVE_KEY);
-    };
+        const logout = async () => {
+            setVendorAuthToken(null);
+            await logoutVendor();
+            setIsAuthenticated(false);
+            setUser(null);
+            localStorage.removeItem('vendorId');
+            localStorage.removeItem('vendorCompanyName');
+            localStorage.removeItem('vendorEmail');
+            localStorage.removeItem(LAST_ACTIVE_KEY);
+        };
 
     useEffect(() => {
         if (!isReady || !isAuthenticated) {
@@ -186,7 +259,7 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     const warningSeconds = warningRemainingMs ? Math.max(1, Math.ceil(warningRemainingMs / 1000)) : null;
 
     return (
-        <AuthContext.Provider value={{ isAuthenticated, isReady, login, logout, user }}>
+        <AuthContext.Provider value={{ isAuthenticated, isReady, hasSessionAttempted, login, logout, user }}>
             {children}
             {isReady && isAuthenticated && warningSeconds !== null && (
                 <div className="fixed inset-x-4 bottom-4 z-50 mx-auto max-w-3xl">

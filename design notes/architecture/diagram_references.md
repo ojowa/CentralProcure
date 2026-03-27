@@ -8,7 +8,7 @@
 This document provides **formal references and explanations** for the **Procurement Workflow Diagram** and **System Architecture Diagram** that support the proposed Electronic Procurement System for the Nigeria Immigration Service.
 
 It is intended for:
-- Top Management and Accounting Officers
+- Top Management and CGIS
 - Procurement and Tenders Board Members
 - ICT and System Architects
 - Bureau of Public Procurement (BPP) and oversight reviewers
@@ -51,7 +51,7 @@ The diagram contains the following major stages:
 4. **Budget Availability and Threshold Check**  
    Automated verification of budget provision and approval authority based on monetary thresholds.
 
-5. **Approval by Accounting Officer**  
+5. **Approval by CGIS**  
    Mandatory authorization before tendering activities commence.
 
 6. **Tender Advertisement**  

@@ -9,8 +9,10 @@ interface EditUserModalProps {
   units: InternalOrganizationalUnitRecord[];
   isOpen: boolean;
   isLoading: boolean;
+  errorMessage?: string | null;
   onClose: () => void;
   onSave: (userId: string, data: {
+    Email: string;
     Username: string;
     FirstName: string;
     MiddleName?: string;
@@ -27,10 +29,12 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
   units,
   isOpen,
   isLoading,
+  errorMessage,
   onClose,
   onSave
 }) => {
   const [formData, setFormData] = useState({
+    Email: '',
     Username: '',
     FirstName: '',
     MiddleName: '',
@@ -43,6 +47,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
   useEffect(() => {
     if (user) {
       setFormData({
+        Email: user.Email,
         Username: user.Username,
         FirstName: user.FirstName,
         MiddleName: user.MiddleName || '',
@@ -91,6 +96,21 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
       >
         <h2 style={{ margin: '0 0 20px 0' }}>Edit User: {user.FirstName} {user.Surname}</h2>
 
+        {errorMessage ? (
+          <div
+            style={{
+              marginBottom: '16px',
+              padding: '12px 14px',
+              borderRadius: '10px',
+              background: '#fef2f2',
+              border: '1px solid #fecaca',
+              color: '#991b1b'
+            }}
+          >
+            {errorMessage}
+          </div>
+        ) : null}
+
         <form onSubmit={handleSubmit}>
           <div style={{ display: 'grid', gap: '16px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
@@ -124,6 +144,16 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
               <label className="plan-field">
+                <span>Email Address *</span>
+                <input
+                  className="plan-input"
+                  type="email"
+                  required
+                  value={formData.Email}
+                  onChange={e => setFormData(p => ({ ...p, Email: e.target.value }))}
+                />
+              </label>
+              <label className="plan-field">
                 <span>Username *</span>
                 <input
                   className="plan-input"
@@ -132,6 +162,9 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
                   onChange={e => setFormData(p => ({ ...p, Username: e.target.value }))}
                 />
               </label>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
               <label className="plan-field">
                 <span>Service Number *</span>
                 <input

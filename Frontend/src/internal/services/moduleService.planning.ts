@@ -216,6 +216,18 @@ export type PlanningCommitteeRoleDefinition = {
   IsChair: boolean;
 };
 
+export type PlanningCommitteeChairmanAssignment = {
+  InternalUserId?: string | null;
+  Email?: string | null;
+  Username?: string | null;
+  RoleName?: string | null;
+  Status?: string | null;
+  UnitId?: string | null;
+  UnitName?: string | null;
+  AssignedBy?: string | null;
+  AssignedAt?: string | null;
+};
+
 export const fetchPlanningCommitteeRoleDefinitions = async (token: string): Promise<PlanningCommitteeRoleDefinition[]> => {
   const url = `${serviceBaseUrls.workflow}/api/planning-committee/committee-roles`;
   const response = await fetch(url, {
@@ -228,6 +240,41 @@ export const fetchPlanningCommitteeRoleDefinitions = async (token: string): Prom
   }
   const payload = await response.json();
   return Array.isArray(payload) ? payload : [];
+};
+
+export const fetchPlanningCommitteeChairmanAssignment = async (token: string): Promise<PlanningCommitteeChairmanAssignment> => {
+  const url = `${serviceBaseUrls.workflow}/api/planning-committee/chairman`;
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+    credentials: 'include'
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || `Failed to fetch planning committee chairman (status ${response.status})`);
+  }
+  return response.json();
+};
+
+export const updatePlanningCommitteeChairmanAssignment = async (
+  token: string,
+  internalUserId: string | null
+): Promise<PlanningCommitteeChairmanAssignment> => {
+  const url = `${serviceBaseUrls.workflow}/api/planning-committee/chairman`;
+  const response = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      ...buildCsrfHeaders()
+    },
+    credentials: 'include',
+    body: JSON.stringify({ InternalUserId: internalUserId || null })
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || `Failed to update planning committee chairman (status ${response.status})`);
+  }
+  return response.json();
 };
 
 export const submitMemberReview = async (data: any, token: string) => {

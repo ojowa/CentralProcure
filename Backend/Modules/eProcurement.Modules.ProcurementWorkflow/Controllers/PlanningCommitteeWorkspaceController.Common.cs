@@ -3,6 +3,7 @@ using System.Security.Claims;
 using Npgsql;
 using NpgsqlTypes;
 using eProcurement.Modules.ProcurementWorkflow.DTOs;
+using eProcurement.Modules.ProcurementWorkflow.Services;
 
 namespace eProcurement.Modules.ProcurementWorkflow.Controllers;
 
@@ -17,6 +18,7 @@ public partial class PlanningCommitteeWorkspaceController
         "legal_reviewer",
         "procurement_secretary"
     };
+    private const string AdminRoleKey = "admin";
 
     private static string NormalizeRoleKey(string? value)
         => string.IsNullOrWhiteSpace(value)
@@ -28,6 +30,12 @@ public partial class PlanningCommitteeWorkspaceController
             ?? user.FindFirstValue(ClaimTypes.Name)
             ?? user.Identity?.Name
             ?? string.Empty;
+
+    private static Guid? ResolveAuthenticatedInternalUserId(ClaimsPrincipal user)
+    {
+        var raw = user.FindFirstValue("internalUserId") ?? user.FindFirstValue(ClaimTypes.NameIdentifier);
+        return Guid.TryParse(raw, out var parsed) ? parsed : null;
+    }
 
     private sealed record LinkContext(
         Guid RequisitionId,
@@ -45,12 +53,14 @@ public partial class PlanningCommitteeWorkspaceController
 
     private static PlanningCommitteeWorkspaceAuthority BuildWorkspaceAuthority(
         string? roleKey,
+        bool isAssignedChairman,
         RequisitionSummary requisition,
         ProcurementPlanDetail? plan,
         IReadOnlyList<MemberStatusResponse> statuses,
         CommitteeDecisionResponse? decision)
     {
         var normalized = NormalizeRoleKey(roleKey);
+        var canActAsChairAssistant = normalized == NormalizeRoleKey(AdminRoleKey);
         var canUnlink = normalized is "financialunitofficer" or "admin";
         var hasFinalDecision = decision is not null;
         var isReviewReopened =
@@ -68,9 +78,10 @@ public partial class PlanningCommitteeWorkspaceController
             canSubmitReview &&
             !string.IsNullOrWhiteSpace(normalized) &&
             normalized != NormalizeRoleKey(ChairRoleKey) &&
+            normalized != NormalizeRoleKey(AdminRoleKey) &&
             MemberRoleKeys.Any(role => NormalizeRoleKey(role) == normalized) &&
             !hasSubmittedCurrentReview,
-            canSubmitReview && normalized == NormalizeRoleKey(ChairRoleKey),
+            canSubmitReview && (normalized == NormalizeRoleKey(ChairRoleKey) || canActAsChairAssistant || isAssignedChairman),
             canUnlink,
             requisition.AppItemId is not null,
             isReviewReopened);
@@ -95,6 +106,8 @@ public partial class PlanningCommitteeWorkspaceController
         var reviews = await GetMemberReviewsAsync(conn, tx, requisitionId, ct);
         var statuses = await GetMemberStatusesAsync(conn, tx, requisitionId, ct);
         var decision = await GetDecisionAsync(conn, tx, requisitionId, ct);
+        var assignedChairmanId = await PlanningCommitteeChairmanRegistry.GetAssignedChairmanUserIdAsync(conn, tx, ct);
+        var currentUserId = ResolveAuthenticatedInternalUserId(User);
 
         return new PlanningCommitteeWorkspaceResponse(
             requisition,
@@ -103,7 +116,7 @@ public partial class PlanningCommitteeWorkspaceController
             reviews,
             statuses,
             decision,
-            BuildWorkspaceAuthority(roleKey, requisition, plan, statuses, decision));
+            BuildWorkspaceAuthority(roleKey, currentUserId.HasValue && assignedChairmanId == currentUserId, requisition, plan, statuses, decision));
     }
 
     private static RequisitionSummary MapSummary(NpgsqlDataReader reader)

@@ -13,7 +13,7 @@ const stageConfig: Record<string, { label: string; owner: string; nextAction: st
   },
   app_approval: {
     label: 'APP Approval',
-    owner: 'Comptroller Procurement / Accounting Officer',
+    owner: 'Comptroller Procurement / CGIS',
     nextAction: 'Approval authority records approve, return, or reject decision.',
     icon: '✓'
   },

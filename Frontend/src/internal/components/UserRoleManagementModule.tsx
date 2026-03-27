@@ -8,9 +8,10 @@ import { useUserManagement } from '../hooks/useUserManagement';
 import { useRoleManagement } from '../hooks/useRoleManagement';
 import { useModuleAccess } from '../hooks/useModuleAccess';
 import { fetchInternalUnits, fetchInternalModulesCatalog, registerInternalUser } from '../services/internalAuthService';
+import { updatePlanningCommitteeChairmanAssignment } from '../services/moduleService.planning';
 import {
   UserList, RoleList, ModuleAccessPanel, EditUserModal, ResetPasswordModal,
-  CreateRoleModal, EditRoleModal, OnboardingForm, CommitteeMembersPanel
+  CreateRoleModal, EditRoleModal, OnboardingForm, CommitteeMembersPanel, EvaluationCommitteeAssignmentsPanel
 } from './user-role-management';
 import * as roleService from '../services/roleManagementService';
 
@@ -35,6 +36,7 @@ export const UserRoleManagementModule = ({ module, token }: Props) => {
   const [units, setUnits] = useState<InternalOrganizationalUnitRecord[]>([]);
   const [moduleCatalog, setModuleCatalog] = useState<InternalModule[]>([]);
   const [editingUser, setEditingUser] = useState<InternalUserProfile | null>(null);
+  const [editUserError, setEditUserError] = useState<string | null>(null);
   const [resettingUser, setResettingUser] = useState<InternalUserProfile | null>(null);
   const [editingRole, setEditingRole] = useState<InternalRoleRecord | null>(null);
   const [isCreateRoleOpen, setIsCreateRoleOpen] = useState(false);
@@ -81,6 +83,7 @@ export const UserRoleManagementModule = ({ module, token }: Props) => {
   }, [token]);
 
   useEffect(() => { setError(null); setSuccess(null); }, [activeTab]);
+  useEffect(() => { setEditUserError(null); }, [editingUser]);
 
   const showError = (msg: string) => setError(msg);
   const showSuccess = (msg: string) => setSuccess(msg);
@@ -116,8 +119,13 @@ export const UserRoleManagementModule = ({ module, token }: Props) => {
 
   const handleEditUser = async (userId: string, data: Parameters<typeof updateUser>[1]) => {
     clearMessages();
+    setEditUserError(null);
     try { await updateUser(userId, data); setEditingUser(null); showSuccess('User updated successfully.'); }
-    catch (err) { showError(err instanceof Error ? err.message : 'Failed to update user.'); }
+    catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to update user.';
+      setEditUserError(message);
+      showError(message);
+    }
   };
 
   const handleResetPassword = async (userId: string, newPassword: string) => {
@@ -149,9 +157,33 @@ export const UserRoleManagementModule = ({ module, token }: Props) => {
     clearMessages();
     try {
       await updateUserRole(userId, roleName);
-      showSuccess(`Committee assignment updated: ${roleName}.`);
+      const normalizedRole = roleName.trim().toLowerCase().replace(/[_\s-]+/g, '');
+      showSuccess(
+        normalizedRole === 'comptrollerprocurement'
+          ? 'Planning Committee Chairman assigned successfully.'
+          : `Committee assignment updated: ${roleName}.`
+      );
     } catch (err) {
       showError(err instanceof Error ? err.message : 'Failed to assign committee member.');
+    }
+  };
+
+  const handleAssignCommitteeChairman = async (userId: string | null) => {
+    if (!token) {
+      showError('Authentication is required to assign the planning committee chairman.');
+      return;
+    }
+
+    clearMessages();
+    try {
+      await updatePlanningCommitteeChairmanAssignment(token, userId);
+      showSuccess(
+        userId
+          ? 'Planning Committee Chairman assigned successfully.'
+          : 'Planning Committee Chairman assignment cleared successfully.'
+      );
+    } catch (err) {
+      showError(err instanceof Error ? err.message : 'Failed to assign planning committee chairman.');
     }
   };
 
@@ -224,13 +256,21 @@ export const UserRoleManagementModule = ({ module, token }: Props) => {
         )}
 
         {activeTab === 'committee' && (
-          <CommitteeMembersPanel
-            roles={roles}
-            users={users}
-            token={token}
-            isLoading={isLoading}
-            onAssignRole={handleAssignCommitteeMember}
-          />
+          <>
+            <CommitteeMembersPanel
+              roles={roles}
+              users={users}
+              token={token}
+              isLoading={isLoading}
+              onAssignRole={handleAssignCommitteeMember}
+              onAssignChairman={handleAssignCommitteeChairman}
+            />
+            <EvaluationCommitteeAssignmentsPanel
+              token={token}
+              users={users}
+              isLoading={isLoading}
+            />
+          </>
         )}
 
         {activeTab === 'onboarding' && (
@@ -239,7 +279,9 @@ export const UserRoleManagementModule = ({ module, token }: Props) => {
       </div>
 
       <EditUserModal user={editingUser} roles={roles} units={units} isOpen={!!editingUser}
-        isLoading={isLoading} onClose={() => setEditingUser(null)} onSave={handleEditUser} />
+        isLoading={isLoading} errorMessage={editUserError}
+        onClose={() => { setEditingUser(null); setEditUserError(null); }}
+        onSave={handleEditUser} />
 
       <ResetPasswordModal user={resettingUser} isOpen={!!resettingUser}
         isLoading={isLoading} onClose={() => setResettingUser(null)} onConfirm={handleResetPassword} />

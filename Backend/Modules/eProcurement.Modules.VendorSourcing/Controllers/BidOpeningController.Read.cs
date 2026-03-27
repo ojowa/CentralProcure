@@ -121,6 +121,16 @@ public partial class BidOpeningController
             await conn.OpenAsync(ct);
             await using var tx = await conn.BeginTransactionAsync(ct);
 
+            var moduleActions = await _workflowActionGrantService.GetRoleModuleActionsAsync(
+                connectionString,
+                WorkflowActionGrantService.ResolveRoleKey(User),
+                ct);
+
+            if (!moduleActions.Contains("bid_opening.manage") && !moduleActions.Contains("bid_opening.view_detail"))
+            {
+                return Forbid();
+            }
+
             var session = await GetSessionDetailAsync(sessionId, conn, tx, ct);
             if (session is null)
             {
@@ -136,7 +146,9 @@ public partial class BidOpeningController
                 "bid_opening.view_detail",
                 ct);
 
-            if (!hasAction)
+            if (!hasAction &&
+                !moduleActions.Contains("bid_opening.manage") &&
+                !moduleActions.Contains("bid_opening.view_detail"))
             {
                 return Forbid();
             }

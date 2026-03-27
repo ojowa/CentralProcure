@@ -19,7 +19,7 @@ const PHASES: PhaseConfig[] = [
     states: [
       'department_need_capture',
       'department_head_endorsement',
-      'budget_code_allocation',
+      'budget_allocation_and_confirmation',
       'comptroller_procurement_review',
       'planning_committee_review',
       'app_approval',

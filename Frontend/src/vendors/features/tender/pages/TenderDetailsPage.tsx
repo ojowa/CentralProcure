@@ -11,7 +11,7 @@ const TenderDetailsPage: React.FC = () => {
   const router = useRouter();
   const idParam = params?.id;
   const id = Array.isArray(idParam) ? idParam[0] : idParam;
-  const { isAuthenticated, isReady } = useAuth();
+  const { isAuthenticated, isReady, hasSessionAttempted } = useAuth();
   const [tender, setTender] = useState<TenderDetails | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -144,18 +144,21 @@ const TenderDetailsPage: React.FC = () => {
                 if (!isReady) {
                   return;
                 }
+                if (!hasSessionAttempted) {
+                  return;
+                }
                 if (!isAuthenticated) {
                   setLoginPrompt(true);
                   return;
                 }
-                router.push(`/bid-submission/${tender.Id}`);
+                router.push(`/vendors/bid-submission/${tender.Id}`);
               }}
               className="w-full rounded-md bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-800"
             >
               Submit Bid
             </button>
             <button
-              onClick={() => router.push('/tenders')}
+              onClick={() => router.push('/vendors/tenders')}
               className="w-full rounded-md border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
             >
               Back to Tenders
@@ -167,7 +170,7 @@ const TenderDetailsPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() =>
-                      router.push(`/login?next=${encodeURIComponent(`/bid-submission/${tender.Id}`)}`)
+                      router.push(`/vendors/login?next=${encodeURIComponent(`/vendors/bid-submission/${tender.Id}`)}`)
                     }
                     className="rounded-md bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-800"
                   >

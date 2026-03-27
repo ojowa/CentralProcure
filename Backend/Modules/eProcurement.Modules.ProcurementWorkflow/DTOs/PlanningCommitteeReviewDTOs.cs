@@ -69,6 +69,22 @@ public record CommitteeRoleDefinitionResponse(
     bool IsChair
 );
 
+public record PlanningCommitteeChairmanAssignmentRequest(
+    Guid? InternalUserId
+);
+
+public record PlanningCommitteeChairmanAssignmentResponse(
+    Guid? InternalUserId,
+    string? Email,
+    string? Username,
+    string? RoleName,
+    string? Status,
+    Guid? UnitId,
+    string? UnitName,
+    string? AssignedBy,
+    DateTime? AssignedAt
+);
+
 public record PlanningCommitteePlanLinkRequest(
     Guid PlanId
 );

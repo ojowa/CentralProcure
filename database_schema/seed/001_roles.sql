@@ -10,7 +10,7 @@ VALUES
     ('FinancialEvaluator', 'Performs financial evaluation only'),
     ('TendersBoardMember', 'Reviews evaluation outcomes and approves/rejects'),
     ('TendersBoardSecretary', 'Manages board records and submissions'),
-    ('AccountingOfficer', 'Final approval for high-value procurements'),
+    ('CGIS', 'Comptroller General of Immigration Service approval authority for direct CGIS approval and related executive decisions.'),
     ('BPPLiaison', 'Manages BPP No-Objection submissions'),
     ('BPPReviewer', 'Reviews no-objection submissions and regulatory escalations'),
     ('PlanningStatisticsOfficer', 'Reviews procurement planning assumptions and annual plan coherence'),

@@ -35,6 +35,26 @@ export const EvaluationScoringModule = ({ module, token, role, initialData }: Pr
     }
   }, [initialData, token]);
 
+  useEffect(() => {
+    if (!assignedTenders.length || typeof window === 'undefined') {
+      return;
+    }
+
+    const focusTenderId = window.sessionStorage.getItem('assignedTenderFocusId');
+    if (!focusTenderId) {
+      return;
+    }
+
+    const focusedTender = assignedTenders.find((item) => item.TenderId === focusTenderId);
+    if (!focusedTender) {
+      window.sessionStorage.removeItem('assignedTenderFocusId');
+      return;
+    }
+
+    window.sessionStorage.removeItem('assignedTenderFocusId');
+    void handleSelectTender(focusedTender);
+  }, [assignedTenders]);
+
   const loadTenders = async () => {
     if (!token) return;
     setLoading(true);

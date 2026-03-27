@@ -189,13 +189,13 @@ const SubmissionConfirmationPage: React.FC = () => {
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <button
-                  onClick={() => router.push('/dashboard/submitted-bids')}
+                  onClick={() => router.push('/vendors/dashboard/submitted-bids')}
                   className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
                 >
                   View submitted bids
                 </button>
                 <button
-                  onClick={() => router.push('/')}
+                  onClick={() => router.push('/vendors')}
                   className="inline-flex items-center justify-center rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                 >
                   Back to home

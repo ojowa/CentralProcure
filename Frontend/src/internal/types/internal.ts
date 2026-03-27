@@ -41,6 +41,40 @@ export interface InternalModule {
   allowedRoles?: RoleKey[];
 }
 
+export interface MonitoringStatusItem {
+    Key: string;
+    Label: string;
+    Status: string;
+    Summary: string;
+    Count: number;
+}
+
+export interface MonitoringAlertItem {
+    Severity: string;
+    Source: string;
+    Title: string;
+    Detail: string;
+    AffectedCount: number;
+    OldestAgeDays?: number | null;
+}
+
+export interface MonitoringStageLoadItem {
+    StageKey: string;
+    StageTitle: string;
+    ActiveCount: number;
+}
+
+export interface MonitoringOverview {
+    GeneratedAtUtc: string;
+    TotalAlerts: number;
+    CriticalAlerts: number;
+    WarningAlerts: number;
+    Services: MonitoringStatusItem[];
+    Integrations: MonitoringStatusItem[];
+    Alerts: MonitoringAlertItem[];
+    StageLoad: MonitoringStageLoadItem[];
+}
+
 export type VendorApprovalStatus = 'Pending Approval' | 'Active' | 'Rejected';
 
 export interface VendorApprovalSummary {
@@ -1338,6 +1372,7 @@ export interface AssignedTenderItem {
     TenderId: string;
     TenderTitle: string;
     CommitteeLead: string;
+    AssignmentRole: string;
     EvaluationStatus: string;
     TenderStatus: string;
     ProcurementCategory: string;
@@ -1345,6 +1380,30 @@ export interface AssignedTenderItem {
     OpeningDate?: string | null;
     SubmittedAt: string;
     IsLocked?: boolean;
+}
+
+export type TenderEvaluationAssignmentRole =
+  | 'technical_evaluator'
+  | 'financial_evaluator'
+  | 'evaluation_committee';
+
+export interface TenderEvaluationAssignmentItem {
+    TenderId: string;
+    TenderTitle: string;
+    TenderStatus: string;
+    AssignmentRole: TenderEvaluationAssignmentRole;
+    InternalUserId?: string | null;
+    Email?: string | null;
+    Username?: string | null;
+    RoleName?: string | null;
+    UnitName?: string | null;
+    AssignedBy?: string | null;
+    AssignedAt?: string | null;
+}
+
+export interface TenderEvaluationAssignmentUpdateRequest {
+    AssignmentRole: TenderEvaluationAssignmentRole;
+    InternalUserId?: string | null;
 }
 
 export interface RequisitionListResponse {

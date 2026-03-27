@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getSubmittedBids, submitBid } from '../services/bidService'; // Import the actual service call
+import { getSubmittedBids, submitBid } from '../services/bidService';
 import { BidSubmission } from '../types/bid';
 import { useAuth } from '../../../hooks/useAuth';
 
@@ -11,7 +11,7 @@ const BidSubmissionPage: React.FC = () => {
     const router = useRouter();
     const tenderIdParam = params?.tenderId;
     const tenderId = Array.isArray(tenderIdParam) ? tenderIdParam[0] : tenderIdParam;
-    const { isAuthenticated, isReady } = useAuth();
+    const { isAuthenticated, isReady, hasSessionAttempted } = useAuth();
 
     const [financialBid, setFinancialBid] = useState<number>(0);
     const [technicalProposal, setTechnicalProposal] = useState<string>('');
@@ -25,9 +25,6 @@ const BidSubmissionPage: React.FC = () => {
     const [success, setSuccess] = useState<boolean>(false);
     const [successBidId, setSuccessBidId] = useState<string | null>(null);
     const [vendorId, setVendorId] = useState<string | null>(null);
-
-    // Fetch tender details if needed, to display tenderTitle. For now, assume it's passed or derived.
-    // In a real app, you might fetch tender details here using tenderId.
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -60,13 +57,13 @@ const BidSubmissionPage: React.FC = () => {
 
         try {
             const bidData: BidSubmission = {
-                TenderId: tenderId, // Use tenderId from useParams
+                TenderId: tenderId,
                 VendorId: vendorId,
                 FinancialBid: financialBid,
                 TechnicalProposal: technicalProposalFile ? '' : technicalProposal,
                 ValidityPeriodDays: validityPeriod,
             };
-            const response = await submitBid(bidData, technicalProposalFile); // Call the actual service
+            const response = await submitBid(bidData, technicalProposalFile);
             const bidId = response?.BidId ?? response?.bidId ?? null;
             setSuccessBidId(bidId);
             setSuccess(true);
@@ -82,7 +79,12 @@ const BidSubmissionPage: React.FC = () => {
             return;
         }
 
+        if (!hasSessionAttempted) {
+            return;
+        }
+
         if (!isAuthenticated) {
+            setError('Please log in to submit a bid.');
             return;
         }
 
@@ -92,7 +94,7 @@ const BidSubmissionPage: React.FC = () => {
         if (!storedVendorId) {
             setError('Vendor session is missing. Please log in again.');
         }
-    }, [isAuthenticated, isReady, tenderId]);
+    }, [isAuthenticated, isReady, hasSessionAttempted, tenderId]);
 
     useEffect(() => {
         if (!vendorId || !tenderId) {
@@ -129,7 +131,7 @@ const BidSubmissionPage: React.FC = () => {
 
     useEffect(() => {
         if (success && successBidId) {
-            router.push(`/submission-confirmation/${successBidId}`);
+            router.push(`/vendors/submission-confirmation/${successBidId}`);
         }
     }, [router, success, successBidId]);
 
@@ -170,7 +172,7 @@ const BidSubmissionPage: React.FC = () => {
     }
 
     if (!isAuthenticated) {
-        const nextPath = tenderId ? `/bid-submission/${tenderId}` : '/bid-submission';
+        const nextPath = tenderId ? `/vendors/bid-submission/${tenderId}` : '/vendors/bid-submission';
         return (
             <div className="mx-auto max-w-4xl px-4 py-14 sm:px-6 lg:px-8">
                 <div className="rounded-xl border border-amber-200 bg-amber-50 p-8 text-center text-amber-800 shadow-sm">
@@ -182,14 +184,14 @@ const BidSubmissionPage: React.FC = () => {
                     <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
                         <button
                             type="button"
-                            onClick={() => router.push(`/login?next=${encodeURIComponent(nextPath)}`)}
+                            onClick={() => router.push(`/vendors/login?next=${encodeURIComponent(nextPath)}`)}
                             className="w-full rounded-md bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-800 sm:w-auto"
                         >
                             Go to Login
                         </button>
                         <button
                             type="button"
-                            onClick={() => router.push('/tenders')}
+                            onClick={() => router.push('/vendors/tenders')}
                             className="w-full rounded-md border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:w-auto"
                         >
                             Browse Tenders
@@ -214,7 +216,7 @@ const BidSubmissionPage: React.FC = () => {
                         {existingBidId && (
                             <div className="mt-2">
                                 <a
-                                    href={`/submission-confirmation/${existingBidId}`}
+                                    href={`/vendors/submission-confirmation/${existingBidId}`}
                                     className="text-sm font-semibold text-emerald-700 hover:underline"
                                 >
                                     View my submitted bid
@@ -304,7 +306,7 @@ const BidSubmissionPage: React.FC = () => {
                     </button>
                     <button
                         type="button"
-                        onClick={() => router.push(tenderId ? `/tenders/${tenderId}` : '/tenders')}
+                        onClick={() => router.push(tenderId ? `/vendors/tenders/${tenderId}` : '/vendors/tenders')}
                         className="mt-3 bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg w-full focus:outline-none focus:shadow-outline transition duration-300"
                     >
                         Cancel

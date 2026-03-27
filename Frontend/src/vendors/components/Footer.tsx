@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { useAuth } from '../hooks/useAuth';
 
 const Footer: React.FC = () => {
-  const { isAuthenticated, isReady } = useAuth();
-  const vendorLoginHref = isReady && isAuthenticated ? '/dashboard' : '/login';
+  const { isAuthenticated, isReady, hasSessionAttempted } = useAuth();
+  const vendorLoginHref = isReady && hasSessionAttempted && isAuthenticated ? '/vendors/dashboard' : '/vendors/login';
 
   return (
     <footer className="mt-12 border-t border-slate-200 bg-slate-950 text-slate-200">
@@ -19,8 +19,8 @@ const Footer: React.FC = () => {
         <div>
           <h3 className="text-sm font-semibold uppercase tracking-wider text-emerald-300">Quick Links</h3>
           <div className="mt-3 flex flex-col gap-2 text-sm">
-            <Link href="/tenders" className="hover:text-white">Open Tenders</Link>
-            <Link href="/register" className="hover:text-white">Vendor Registration</Link>
+            <Link href="/vendors/tenders" className="hover:text-white">Open Tenders</Link>
+            <Link href="/vendors/register" className="hover:text-white">Vendor Registration</Link>
             <Link href={vendorLoginHref} className="hover:text-white">Vendor Login</Link>
           </div>
         </div>

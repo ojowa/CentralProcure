@@ -1,7 +1,7 @@
 # Proposal 4: Tenders Board Approval Workspace
 
 ## 1. Goal
-Provide the **Tenders Board Secretary** and the **Accounting Officer** a dashboard to review evaluation recommendations and grant final award approval.
+Provide the **Tenders Board Secretary** and **CGIS** a dashboard to review evaluation recommendations and grant final award approval.
 
 ## 2. PPA 2007 Control Requirements
 - **Quorum Check:** The system should log which board members reviewed the case.

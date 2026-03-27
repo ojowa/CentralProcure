@@ -7,3 +7,4 @@ export { CreateRoleModal, EditRoleModal } from './RoleModals';
 export { OnboardingForm } from './OnboardingForm';
 export { AccessAuditPanel, CompactAuditLog } from './AccessAuditPanel';
 export { CommitteeMembersPanel } from './CommitteeMembersPanel';
+export { EvaluationCommitteeAssignmentsPanel } from './EvaluationCommitteeAssignmentsPanel';

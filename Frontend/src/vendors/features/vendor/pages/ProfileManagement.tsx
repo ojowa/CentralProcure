@@ -8,7 +8,7 @@ import { VendorProfile, VendorProfileUpdateRequest } from '../types/vendor';
 
 const ProfileManagementPage: React.FC = () => {
     const router = useRouter();
-    const { isAuthenticated, isReady, user } = useAuth();
+    const { isAuthenticated, isReady, hasSessionAttempted, user } = useAuth();
     const [profile, setProfile] = useState<VendorProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -28,8 +28,12 @@ const ProfileManagementPage: React.FC = () => {
             return;
         }
 
+        if (!hasSessionAttempted) {
+            return;
+        }
+
         if (!isAuthenticated) {
-            router.replace('/login?next=%2Fdashboard%2Fprofile-management');
+            router.replace('/vendors/login?next=%2Fvendors%2Fdashboard%2Fprofile-management');
             return;
         }
 
@@ -70,7 +74,7 @@ const ProfileManagementPage: React.FC = () => {
         return () => {
             active = false;
         };
-    }, [isAuthenticated, isReady, router, user?.UserId]);
+    }, [isAuthenticated, isReady, hasSessionAttempted, router, user?.UserId]);
 
     const handleEdit = () => {
         if (!profile) return;

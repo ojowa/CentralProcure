@@ -11,7 +11,7 @@ type Props = {
 const stageOptions = [
   { value: '', label: 'All active stages' },
   { value: 'budget_alignment', label: 'Budget alignment (endorsed)' },
-  { value: 'budget_code_allocation', label: 'Budget Code Allocation' },
+  { value: 'budget_allocation_and_confirmation', label: 'Budget Allocation and Confirmation' },
   { value: 'comptroller_procurement_review', label: 'Comptroller Procurement Review' },
   { value: 'planning_committee_review', label: 'Planning Committee Review' },
   { value: 'app_approval', label: 'APP Approval' }

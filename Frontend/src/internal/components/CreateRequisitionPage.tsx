@@ -66,10 +66,11 @@ interface Props {
   token?: string | null;
   role?: RoleKey | null;
   userEmail?: string | null;
+  availableModuleIds?: string[];
   onModuleChange?: (moduleId: string) => void;
 }
 
-export const CreateRequisitionPage = ({ module, token, role, userEmail, onModuleChange }: Props) => {
+export const CreateRequisitionPage = ({ module, token, role, userEmail, availableModuleIds = [], onModuleChange }: Props) => {
   const mode = 'create';
   const pageSize = getPageSize(mode);
   const guidance = requisitionRoleGuidance[role ?? 'requisitioning_officer'] ?? requisitionRoleGuidance.requisitioning_officer;
@@ -148,6 +149,7 @@ export const CreateRequisitionPage = ({ module, token, role, userEmail, onModule
   const activeStepIndex = getStepIndex(selectedDetail);
   const canEditDrafts = Boolean(token && role && ROLE_EDITABLE.has(role));
   const canSaveCurrentForm = Boolean(token && canEditDrafts);
+  const canOpenCreateModule = availableModuleIds.includes('create-requisition');
   const isSelectedEditable = Boolean(selectedDetail && editableRequisitionStatuses.has(selectedDetail.Status));
   const departmentHeadQueue = useMemo(
     () => requisitions.filter((record) => DEPARTMENT_HEAD_QUEUE_STATUSES.has(record.Status)),
@@ -677,7 +679,7 @@ export const CreateRequisitionPage = ({ module, token, role, userEmail, onModule
       </div>
 
       <div style={{ marginTop: '16px' }}>
-        <RequisitionQuickLinks mode={mode} onModuleChange={onModuleChange} />
+        <RequisitionQuickLinks mode={mode} onModuleChange={onModuleChange} availableModuleIds={availableModuleIds} />
       </div>
 
       {!token ? <div className="portal-alert" style={{ marginTop: '16px' }}>Authentication token is missing.</div> : null}
@@ -740,13 +742,14 @@ export const CreateRequisitionPage = ({ module, token, role, userEmail, onModule
               <div className="plan-loading">Loading requisition detail...</div>
             ) : (
                 <RequisitionDetailContent
-                  detail={selectedDetail}
-                  activeStepIndex={activeStepIndex}
-                  isSelectedEditable={isSelectedEditable}
-                  isDepartmentHead={isDepartmentHead}
-                  isAdmin={role === 'admin'}
-                  canEditDrafts={canEditDrafts}
-                  isSaving={isSaving}
+      detail={selectedDetail}
+      activeStepIndex={activeStepIndex}
+      isSelectedEditable={isSelectedEditable}
+      isDepartmentHead={isDepartmentHead}
+      isAdmin={role === 'admin'}
+      canEditDrafts={canEditDrafts}
+      canOpenSelectedForEdit={canOpenCreateModule}
+      isSaving={isSaving}
                   workflowRuntime={workflowRuntime}
                   onOpenSelectedForEdit={openSelectedForEdit}
                   onSubmitSelectedDraft={() => void submitSelectedDraft()}

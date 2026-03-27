@@ -56,6 +56,11 @@ public sealed class InternalSessionIdleTimeoutMiddleware
                 return;
             }
         }
+        else
+        {
+             // If activity cookie is missing but JWT is valid, we allow it but we'll set the cookie in the response
+             _logger.LogInformation("Internal session activity cookie missing for {Path}, will re-issue.", context.Request.Path);
+        }
 
         await _next(context);
 
@@ -72,6 +77,7 @@ public sealed class InternalSessionIdleTimeoutMiddleware
     {
         internalUserId = Guid.Empty;
 
+        // Only track if the auth cookie is present
         if (!context.Request.Cookies.ContainsKey(InternalAuthCookieName))
         {
             return false;
@@ -101,7 +107,8 @@ public sealed class InternalSessionIdleTimeoutMiddleware
 
     private static bool IsExemptPath(PathString path)
     {
-        return path.StartsWithSegments("/api/Auth/internal/login", StringComparison.OrdinalIgnoreCase);
+        return path.StartsWithSegments("/api/Auth/internal/login", StringComparison.OrdinalIgnoreCase)
+               || path.StartsWithSegments("/api/Auth/internal/logout", StringComparison.OrdinalIgnoreCase);
     }
 
     private string ResolveActivityCookieName()
@@ -115,7 +122,7 @@ public sealed class InternalSessionIdleTimeoutMiddleware
         {
             HttpOnly = true,
             Secure = ShouldUseSecureCookies(context.Request),
-            SameSite = SameSiteMode.Strict,
+            SameSite = SameSiteMode.Lax,
             Path = "/",
             Expires = expiresAtUtc.UtcDateTime
         };
@@ -140,7 +147,7 @@ public sealed class InternalSessionIdleTimeoutMiddleware
         {
             HttpOnly = true,
             Secure = ShouldUseSecureCookies(context.Request),
-            SameSite = SameSiteMode.Strict,
+            SameSite = SameSiteMode.Lax,
             Path = "/"
         };
 

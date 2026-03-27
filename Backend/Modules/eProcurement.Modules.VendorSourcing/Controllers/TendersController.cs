@@ -368,6 +368,7 @@ public partial class TendersController : ControllerBase
                 return NotFound();
             }
 
+            await EnsureBidOpeningSessionSeededAsync(conn, tx, result, ct);
             await SyncWorkflowRuntimeAsync(conn, tx, result, "Tender published.", ct);
             await tx.CommitAsync(ct);
             return Ok(result);

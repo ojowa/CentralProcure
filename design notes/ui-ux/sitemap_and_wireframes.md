@@ -77,7 +77,7 @@ This document is suitable for **design, development, and stakeholder validation*
 
 ---
 
-### 2.6 Accounting Officer (AO)
+### 2.6 CGIS
 - AO Dashboard
   - High-Value Tenders
   - Final Approval

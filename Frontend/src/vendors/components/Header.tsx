@@ -7,7 +7,7 @@ import { useAuth } from '../hooks/useAuth';
 
 const Header: React.FC = () => {
   const router = useRouter();
-  const { isAuthenticated, isReady, logout } = useAuth();
+  const { isAuthenticated, isReady, hasSessionAttempted, logout } = useAuth();
   const [displayName, setDisplayName] = useState<string | null>(null);
 
   useEffect(() => {
@@ -23,7 +23,7 @@ const Header: React.FC = () => {
 
   const handleLogout = () => {
     logout();
-    router.push('/login');
+    router.push('/vendors/login');
   };
 
   return (
@@ -36,7 +36,7 @@ const Header: React.FC = () => {
       </div>
       <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <Link href="/" className="flex items-center gap-3">
+          <Link href="/vendors" className="flex items-center gap-3">
             <img src="/nis-logo.svg" className="h-11 w-11 rounded-md border border-slate-200 bg-white p-1" alt="NIS Logo" />
             <div>
               <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">NIS e-Procurement</p>
@@ -45,15 +45,15 @@ const Header: React.FC = () => {
           </Link>
 
           <nav className="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-700">
-            <Link href="/" className="rounded-md px-3 py-2 transition hover:bg-slate-100">
+            <Link href="/vendors" className="rounded-md px-3 py-2 transition hover:bg-slate-100">
               Home
             </Link>
-            <Link href="/tenders" className="rounded-md px-3 py-2 transition hover:bg-slate-100">
+            <Link href="/vendors/tenders" className="rounded-md px-3 py-2 transition hover:bg-slate-100">
               Tender Listings
             </Link>
-            {isReady && isAuthenticated ? (
+            {isReady && hasSessionAttempted && isAuthenticated ? (
               <>
-                <Link href="/dashboard" className="rounded-md border border-slate-300 px-3 py-2 transition hover:bg-slate-50">
+                <Link href="/vendors/dashboard" className="rounded-md border border-slate-300 px-3 py-2 transition hover:bg-slate-50">
                   Dashboard
                 </Link>
                 <button
@@ -71,10 +71,10 @@ const Header: React.FC = () => {
               </>
             ) : (
               <>
-                <Link href="/login" className="rounded-md border border-slate-300 px-3 py-2 transition hover:bg-slate-50">
+                <Link href="/vendors/login" className="rounded-md border border-slate-300 px-3 py-2 transition hover:bg-slate-50">
                   Login
                 </Link>
-                <Link href="/register" className="rounded-md bg-emerald-700 px-4 py-2 text-white transition hover:bg-emerald-800">
+                <Link href="/vendors/register" className="rounded-md bg-emerald-700 px-4 py-2 text-white transition hover:bg-emerald-800">
                   Register
                 </Link>
               </>

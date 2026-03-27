@@ -24,7 +24,7 @@ const categoryStyles: Record<TenderSummary['ProcurementCategory'], string> = {
 
 const TenderListings: React.FC = () => {
   const router = useRouter();
-  const { isAuthenticated, isReady } = useAuth();
+  const { isAuthenticated, isReady, hasSessionAttempted } = useAuth();
   const [tenders, setTenders] = useState<TenderSummary[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -77,6 +77,9 @@ const TenderListings: React.FC = () => {
 
   const handleBid = (tenderId: string) => {
     if (!isReady) {
+      return;
+    }
+    if (!hasSessionAttempted) {
       return;
     }
     if (!isAuthenticated) {
@@ -214,7 +217,7 @@ const TenderListings: React.FC = () => {
                   <button
                     type="button"
                     onClick={() =>
-                      router.push(`/login?next=${encodeURIComponent(`/bid-submission/${selectedTender.Id}`)}`)
+                      router.push(`/vendors/login?next=${encodeURIComponent(`/vendors/bid-submission/${selectedTender.Id}`)}`)
                     }
                     className="w-full rounded-md bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-800 sm:w-auto"
                   >

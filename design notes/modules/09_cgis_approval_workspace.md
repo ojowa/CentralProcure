@@ -44,7 +44,7 @@ Without a purpose-built CGIS workspace:
 - `CGIS` executive approver
 
 ### 4.2 Operational equivalents in the current system
-Until a dedicated `CGIS` identity role is introduced, the workspace can remain attached to the current `AccountingOfficer` workflow slot and be presented in the UI as `CGIS Approval`.
+The workspace currently uses the existing executive approval workflow slot and is presented in the UI as `CGIS Approval`. The legacy internal compatibility key remains in code, but the business-facing actor is `CGIS`.
 
 ### 4.3 Supporting users
 - `ProcurementOfficer`
@@ -530,7 +530,7 @@ This helps validate whether low-value routing is functioning as intended.
 - the final decision is visible in audit history
 
 ## 22. Future Enhancements
-- dedicated `CGIS` identity role instead of reusing `AccountingOfficer`
+- dedicated `CGIS` identity role instead of reusing the legacy executive approval compatibility slot
 - delegated approval support for an acting executive
 - printable executive memo pack
 - digitally signed approval receipt

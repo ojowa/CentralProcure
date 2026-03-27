@@ -100,7 +100,7 @@ WHERE stage_key = 'tenders_board_review';
 
 UPDATE procurement_workflow.workflow_stage_catalog
 SET
-    stage_title = 'Accounting Officer Review',
+    stage_title = 'CGIS Approval',
     sequence_no = 14,
     updated_at = CURRENT_TIMESTAMP
 WHERE stage_key = 'accounting_officer_review';

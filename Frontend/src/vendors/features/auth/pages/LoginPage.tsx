@@ -45,7 +45,7 @@ const LoginPage: React.FC = () => {
                 typeof window !== 'undefined'
                     ? new URLSearchParams(window.location.search).get('next')
                     : null;
-            router.push(nextPath && nextPath.startsWith('/') ? nextPath : '/dashboard/profile-management');
+            router.replace(nextPath && nextPath.startsWith('/') ? nextPath : '/vendors/dashboard/profile-management');
         } catch (err: any) {
             setError(err.message || 'Login failed. Please check your credentials and try again.');
         } finally {
@@ -98,10 +98,10 @@ const LoginPage: React.FC = () => {
                 </form>
 
                 <p className="text-center text-gray-600 text-sm mt-4">
-                    Don't have an account? <Link href="/register" className="text-blue-600 hover:underline">Register here</Link>
+                    Don't have an account? <Link href="/vendors/register" className="text-blue-600 hover:underline">Register here</Link>
                 </p>
                 <p className="text-center text-gray-600 text-sm mt-2">
-                    <Link href="/forgot-password" className="text-blue-600 hover:underline">Forgot Password?</Link>
+                    <Link href="/vendors/forgot-password" className="text-blue-600 hover:underline">Forgot Password?</Link>
                 </p>
             </div>
         </div>

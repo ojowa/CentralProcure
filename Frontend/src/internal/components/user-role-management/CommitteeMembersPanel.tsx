@@ -3,7 +3,12 @@
 import React, { useMemo, useState } from 'react';
 import type { InternalRoleRecord, InternalUserProfile } from '../../types/internal';
 import { resolveRole } from '../../services/internalAuthService';
-import { fetchPlanningCommitteeRoleDefinitions, type PlanningCommitteeRoleDefinition } from '../../services/moduleService';
+import {
+  fetchPlanningCommitteeRoleDefinitions,
+  fetchPlanningCommitteeChairmanAssignment,
+  type PlanningCommitteeChairmanAssignment,
+  type PlanningCommitteeRoleDefinition
+} from '../../services/moduleService.planning';
 
 interface CommitteeMembersPanelProps {
   roles: InternalRoleRecord[];
@@ -11,6 +16,7 @@ interface CommitteeMembersPanelProps {
   token?: string | null;
   isLoading: boolean;
   onAssignRole: (userId: string, roleName: string) => void | Promise<void>;
+  onAssignChairman: (userId: string | null) => void | Promise<void>;
 }
 
 export const CommitteeMembersPanel: React.FC<CommitteeMembersPanelProps> = ({
@@ -18,11 +24,16 @@ export const CommitteeMembersPanel: React.FC<CommitteeMembersPanelProps> = ({
   users,
   token,
   isLoading,
-  onAssignRole
+  onAssignRole,
+  onAssignChairman
 }) => {
   const [selectionByRole, setSelectionByRole] = useState<Record<string, string>>({});
+  const [searchByRole, setSearchByRole] = useState<Record<string, string>>({});
   const [replacementRoleByUser, setReplacementRoleByUser] = useState<Record<string, string>>({});
+  const [chairmanSearchQuery, setChairmanSearchQuery] = useState('');
+  const [selectedChairmanUserId, setSelectedChairmanUserId] = useState('');
   const [committeeRoles, setCommitteeRoles] = useState<PlanningCommitteeRoleDefinition[]>([]);
+  const [chairmanAssignment, setChairmanAssignment] = useState<PlanningCommitteeChairmanAssignment | null>(null);
   const [rolesLoading, setRolesLoading] = useState(false);
   const [rolesError, setRolesError] = useState<string | null>(null);
 
@@ -50,6 +61,20 @@ export const CommitteeMembersPanel: React.FC<CommitteeMembersPanelProps> = ({
       .finally(() => {
         if (isMounted) {
           setRolesLoading(false);
+        }
+      });
+
+    fetchPlanningCommitteeChairmanAssignment(token)
+      .then((data) => {
+        if (isMounted) {
+          setChairmanAssignment(data);
+          setSelectedChairmanUserId(data.InternalUserId ?? '');
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setChairmanAssignment(null);
+          setSelectedChairmanUserId('');
         }
       });
 
@@ -91,11 +116,43 @@ export const CommitteeMembersPanel: React.FC<CommitteeMembersPanelProps> = ({
     return mapped;
   }, [roles]);
 
-  const effectiveCommitteeRoles = committeeRoles.length ? committeeRoles : fallbackCommitteeRoles;
+  const fallbackEvaluationRoles = useMemo(() => {
+    const allowed = new Set([
+      'technical_evaluator',
+      'financial_evaluator',
+      'evaluation_committee'
+    ]);
+
+    const mapped: PlanningCommitteeRoleDefinition[] = [];
+    for (const role of roles) {
+      const roleKey = resolveRole(role.RoleName);
+      if (!roleKey || !allowed.has(roleKey)) {
+        continue;
+      }
+
+      if (mapped.some((entry) => entry.RoleKey === roleKey)) {
+        continue;
+      }
+
+      mapped.push({
+        RoleKey: roleKey,
+        RoleName: role.RoleName,
+        DisplayName: role.RoleName.replace(/_/g, ' '),
+        Description: role.Description ?? '',
+        IsChair: false
+      });
+    }
+
+    return mapped;
+  }, [roles]);
+
+  const effectiveCommitteeRoles = (committeeRoles.length ? committeeRoles : fallbackCommitteeRoles)
+    .filter((role) => !role.IsChair);
+  const evaluationRoles = fallbackEvaluationRoles;
   const showRolesError = Boolean(rolesError) && effectiveCommitteeRoles.length === 0;
-  const committeeRoleNames = useMemo(
-    () => new Set(effectiveCommitteeRoles.map((role) => role.RoleName)),
-    [effectiveCommitteeRoles]
+  const managedRoleNames = useMemo(
+    () => new Set([...effectiveCommitteeRoles, ...evaluationRoles].map((role) => role.RoleName)),
+    [effectiveCommitteeRoles, evaluationRoles]
   );
 
   const assignableUsers = useMemo(
@@ -103,26 +160,52 @@ export const CommitteeMembersPanel: React.FC<CommitteeMembersPanelProps> = ({
     [users]
   );
 
+  const filteredChairmanUsers = useMemo(() => {
+    return filterUsers(assignableUsers, chairmanSearchQuery);
+  }, [assignableUsers, chairmanSearchQuery]);
+
+  const getFilteredRoleUsers = (roleKey: string) =>
+    filterUsers(assignableUsers, searchByRole[roleKey] ?? '');
+
+  function filterUsers(candidateUsers: InternalUserProfile[], queryValue: string) {
+    const query = queryValue.trim().toLowerCase();
+    if (!query) {
+      return candidateUsers;
+    }
+
+    return candidateUsers.filter((user) => {
+      const haystacks = [
+        user.Email,
+        user.Username,
+        user.FirstName,
+        user.MiddleName ?? '',
+        user.Surname,
+        user.RoleName,
+        user.UnitName
+      ];
+
+      return haystacks.some((value) => value?.toLowerCase().includes(query));
+    });
+  }
+
   const removableToRoles = useMemo(
     () =>
-      roles.filter((role) => role.IsActive && !committeeRoleNames.has(role.RoleName)),
-    [committeeRoleNames, roles]
+      roles.filter((role) => role.IsActive && !managedRoleNames.has(role.RoleName)),
+    [managedRoleNames, roles]
   );
 
-  return (
-    <article className="portal-module-card">
-      <h3>Planning Committee Members</h3>
-      <p className="plan-muted">
-        Manage committee composition with named roles instead of manual role keys.
-      </p>
-      <p className="plan-muted" style={{ marginTop: '6px' }}>
-        To remove someone from the committee, move them to another non-committee role.
-      </p>
-
+  const renderRoleCards = (roleConfigs: PlanningCommitteeRoleDefinition[], heading: string, description: string) => (
+    <>
+      <div style={{ marginTop: '24px' }}>
+        <h3 style={{ marginBottom: '6px' }}>{heading}</h3>
+        <p className="plan-muted" style={{ margin: 0 }}>{description}</p>
+      </div>
       <div className="roles-grid" style={{ marginTop: '16px' }}>
-        {effectiveCommitteeRoles.map((roleConfig) => {
+        {roleConfigs.map((roleConfig) => {
           const members = users.filter((user) => resolveRole(user.RoleName) === roleConfig.RoleKey);
           const selectedUserId = selectionByRole[roleConfig.RoleKey] ?? '';
+          const roleSearchQuery = searchByRole[roleConfig.RoleKey] ?? '';
+          const filteredRoleUsers = getFilteredRoleUsers(roleConfig.RoleKey);
 
           return (
             <article key={roleConfig.RoleKey} className="portal-module-card" style={{ margin: 0 }}>
@@ -133,7 +216,7 @@ export const CommitteeMembersPanel: React.FC<CommitteeMembersPanelProps> = ({
                 </span>
               </div>
               <p className="plan-muted" style={{ marginTop: '6px' }}>
-                {roleConfig.Description || 'Committee role configured from backend.'}
+                {roleConfig.Description || 'Role configured from backend.'}
               </p>
               <p className="plan-muted" style={{ marginTop: '4px' }}>
                 Backend role: <strong>{roleConfig.RoleName}</strong>
@@ -178,14 +261,10 @@ export const CommitteeMembersPanel: React.FC<CommitteeMembersPanelProps> = ({
                                 className="plan-button plan-button--ghost"
                                 disabled={isLoading || rolesLoading || !replacementRole}
                                 onClick={() => {
-                                  if (!replacementRole) {
-                                    return;
-                                  }
-
+                                  if (!replacementRole) return;
                                   const confirmed = window.confirm(
                                     `Remove ${member.Email} from ${roleConfig.DisplayName} and assign ${replacementRole}?`
                                   );
-
                                   if (confirmed) {
                                     void onAssignRole(member.InternalUserId, replacementRole);
                                   }
@@ -208,6 +287,21 @@ export const CommitteeMembersPanel: React.FC<CommitteeMembersPanelProps> = ({
 
               <div className="plan-toolbar" style={{ marginTop: '10px' }}>
                 <label className="plan-field">
+                  <span>Search User</span>
+                  <input
+                    className="plan-input"
+                    value={roleSearchQuery}
+                    onChange={(event) =>
+                      setSearchByRole((current) => ({
+                        ...current,
+                        [roleConfig.RoleKey]: event.target.value
+                      }))
+                    }
+                    placeholder="Search by email, username, role, unit"
+                    disabled={isLoading || rolesLoading}
+                  />
+                </label>
+                <label className="plan-field">
                   <span>Select User To Assign</span>
                   <select
                     className="plan-input"
@@ -221,12 +315,17 @@ export const CommitteeMembersPanel: React.FC<CommitteeMembersPanelProps> = ({
                     disabled={isLoading || rolesLoading}
                   >
                     <option value="">Select user</option>
-                    {assignableUsers.map((user) => (
+                    {filteredRoleUsers.map((user) => (
                       <option key={user.InternalUserId} value={user.InternalUserId}>
                         {user.Email} ({user.RoleName})
                       </option>
                     ))}
                   </select>
+                  {roleSearchQuery.trim() ? (
+                    <small className="plan-muted" style={{ marginTop: '6px', display: 'block' }}>
+                      {filteredRoleUsers.length} match{filteredRoleUsers.length === 1 ? '' : 'es'} found
+                    </small>
+                  ) : null}
                 </label>
                 <div>
                   <button
@@ -243,6 +342,119 @@ export const CommitteeMembersPanel: React.FC<CommitteeMembersPanelProps> = ({
           );
         })}
       </div>
+    </>
+  );
+
+  return (
+    <article className="portal-module-card">
+      <h3>Planning Committee Members</h3>
+      <p className="plan-muted">
+        Manage committee composition with named roles instead of manual role keys.
+      </p>
+      <p className="plan-muted" style={{ marginTop: '6px' }}>
+        To remove someone from the committee, move them to another non-committee role.
+      </p>
+      <p className="plan-muted" style={{ marginTop: '6px' }}>
+        Use the chairman card below to assign Planning Committee Chairman to any active user.
+      </p>
+
+      <article className="portal-module-card" style={{ marginTop: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'baseline' }}>
+          <h3 style={{ margin: 0 }}>Planning Committee Chairman</h3>
+          <span className={`admin-status ${chairmanAssignment?.InternalUserId ? 'admin-status--good' : 'admin-status--warn'}`}>
+            {chairmanAssignment?.InternalUserId ? 'Assigned' : 'Unassigned'}
+          </span>
+        </div>
+        <p className="plan-muted" style={{ marginTop: '6px' }}>
+          This designation is separate from the user&apos;s main role and controls chairman-only planning committee actions.
+        </p>
+        <div style={{ marginTop: '10px' }}>
+          {chairmanAssignment?.InternalUserId ? (
+            <div className="plan-empty" style={{ textAlign: 'left' }}>
+              <strong>{chairmanAssignment.Email || chairmanAssignment.Username || 'Assigned user'}</strong>
+              {chairmanAssignment.RoleName ? ` (${chairmanAssignment.RoleName})` : ''}
+              {chairmanAssignment.UnitName ? ` • ${chairmanAssignment.UnitName}` : ''}
+            </div>
+          ) : (
+            <div className="plan-empty" style={{ textAlign: 'left' }}>
+              No chairman assigned.
+            </div>
+          )}
+        </div>
+        <div className="plan-toolbar" style={{ marginTop: '12px' }}>
+          <label className="plan-field">
+            <span>Search Chairman</span>
+            <input
+              className="plan-input"
+              value={chairmanSearchQuery}
+              onChange={(event) => setChairmanSearchQuery(event.target.value)}
+              placeholder="Search by email, username, role, unit"
+              disabled={isLoading || rolesLoading}
+            />
+          </label>
+          <label className="plan-field">
+            <span>Select Chairman</span>
+            <select
+              className="plan-input"
+              value={selectedChairmanUserId}
+              onChange={(event) => setSelectedChairmanUserId(event.target.value)}
+              disabled={isLoading || rolesLoading}
+            >
+              <option value="">Select user</option>
+              {filteredChairmanUsers.map((user) => (
+                <option key={user.InternalUserId} value={user.InternalUserId}>
+                  {user.Email} ({user.RoleName})
+                </option>
+              ))}
+            </select>
+            {chairmanSearchQuery.trim() ? (
+              <small className="plan-muted" style={{ marginTop: '6px', display: 'block' }}>
+                {filteredChairmanUsers.length} match{filteredChairmanUsers.length === 1 ? '' : 'es'} found
+              </small>
+            ) : null}
+          </label>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'end' }}>
+            <button
+              type="button"
+              className="plan-button"
+              disabled={isLoading || rolesLoading || !selectedChairmanUserId}
+              onClick={async () => {
+                await onAssignChairman(selectedChairmanUserId);
+                if (token) {
+                  const refreshed = await fetchPlanningCommitteeChairmanAssignment(token);
+                  setChairmanAssignment(refreshed);
+                }
+              }}
+            >
+              Assign Chairman
+            </button>
+            <button
+              type="button"
+              className="plan-button plan-button--ghost"
+              disabled={isLoading || rolesLoading || !chairmanAssignment?.InternalUserId}
+              onClick={async () => {
+                await onAssignChairman(null);
+                setChairmanAssignment(null);
+                setChairmanSearchQuery('');
+                setSelectedChairmanUserId('');
+              }}
+            >
+              Clear Chairman
+            </button>
+          </div>
+        </div>
+      </article>
+
+      {renderRoleCards(
+        effectiveCommitteeRoles,
+        'Planning Committee Members',
+        'Assign planning-side committee roles without editing records manually.'
+      )}
+      {renderRoleCards(
+        evaluationRoles,
+        'Evaluation Committee Members',
+        'Assign the technical, financial, and consolidated evaluation roles used by the live evaluation workflow.'
+      )}
       {showRolesError ? <div className="portal-alert">{rolesError}</div> : null}
       {!effectiveCommitteeRoles.length && !rolesLoading ? (
         <div className="plan-empty" style={{ textAlign: 'left' }}>

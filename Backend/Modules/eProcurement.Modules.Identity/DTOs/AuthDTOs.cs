@@ -27,6 +27,7 @@ namespace eProcurement.Modules.Identity.DTOs
         string? Role = "Internal");
 
     public record UpdateInternalUserRequest(
+        string Email,
         string Username,
         string FirstName,
         string? MiddleName,

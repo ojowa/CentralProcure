@@ -17,7 +17,7 @@ Current implementation alignment:
 
 - backend role key remains `FinancialUnitOfficer`
 - frontend normalized role key remains `financial_unit_officer`
-- workflow stage remains `budget_confirmation`
+- workflow stage remains `budget_allocation_and_confirmation`
 - business-facing label becomes `Budget Officer`
 
 This keeps technical compatibility while giving the role clearer product identity.
@@ -126,7 +126,7 @@ Add a dedicated internal module:
 Recommended role access:
 
 - primary: `FinancialUnitOfficer`
-- optional read-only secondary visibility: `ProcurementManager`, `AccountingOfficer`, `AuditOfficer`
+- optional read-only secondary visibility: `ProcurementManager`, `CGIS`, `AuditOfficer`
 
 ## 8. Frontend Implementation Plan
 
@@ -177,7 +177,7 @@ Recommended role access:
 ### 10.2 Workflow alignment
 Preserve the existing workflow key:
 
-- stage: `budget_confirmation`
+- stage: `budget_allocation_and_confirmation`
 - actor key: `financial_unit_officer`
 
 But expose it in UI copy as:

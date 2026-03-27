@@ -52,6 +52,16 @@ const buildCsrfHeaders = (): Record<string, string> => {
   return csrfToken ? { 'X-CSRF-Token': csrfToken } : {};
 };
 
+class ApiError extends Error {
+  statusCode: number;
+
+  constructor(message: string, statusCode: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.statusCode = statusCode;
+  }
+}
+
 const parseResponse = async <T>(response: Response, fallbackError: string): Promise<T> => {
   const text = await response.text();
   let payload: unknown = null;
@@ -64,11 +74,11 @@ const parseResponse = async <T>(response: Response, fallbackError: string): Prom
   }
 
   if (!response.ok) {
-    const message =
+    const baseMessage =
       (payload as { message?: string; error?: string } | null)?.message ||
       (payload as { message?: string; error?: string } | null)?.error ||
       fallbackError;
-    throw new Error(message);
+    throw new ApiError(`${baseMessage} (status ${response.status})`, response.status);
   }
 
   return payload as T;
@@ -90,6 +100,7 @@ export interface RoleDetail extends Role {
 }
 
 export interface UpdateUserRequest {
+  Email: string;
   Username: string;
   FirstName: string;
   MiddleName?: string;

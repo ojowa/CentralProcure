@@ -315,6 +315,7 @@ export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShel
                 token,
                 role: selectedRole,
                 userEmail,
+                availableModuleIds: moduleIds,
                 onModuleChange: handleModuleChange
               })}
             </>

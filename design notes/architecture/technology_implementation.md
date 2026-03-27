@@ -8,7 +8,7 @@
 The Technology Phase describes how the Electronic Procurement System will be implemented, deployed, secured, and sustained. It translates approved business processes and legal requirements into a reliable digital platform.
 
 This appendix is written for:
-- Top Management and Accounting Officers
+- Top Management and CGIS
 - ICT Directors and System Owners
 - Oversight and audit stakeholders
 

@@ -44,35 +44,79 @@ public partial class AuthController
     {
         DeleteAuthCookie(InternalAuthCookieName);
         DeleteInternalSessionActivityCookie();
+        DeleteCsrfCookie();
         return Ok(new { message = "Logged out successfully" });
+    }
+
+    [AllowAnonymous]
+    [HttpGet("csrf")]
+    public IActionResult GetCsrfToken()
+    {
+        SetCsrfCookie();
+        return Ok(new { message = "CSRF token set." });
     }
 
     private void SetAuthCookie(string cookieName, string token)
     {
+        var secure = ShouldUseSecureCookies();
+        var isInternal = string.Equals(cookieName, InternalAuthCookieName, StringComparison.OrdinalIgnoreCase);
         var cookieOptions = new CookieOptions
         {
             HttpOnly = true,
-            Secure = ShouldUseSecureCookies(),
-            SameSite = SameSiteMode.Strict,
+            Secure = secure,
+            // Use Lax for internal app if possible; use None for cross-site if required for vendors
+            SameSite = isInternal ? SameSiteMode.Lax : (secure ? SameSiteMode.None : SameSiteMode.Lax),
             Path = "/",
             Expires = DateTime.UtcNow.AddHours(24)
         };
         Response.Cookies.Append(cookieName, token, cookieOptions);
+        
+        SetCsrfCookie();
     }
 
     private void DeleteAuthCookie(string cookieName)
     {
+        var secure = ShouldUseSecureCookies();
         Response.Cookies.Delete(cookieName, new CookieOptions
         {
             HttpOnly = true,
-            Secure = ShouldUseSecureCookies(),
-            SameSite = SameSiteMode.Strict,
+            Secure = secure,
+            SameSite = SameSiteMode.Lax,
+            Path = "/"
+        });
+        DeleteCsrfCookie();
+    }
+
+    private void SetCsrfCookie()
+    {
+        var secure = ShouldUseSecureCookies();
+        var token = Guid.NewGuid().ToString("N");
+        var cookieOptions = new CookieOptions
+        {
+            HttpOnly = false, // Must be readable by frontend JS
+            Secure = secure,
+            SameSite = SameSiteMode.Lax,
+            Path = "/",
+            Expires = DateTime.UtcNow.AddHours(24)
+        };
+        Response.Cookies.Append("XSRF-TOKEN", token, cookieOptions);
+    }
+
+    private void DeleteCsrfCookie()
+    {
+        var secure = ShouldUseSecureCookies();
+        Response.Cookies.Delete("XSRF-TOKEN", new CookieOptions
+        {
+            HttpOnly = false,
+            Secure = secure,
+            SameSite = SameSiteMode.Lax,
             Path = "/"
         });
     }
 
     private void SetInternalSessionActivityCookie(Guid internalUserId)
     {
+        var secure = ShouldUseSecureCookies();
         var timeout = TimeSpan.FromMinutes(Math.Max(1, _internalSessionOptions.IdleTimeoutMinutes));
         var activityCookieName = ResolveInternalSessionActivityCookieName();
         var protectedValue = _internalSessionActivityProtector.Protect(internalUserId, DateTimeOffset.UtcNow);
@@ -80,8 +124,8 @@ public partial class AuthController
         Response.Cookies.Append(activityCookieName, protectedValue, new CookieOptions
         {
             HttpOnly = true,
-            Secure = ShouldUseSecureCookies(),
-            SameSite = SameSiteMode.Strict,
+            Secure = secure,
+            SameSite = SameSiteMode.Lax,
             Path = "/",
             Expires = DateTime.UtcNow.Add(timeout)
         });
@@ -89,11 +133,12 @@ public partial class AuthController
 
     private void DeleteInternalSessionActivityCookie()
     {
+        var secure = ShouldUseSecureCookies();
         Response.Cookies.Delete(ResolveInternalSessionActivityCookieName(), new CookieOptions
         {
             HttpOnly = true,
-            Secure = ShouldUseSecureCookies(),
-            SameSite = SameSiteMode.Strict,
+            Secure = secure,
+            SameSite = SameSiteMode.Lax,
             Path = "/"
         });
     }

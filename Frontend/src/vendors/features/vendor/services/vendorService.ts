@@ -1,4 +1,5 @@
-import apiClient from '../../shared/services/apiClient';
+import apiClient, { fetchCsrfToken } from '../../shared/services/apiClient';
+export { fetchCsrfToken };
 import {
     VendorLoginData,
     VendorRegistrationData,
@@ -23,6 +24,27 @@ const API_ENDPOINTS = {
     VENDOR_COMPLIANCE_CHECKLIST: '/api/Vendor/compliance/checklist',
     VENDOR_PROFILE: (vendorId: string) => `/api/Vendor/${vendorId}`,
     VENDOR_AVAILABILITY: '/api/Vendor/availability'
+};
+export const VENDOR_AUTH_TOKEN_KEY = 'vendorAuthToken';
+
+export const setVendorAuthToken = (token: string | null) => {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    if (token) {
+        localStorage.setItem(VENDOR_AUTH_TOKEN_KEY, token);
+    } else {
+        localStorage.removeItem(VENDOR_AUTH_TOKEN_KEY);
+    }
+};
+
+export const getStoredVendorAuthToken = (): string | null => {
+    if (typeof window === 'undefined') {
+        return null;
+    }
+
+    return localStorage.getItem(VENDOR_AUTH_TOKEN_KEY);
 };
 
 const parseJwtPayload = (token: string): Record<string, unknown> | null => {
@@ -93,6 +115,7 @@ export const vendorLogin = async (credentials: VendorLoginData): Promise<VendorL
         const vendorId = typeof jwtPayload?.sub === 'string' ? jwtPayload.sub : '';
         const email = typeof jwtPayload?.email === 'string' ? jwtPayload.email : response.data.Email;
 
+        setVendorAuthToken(token);
         return {
             Token: token,
             Email: email,
@@ -322,10 +345,18 @@ export const logoutVendor = async (): Promise<void> => {
  */
 export const getCurrentUser = async (): Promise<{ UserId: string; Email: string; Role: string } | null> => {
     try {
+        console.log('[Auth] Calling API:', API_ENDPOINTS.VENDOR_ME);
+        console.log('[Auth] Authorization header:', apiClient.defaults.headers.common.Authorization);
         const response = await apiClient.get(API_ENDPOINTS.VENDOR_ME);
+        console.log('[Auth] API response:', response.data);
         return response.data;
-    } catch (error) {
-        // Not authenticated
+    } catch (error: any) {
+        const status = error.response?.status;
+        if (status === 401) {
+            console.info('[Auth] Not authenticated; skipping profile fetch.', status);
+        } else {
+            console.error('[Auth] API call failed:', error.message, status, error.response?.data);
+        }
         return null;
     }
 };

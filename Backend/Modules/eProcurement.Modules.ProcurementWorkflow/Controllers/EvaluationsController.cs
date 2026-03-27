@@ -4,13 +4,14 @@ using System.Security.Claims;
 using Npgsql;
 using NpgsqlTypes;
 using eProcurement.Modules.ProcurementWorkflow.DTOs;
+using eProcurement.Modules.ProcurementWorkflow.Services;
 using eProcurement.Shared.Workflow;
 
 namespace eProcurement.Modules.ProcurementWorkflow.Controllers;
 
 [ApiController]
 [Route("api/evaluations")]
-public class EvaluationsController : ControllerBase
+public partial class EvaluationsController : ControllerBase
 {
     private readonly IConfiguration _config;
     private readonly ILogger<EvaluationsController> _logger;
@@ -36,6 +37,7 @@ public class EvaluationsController : ControllerBase
     public async Task<IActionResult> GetAssignedTenders(string? assignmentKey, CancellationToken ct)
     {
         var roleKey = WorkflowActionGrantService.ResolveRoleKey(User);
+        var internalUserId = ResolveInternalUserId();
         if (string.IsNullOrWhiteSpace(roleKey))
         {
             return Ok(Array.Empty<AssignedTenderItem>());
@@ -53,6 +55,7 @@ SELECT
     r.tender_id,
     r.tender_title,
     r.committee_lead,
+    COALESCE(user_assignment.assignment_role, @p_role_key) AS assignment_role,
     r.status AS evaluation_status,
     r.submitted_at,
     t.category AS procurement_category,
@@ -70,14 +73,40 @@ SELECT
     END AS is_locked
 FROM procurement_workflow.evaluation_reports r
 LEFT JOIN vendor_sourcing.tenders t ON t.tender_id = r.tender_id
-WHERE EXISTS (
-    SELECT 1
-    FROM procurement_workflow.workflow_instances wi
-    JOIN procurement_workflow.workflow_role_tasks wrt
-      ON wrt.stage_key = wi.current_stage_key
-    WHERE wi.entity_type = 'tender'
-      AND wi.entity_id = r.tender_id
-      AND wrt.role_key = @p_role_key
+LEFT JOIN LATERAL (
+    SELECT COUNT(*)::int AS assignment_count
+    FROM procurement_workflow.tender_evaluation_assignments tea
+    WHERE tea.tender_id = r.tender_id
+) assignment_meta ON TRUE
+LEFT JOIN LATERAL (
+    SELECT tea.assignment_role
+    FROM procurement_workflow.tender_evaluation_assignments tea
+    WHERE tea.tender_id = r.tender_id
+      AND @p_internal_user_id IS NOT NULL
+      AND tea.internal_user_id = @p_internal_user_id
+    LIMIT 1
+) user_assignment ON TRUE
+WHERE (
+    assignment_meta.assignment_count > 0
+    AND @p_internal_user_id IS NOT NULL
+    AND EXISTS (
+        SELECT 1
+        FROM procurement_workflow.tender_evaluation_assignments tea
+        WHERE tea.tender_id = r.tender_id
+          AND tea.internal_user_id = @p_internal_user_id
+    )
+)
+OR (
+    assignment_meta.assignment_count = 0
+    AND EXISTS (
+        SELECT 1
+        FROM procurement_workflow.workflow_instances wi
+        JOIN procurement_workflow.workflow_role_tasks wrt
+          ON wrt.stage_key = wi.current_stage_key
+        WHERE wi.entity_type = 'tender'
+          AND wi.entity_id = r.tender_id
+          AND wrt.role_key = @p_role_key
+    )
 )
 ORDER BY r.submitted_at DESC;";
 
@@ -85,8 +114,10 @@ ORDER BY r.submitted_at DESC;";
         {
             await using var conn = new NpgsqlConnection(connectionString);
             await conn.OpenAsync(ct);
+            await TenderEvaluationAssignmentRegistry.EnsureTableAsync(conn, null, ct);
             await using var cmd = new NpgsqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("p_role_key", NpgsqlDbType.Varchar, roleKey);
+            cmd.Parameters.AddWithValue("p_internal_user_id", NpgsqlDbType.Uuid, (object?)internalUserId ?? DBNull.Value);
 
             var results = new List<AssignedTenderItem>();
             await using var reader = await cmd.ExecuteReaderAsync(ct);
@@ -97,6 +128,7 @@ ORDER BY r.submitted_at DESC;";
                     reader.GetGuid(reader.GetOrdinal("tender_id")),
                     reader.GetString(reader.GetOrdinal("tender_title")),
                     reader.GetString(reader.GetOrdinal("committee_lead")),
+                    reader.GetString(reader.GetOrdinal("assignment_role")),
                     reader.GetString(reader.GetOrdinal("evaluation_status")),
                     reader.IsDBNull(reader.GetOrdinal("tender_status")) ? "Unknown" : reader.GetString(reader.GetOrdinal("tender_status")),
                     reader.IsDBNull(reader.GetOrdinal("procurement_category")) ? "Unspecified" : reader.GetString(reader.GetOrdinal("procurement_category")),
@@ -314,6 +346,12 @@ RETURNING action_id;";
         => User.FindFirstValue(ClaimTypes.Email) ??
            User.FindFirstValue(ClaimTypes.Name) ??
            User.Identity?.Name;
+
+    private Guid? ResolveInternalUserId()
+    {
+        var raw = User.FindFirstValue("internalUserId") ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return Guid.TryParse(raw, out var parsed) ? parsed : null;
+    }
 
     private static async Task<WorkflowInstanceState?> GetWorkflowInstanceAsync(
         NpgsqlConnection conn,

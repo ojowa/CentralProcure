@@ -1,4 +1,5 @@
 import { backendServiceBaseUrl, serviceBaseUrls } from './moduleService';
+import { buildCsrfHeaders } from './moduleService.shared';
 import type {
   VendorApprovalDecisionRequest,
   VendorApprovalDetail,
@@ -64,7 +65,8 @@ export const fetchVendorApprovals = async (
   const response = await fetch(`${baseUrl}${buildQuery(filters)}`, {
     headers: {
       Authorization: `Bearer ${token}`
-    }
+    },
+    credentials: 'include'
   });
 
   return parseResponse<VendorApprovalSummary[]>(response);
@@ -77,7 +79,8 @@ export const fetchVendorApprovalDetail = async (
   const response = await fetch(`${baseUrl}/${vendorId}`, {
     headers: {
       Authorization: `Bearer ${token}`
-    }
+    },
+    credentials: 'include'
   });
 
   return parseResponse<VendorApprovalDetail>(response);
@@ -92,8 +95,10 @@ export const decideVendorApproval = async (
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      ...buildCsrfHeaders()
     },
+    credentials: 'include',
     body: JSON.stringify(payload)
   });
 
@@ -108,7 +113,8 @@ export const downloadVendorApprovalDocument = async (
   const response = await fetch(targetUrl, {
     headers: {
       Authorization: `Bearer ${token}`
-    }
+    },
+    credentials: 'include'
   });
 
   if (!response.ok) {

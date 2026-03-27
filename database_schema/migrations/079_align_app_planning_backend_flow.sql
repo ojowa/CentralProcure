@@ -23,7 +23,7 @@ FROM (
         ('department_head', 'Department Head', 'planning_committee_review', 'Confirm the originating department''s operational justification during committee review.', 'Department need remains justified at committee stage.'),
         ('legal_reviewer', 'Legal Reviewer', 'planning_committee_review', 'Review legal compliance of the requisition package before APP approval.', 'Committee record includes legal compliance view.'),
         ('procurement_secretary', 'Procurement Secretary', 'planning_committee_review', 'Record committee deliberations and maintain the planning committee trail.', 'Committee proceedings are properly recorded.'),
-        ('accounting_officer', 'Accounting Officer', 'app_approval', 'Provide finance-side concurrence before the APP is released for execution.', 'APP approval includes accounting control.')
+        ('accounting_officer', 'CGIS', 'app_approval', 'Provide Comptroller General of Immigration Service concurrence before the APP is released for execution.', 'APP approval includes CGIS control.')
 ) AS src(role_key, display_name, stage_key, task_description, expected_outcome)
 WHERE NOT EXISTS (
     SELECT 1

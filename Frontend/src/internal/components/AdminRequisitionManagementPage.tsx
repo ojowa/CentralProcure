@@ -20,6 +20,7 @@ interface Props {
   token?: string | null;
   role?: RoleKey | null;
   userEmail?: string | null;
+  availableModuleIds?: string[];
   onModuleChange?: (moduleId: string) => void;
 }
 
@@ -31,7 +32,7 @@ type RequisitionAuthority = {
 };
 type RequisitionDetailWithAuthority = RequisitionDetail & { Authority?: RequisitionAuthority };
 
-export const AdminRequisitionManagementPage = ({ module, token, role, userEmail, onModuleChange }: Props) => {
+export const AdminRequisitionManagementPage = ({ module, token, role, userEmail, availableModuleIds = [], onModuleChange }: Props) => {
   const mode = 'history';
   const pageSize = getPageSize(mode);
 
@@ -64,6 +65,7 @@ export const AdminRequisitionManagementPage = ({ module, token, role, userEmail,
   const canRoute = Boolean(selectedDetail?.Authority?.CanRoute);
   const isSelectedEditable = Boolean(selectedDetail?.Authority?.IsEditable);
   const canApproveForPlanningCommittee = canRoute && selectedDetail?.Status === 'Initial';
+  const canOpenCreateModule = availableModuleIds.includes('create-requisition');
 
   const summary = useMemo(() => {
     const counts = requisitions.reduce<Record<string, number>>((accumulator, record) => {
@@ -380,10 +382,11 @@ export const AdminRequisitionManagementPage = ({ module, token, role, userEmail,
                   detail={selectedDetail}
                   activeStepIndex={activeStepIndex}
                   isSelectedEditable={isSelectedEditable}
-                  isDepartmentHead={false}
-                  isAdmin={role === 'admin'}
-                  canEditDrafts={canEditDrafts}
-                  isSaving={isSaving}
+      isDepartmentHead={false}
+      isAdmin={role === 'admin'}
+      canEditDrafts={canEditDrafts}
+      canOpenSelectedForEdit={canOpenCreateModule}
+      isSaving={isSaving}
                   workflowRuntime={workflowRuntime}
                   onOpenSelectedForEdit={openSelectedForEdit}
                   onSubmitSelectedDraft={() => void submitSelectedDraft()}

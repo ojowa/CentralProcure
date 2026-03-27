@@ -118,6 +118,7 @@ public class EvaluationReportsController : ControllerBase
     {
         return new EvaluationReportItem(
             reader.GetString(reader.GetOrdinal("report_code")),
+            reader.GetString(reader.GetOrdinal("report_code")),
             reader.GetGuid(reader.GetOrdinal("tender_id")),
             reader.GetString(reader.GetOrdinal("tender_title")),
             reader.GetString(reader.GetOrdinal("committee_lead")),

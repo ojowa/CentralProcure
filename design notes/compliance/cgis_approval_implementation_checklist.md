@@ -43,7 +43,7 @@ Goal:
 - define exactly how `CGIS Approval` fits the current role and workflow model
 
 Tasks:
-- [x] confirm whether the current `AccountingOfficer` role remains the effective CGIS actor for now
+- [x] confirm whether the current executive approval role mapping remains the effective CGIS actor for now
 - [x] decide whether `CGIS Approval` should appear as a new internal module id or as a relabel of an existing approval module
 - [x] confirm which actions are valid in the CGIS stage: approve, reject, return, escalate
 - [x] define the exact rejection and return workflow destinations
@@ -293,7 +293,7 @@ Acceptance:
 
 Start with a hard implementation decision on role mapping and module identity:
 
-- either keep `AccountingOfficer` as the effective CGIS actor and introduce a new UI module label
+- either keep the existing executive approval slot as the effective CGIS actor and introduce a new UI module label
 - or add a dedicated `CGIS` role and map it to the same stage with clearer executive semantics
 
 The first option is lower risk and matches the current codebase more closely.

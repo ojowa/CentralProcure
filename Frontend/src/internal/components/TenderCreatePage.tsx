@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import type { InternalModule, RequisitionSummary, TenderSummary } from '../types/internal';
+import type { InternalModule, RequisitionDetail, RequisitionSummary, TenderSummary } from '../types/internal';
 import { fetchApprovedRequisitions, createTender, deleteTender, publishTender, fetchTenderDetails } from '../services/moduleService.tenders';
 import { fetchTenderWorkflowDisplay } from '../services/tenderWorkflowService';
 import { fetchTenders } from '../services/tenderService';
+import { fetchRequisitionDetail } from '../services/requisitionService';
 import { WorkflowProgressStepper } from './WorkflowProgressStepper';
 import { getHumanStatus } from '../utils/workflow';
 import type { WorkflowRuntimeDisplay } from './workflowDisplayTypes';
@@ -36,7 +37,10 @@ export const TenderCreatePage: React.FC<Props> = ({ token, module }) => {
     RequisitionId: '',
     Title: '',
     Description: '',
-    Category: 'Goods'
+    Category: 'Goods',
+    Specifications: '',
+    EligibilityCriteria: '',
+    EvaluationCriteria: ''
   });
 
   const [publishForm, setPublishForm] = useState({
@@ -44,6 +48,59 @@ export const TenderCreatePage: React.FC<Props> = ({ token, module }) => {
     OpeningDate: '',
     ClosingDate: ''
   });
+
+  const buildSpecificationsFromLineItems = (detail: RequisitionDetail) => {
+    if (!detail.LineItems?.length) {
+      return '';
+    }
+
+    return detail.LineItems
+      .map((item, index) => {
+        const quantity = Number(item.Quantity || 0);
+        const unit = String(item.Unit || '').trim();
+        const description = String(item.Description || '').trim();
+        const quantityLabel = quantity > 0 ? `${quantity}` : '';
+        return `${index + 1}. ${quantityLabel}${unit ? ` ${unit}` : ''} ${description}`.replace(/\s+/g, ' ').trim();
+      })
+      .join('\n');
+  };
+
+  const buildEligibilityCriteriaTemplate = () => [
+    'Valid CAC registration or equivalent business registration document.',
+    'Current Tax Clearance Certificate.',
+    'PENCOM compliance certificate where applicable.',
+    'ITF compliance certificate where applicable.',
+    'NSITF compliance evidence where applicable.',
+    'Evidence of similar contract experience.',
+    'Relevant professional, technical, or regulatory licenses where applicable.',
+    'Signed bid declaration and conflict-of-interest disclosure.'
+  ].join('\n');
+
+  const buildEvaluationCriteriaByProcurementType = (procurementType?: string | null) => {
+    switch ((procurementType || '').trim().toLowerCase()) {
+      case 'works':
+        return [
+          'Preliminary examination: responsiveness to mandatory submission requirements.',
+          'Technical evaluation: methodology, work programme, key personnel, equipment, and relevant experience.',
+          'Financial evaluation: comparison of responsive bids and arithmetic checks.',
+          'Post-qualification: validation of capacity, references, and statutory compliance before award.'
+        ].join('\n');
+      case 'services':
+        return [
+          'Preliminary examination: responsiveness to mandatory submission requirements.',
+          'Technical evaluation: understanding of assignment, methodology, team composition, and relevant experience.',
+          'Financial evaluation: comparison of financial proposals for technically responsive bidders.',
+          'Final recommendation based on the applicable quality and cost assessment method.'
+        ].join('\n');
+      default:
+        return [
+          'Preliminary examination: responsiveness to mandatory submission requirements.',
+          'Technical evaluation: compliance with specifications, delivery capacity, warranty, and relevant experience.',
+          'Financial evaluation: comparison of responsive bids and arithmetic checks.',
+          'Post-qualification: validation of statutory compliance and vendor capacity before award.'
+        ].join('\n');
+    }
+  };
 
   useEffect(() => {
     if (!token) return;
@@ -194,16 +251,31 @@ export const TenderCreatePage: React.FC<Props> = ({ token, module }) => {
     }
   };
 
-  const handleSelectRequisition = (id: string) => {
+  const handleSelectRequisition = async (id: string) => {
+    if (!token) return;
+
     const req = requisitions.find(r => r.RequisitionId === id);
-    setForm({
-      RequisitionId: id,
-      Title: req?.Title ?? '',
-      Description: req ? `Tender for ${req.Title}` : '',
-      Category: 'Goods'
-    });
-    setStep('draft');
-    router.replace(buildWorkspacePath('create'));
+    setLoading(true);
+    setError(null);
+
+    try {
+      const detail = await fetchRequisitionDetail(token, id);
+      setForm({
+        RequisitionId: id,
+        Title: req?.Title ?? detail.Title ?? '',
+        Description: req ? `Tender for ${req.Title}` : `Tender for ${detail.Title}`,
+        Category: detail.ProcurementType || 'Goods',
+        Specifications: buildSpecificationsFromLineItems(detail),
+        EligibilityCriteria: buildEligibilityCriteriaTemplate(),
+        EvaluationCriteria: buildEvaluationCriteriaByProcurementType(detail.ProcurementType)
+      });
+      setStep('draft');
+      router.replace(buildWorkspacePath('create'));
+    } catch (err: any) {
+      setError(err.message || 'Failed to load requisition detail.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -413,6 +485,36 @@ export const TenderCreatePage: React.FC<Props> = ({ token, module }) => {
           <label className="plan-field">
             <span>Scope & Instructions</span>
             <textarea className="plan-input" rows={4} value={form.Description} onChange={e => setForm({ ...form, Description: e.target.value })} />
+          </label>
+          <label className="plan-field">
+            <span>Specifications</span>
+            <textarea
+              className="plan-input"
+              rows={5}
+              value={form.Specifications}
+              onChange={e => setForm({ ...form, Specifications: e.target.value })}
+              placeholder="Enter technical specifications, scope details, deliverables, standards, or bill of quantities."
+            />
+          </label>
+          <label className="plan-field">
+            <span>Eligibility Criteria</span>
+            <textarea
+              className="plan-input"
+              rows={4}
+              value={form.EligibilityCriteria}
+              onChange={e => setForm({ ...form, EligibilityCriteria: e.target.value })}
+              placeholder="Enter bidder eligibility requirements such as CAC, Tax Clearance, PENCOM, ITF, NSITF, OEM authorization, similar experience, or licenses."
+            />
+          </label>
+          <label className="plan-field">
+            <span>Evaluation Criteria</span>
+            <textarea
+              className="plan-input"
+              rows={4}
+              value={form.EvaluationCriteria}
+              onChange={e => setForm({ ...form, EvaluationCriteria: e.target.value })}
+              placeholder="Enter the evaluation basis, such as pass/fail compliance, technical weighting, financial weighting, delivery timeline, or post-qualification rules."
+            />
           </label>
           <div className="requisition-seed">
             <h4>Requisition Seed</h4>

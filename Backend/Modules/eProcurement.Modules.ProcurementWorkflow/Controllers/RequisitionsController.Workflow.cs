@@ -63,7 +63,7 @@ public partial class RequisitionsController
         {
             "Draft" => "department_need_capture",
             "Submitted" => "department_head_endorsement",
-            "Endorsed" => "budget_code_allocation",
+            "Endorsed" => "budget_allocation_and_confirmation",
             "Initial" => "comptroller_procurement_review",
             "Under Review" => "planning_committee_review",
             "Evaluation" => "evaluation",

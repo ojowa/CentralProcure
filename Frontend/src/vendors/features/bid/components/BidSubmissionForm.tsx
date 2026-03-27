@@ -159,7 +159,7 @@ const BidSubmissionForm: React.FC<BidSubmissionFormProps> = ({ tenderId, onBack,
           {existingBidId && (
             <div className="mt-2">
               <a
-                href={`/submission-confirmation/${existingBidId}`}
+                href={`/vendors/submission-confirmation/${existingBidId}`}
                 className="text-sm font-semibold text-emerald-700 hover:underline"
               >
                 View my submitted bid

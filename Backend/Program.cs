@@ -19,7 +19,7 @@ var renderPort = Environment.GetEnvironmentVariable("PORT");
 const string FrontendCorsPolicy = "FrontendOrigins";
 const string VendorAuthCookieName = "vendorAuthToken";
 const string InternalAuthCookieName = "internalAuthToken";
-const string DefaultDevelopmentUrl = "http://127.0.0.1:5080";
+const string DefaultDevelopmentUrl = "http://localhost:5000";
 
 var configuredUrls = builder.Configuration["Server:Urls"]?.Trim();
 var httpsPort = builder.Configuration["HTTPS_PORT"]?.Trim()
@@ -37,7 +37,7 @@ else if (!string.IsNullOrWhiteSpace(configuredUrls))
 }
 else if (builder.Environment.IsDevelopment())
 {
-    builder.WebHost.UseUrls(DefaultDevelopmentUrl);
+        builder.WebHost.UseUrls(DefaultDevelopmentUrl);
 }
 
 // --- Logging ---
@@ -119,7 +119,8 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(allowedOrigins)
             .AllowAnyMethod()
-            .AllowAnyHeader();
+            .AllowAnyHeader()
+            .AllowCredentials();
     });
 });
 
@@ -235,14 +236,15 @@ static bool TryResolveBearerToken(string? authorization, out string? token)
 
 static string? ResolveCookieToken(HttpRequest request)
 {
-    if (UsesVendorCookie(request.Path))
-    {
-        return request.Cookies[VendorAuthCookieName];
-    }
-
-    if (UsesInternalCookie(request.Path))
+    var path = request.Path;
+    if (UsesInternalCookie(path))
     {
         return request.Cookies[InternalAuthCookieName];
+    }
+
+    if (UsesVendorCookie(path))
+    {
+        return request.Cookies[VendorAuthCookieName];
     }
 
     return request.Cookies[InternalAuthCookieName] ?? request.Cookies[VendorAuthCookieName];
@@ -250,9 +252,17 @@ static string? ResolveCookieToken(HttpRequest request)
 
 static bool UsesVendorCookie(PathString path)
 {
-    return path.StartsWithSegments("/api/Auth/me", StringComparison.OrdinalIgnoreCase)
-        || path.StartsWithSegments("/api/Auth/logout", StringComparison.OrdinalIgnoreCase)
-        || path.StartsWithSegments("/api/Vendor", StringComparison.OrdinalIgnoreCase)
+    // These specific Auth endpoints belong to the vendor frontend
+    if (path.StartsWithSegments("/api/Auth/me", StringComparison.OrdinalIgnoreCase) ||
+        path.StartsWithSegments("/api/Auth/logout", StringComparison.OrdinalIgnoreCase) ||
+        path.StartsWithSegments("/api/Auth/login", StringComparison.OrdinalIgnoreCase) ||
+        path.StartsWithSegments("/api/Auth/register", StringComparison.OrdinalIgnoreCase))
+    {
+        return true;
+    }
+
+    // Module-specific paths
+    return path.StartsWithSegments("/api/Vendor", StringComparison.OrdinalIgnoreCase)
         || path.StartsWithSegments("/api/vendors", StringComparison.OrdinalIgnoreCase)
         || path.StartsWithSegments("/api/Tender", StringComparison.OrdinalIgnoreCase)
         || path.StartsWithSegments("/api/bids", StringComparison.OrdinalIgnoreCase);
@@ -261,6 +271,7 @@ static bool UsesVendorCookie(PathString path)
 static bool UsesInternalCookie(PathString path)
 {
     return path.StartsWithSegments("/api/Auth/internal", StringComparison.OrdinalIgnoreCase)
+        || path.StartsWithSegments("/api/Auth/profile", StringComparison.OrdinalIgnoreCase)
         || path.StartsWithSegments("/api/tenders", StringComparison.OrdinalIgnoreCase)
         || path.StartsWithSegments("/api/internal/tenders", StringComparison.OrdinalIgnoreCase);
 }

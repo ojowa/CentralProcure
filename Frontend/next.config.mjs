@@ -1,11 +1,14 @@
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+import { patchUtilExtend } from './scripts/patch-util-extend.js';
+
+patchUtilExtend();
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const appBasePath = process.env.NEXT_PUBLIC_APP_BASE_PATH ?? '';
 const defaultBackendServiceUrl =
   process.env.NODE_ENV === 'development'
-    ? 'http://127.0.0.1:5080'
+    ? 'http://localhost:5000'
     : 'https://centralprocure-backend.onrender.com';
 const backendServiceUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? defaultBackendServiceUrl;
 const normalizeBasePath = (value) => {

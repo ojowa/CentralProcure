@@ -1,3 +1,6 @@
+import { useEffect } from 'react';
+import Link from 'next/link';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { InternalModule } from '../types/internal';
 import { fetchWorkflowConfiguration } from '../services/workflowConfigurationService';
 import { WorkflowConfigurationOverviewTab } from './workflowConfiguration/WorkflowConfigurationOverviewTab';
@@ -16,12 +19,38 @@ type Props = {
   token?: string | null;
 };
 
+const tabs: Array<[TabKey, string]> = [
+  ['overview', 'Overview'],
+  ['thresholds', 'Thresholds'],
+  ['stages', 'Stages'],
+  ['routing', 'Routing'],
+  ['tasks', 'Role Tasks']
+];
+
 export const WorkflowConfigurationModulePage = ({ module, moduleData, moduleError, token }: Props) => {
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const state = useWorkflowConfigurationState({
     moduleData,
     token,
     fetchConfig: fetchWorkflowConfiguration
   });
+
+  const setTab = (tab: TabKey) => {
+    state.setActiveTab(tab);
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.set('tab', tab);
+    router.replace(`${pathname}?${nextParams.toString()}`, { scroll: false });
+  };
+
+  useEffect(() => {
+    const requestedTab = searchParams.get('tab');
+    const matchedTab = tabs.find(([tabId]) => tabId === requestedTab)?.[0];
+    if (matchedTab) {
+      state.setActiveTab(matchedTab);
+    }
+  }, [searchParams, state.setActiveTab]);
 
   const actions = useWorkflowConfigurationActions({
     token,
@@ -82,21 +111,15 @@ export const WorkflowConfigurationModulePage = ({ module, moduleData, moduleErro
       {state.actionMessage ? <div className="plan-success">{state.actionMessage}</div> : null}
 
       <div className="workflow-config-tabs">
-        {[
-          ['overview', 'Overview'],
-          ['thresholds', 'Thresholds'],
-          ['stages', 'Stages'],
-          ['routing', 'Routing'],
-          ['tasks', 'Role Tasks']
-        ].map(([tabId, label]) => (
-          <button
+        {tabs.map(([tabId, label]) => (
+          <Link
             key={tabId}
-            type="button"
+            href={`${pathname}?tab=${tabId}`}
             className={state.activeTab === tabId ? 'active' : ''}
-            onClick={() => state.setActiveTab(tabId as TabKey)}
+            onClick={() => setTab(tabId)}
           >
             {label}
-          </button>
+          </Link>
         ))}
         <button
           type="button"

@@ -189,7 +189,15 @@ public partial class PlanningCommitteeWorkspaceController : ControllerBase
             await conn.OpenAsync(ct);
             await using var tx = await conn.BeginTransactionAsync(ct);
 
-            var response = await FinalizeReviewAsync(conn, tx, requisitionId, WorkflowActionGrantService.ResolveRoleKey(User), ResolveActorIdentity(User), request, ct);
+            var response = await FinalizeReviewAsync(
+                conn,
+                tx,
+                requisitionId,
+                WorkflowActionGrantService.ResolveRoleKey(User),
+                ResolveAuthenticatedInternalUserId(User),
+                ResolveActorIdentity(User),
+                request,
+                ct);
             await tx.CommitAsync(ct);
             return Ok(response);
         }

@@ -101,8 +101,8 @@ SELECT
     p.plan_title,
     p.status AS plan_status,
     p.total_budget,
-    COALESCE(wi.current_stage_key, CASE WHEN p.status = 'Initial' THEN 'budget_code_allocation' ELSE 'department_need_capture' END) AS current_stage_key,
-    COALESCE(sc.stage_title, CASE WHEN p.status = 'Initial' THEN 'Budget Code Allocation' ELSE 'Department Need Capture' END) AS current_stage_title
+    COALESCE(wi.current_stage_key, CASE WHEN p.status = 'Initial' THEN 'budget_allocation_and_confirmation' ELSE 'department_need_capture' END) AS current_stage_key,
+    COALESCE(sc.stage_title, CASE WHEN p.status = 'Initial' THEN 'Budget Allocation and Confirmation' ELSE 'Department Need Capture' END) AS current_stage_title
 FROM procurement_workflow.procurement_plans p
 LEFT JOIN procurement_workflow.workflow_instances wi
     ON wi.entity_type = 'procurement_plan'

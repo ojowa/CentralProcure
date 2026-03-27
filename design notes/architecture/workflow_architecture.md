@@ -9,7 +9,7 @@ This appendix explains, in plain and legally aligned language, the Procurement W
 
 It is written to:
 - Support top management decision-making
-- Assist Tenders Boards and Accounting Officers
+- Assist Tenders Boards and CGIS
 - Provide clarity for BPP, auditors, and oversight agencies
 - Demonstrate how the system enforces the Public Procurement Act (PPA) 2007
 
@@ -40,7 +40,7 @@ The workflow ensures no single individual or office can control the process from
 2. Validation against the Annual Procurement Plan (APP)
 3. Procurement request initiation
 4. Budget availability and threshold verification
-5. Approval by the Accounting Officer
+5. Approval by CGIS
 6. Tender advertisement (open competitive bidding)
 7. Vendor registration and electronic bid submission
 8. Public bid opening

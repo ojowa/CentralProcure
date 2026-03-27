@@ -5,6 +5,7 @@ public record AssignedTenderItem(
     Guid TenderId,
     string TenderTitle,
     string CommitteeLead,
+    string AssignmentRole,
     string EvaluationStatus,
     string TenderStatus,
     string ProcurementCategory,
