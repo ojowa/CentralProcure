@@ -4883,6 +4883,429 @@
 }
 
 /* ============================================================================
-   END OF TENDER CREATE SINGLE PAGE STYLES
+   AUDIT TRAIL WORKSPACE - REDESIGNED
+   ============================================================================ */
+
+.audit-trail-workspace {
+  padding: 24px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+/* View Toggle */
+.app-view-toggle {
+  display: flex;
+  gap: 8px;
+  margin: 24px 0 16px;
+  padding: 4px;
+  background: var(--portal-mist, #f1f5f9);
+  border-radius: 10px;
+  width: fit-content;
+}
+
+.app-view-toggle__btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  color: var(--portal-slate, #64748b);
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.app-view-toggle__btn:hover {
+  color: var(--portal-ink, #0f172a);
+}
+
+.app-view-toggle__btn--active {
+  background: white;
+  color: var(--portal-forest, #059669);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Timeline View */
+.audit-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.audit-timeline__day {
+  position: relative;
+}
+
+.audit-timeline__date-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--portal-border, #e2e8f0);
+}
+
+.audit-timeline__date {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--portal-ink, #0f172a);
+}
+
+.audit-timeline__count {
+  font-size: 12px;
+  color: var(--portal-slate, #64748b);
+  background: var(--portal-mist, #f1f5f9);
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.audit-timeline__events {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Event Card */
+.audit-event-card {
+  background: white;
+  border: 1px solid var(--portal-border, #e2e8f0);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.audit-event-card:hover {
+  border-color: var(--portal-forest, #059669);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.08);
+}
+
+.audit-event-card--expanded {
+  border-color: var(--portal-forest, #059669);
+  box-shadow: 0 4px 16px rgba(5, 150, 105, 0.12);
+}
+
+.audit-event-card__header {
+  display: grid;
+  grid-template-columns: 80px 1fr auto auto 40px;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  cursor: pointer;
+}
+
+.audit-event-card__time {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--portal-slate, #64748b);
+  font-variant-numeric: tabular-nums;
+}
+
+.audit-event-card__title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.audit-event-card__entity {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--portal-ink, #0f172a);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.audit-event-card__type {
+  font-size: 12px;
+  color: var(--portal-slate, #64748b);
+}
+
+.audit-event-card__badges {
+  display: flex;
+  gap: 8px;
+}
+
+.audit-event-card__chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--portal-slate, #64748b);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.audit-event-card__chevron:hover {
+  background: var(--portal-mist, #f1f5f9);
+  color: var(--portal-forest, #059669);
+}
+
+.audit-event-card__body {
+  padding: 0 20px 20px;
+  border-top: 1px solid var(--portal-mist, #f1f5f9);
+}
+
+.audit-event-card__transition {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 0;
+}
+
+.audit-event-card__stage {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.audit-event-card__stage:first-child {
+  text-align: right;
+  align-items: flex-end;
+}
+
+.audit-event-card__stage-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--portal-slate, #64748b);
+}
+
+.audit-event-card__stage-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--portal-ink, #0f172a);
+}
+
+.audit-event-card__arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--portal-mist, #f1f5f9);
+  border-radius: 50%;
+  color: var(--portal-forest, #059669);
+}
+
+.audit-event-card__meta {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  padding: 16px;
+  background: var(--portal-mist, #f8fafc);
+  border-radius: 8px;
+}
+
+.audit-event-card__meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.audit-event-card__meta-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--portal-slate, #64748b);
+}
+
+.audit-event-card__meta-value {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--portal-ink, #0f172a);
+}
+
+.audit-event-card__reason {
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: #f0fdf4;
+  border-left: 3px solid var(--portal-forest, #059669);
+  border-radius: 0 8px 8px 0;
+}
+
+.audit-event-card__reason p {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--portal-ink, #0f172a);
+  line-height: 1.5;
+}
+
+.audit-event-card__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+/* Content Area */
+.app-content-area {
+  background: white;
+  border: 1px solid var(--portal-border, #e2e8f0);
+  border-radius: 16px;
+  padding: 24px;
+  min-height: 400px;
+}
+
+/* Transition display in tables */
+.app-transition {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.app-transition svg {
+  color: var(--portal-slate, #94a3b8);
+}
+
+/* Timeline mini for diagnostics */
+.app-timeline-mini {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: var(--portal-mist, #f8fafc);
+  border-radius: 12px;
+}
+
+.app-timeline-mini__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.app-timeline-mini__dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--portal-border, #cbd5e1);
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+
+.app-timeline-mini__dot--current {
+  background: var(--portal-forest, #059669);
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.2);
+}
+
+.app-timeline-mini__content {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  flex: 1;
+}
+
+.app-timeline-mini__time {
+  font-size: 12px;
+  color: var(--portal-slate, #64748b);
+  font-variant-numeric: tabular-nums;
+  min-width: 140px;
+}
+
+.app-timeline-mini__stage {
+  font-size: 13px;
+  color: var(--portal-ink, #0f172a);
+  font-weight: 500;
+}
+
+/* Card Grid */
+.app-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.app-card {
+  background: var(--portal-mist, #f8fafc);
+  border: 1px solid var(--portal-border, #e2e8f0);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.app-card__title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--portal-slate, #64748b);
+  margin: 0 0 8px;
+}
+
+.app-card__value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--portal-ink, #0f172a);
+  margin: 0 0 4px;
+}
+
+/* Section */
+.app-section {
+  margin-top: 24px;
+}
+
+.app-section__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--portal-ink, #0f172a);
+  margin: 0 0 12px;
+}
+
+/* Modal sizes */
+.app-modal__content--lg {
+  max-width: 900px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .audit-event-card__header {
+    grid-template-columns: 1fr auto auto;
+    gap: 12px;
+  }
+
+  .audit-event-card__time {
+    display: none;
+  }
+
+  .audit-event-card__meta {
+    grid-template-columns: 1fr;
+  }
+
+  .app-card-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .audit-trail-workspace {
+    padding: 16px;
+  }
+
+  .app-view-toggle {
+    width: 100%;
+  }
+
+  .audit-event-card__header {
+    grid-template-columns: 1fr auto;
+  }
+
+  .audit-event-card__badges {
+    display: none;
+  }
+}
+
+/* ============================================================================
+   END OF AUDIT TRAIL WORKSPACE STYLES
    ============================================================================ */
 

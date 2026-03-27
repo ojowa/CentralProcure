@@ -1,20 +1,13 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { DataGrid, SelectColumn, type Column, type SortColumn } from 'react-data-grid';
 import type { AuditHistoryItem, AuditWorkflowDiagnosticsResponse, InternalModule } from '../types/internal';
 import { fetchAuditHistoryPage, fetchAuditWorkflowDiagnostics } from '../services/auditService';
 
 const formatDateTimeShort = (value?: string | null) => {
-  if (!value) {
-    return 'Not recorded';
-  }
-
+  if (!value) return 'Not recorded';
   const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return value;
-  }
-
+  if (Number.isNaN(parsed.getTime())) return value;
   return parsed.toLocaleString(undefined, {
     year: 'numeric',
     month: 'short',
@@ -24,59 +17,48 @@ const formatDateTimeShort = (value?: string | null) => {
   });
 };
 
+const formatDateShort = (value?: string | null) => {
+  if (!value) return 'Not recorded';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+};
+
 const toTitle = (value?: string | null) => {
   const normalized = (value ?? '').trim().toLowerCase();
-  if (normalized === 'accounting_officer_review') {
-    return 'CGIS Approval';
-  }
-
+  if (normalized === 'accounting_officer_review') return 'CGIS Approval';
   return value
-    ? value
-        .replace(/_/g, ' ')
-        .split(' ')
-        .map((part) => (part ? part[0].toUpperCase() + part.slice(1) : part))
-        .join(' ')
+    ? value.replace(/_/g, ' ').split(' ').map((part) => (part ? part[0].toUpperCase() + part.slice(1) : part)).join(' ')
     : 'Unspecified';
 };
 
-const statusTone = (value?: string | null) => {
+const getStatusVariant = (value?: string | null): 'success' | 'warning' | 'danger' | 'neutral' => {
   const normalized = (value || '').toLowerCase();
-  if (normalized.includes('reject') || normalized.includes('hold') || normalized.includes('cancel')) {
-    return 'admin-status admin-status--alert';
-  }
-  if (normalized.includes('escalat') || normalized.includes('review')) {
-    return 'admin-status admin-status--warn';
-  }
-  return 'admin-status admin-status--good';
+  if (normalized.includes('reject') || normalized.includes('hold') || normalized.includes('cancel')) return 'danger';
+  if (normalized.includes('escalat') || normalized.includes('review')) return 'warning';
+  if (normalized.includes('approv') || normalized.includes('complet')) return 'success';
+  return 'neutral';
 };
 
-const sourceTone = (value: string) => {
+const getSourceVariant = (value: string): 'success' | 'warning' | 'neutral' => {
   switch (value.toLowerCase()) {
-    case 'manual':
-      return 'admin-status admin-status--warn';
+    case 'manual': return 'warning';
     case 'system':
-    case 'scheduler':
-      return 'admin-status admin-status--good';
-    default:
-      return 'admin-status';
+    case 'scheduler': return 'success';
+    default: return 'neutral';
   }
 };
 
-type AuditGridRow = {
-  id: string;
-  createdAt: string;
-  recordTitle: string;
+type ViewMode = 'timeline' | 'table';
+
+interface FilterState {
   entityType: string;
-  entityId: string;
-  fromStageTitle: string;
-  toStageTitle: string;
-  currentStageTitle: string;
-  stageStatus: string;
-  transitionSource: string;
   actor: string;
-  transitionReason: string;
-  raw: AuditHistoryItem;
-};
+  transitionSource: string;
+  query: string;
+  dateFrom: string;
+  dateTo: string;
+}
 
 type Props = {
   module: InternalModule;
@@ -84,12 +66,15 @@ type Props = {
 };
 
 export const AuditTrailWorkspace = ({ module, token }: Props) => {
+  const [viewMode, setViewMode] = useState<ViewMode>('timeline');
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(12);
+  const [pageSize, setPageSize] = useState(20);
   const [total, setTotal] = useState(0);
-  const [sortColumns, setSortColumns] = useState<readonly SortColumn[]>([{ columnKey: 'createdAt', direction: 'DESC' }]);
-  const [selectedRows, setSelectedRows] = useState<ReadonlySet<string>>(new Set());
-  const [filters, setFilters] = useState({
+  const [sortBy, setSortBy] = useState<string>('createdAt');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [selectedEvent, setSelectedEvent] = useState<AuditHistoryItem | null>(null);
+  const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
+  const [filters, setFilters] = useState<FilterState>({
     entityType: '',
     actor: '',
     transitionSource: '',
@@ -102,9 +87,6 @@ export const AuditTrailWorkspace = ({ module, token }: Props) => {
   const [error, setError] = useState('');
   const [diagnostics, setDiagnostics] = useState<AuditWorkflowDiagnosticsResponse | null>(null);
   const [isDiagnosticsLoading, setIsDiagnosticsLoading] = useState(false);
-  const [diagnosticsError, setDiagnosticsError] = useState('');
-
-  const activeSort = sortColumns[0];
 
   const load = async () => {
     if (!token) {
@@ -112,7 +94,6 @@ export const AuditTrailWorkspace = ({ module, token }: Props) => {
       setTotal(0);
       return;
     }
-
     setIsLoading(true);
     setError('');
     try {
@@ -125,8 +106,8 @@ export const AuditTrailWorkspace = ({ module, token }: Props) => {
         dateTo: filters.dateTo || undefined,
         page,
         pageSize,
-        sortBy: activeSort?.columnKey,
-        sortDir: activeSort?.direction.toLowerCase() as 'asc' | 'desc' | undefined
+        sortBy,
+        sortDir
       });
       setEvents(next.Items);
       setTotal(next.Total);
@@ -137,47 +118,22 @@ export const AuditTrailWorkspace = ({ module, token }: Props) => {
     }
   };
 
-  useEffect(() => {
-    void load();
-  }, [
-    token,
-    filters.entityType,
-    filters.actor,
-    filters.transitionSource,
-    filters.query,
-    filters.dateFrom,
-    filters.dateTo,
-    page,
-    pageSize,
-    activeSort?.columnKey,
-    activeSort?.direction
-  ]);
+  useEffect(() => { void load(); }, [token, filters.entityType, filters.actor, filters.transitionSource, filters.query, filters.dateFrom, filters.dateTo, page, pageSize, sortBy, sortDir]);
 
-  useEffect(() => {
-    setSelectedRows(new Set());
-  }, [events]);
-
-  const updateFilter = (key: keyof typeof filters, value: string) => {
+  const updateFilter = (key: keyof FilterState, value: string) => {
     setPage(1);
-    setFilters((previous) => ({ ...previous, [key]: value }));
+    setFilters((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const resetFilters = () => {
+    setPage(1);
+    setFilters({ entityType: '', actor: '', transitionSource: '', query: '', dateFrom: '', dateTo: '' });
   };
 
   const handleExport = () => {
     const headers = ['Timestamp', 'Entity Type', 'Entity ID', 'From Stage', 'To Stage', 'Status', 'Source', 'Actor', 'Reason'];
-    const rows = events.map((event) => [
-      formatDateTimeShort(event.CreatedAt),
-      event.EntityType,
-      event.EntityId,
-      event.FromStageTitle || event.FromStageKey || '',
-      event.ToStageTitle,
-      event.StageStatus || '',
-      event.TransitionSource,
-      event.Actor || '',
-      event.TransitionReason || ''
-    ]);
-    const csv = [headers, ...rows]
-      .map((line) => line.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(','))
-      .join('\n');
+    const rows = events.map((e) => [formatDateTimeShort(e.CreatedAt), e.EntityType, e.EntityId, e.FromStageTitle || e.FromStageKey || '', e.ToStageTitle, e.StageStatus || '', e.TransitionSource, e.Actor || '', e.TransitionReason || '']);
+    const csv = [headers, ...rows].map((line) => line.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
@@ -190,491 +146,386 @@ export const AuditTrailWorkspace = ({ module, token }: Props) => {
   };
 
   const openDiagnostics = async (event: AuditHistoryItem) => {
-    if (!token) {
-      return;
-    }
-
-    setDiagnostics(null);
-    setDiagnosticsError('');
+    if (!token) return;
+    setSelectedEvent(event);
     setIsDiagnosticsLoading(true);
     try {
       const next = await fetchAuditWorkflowDiagnostics(token, event.EntityType, event.EntityId);
       setDiagnostics(next);
-    } catch (loadError) {
-      setDiagnosticsError(loadError instanceof Error ? loadError.message : 'Unable to load diagnostics.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load diagnostics');
     } finally {
       setIsDiagnosticsLoading(false);
     }
   };
 
-  const closeDiagnostics = () => {
-    setDiagnostics(null);
-    setDiagnosticsError('');
-    setIsDiagnosticsLoading(false);
-  };
+  const closeDiagnostics = () => { setSelectedEvent(null); setDiagnostics(null); };
+  const toggleEventExpand = (id: string) => { setExpandedEvents((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; }); };
 
-  const transitionSources = useMemo(
-    () => Array.from(new Set(events.map((event) => event.TransitionSource))).sort((a, b) => a.localeCompare(b)),
-    [events]
-  );
-
-  const gridRows = useMemo<AuditGridRow[]>(
-    () =>
-      events.map((event) => ({
-        id: event.HistoryId,
-        createdAt: formatDateTimeShort(event.CreatedAt),
-        recordTitle: event.RecordTitle || `${toTitle(event.EntityType)} · ${event.EntityId}`,
-        entityType: toTitle(event.EntityType),
-        entityId: event.EntityId,
-        fromStageTitle: event.FromStageTitle || event.FromStageKey || 'Start',
-        toStageTitle: event.ToStageTitle,
-        currentStageTitle: event.CurrentStageTitle || event.CurrentStageKey || 'Not resolved',
-        stageStatus: event.StageStatus || 'No status',
-        transitionSource: toTitle(event.TransitionSource),
-        actor: event.Actor || 'System',
-        transitionReason: event.TransitionReason || 'No transition reason recorded',
-        raw: event
-      })),
-    [events]
-  );
-
-  const selectedCount = selectedRows.size;
-  const selectedRow = selectedCount ? gridRows.find((row) => selectedRows.has(row.id)) ?? null : null;
+  const transitionSources = useMemo(() => Array.from(new Set(events.map((e) => e.TransitionSource))).sort((a, b) => a.localeCompare(b)), [events]);
+  const uniqueEntities = useMemo(() => new Set(events.map((e) => `${e.EntityType}:${e.EntityId}`)).size, [events]);
+  const escalatedCount = useMemo(() => events.filter((e) => { const s = (e.StageStatus || '').toLowerCase(); return s.includes('escalat') || e.ToStageKey === 'administrative_review' || e.ToStageKey === 'bpp_no_objection'; }).length, [events]);
+  const systemEventsCount = useMemo(() => events.filter((e) => !e.Actor || e.Actor === 'System').length, [events]);
   const pageStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const pageEnd = total === 0 ? 0 : Math.min(page * pageSize, total);
-  const uniqueEntities = useMemo(() => new Set(events.map((event) => `${event.EntityType}:${event.EntityId}`)).size, [events]);
-  const escalatedEvents = useMemo(
-    () =>
-      events.filter((event) => {
-        const status = (event.StageStatus || '').toLowerCase();
-        return status.includes('escalat') || event.ToStageKey === 'administrative_review' || event.ToStageKey === 'bpp_no_objection';
-      }).length,
-    [events]
-  );
-  const systemEvents = useMemo(() => events.filter((event) => !event.Actor || event.Actor === 'System').length, [events]);
 
-  const columns: readonly Column<AuditGridRow>[] = useMemo(
-    () => [
-      SelectColumn,
-      {
-        key: 'createdAt',
-        name: 'Timestamp',
-        frozen: true,
-        sortable: true,
-        resizable: true,
-        width: 170
-      },
-      {
-        key: 'recordTitle',
-        name: 'Record',
-        sortable: true,
-        resizable: true,
-        minWidth: 260,
-        renderCell: ({ row }) => (
-          <div className="audit-trail__grid-record">
-            <strong>{row.recordTitle}</strong>
-            <span>{row.entityType}</span>
-          </div>
-        )
-      },
-      {
-        key: 'fromStageTitle',
-        name: 'From Stage',
-        sortable: true,
-        resizable: true,
-        minWidth: 150
-      },
-      {
-        key: 'toStageTitle',
-        name: 'To Stage',
-        sortable: true,
-        resizable: true,
-        minWidth: 170
-      },
-      {
-        key: 'currentStageTitle',
-        name: 'Current Live Stage',
-        resizable: true,
-        minWidth: 170
-      },
-      {
-        key: 'stageStatus',
-        name: 'Status',
-        sortable: true,
-        resizable: true,
-        minWidth: 140,
-        renderCell: ({ row }) => <span className={statusTone(row.stageStatus)}>{row.stageStatus}</span>
-      },
-      {
-        key: 'transitionSource',
-        name: 'Source',
-        sortable: true,
-        resizable: true,
-        minWidth: 130,
-        renderCell: ({ row }) => <span className={sourceTone(row.raw.TransitionSource)}>{row.transitionSource}</span>
-      },
-      {
-        key: 'actor',
-        name: 'Actor',
-        sortable: true,
-        resizable: true,
-        minWidth: 180
-      },
-      {
-        key: 'transitionReason',
-        name: 'Reason',
-        resizable: true,
-        minWidth: 280
-      },
-      {
-        key: 'actions',
-        name: 'Diagnostics',
-        resizable: false,
-        sortable: false,
-        width: 120,
-        renderCell: () => <span className="audit-trail__grid-action">Open</span>
-      }
-    ],
-    []
-  );
+  const groupedEvents = useMemo(() => {
+    const groups: Record<string, AuditHistoryItem[]> = {};
+    events.forEach((e) => { const date = formatDateShort(e.CreatedAt); if (!groups[date]) groups[date] = []; groups[date].push(e); });
+    return Object.entries(groups).sort((a, b) => new Date(b[0]).getTime() - new Date(a[0]).getTime());
+  }, [events]);
+
+  const StatusBadge = ({ status }: { status?: string | null }) => {
+    const variant = getStatusVariant(status);
+    return <span className={`app-badge app-badge--${variant}`}>{status || 'No status'}</span>;
+  };
+
+  const SourceBadge = ({ source }: { source: string }) => {
+    const variant = getSourceVariant(source);
+    const label = toTitle(source);
+    return <span className={`app-badge app-badge--${variant}`}>{label}</span>;
+  };
 
   return (
-    <section className="portal-module audit-trail">
-      <div className="audit-trail__hero">
-        <div>
-          <h2>{module.title}</h2>
-          <p>{module.description}</p>
+    <section className="app-workspace audit-trail-workspace">
+      {/* Hero Header */}
+      <header className="app-workspace__hero">
+        <div className="app-workspace__title-group">
+          <div className="app-kicker"><span className="app-kicker__dot" />Immutable Workflow Evidence</div>
+          <h1 className="app-workspace__title">{module.title}</h1>
+          <p className="app-workspace__description">{module.description}</p>
         </div>
-        <div className="audit-trail__hero-meta">
-          <span className="admin-status">Immutable workflow evidence</span>
-          <span className="plan-muted">
-            Showing {pageStart}-{pageEnd} of {total}
-          </span>
+        <div className="app-workspace__actions">
+          <button type="button" className="app-btn app-btn--secondary" onClick={handleExport}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+            Export CSV
+          </button>
+          <button type="button" className="app-btn app-btn--secondary" onClick={() => void load()} disabled={isLoading}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
+            {isLoading ? 'Syncing...' : 'Refresh'}
+          </button>
+        </div>
+      </header>
+
+      {error && <div className="app-alert app-alert--error">{error}</div>}
+
+      {/* Stats Cards */}
+      <div className="app-stats-grid">
+        <div className="app-stat-card">
+          <div className="app-stat-card__icon app-stat-card__icon--primary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg></div>
+          <div className="app-stat-card__content">
+            <span className="app-stat-card__value">{events.length}</span>
+            <span className="app-stat-card__label">Events In View</span>
+          </div>
+        </div>
+        <div className="app-stat-card">
+          <div className="app-stat-card__icon app-stat-card__icon--success"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg></div>
+          <div className="app-stat-card__content">
+            <span className="app-stat-card__value">{total}</span>
+            <span className="app-stat-card__label">Filtered Total</span>
+          </div>
+        </div>
+        <div className="app-stat-card">
+          <div className="app-stat-card__icon app-stat-card__icon--warning"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg></div>
+          <div className="app-stat-card__content">
+            <span className="app-stat-card__value">{escalatedCount}</span>
+            <span className="app-stat-card__label">Escalations</span>
+          </div>
+        </div>
+        <div className="app-stat-card">
+          <div className="app-stat-card__icon app-stat-card__icon--info"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg></div>
+          <div className="app-stat-card__content">
+            <span className="app-stat-card__value">{uniqueEntities}</span>
+            <span className="app-stat-card__label">Unique Records</span>
+          </div>
         </div>
       </div>
 
-      {!token ? <div className="portal-alert">Authentication token is missing.</div> : null}
-      {error ? <div className="portal-alert">{error}</div> : null}
-
-      <div className="audit-trail__metrics">
-        <div className="audit-trail__metric">
-          <span>Events In View</span>
-          <strong>{events.length}</strong>
-        </div>
-        <div className="audit-trail__metric">
-          <span>Filtered Total</span>
-          <strong>{total}</strong>
-        </div>
-        <div className="audit-trail__metric">
-          <span>Unique Records</span>
-          <strong>{uniqueEntities}</strong>
-        </div>
-        <div className="audit-trail__metric">
-          <span>Escalations / Complaints</span>
-          <strong>{escalatedEvents}</strong>
-        </div>
-      </div>
-
-      <div className="plan-toolbar audit-trail__toolbar">
-        <div className="plan-filters">
-          <label className="plan-field">
-            <span>Entity Type</span>
-            <input
-              className="plan-input"
-              value={filters.entityType}
-              onChange={(event) => updateFilter('entityType', event.target.value)}
-              placeholder="contract, tender, requisition"
-            />
-          </label>
-          <label className="plan-field">
-            <span>Actor</span>
-            <input
-              className="plan-input"
-              value={filters.actor}
-              onChange={(event) => updateFilter('actor', event.target.value)}
-              placeholder="Email or username"
-            />
-          </label>
-          <label className="plan-field">
-            <span>Source</span>
-            <select
-              className="plan-select"
-              value={filters.transitionSource}
-              onChange={(event) => updateFilter('transitionSource', event.target.value)}
-            >
+      {/* Filters Bar */}
+      <div className="app-filters-bar">
+        <div className="app-filters-bar__group">
+          <div className="app-field app-field--sm">
+            <label>Entity Type</label>
+            <input type="text" value={filters.entityType} onChange={(e) => updateFilter('entityType', e.target.value)} placeholder="e.g., contract, tender" />
+          </div>
+          <div className="app-field app-field--sm">
+            <label>Actor</label>
+            <input type="text" value={filters.actor} onChange={(e) => updateFilter('actor', e.target.value)} placeholder="Email or name" />
+          </div>
+          <div className="app-field app-field--sm">
+            <label>Source</label>
+            <select value={filters.transitionSource} onChange={(e) => updateFilter('transitionSource', e.target.value)}>
               <option value="">All sources</option>
-              {transitionSources.map((source) => (
-                <option key={source} value={source}>
-                  {source}
-                </option>
-              ))}
+              {transitionSources.map((s) => <option key={s} value={s}>{toTitle(s)}</option>)}
             </select>
-          </label>
-          <label className="plan-field">
-            <span>Search</span>
-            <input
-              className="plan-input"
-              value={filters.query}
-              onChange={(event) => updateFilter('query', event.target.value)}
-              placeholder="Record title, reason, stage"
-            />
-          </label>
-          <label className="plan-field">
-            <span>Date From</span>
-            <input
-              className="plan-input"
-              type="date"
-              value={filters.dateFrom}
-              onChange={(event) => updateFilter('dateFrom', event.target.value)}
-            />
-          </label>
-          <label className="plan-field">
-            <span>Date To</span>
-            <input
-              className="plan-input"
-              type="date"
-              value={filters.dateTo}
-              onChange={(event) => updateFilter('dateTo', event.target.value)}
-            />
-          </label>
-          <label className="plan-field">
-            <span>Page Size</span>
-            <select
-              className="plan-select"
-              value={pageSize}
-              onChange={(event) => {
-                setPage(1);
-                setPageSize(Number(event.target.value));
-              }}
-            >
-              <option value={12}>12 rows</option>
-              <option value={24}>24 rows</option>
-              <option value={48}>48 rows</option>
-            </select>
-          </label>
-          <div className="plan-actions">
-            <button type="button" className="plan-button plan-button--secondary" onClick={handleExport}>
-              Export CSV
-            </button>
-            <button
-              type="button"
-              className="plan-button plan-button--secondary"
-              onClick={() => {
-                setPage(1);
-                setFilters({
-                  entityType: '',
-                  actor: '',
-                  transitionSource: '',
-                  query: '',
-                  dateFrom: '',
-                  dateTo: ''
-                });
-              }}
-            >
-              Reset
-            </button>
-            <button
-              type="button"
-              className="plan-button"
-              onClick={() => {
-                if (selectedRow) {
-                  void openDiagnostics(selectedRow.raw);
-                }
-              }}
-              disabled={!selectedRow || isLoading}
-            >
-              Diagnose Selected
-            </button>
           </div>
+          <div className="app-field app-field--sm">
+            <label>Search</label>
+            <input type="text" value={filters.query} onChange={(e) => updateFilter('query', e.target.value)} placeholder="Record title, reason..." />
+          </div>
+          <div className="app-field app-field--sm app-field--date-range">
+            <label>Date Range</label>
+            <div className="app-date-range">
+              <input type="date" value={filters.dateFrom} onChange={(e) => updateFilter('dateFrom', e.target.value)} />
+              <span>to</span>
+              <input type="date" value={filters.dateTo} onChange={(e) => updateFilter('dateTo', e.target.value)} />
+            </div>
+          </div>
+        </div>
+        <div className="app-filters-bar__actions">
+          <button type="button" className="app-btn app-btn--ghost app-btn--sm" onClick={resetFilters}>Reset</button>
         </div>
       </div>
 
-      <div className="audit-trail__surface">
-        <div className="audit-trail__surface-header">
-          <div>
-            <h3>Audit Grid</h3>
-            <p>Sortable, resizable, virtualized workflow history with row selection and direct diagnostics access.</p>
-          </div>
-          <div className="audit-trail__surface-meta">
-            <span className="plan-muted">System events: {systemEvents}</span>
-            <span className="plan-muted">Selected rows: {selectedCount}</span>
-          </div>
-        </div>
+      {/* View Toggle */}
+      <div className="app-view-toggle">
+        <button className={`app-view-toggle__btn ${viewMode === 'timeline' ? 'app-view-toggle__btn--active' : ''}`} onClick={() => setViewMode('timeline')}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></svg>
+          Timeline View
+        </button>
+        <button className={`app-view-toggle__btn ${viewMode === 'table' ? 'app-view-toggle__btn--active' : ''}`} onClick={() => setViewMode('table')}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></svg>
+          Table View
+        </button>
+      </div>
 
-        <div className="audit-trail__grid-shell">
-          {gridRows.length ? (
-            <DataGrid
-              className="audit-trail__grid rdg-light"
-              style={{ height: 'min(70vh, 720px)' }}
-              columns={columns}
-              rows={gridRows}
-              rowKeyGetter={(row) => row.id}
-              selectedRows={selectedRows}
-              onSelectedRowsChange={setSelectedRows}
-              sortColumns={sortColumns}
-              onSortColumnsChange={(nextSortColumns) => {
-                setPage(1);
-                setSortColumns(nextSortColumns.slice(-1));
-              }}
-              defaultColumnOptions={{
-                sortable: true,
-                resizable: true
-              }}
-              rowHeight={40}
-              headerRowHeight={42}
-              onCellClick={({ column, row }, event) => {
-                if (column.key === 'actions') {
-                  event.preventGridDefault();
-                  void openDiagnostics(row.raw);
-                }
-              }}
-            />
-          ) : (
-            <div className="plan-empty">No workflow history matches the selected filters.</div>
-          )}
-        </div>
-
-        <div className="plan-pagination">
-          <span className="plan-pagination__meta">
-            Showing {pageStart}-{pageEnd} of {total}
-          </span>
-          <div className="plan-pagination__controls">
-            <button
-              type="button"
-              className="plan-button plan-button--secondary"
-              onClick={() => setPage(Math.max(page - 1, 1))}
-              disabled={page <= 1 || isLoading}
-            >
-              Previous
-            </button>
-            <span className="plan-muted">
-              Page {page} · Sorted by {activeSort ? `${activeSort.columnKey} ${activeSort.direction.toLowerCase()}` : 'default order'}
-            </span>
-            <button
-              type="button"
-              className="plan-button plan-button--secondary"
-              onClick={() => setPage(page + 1)}
-              disabled={pageEnd >= total || isLoading}
-            >
-              Next
-            </button>
+      {/* Content */}
+      <div className="app-content-area">
+        {isLoading && events.length === 0 ? (
+          <div className="app-loading">Loading audit trail...</div>
+        ) : events.length === 0 ? (
+          <div className="app-empty-state">
+            <div className="app-empty-state__icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg></div>
+            <p>No workflow history matches the selected filters.</p>
           </div>
+        ) : viewMode === 'timeline' ? (
+          /* Timeline View */
+          <div className="audit-timeline">
+            {groupedEvents.map(([date, dayEvents]) => (
+              <div key={date} className="audit-timeline__day">
+                <div className="audit-timeline__date-header">
+                  <span className="audit-timeline__date">{date}</span>
+                  <span className="audit-timeline__count">{dayEvents.length} events</span>
+                </div>
+                <div className="audit-timeline__events">
+                  {dayEvents.map((event) => {
+                    const isExpanded = expandedEvents.has(event.HistoryId);
+                    return (
+                      <div key={event.HistoryId} className={`audit-event-card ${isExpanded ? 'audit-event-card--expanded' : ''}`}>
+                        <div className="audit-event-card__header" onClick={() => toggleEventExpand(event.HistoryId)}>
+                          <div className="audit-event-card__time">{formatDateTimeShort(event.CreatedAt).split(',')[1]}</div>
+                          <div className="audit-event-card__title">
+                            <span className="audit-event-card__entity">{event.RecordTitle || `${toTitle(event.EntityType)} · ${event.EntityId.slice(0, 8)}`}</span>
+                            <span className="audit-event-card__type">{toTitle(event.EntityType)}</span>
+                          </div>
+                          <div className="audit-event-card__badges">
+                            <StatusBadge status={event.StageStatus} />
+                            <SourceBadge source={event.TransitionSource} />
+                          </div>
+                          <button className="audit-event-card__chevron" aria-label={isExpanded ? 'Collapse' : 'Expand'}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: isExpanded ? 'rotate(180deg)' : '' }}><polyline points="6 9 12 15 18 9" /></svg>
+                          </button>
+                        </div>
+                        {isExpanded && (
+                          <div className="audit-event-card__body">
+                            <div className="audit-event-card__transition">
+                              <div className="audit-event-card__stage">
+                                <span className="audit-event-card__stage-label">From</span>
+                                <span className="audit-event-card__stage-name">{event.FromStageTitle || event.FromStageKey || 'Start'}</span>
+                              </div>
+                              <div className="audit-event-card__arrow">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+                              </div>
+                              <div className="audit-event-card__stage">
+                                <span className="audit-event-card__stage-label">To</span>
+                                <span className="audit-event-card__stage-name">{event.ToStageTitle}</span>
+                              </div>
+                            </div>
+                            <div className="audit-event-card__meta">
+                              <div className="audit-event-card__meta-item">
+                                <span className="audit-event-card__meta-label">Actor</span>
+                                <span className="audit-event-card__meta-value">{event.Actor || 'System'}</span>
+                              </div>
+                              <div className="audit-event-card__meta-item">
+                                <span className="audit-event-card__meta-label">Entity ID</span>
+                                <span className="audit-event-card__meta-value">{event.EntityId}</span>
+                              </div>
+                              <div className="audit-event-card__meta-item">
+                                <span className="audit-event-card__meta-label">Current Stage</span>
+                                <span className="audit-event-card__meta-value">{event.CurrentStageTitle || event.CurrentStageKey || 'Not resolved'}</span>
+                              </div>
+                            </div>
+                            {event.TransitionReason && (
+                              <div className="audit-event-card__reason">
+                                <span className="audit-event-card__meta-label">Reason</span>
+                                <p>{event.TransitionReason}</p>
+                              </div>
+                            )}
+                            <div className="audit-event-card__actions">
+                              <button className="app-btn app-btn--sm" onClick={() => openDiagnostics(event)}>View Diagnostics</button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          /* Table View */
+          <div className="app-table-wrapper">
+            <table className="app-table">
+              <thead>
+                <tr>
+                  <th onClick={() => { setSortBy('createdAt'); setSortDir(sortDir === 'asc' ? 'desc' : 'asc'); }}>Timestamp {sortBy === 'createdAt' && (sortDir === 'asc' ? '↑' : '↓')}</th>
+                  <th>Record</th>
+                  <th>From → To</th>
+                  <th>Status</th>
+                  <th>Source</th>
+                  <th>Actor</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {events.map((event) => (
+                  <tr key={event.HistoryId}>
+                    <td className="app-table__cell--nowrap">{formatDateTimeShort(event.CreatedAt)}</td>
+                    <td>
+                      <div className="app-case-info">
+                        <span className="app-case-info__title">{event.RecordTitle || 'Untitled'}</span>
+                        <span className="app-case-info__id">{toTitle(event.EntityType)} · {event.EntityId.slice(0, 8)}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="app-transition">
+                        <span>{event.FromStageTitle || event.FromStageKey || 'Start'}</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+                        <span>{event.ToStageTitle}</span>
+                      </div>
+                    </td>
+                    <td><StatusBadge status={event.StageStatus} /></td>
+                    <td><SourceBadge source={event.TransitionSource} /></td>
+                    <td>{event.Actor || 'System'}</td>
+                    <td>
+                      <button className="app-btn app-btn--sm" onClick={() => openDiagnostics(event)}>Diagnostics</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Pagination */}
+      <div className="app-pagination">
+        <span className="app-pagination__meta">Showing {pageStart}-{pageEnd} of {total}</span>
+        <div className="app-pagination__controls">
+          <button type="button" className="app-btn app-btn--secondary" onClick={() => setPage(page - 1)} disabled={page <= 1}>Previous</button>
+          <select className="app-select app-select--sm" value={pageSize} onChange={(e) => { setPage(1); setPageSize(Number(e.target.value)); }}>
+            <option value={20}>20 per page</option>
+            <option value={50}>50 per page</option>
+            <option value={100}>100 per page</option>
+          </select>
+          <button type="button" className="app-btn app-btn--secondary" onClick={() => setPage(page + 1)} disabled={pageEnd >= total}>Next</button>
         </div>
       </div>
 
-      {(isDiagnosticsLoading || diagnostics || diagnosticsError) ? (
-        <div className="plan-modal" role="dialog" aria-modal="true">
-          <div className="plan-modal__backdrop" onClick={closeDiagnostics} />
-          <div className="plan-modal__content requisition-detail-modal">
-            <div className="requisition-card__header">
+      {/* Diagnostics Modal */}
+      {(selectedEvent || isDiagnosticsLoading) && (
+        <div className="app-modal" role="dialog" aria-modal="true">
+          <div className="app-modal__backdrop" onClick={closeDiagnostics} />
+          <div className="app-modal__content app-modal__content--lg">
+            <div className="app-modal__header">
               <div>
                 <h3>Workflow Diagnostics</h3>
-                <p>{diagnostics?.Runtime.RecordTitle || diagnostics?.Runtime.EntityId || 'Loading diagnostics.'}</p>
+                <p className="app-muted">{selectedEvent?.RecordTitle || selectedEvent?.EntityId}</p>
               </div>
-              <button type="button" className="plan-link" onClick={closeDiagnostics}>
-                Close
-              </button>
+              <button type="button" className="app-btn app-btn--ghost" onClick={closeDiagnostics}>Close</button>
             </div>
-            {isDiagnosticsLoading ? <div className="plan-loading">Loading diagnostics...</div> : null}
-            {diagnosticsError ? <div className="portal-alert">{diagnosticsError}</div> : null}
-            {diagnostics ? (
-              <>
-                <div className="requisition-detail-grid">
-                  <div className="requisition-card">
-                    <h4>Current Stage</h4>
-                    <p>{diagnostics.Runtime.CurrentStageTitle}</p>
-                    <p className="plan-muted">{diagnostics.Runtime.CurrentStatus || 'No live status'}</p>
+            <div className="app-modal__body">
+              {isDiagnosticsLoading ? (
+                <div className="app-loading">Loading diagnostics...</div>
+              ) : diagnostics ? (
+                <div className="diagnostics-content">
+                  <div className="app-card-grid">
+                    <div className="app-card">
+                      <h4 className="app-card__title">Current Stage</h4>
+                      <p className="app-card__value">{diagnostics.Runtime.CurrentStageTitle}</p>
+                      <p className="app-muted">{diagnostics.Runtime.CurrentStatus || 'No live status'}</p>
+                    </div>
+                    <div className="app-card">
+                      <h4 className="app-card__title">Approval Route</h4>
+                      <p className="app-card__value">{diagnostics.RouteDecision?.ApprovalAuthorityLabel || diagnostics.RouteDecision?.ApprovalRoute || 'Not resolved'}</p>
+                      <p className="app-muted">
+                        CGIS: {diagnostics.RouteDecision?.RequiresCgisApproval ? 'Yes' : 'No'} · Board: {diagnostics.RouteDecision?.RequiresBoard ? 'Yes' : 'No'} · BPP: {diagnostics.RouteDecision?.RequiresBpp ? 'Yes' : 'No'}
+                      </p>
+                    </div>
+                    <div className="app-card">
+                      <h4 className="app-card__title">Role Context</h4>
+                      <p className="app-card__value">{diagnostics.RoleKey || 'No role snapshot'}</p>
+                      <p className="app-muted">{diagnostics.GrantedActions.length} granted action(s)</p>
+                    </div>
+                    <div className="app-card">
+                      <h4 className="app-card__title">Last Transition</h4>
+                      <p className="app-card__value">{diagnostics.Runtime.LastTransitionReason || 'No reason recorded'}</p>
+                      <p className="app-muted">{formatDateTimeShort(diagnostics.Runtime.UpdatedAt)}</p>
+                    </div>
                   </div>
-                  <div className="requisition-card">
-                    <h4>Approval Route</h4>
-                    <p>{diagnostics.RouteDecision?.ApprovalAuthorityLabel || diagnostics.RouteDecision?.ApprovalRoute || 'Not resolved'}</p>
-                    <p className="plan-muted">
-                      CGIS: {diagnostics.RouteDecision?.RequiresCgisApproval ? 'Yes' : 'No'} · Board: {diagnostics.RouteDecision?.RequiresBoard ? 'Yes' : 'No'} · BPP: {diagnostics.RouteDecision?.RequiresBpp ? 'Yes' : 'No'}
-                    </p>
-                    <p className="plan-muted">{diagnostics.RouteDecision?.GovernanceBodyName || 'Direct executive route'}</p>
-                  </div>
-                  <div className="requisition-card">
-                    <h4>Role Context</h4>
-                    <p>{diagnostics.RoleKey || 'No role snapshot'}</p>
-                    <p className="plan-muted">{diagnostics.GrantedActions.length} granted action(s)</p>
-                  </div>
-                  <div className="requisition-card">
-                    <h4>Last Transition Reason</h4>
-                    <p>{diagnostics.Runtime.LastTransitionReason || 'No transition reason recorded'}</p>
-                    <p className="plan-muted">Updated {formatDateTimeShort(diagnostics.Runtime.UpdatedAt)}</p>
-                  </div>
-                </div>
 
-                <div className="requisition-detail-note">
-                  <h4>Granted Actions</h4>
-                  <p>
-                    {diagnostics.GrantedActions.length
-                      ? diagnostics.GrantedActions.map((action) => action.ActionKey).join(', ')
-                      : 'No workflow actions are currently granted for this entity and role.'}
-                  </p>
-                </div>
+                  {diagnostics.TransitionChecks.length > 0 && (
+                    <div className="app-section">
+                      <h4 className="app-section__title">Transition Checks</h4>
+                      <div className="app-table-wrapper">
+                        <table className="app-table app-table--compact">
+                          <thead>
+                            <tr>
+                              <th>Target Stage</th>
+                              <th>Condition</th>
+                              <th>Allowed</th>
+                              <th>Diagnostic</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {diagnostics.TransitionChecks.map((check) => (
+                              <tr key={check.RequestedStageKey}>
+                                <td>{check.RequestedStageTitle}</td>
+                                <td>{check.TransitionCondition}</td>
+                                <td><span className={`app-badge app-badge--${check.IsAllowed ? 'success' : 'danger'}`}>{check.IsAllowed ? 'Yes' : 'No'}</span></td>
+                                <td>{check.Message || 'Allowed by policy'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
 
-                <div className="admin-card admin-card--full" style={{ marginTop: '16px' }}>
-                  <h4>Transition Checks</h4>
-                  <table className="plan-table">
-                    <thead>
-                      <tr>
-                        <th>Target Stage</th>
-                        <th>Condition</th>
-                        <th>Allowed</th>
-                        <th>Diagnostic</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {diagnostics.TransitionChecks.map((check) => (
-                        <tr key={check.RequestedStageKey}>
-                          <td>{check.RequestedStageTitle}</td>
-                          <td>{check.TransitionCondition}</td>
-                          <td>{check.IsAllowed ? 'Yes' : 'No'}</td>
-                          <td>{check.Message || 'Allowed by current policy.'}</td>
-                        </tr>
-                      ))}
-                      {!diagnostics.TransitionChecks.length ? (
-                        <tr>
-                          <td colSpan={4} className="plan-empty">
-                            No downstream transitions are defined from the current stage.
-                          </td>
-                        </tr>
-                      ) : null}
-                    </tbody>
-                  </table>
+                  {diagnostics.RecentHistory.length > 0 && (
+                    <div className="app-section">
+                      <h4 className="app-section__title">Recent History</h4>
+                      <div className="app-timeline-mini">
+                        {diagnostics.RecentHistory.map((entry, idx) => (
+                          <div key={entry.HistoryId} className="app-timeline-mini__item">
+                            <div className={`app-timeline-mini__dot ${idx === 0 ? 'app-timeline-mini__dot--current' : ''}`} />
+                            <div className="app-timeline-mini__content">
+                              <span className="app-timeline-mini__time">{formatDateTimeShort(entry.CreatedAt)}</span>
+                              <span className="app-timeline-mini__stage">{entry.FromStageKey || 'Start'} → {entry.ToStageTitle}</span>
+                              <StatusBadge status={entry.StageStatus} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-
-                <div className="admin-card admin-card--full" style={{ marginTop: '16px' }}>
-                  <h4>Recent Entity History</h4>
-                  <table className="plan-table">
-                    <thead>
-                      <tr>
-                        <th>When</th>
-                        <th>From</th>
-                        <th>To</th>
-                        <th>Status</th>
-                        <th>Source</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {diagnostics.RecentHistory.map((entry) => (
-                        <tr key={entry.HistoryId}>
-                          <td>{formatDateTimeShort(entry.CreatedAt)}</td>
-                          <td>{entry.FromStageKey || 'Start'}</td>
-                          <td>{entry.ToStageTitle}</td>
-                          <td>{entry.StageStatus || 'No status'}</td>
-                          <td>{entry.TransitionSource}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </>
-            ) : null}
+              ) : null}
+            </div>
           </div>
         </div>
-      ) : null}
+      )}
     </section>
   );
 };
