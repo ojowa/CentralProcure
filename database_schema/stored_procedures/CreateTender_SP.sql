@@ -1,6 +1,77 @@
 -- Function for Creating a Tender (PostgreSQL)
+DROP PROCEDURE IF EXISTS vendor_sourcing.create_tender_sp(
+    VARCHAR(500),
+    TEXT,
+    VARCHAR(100),
+    VARCHAR(50),
+    DECIMAL(18, 2),
+    VARCHAR(150),
+    VARCHAR(60),
+    INT,
+    TEXT,
+    TEXT,
+    TEXT,
+    TIMESTAMP WITHOUT TIME ZONE,
+    TIMESTAMP WITHOUT TIME ZONE,
+    TIMESTAMP WITHOUT TIME ZONE
+);
+
+DROP PROCEDURE IF EXISTS vendor_sourcing.create_tender_sp(
+    VARCHAR(500),
+    UUID,
+    TEXT,
+    VARCHAR(100),
+    VARCHAR(50),
+    DECIMAL(18, 2),
+    VARCHAR(150),
+    VARCHAR(60),
+    INT,
+    TEXT,
+    TEXT,
+    TEXT,
+    TIMESTAMP WITHOUT TIME ZONE,
+    TIMESTAMP WITHOUT TIME ZONE,
+    TIMESTAMP WITHOUT TIME ZONE
+);
+
+DROP FUNCTION IF EXISTS vendor_sourcing.create_tender(
+    VARCHAR(500),
+    TEXT,
+    VARCHAR(100),
+    VARCHAR(50),
+    DECIMAL(18, 2),
+    VARCHAR(150),
+    VARCHAR(60),
+    INT,
+    TEXT,
+    TEXT,
+    TEXT,
+    TIMESTAMP WITHOUT TIME ZONE,
+    TIMESTAMP WITHOUT TIME ZONE,
+    TIMESTAMP WITHOUT TIME ZONE
+);
+
+DROP FUNCTION IF EXISTS vendor_sourcing.create_tender(
+    VARCHAR(500),
+    UUID,
+    TEXT,
+    VARCHAR(100),
+    VARCHAR(50),
+    DECIMAL(18, 2),
+    VARCHAR(150),
+    VARCHAR(60),
+    INT,
+    TEXT,
+    TEXT,
+    TEXT,
+    TIMESTAMP WITHOUT TIME ZONE,
+    TIMESTAMP WITHOUT TIME ZONE,
+    TIMESTAMP WITHOUT TIME ZONE
+);
+
 CREATE OR REPLACE FUNCTION vendor_sourcing.create_tender(
     p_title VARCHAR(500),
+    p_requisition_id UUID,
     p_description TEXT,
     p_category VARCHAR(100),
     p_status VARCHAR(50),
@@ -17,6 +88,7 @@ CREATE OR REPLACE FUNCTION vendor_sourcing.create_tender(
 )
 RETURNS TABLE (
     tender_id UUID,
+    requisition_id UUID,
     title VARCHAR(500),
     description TEXT,
     category VARCHAR(100),
@@ -44,7 +116,18 @@ BEGIN
     v_status := COALESCE(p_status, 'Draft');
     v_fiscal_year := COALESCE(p_fiscal_year, EXTRACT(YEAR FROM COALESCE(p_publish_date, NOW()))::int);
 
+    IF p_requisition_id IS NOT NULL
+       AND EXISTS (
+           SELECT 1
+           FROM vendor_sourcing.tenders AS t
+           WHERE t.requisition_id = p_requisition_id
+       ) THEN
+        RAISE EXCEPTION 'A tender already exists for the selected requisition.'
+            USING ERRCODE = '23505';
+    END IF;
+
     INSERT INTO vendor_sourcing.tenders (
+        requisition_id,
         title,
         description,
         category,
@@ -61,6 +144,7 @@ BEGIN
         closing_date
     )
     VALUES (
+        p_requisition_id,
         p_title,
         p_description,
         p_category,
@@ -91,6 +175,7 @@ BEGIN
     RETURN QUERY
     SELECT
         t.tender_id,
+        t.requisition_id,
         t.title,
         t.description,
         t.category,
@@ -115,6 +200,7 @@ $$;
 -- Procedure wrapper for create_tender (PostgreSQL)
 CREATE OR REPLACE PROCEDURE vendor_sourcing.create_tender_sp(
     IN p_title VARCHAR(500),
+    IN p_requisition_id UUID,
     IN p_description TEXT,
     IN p_category VARCHAR(100),
     IN p_status VARCHAR(50),
@@ -136,6 +222,7 @@ BEGIN
     OPEN p_result FOR
     SELECT * FROM vendor_sourcing.create_tender(
         p_title,
+        p_requisition_id,
         p_description,
         p_category,
         p_status,

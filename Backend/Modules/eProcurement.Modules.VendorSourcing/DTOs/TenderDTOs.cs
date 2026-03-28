@@ -2,6 +2,7 @@ namespace eProcurement.Modules.VendorSourcing.DTOs;
 
 public record TenderSummary(
     Guid TenderId,
+    Guid? RequisitionId,
     string Title,
     string Category,
     string Status,
@@ -16,6 +17,7 @@ public record TenderSummary(
 
 public record TenderDetail(
     Guid TenderId,
+    Guid? RequisitionId,
     string Title,
     string Description,
     string Category,

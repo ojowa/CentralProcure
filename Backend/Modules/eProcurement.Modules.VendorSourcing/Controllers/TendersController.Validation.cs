@@ -183,6 +183,17 @@ public partial class TendersController
             return new ResolvedTenderCreateRequest(ErrorMessage: "Only approved requisitions can be converted to tenders.");
         }
 
+        if (requisition is not null)
+        {
+            var existingTenderId = await GetExistingTenderIdByRequisitionAsync(conn, tx, requisition.RequisitionId, ct);
+            if (existingTenderId.HasValue)
+            {
+                return new ResolvedTenderCreateRequest(
+                    ErrorMessage: $"A tender already exists for the selected requisition. Tender ID: {existingTenderId.Value}.",
+                    IsConflict: true);
+            }
+        }
+
         var title = NormalizeRequired(request.Title) ?? requisition?.Title;
         var description = NormalizeRequired(request.Description) ?? BuildRequisitionDescription(requisition);
         var category = NormalizeRequired(request.Category) ?? requisition?.ProcurementType;
@@ -230,6 +241,7 @@ public partial class TendersController
         }
 
         return new ResolvedTenderCreateRequest(
+            RequisitionId: requisition?.RequisitionId,
             Title: title.Trim(),
             Description: description.Trim(),
             Category: category.Trim(),
@@ -255,6 +267,7 @@ public partial class TendersController
     }
 
     private sealed record ResolvedTenderCreateRequest(
+        Guid? RequisitionId = null,
         string? Title = null,
         string? Description = null,
         string? Category = null,
@@ -264,5 +277,6 @@ public partial class TendersController
         string? BudgetCode = null,
         int? FiscalYear = null,
         string? ErrorMessage = null,
-        bool IsNotFound = false);
+        bool IsNotFound = false,
+        bool IsConflict = false);
 }

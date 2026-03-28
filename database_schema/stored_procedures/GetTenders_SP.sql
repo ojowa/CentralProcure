@@ -1,4 +1,24 @@
 -- Function for Getting Tenders (PostgreSQL)
+DROP PROCEDURE IF EXISTS vendor_sourcing.get_tenders_sp(
+    VARCHAR(50),
+    VARCHAR(100),
+    TEXT,
+    VARCHAR(50),
+    VARCHAR(4),
+    INT,
+    INT
+);
+
+DROP FUNCTION IF EXISTS vendor_sourcing.get_tenders(
+    VARCHAR(50),
+    VARCHAR(100),
+    TEXT,
+    VARCHAR(50),
+    VARCHAR(4),
+    INT,
+    INT
+);
+
 CREATE OR REPLACE FUNCTION vendor_sourcing.get_tenders(
     p_status VARCHAR(50) DEFAULT NULL,
     p_category VARCHAR(100) DEFAULT NULL,
@@ -10,6 +30,7 @@ CREATE OR REPLACE FUNCTION vendor_sourcing.get_tenders(
 )
 RETURNS TABLE (
     tender_id UUID,
+    requisition_id UUID,
     title VARCHAR(500),
     category VARCHAR(100),
     status VARCHAR(50),
@@ -28,6 +49,7 @@ BEGIN
     RETURN QUERY
     SELECT
         t.tender_id,
+        t.requisition_id,
         t.title,
         t.category,
         t.status,

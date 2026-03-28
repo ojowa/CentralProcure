@@ -184,7 +184,17 @@ public partial class TendersController : ControllerBase
             var resolved = await ResolveCreateRequestAsync(conn, tx, request, normalizedStatus, ct);
             if (resolved.ErrorMessage is not null)
             {
-                return resolved.IsNotFound ? NotFound(resolved.ErrorMessage) : BadRequest(resolved.ErrorMessage);
+                if (resolved.IsNotFound)
+                {
+                    return NotFound(resolved.ErrorMessage);
+                }
+
+                if (resolved.IsConflict)
+                {
+                    return Conflict(resolved.ErrorMessage);
+                }
+
+                return BadRequest(resolved.ErrorMessage);
             }
 
             await using var cmd = new NpgsqlCommand("vendor_sourcing.create_tender_sp", conn, tx)
@@ -193,6 +203,7 @@ public partial class TendersController : ControllerBase
             };
 
             cmd.Parameters.AddWithValue("p_title", NpgsqlDbType.Varchar, resolved.Title!);
+            cmd.Parameters.AddWithValue("p_requisition_id", NpgsqlDbType.Uuid, (object?)resolved.RequisitionId ?? DBNull.Value);
             cmd.Parameters.AddWithValue("p_description", NpgsqlDbType.Text, resolved.Description!);
             cmd.Parameters.AddWithValue("p_category", NpgsqlDbType.Varchar, resolved.Category!);
             cmd.Parameters.AddWithValue("p_status", NpgsqlDbType.Varchar, (object?)resolved.Status ?? DBNull.Value);
@@ -223,6 +234,11 @@ public partial class TendersController : ControllerBase
         {
             _logger.LogWarning(ex, "Budget validation failed while creating tender.");
             return Conflict(ex.MessageText);
+        }
+        catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.UniqueViolation)
+        {
+            _logger.LogWarning(ex, "Duplicate requisition-linked tender attempt for requisition {RequisitionId}.", request.RequisitionId);
+            return Conflict("A tender already exists for the selected requisition.");
         }
         catch (Exception ex)
         {

@@ -1,4 +1,40 @@
 -- Function for Updating a Tender (PostgreSQL)
+DROP PROCEDURE IF EXISTS vendor_sourcing.update_tender_sp(
+    UUID,
+    VARCHAR(500),
+    TEXT,
+    VARCHAR(100),
+    VARCHAR(50),
+    DECIMAL(18, 2),
+    VARCHAR(150),
+    VARCHAR(60),
+    INT,
+    TEXT,
+    TEXT,
+    TEXT,
+    TIMESTAMP WITHOUT TIME ZONE,
+    TIMESTAMP WITHOUT TIME ZONE,
+    TIMESTAMP WITHOUT TIME ZONE
+);
+
+DROP FUNCTION IF EXISTS vendor_sourcing.update_tender(
+    UUID,
+    VARCHAR(500),
+    TEXT,
+    VARCHAR(100),
+    VARCHAR(50),
+    DECIMAL(18, 2),
+    VARCHAR(150),
+    VARCHAR(60),
+    INT,
+    TEXT,
+    TEXT,
+    TEXT,
+    TIMESTAMP WITHOUT TIME ZONE,
+    TIMESTAMP WITHOUT TIME ZONE,
+    TIMESTAMP WITHOUT TIME ZONE
+);
+
 CREATE OR REPLACE FUNCTION vendor_sourcing.update_tender(
     p_tender_id UUID,
     p_title VARCHAR(500),
@@ -18,6 +54,7 @@ CREATE OR REPLACE FUNCTION vendor_sourcing.update_tender(
 )
 RETURNS TABLE (
     tender_id UUID,
+    requisition_id UUID,
     title VARCHAR(500),
     description TEXT,
     category VARCHAR(100),
@@ -94,6 +131,7 @@ BEGIN
     RETURN QUERY
     SELECT
         t.tender_id,
+        t.requisition_id,
         t.title,
         t.description,
         t.category,

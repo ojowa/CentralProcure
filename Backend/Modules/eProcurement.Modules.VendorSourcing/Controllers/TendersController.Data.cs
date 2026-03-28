@@ -24,6 +24,7 @@ public partial class TendersController
 
     private static TenderSummary MapTenderSummary(NpgsqlDataReader r) => new(
         r.GetGuid(r.GetOrdinal("tender_id")),
+        GetNullableGuid(r, "requisition_id"),
         r.GetString(r.GetOrdinal("title")),
         r.GetString(r.GetOrdinal("category")),
         r.GetString(r.GetOrdinal("status")),
@@ -38,6 +39,7 @@ public partial class TendersController
 
     private static TenderDetail MapTenderDetail(NpgsqlDataReader r) => new(
         r.GetGuid(r.GetOrdinal("tender_id")),
+        GetNullableGuid(r, "requisition_id"),
         r.GetString(r.GetOrdinal("title")),
         r.GetString(r.GetOrdinal("description")),
         r.GetString(r.GetOrdinal("category")),
@@ -77,6 +79,12 @@ public partial class TendersController
     {
         var ordinal = r.GetOrdinal(n);
         return r.IsDBNull(ordinal) ? null : r.GetInt32(ordinal);
+    }
+
+    private static Guid? GetNullableGuid(NpgsqlDataReader r, string n)
+    {
+        var ordinal = r.GetOrdinal(n);
+        return r.IsDBNull(ordinal) ? null : r.GetGuid(ordinal);
     }
 
     private static async Task<long> GetTenderCountAsync(
@@ -139,4 +147,22 @@ public partial class TendersController
         string? ProcurementType,
         string? BudgetCode,
         string Status);
+
+    private static async Task<Guid?> GetExistingTenderIdByRequisitionAsync(
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        Guid requisitionId,
+        CancellationToken ct)
+    {
+        const string sql = """
+            SELECT t.tender_id
+            FROM vendor_sourcing.tenders t
+            WHERE t.requisition_id = @p_requisition_id;
+            """;
+
+        await using var cmd = new NpgsqlCommand(sql, conn, tx);
+        cmd.Parameters.AddWithValue("p_requisition_id", NpgsqlDbType.Uuid, requisitionId);
+        var result = await cmd.ExecuteScalarAsync(ct);
+        return result is Guid tenderId ? tenderId : result as Guid?;
+    }
 }

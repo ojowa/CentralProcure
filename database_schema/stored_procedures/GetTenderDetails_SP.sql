@@ -1,9 +1,13 @@
 -- Function for Getting Tender Details (PostgreSQL)
+DROP PROCEDURE IF EXISTS vendor_sourcing.get_tender_details_sp(UUID);
+DROP FUNCTION IF EXISTS vendor_sourcing.get_tender_details(UUID);
+
 CREATE OR REPLACE FUNCTION vendor_sourcing.get_tender_details(
     p_tender_id UUID
 )
 RETURNS TABLE (
     tender_id UUID,
+    requisition_id UUID,
     title VARCHAR(500),
     description TEXT,
     category VARCHAR(100),
@@ -27,6 +31,7 @@ BEGIN
     RETURN QUERY
     SELECT
         t.tender_id,
+        t.requisition_id,
         t.title,
         t.description,
         t.category,
