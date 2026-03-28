@@ -173,8 +173,8 @@ export const RequisitionCreateView = ({
 
         <div className="requisition-summary">
           <div><span>Total Estimate</span><strong>{formatCurrency(form.LineItems.reduce((sum, item) => sum + toNumber(item.Quantity) * toNumber(item.UnitCost), 0))}</strong></div>
-          <div><span>Threshold Route</span><strong>{routingBand.label}</strong></div>
-          <div><span>Approval Level</span><strong>{routingBand.approvalLevel}</strong></div>
+          <div><span>Estimated Route</span><strong>{routingBand.label}</strong></div>
+          <div><span>Estimated Approval Level</span><strong>{routingBand.approvalLevel}</strong></div>
         </div>
 
         {formError ? <div className="req-error req-error--block">{formError}</div> : null}
@@ -232,7 +232,7 @@ export const RequisitionCreateView = ({
 
       <article className="requisition-card">
         <div className="requisition-card__header">
-          <div><h3>Routing Forecast</h3><p>{routingBand.escalation}</p></div>
+          <div><h3>Routing Forecast</h3><p>{routingBand.escalation} This preview supports drafting only; backend policy remains authoritative after save.</p></div>
           <span className="requisition-tag requisition-tag--accent">{routingBand.timeline}</span>
         </div>
 

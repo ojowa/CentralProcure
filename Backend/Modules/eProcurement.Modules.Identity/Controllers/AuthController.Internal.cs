@@ -81,6 +81,7 @@ public partial class AuthController
                 Email = result.Email ?? resolvedEmail ?? request.Email,
                 Status = result.Status ?? "Success",
                 Role = role,
+                CanonicalRoleKey = result.CanonicalRoleKey,
                 InternalUserId = result.InternalUserId.Value
             });
         }

@@ -7,9 +7,11 @@ import {
   type BudgetLineItem
 } from '../../data/internalData';
 import type {
+  InternalModule,
   ProcurementPlanItemDetail,
   ProcurementPlanSummary,
   RequisitionCreateRequest,
+  RequisitionAuthority,
   RequisitionDetail,
   RequisitionLineItem
 } from '../../types/internal';
@@ -123,6 +125,27 @@ export const toNumber = (value: number): number => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
 };
+
+export const hasModuleAction = (module: InternalModule, actionKey: string): boolean =>
+  (module.actions ?? []).some((action) => action.toLowerCase() === actionKey.toLowerCase());
+
+export const canCreateRequisitionFromModule = (module: InternalModule): boolean =>
+  hasModuleAction(module, 'requisition.create');
+
+export const canEditRequisitionFromAuthority = (authority?: RequisitionAuthority | null): boolean =>
+  Boolean(authority?.CanEdit);
+
+export const isEditableRequisitionFromAuthority = (authority?: RequisitionAuthority | null): boolean =>
+  Boolean(authority?.IsEditable);
+
+export const getAuthorityStageLabel = (
+  detail: Pick<RequisitionDetail, 'CurrentStage' | 'Status' | 'Authority'>,
+  fallbackStageTitle?: string | null
+): string =>
+  fallbackStageTitle ||
+  detail.Authority?.CurrentStageTitle ||
+  detail.CurrentStage ||
+  detail.Status;
 
 export const resolveMode = (moduleId: string): WorkspaceMode => {
   if (moduleId === 'requisition-history') {
@@ -271,12 +294,6 @@ export const resolveDepartmentHeadAction = (detail: RequisitionDetail | null): D
         label: 'Endorse Request',
         nextStatus: 'Endorsed',
         helper: 'Record department head endorsement before budget code allocation.'
-      };
-    case 'Under Review':
-      return {
-        label: 'Update Review Note',
-        nextStatus: 'Under Review',
-        helper: 'Refresh the department head note without changing the current workflow stage.'
       };
     case 'Under Review':
       return {

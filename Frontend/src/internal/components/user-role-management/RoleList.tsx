@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import type { InternalRoleRecord, InternalUserProfile } from '../../types/internal';
+import { roles as roleDefinitions } from '../../data/internalData';
 
 interface RoleListProps {
   roles: InternalRoleRecord[];
@@ -21,6 +22,10 @@ export const RoleList: React.FC<RoleListProps> = ({
   onDeactivateRole
 }) => {
   const [expandedRole, setExpandedRole] = useState<string | null>(null);
+  const roleLabelMap = new Map(roleDefinitions.map((role) => [role.key, role.name]));
+
+  const getRoleDisplayName = (role: InternalRoleRecord) =>
+    (role.CanonicalRoleKey ? roleLabelMap.get(role.CanonicalRoleKey) : null) ?? role.RoleName;
 
   const getUserCount = (roleName: string) => {
     return users.filter(u => u.RoleName === roleName).length;
@@ -57,13 +62,18 @@ export const RoleList: React.FC<RoleListProps> = ({
             return (
               <article key={role.RoleId} className="portal-module-card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <h3 style={{ margin: 0 }}>{role.RoleName}</h3>
+                  <h3 style={{ margin: 0 }}>{getRoleDisplayName(role)}</h3>
                   <span
                     className={`admin-status ${role.IsActive ? 'admin-status--good' : ''}`}
                   >
                     {role.IsActive ? 'Active' : 'Disabled'}
                   </span>
                 </div>
+                {getRoleDisplayName(role) !== role.RoleName ? (
+                  <p className="plan-muted" style={{ marginTop: '6px', fontSize: '0.75rem' }}>
+                    Backend role: {role.RoleName}
+                  </p>
+                ) : null}
                 <p className="plan-muted" style={{ marginTop: '12px', fontSize: '0.875rem' }}>
                   {role.Description || 'No description provided for this statutory role.'}
                 </p>

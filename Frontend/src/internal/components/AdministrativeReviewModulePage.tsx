@@ -118,6 +118,7 @@ export const AdministrativeReviewModulePage = ({ module, token, role, userEmail 
   const canUpdate = Boolean(token) && grantedActions.has('administrative_review.update');
   const canResolve = Boolean(token) && grantedActions.has('administrative_review.resolve');
   const canMutate = canUpdate || canResolve;
+  const canChooseResolutionStage = updateForm.resolutionOutcome === 'Modify Decision';
 
   const summary = useMemo(() => {
     const counts = records.reduce<Record<string, number>>((accumulator, record) => {
@@ -185,7 +186,7 @@ export const AdministrativeReviewModulePage = ({ module, token, role, userEmail 
         assignedTo: next.AssignedTo ?? '',
         reviewedBy: next.ReviewedBy ?? userEmail ?? '',
         resolutionOutcome: next.ResolutionOutcome ?? '',
-        resolutionStageKey: next.ResolutionStageKey ?? '',
+        resolutionStageKey: next.ResolutionOutcome === 'Modify Decision' ? next.ResolutionStageKey ?? '' : '',
         resolutionNotes: next.ResolutionNotes ?? ''
       });
     } catch (error) {
@@ -271,7 +272,7 @@ export const AdministrativeReviewModulePage = ({ module, token, role, userEmail 
         AssignedTo: updateForm.assignedTo.trim() || undefined,
         ReviewedBy: updateForm.reviewedBy.trim() || undefined,
         ResolutionOutcome: canResolve ? updateForm.resolutionOutcome || undefined : undefined,
-        ResolutionStageKey: canResolve ? updateForm.resolutionStageKey.trim() || undefined : undefined,
+        ResolutionStageKey: canResolve && canChooseResolutionStage ? updateForm.resolutionStageKey.trim() || undefined : undefined,
         ResolutionNotes: canResolve ? updateForm.resolutionNotes.trim() || undefined : undefined
       });
       setDetail(updated);
@@ -572,7 +573,11 @@ export const AdministrativeReviewModulePage = ({ module, token, role, userEmail 
                         className="plan-select"
                         value={updateForm.resolutionOutcome}
                         disabled={!canResolve}
-                        onChange={(event) => setUpdateForm((previous) => ({ ...previous, resolutionOutcome: event.target.value }))}
+                        onChange={(event) => setUpdateForm((previous) => ({
+                          ...previous,
+                          resolutionOutcome: event.target.value,
+                          resolutionStageKey: event.target.value === 'Modify Decision' ? previous.resolutionStageKey : ''
+                        }))}
                       >
                         <option value="">No outcome selected</option>
                         {REVIEW_OUTCOMES.map((outcome) => (
@@ -587,9 +592,9 @@ export const AdministrativeReviewModulePage = ({ module, token, role, userEmail 
                       <input
                         className="plan-input"
                         value={updateForm.resolutionStageKey}
-                        disabled={!canResolve}
+                        disabled={!canResolve || !canChooseResolutionStage}
                         onChange={(event) => setUpdateForm((previous) => ({ ...previous, resolutionStageKey: event.target.value }))}
-                        placeholder="Optional for Modify Decision"
+                        placeholder={canChooseResolutionStage ? 'Only needed when modifying the workflow decision' : 'Backend will infer the workflow transition'}
                       />
                     </label>
                     <label className="plan-field plan-field--span">
@@ -604,6 +609,9 @@ export const AdministrativeReviewModulePage = ({ module, token, role, userEmail 
                       />
                     </label>
                   </div>
+                  <p className="plan-muted" style={{ marginTop: '12px' }}>
+                    Backend workflow rules remain authoritative. Resolution stage is only supplied here for the `Modify Decision` outcome; other outcomes are resolved server-side.
+                  </p>
                   <div className="plan-actions">
                     <button type="button" className="plan-button" onClick={handleUpdate} disabled={!canMutate || isSaving}>
                       {isSaving ? 'Saving...' : 'Save Review Update'}

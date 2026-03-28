@@ -29,10 +29,7 @@ export const AppItemsBrowser: React.FC<AppItemsBrowserProps> = ({
 }) => {
   const visiblePlans = plans.filter((plan) => {
     const stageKey = String(plan.CurrentStageKey || '').toLowerCase();
-    if (stageKey) {
-      return stageKey === 'planning_committee_review';
-    }
-    return plan.Status === 'Under Review' || plan.Status === 'Returned';
+    return stageKey === 'planning_committee_review' || stageKey === 'app_approval';
   });
 
   return (

@@ -601,7 +601,25 @@ public partial class PlanningCommitteeReviewController : ControllerBase
                 await CreateAppItemForRequisitionAsync(conn, tx, planId.Value, request.RequisitionId, ct);
             }
 
-            var response = await UpsertCommitteeDecisionAsync(conn, tx, request.RequisitionId, planId.Value, request, ct);
+            var assignedChairmanId = await PlanningCommitteeChairmanRegistry.GetAssignedChairmanUserIdAsync(conn, tx, ct);
+            var chairmanIdentity = !string.IsNullOrWhiteSpace(request.ChairmanUserId)
+                ? request.ChairmanUserId
+                : assignedChairmanId?.ToString() ?? ResolveAuthenticatedInternalUserId(User)?.ToString() ?? ResolveCommitteeDecisionActor(User);
+            var secretaryIdentity = !string.IsNullOrWhiteSpace(request.SecretaryUserId)
+                ? request.SecretaryUserId
+                : ResolveCommitteeDecisionActor(User);
+            var meetingDate = request.MeetingDate;
+
+            var response = await UpsertCommitteeDecisionAsync(
+                conn,
+                tx,
+                request.RequisitionId,
+                planId.Value,
+                request,
+                chairmanIdentity,
+                secretaryIdentity,
+                meetingDate,
+                ct);
 
             if (response is null)
             {
@@ -627,7 +645,7 @@ public partial class PlanningCommitteeReviewController : ControllerBase
                 null,
                 null,
                 request.CommitteeRemarks ?? "Committee decision recorded.",
-                request.ChairmanUserId), ct);
+                chairmanIdentity), ct);
 
             if (string.Equals(request.OverallDecision, "Recommended", StringComparison.OrdinalIgnoreCase))
             {
@@ -790,6 +808,9 @@ public partial class PlanningCommitteeReviewController : ControllerBase
         Guid requisitionId,
         Guid planId,
         CommitteeDecisionSubmitRequest request,
+        string chairmanIdentity,
+        string secretaryIdentity,
+        DateTime? meetingDate,
         CancellationToken ct)
     {
         const string sql = @"
@@ -832,11 +853,11 @@ public partial class PlanningCommitteeReviewController : ControllerBase
         await using var cmd = new NpgsqlCommand(sql, conn, tx);
         cmd.Parameters.AddWithValue("p_requisition_id", NpgsqlDbType.Uuid, requisitionId);
         cmd.Parameters.AddWithValue("p_plan_id", NpgsqlDbType.Uuid, planId);
-        cmd.Parameters.AddWithValue("p_chairman_user_id", NpgsqlDbType.Varchar, request.ChairmanUserId);
-        cmd.Parameters.AddWithValue("p_secretary_user_id", NpgsqlDbType.Varchar, request.SecretaryUserId);
+        cmd.Parameters.AddWithValue("p_chairman_user_id", NpgsqlDbType.Varchar, chairmanIdentity);
+        cmd.Parameters.AddWithValue("p_secretary_user_id", NpgsqlDbType.Varchar, secretaryIdentity);
         cmd.Parameters.AddWithValue("p_overall_decision", NpgsqlDbType.Varchar, request.OverallDecision);
         cmd.Parameters.AddWithValue("p_committee_remarks", NpgsqlDbType.Text, (object?)request.CommitteeRemarks ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("p_meeting_date", NpgsqlDbType.Date, (object?)request.MeetingDate ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("p_meeting_date", NpgsqlDbType.Date, (object?)meetingDate ?? DBNull.Value);
 
         await using var reader = await cmd.ExecuteReaderAsync(ct);
         if (!await reader.ReadAsync(ct))

@@ -168,13 +168,11 @@ export const LinkToPlanModal: React.FC<LinkToPlanModalProps> = ({
                 onChange={(e) => setSelectedPlanId(e.target.value)}
               >
                 <option value="">Select committee plan</option>
-                {plans
-                  .filter((p) => p.Status === 'Under Review')
-                  .map((p) => (
-                    <option key={p.PlanId} value={p.PlanId}>
-                      {p.PlanTitle} ({p.FiscalYear})
-                    </option>
-                  ))}
+                {plans.map((p) => (
+                  <option key={p.PlanId} value={p.PlanId}>
+                    {p.PlanTitle} ({p.FiscalYear})
+                  </option>
+                ))}
               </select>
             </div>
           )}

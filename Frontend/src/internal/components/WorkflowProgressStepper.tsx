@@ -97,7 +97,7 @@ export const WorkflowProgressStepper: React.FC<Props> = ({ currentStageKey, disp
               </span>
               <span className="phase-label">{phase.label}</span>
             </div>
-            {index < PHASES.length - 1 && <div className="stepper-connector" />}
+            {index < phases.length - 1 && <div className="stepper-connector" />}
           </div>
         );
       })}

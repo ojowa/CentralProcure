@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import type { InternalUserProfile, InternalRoleRecord } from '../../types/internal';
+import { roles as roleDefinitions } from '../../data/internalData';
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100, 'all'] as const;
 
@@ -29,6 +30,12 @@ export const UserList: React.FC<UserListProps> = ({
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZE_OPTIONS)[number]>(10);
+  const roleLabelMap = useMemo(
+    () => new Map(roleDefinitions.map((role) => [role.key, role.name])),
+    []
+  );
+  const getRoleDisplayName = (user: InternalUserProfile) =>
+    (user.CanonicalRoleKey ? roleLabelMap.get(user.CanonicalRoleKey) : null) ?? user.RoleName;
 
   useEffect(() => {
     setPage(1);
@@ -134,6 +141,9 @@ export const UserList: React.FC<UserListProps> = ({
                         ))}
                       </select>
                       <div className="plan-muted" style={{ fontSize: '0.75rem', marginTop: '4px' }}>
+                        {getRoleDisplayName(user)}
+                      </div>
+                      <div className="plan-muted" style={{ fontSize: '0.75rem', marginTop: '2px' }}>
                         {user.UnitName || 'No Unit'}
                       </div>
                     </td>

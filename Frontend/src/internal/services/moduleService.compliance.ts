@@ -41,10 +41,11 @@ export const fetchAdministrativeReviews = async (token: string) => {
 
 export const submitAdministrativeReviewDecision = async (complaintId: string, data: any, token: string) => {
   const url = `${serviceBaseUrls.workflow}/api/administrative-reviews/${complaintId}`;
+  const canChooseResolutionStage = data.outcome === 'Modify Decision';
   const payload = {
     Status: 'Resolved',
     ResolutionOutcome: data.outcome,
-    ResolutionStageKey: data.resolutionStageKey || undefined,
+    ResolutionStageKey: canChooseResolutionStage ? data.resolutionStageKey || undefined : undefined,
     ResolutionNotes: data.resolutionNotes
   };
 

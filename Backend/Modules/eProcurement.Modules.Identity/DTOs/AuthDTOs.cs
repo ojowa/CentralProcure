@@ -77,12 +77,13 @@ namespace eProcurement.Modules.Identity.DTOs
         Guid? InternalUserId,
         string? Email,
         string? Role,
+        string? CanonicalRoleKey,
         string? Status,
         string? ErrorMessage);
 
     public record InternalUserRegistrationResult(Guid InternalUserId, string Email, string Role, Guid? UnitId = null, string? UnitName = null);
 
-    public record InternalUserRoleResult(Guid InternalUserId, string Email, string Role);
+    public record InternalUserRoleResult(Guid InternalUserId, string Email, string Role, string CanonicalRoleKey);
 
     public record InternalUserProfileResult(
         Guid InternalUserId,
@@ -95,6 +96,7 @@ namespace eProcurement.Modules.Identity.DTOs
         Guid? UnitId,
         string? UnitName,
         string RoleName,
+        string CanonicalRoleKey,
         string Status,
         DateTime? LastLogin,
         DateTime CreatedAt);
@@ -105,7 +107,7 @@ namespace eProcurement.Modules.Identity.DTOs
         string? MiddleName,
         string Surname);
 
-    public record RoleResult(Guid RoleId, string RoleName, string? Description, bool IsActive);
+    public record RoleResult(Guid RoleId, string RoleName, string CanonicalRoleKey, string? Description, bool IsActive);
 
     public record RoleDetailResult(Guid RoleId, string RoleName, string? Description, bool IsActive, int UserCount);
 
@@ -130,7 +132,6 @@ namespace eProcurement.Modules.Identity.DTOs
         string ControlPurpose,
         IReadOnlyList<string> Actions,
         IReadOnlyList<string> CatalogActions,
-        IReadOnlyList<string> AllowedRoles,
         string GrantSource = "catalog_role",
         bool IsVisible = true,
         bool HasRoleOverride = false,

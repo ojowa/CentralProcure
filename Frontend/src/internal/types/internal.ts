@@ -38,7 +38,10 @@ export interface InternalModule {
   controlPurpose: string;
   actions?: string[];
   catalogActions?: string[];
-  allowedRoles?: RoleKey[];
+  grantSource?: string;
+  isVisible?: boolean;
+  hasRoleOverride?: boolean;
+  hasUserOverride?: boolean;
 }
 
 export interface MonitoringStatusItem {
@@ -161,6 +164,7 @@ export interface InternalLoginResponse {
     Status: string;
     Token?: string;
     Role?: RoleKey;
+    CanonicalRoleKey?: RoleKey;
     InternalUserId?: string;
     ErrorMessage?: string;
 }
@@ -176,6 +180,7 @@ export interface InternalRegistrationResponse {
 export interface InternalRoleRecord {
     RoleId: string;
     RoleName: string;
+    CanonicalRoleKey?: RoleKey;
     Description?: string | null;
     IsActive: boolean;
 }
@@ -191,6 +196,7 @@ export interface InternalUserProfile {
     UnitId: string;
     UnitName: string;
     RoleName: string;
+    CanonicalRoleKey?: RoleKey;
     Status: string;
     LastLogin?: string | null;
     CreatedAt: string;
@@ -1001,6 +1007,32 @@ export interface RequisitionLineItem {
     UnitCost: number;
 }
 
+export interface RequisitionAuthority {
+    IsEditable: boolean;
+    CanEdit: boolean;
+    CanDelete: boolean;
+    CanRoute: boolean;
+    CanFileComplaint: boolean;
+    AllowedActionKeys: string[];
+    CurrentStageKey?: string | null;
+    CurrentStageTitle?: string | null;
+}
+
+export interface RequisitionRouteDecision {
+    ThresholdId?: string | null;
+    ApprovalRoute?: string | null;
+    ApprovalAuthorityCode?: string | null;
+    ApprovalAuthorityLabel?: string | null;
+    RequiresCgisApproval: boolean;
+    RequiresBoard: boolean;
+    RequiresBpp: boolean;
+    GovernanceBodyId?: string | null;
+    GovernanceBodyName?: string | null;
+    Amount?: number | null;
+    ProcurementType?: string | null;
+    Notes?: string | null;
+}
+
 export interface RequisitionSummary {
     RequisitionId: string;
     Title: string;
@@ -1017,6 +1049,7 @@ export interface RequisitionSummary {
     TotalEstimate: number;
     RequiredBy?: string | null;
     CreatedAt: string;
+    Authority?: RequisitionAuthority | null;
 }
 
 export interface RequisitionDetail extends RequisitionSummary {
@@ -1030,6 +1063,7 @@ export interface RequisitionDetail extends RequisitionSummary {
     LineItems: RequisitionLineItem[];
     UpdatedAt: string;
     CurrentStage?: string | null;
+    RouteDecision?: RequisitionRouteDecision | null;
 }
 
 export interface RequisitionCreateRequest {
@@ -1252,6 +1286,7 @@ export interface WorkflowActionSnapshotResponse {
     CurrentStageTitle: string;
     RoleKey: string;
     Actions: WorkflowGrantedAction[];
+    Authority?: RequisitionAuthority | null;
     RouteDecision?: WorkflowRouteDecision | null;
 }
 
@@ -1279,6 +1314,19 @@ export interface WorkflowRuntimeSnapshot {
     CreatedAt: string;
     UpdatedAt: string;
     NextTransitions: WorkflowRuntimeTransitionSummary[];
+    Display?: {
+        CurrentStageKey: string;
+        CurrentStageTitle: string;
+        CurrentPhaseKey: string;
+        CurrentPhaseLabel: string;
+        Phases: Array<{
+            PhaseKey: string;
+            PhaseLabel: string;
+            Sequence: number;
+            Color: string;
+            Status: string;
+        }>;
+    } | null;
 }
 
 export interface WorkflowRouteDecision {

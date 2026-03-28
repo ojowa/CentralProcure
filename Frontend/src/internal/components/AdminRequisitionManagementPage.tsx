@@ -30,7 +30,7 @@ type RequisitionAuthority = {
   CanDelete?: boolean;
   CanRoute?: boolean;
 };
-type RequisitionDetailWithAuthority = RequisitionDetail & { Authority?: RequisitionAuthority };
+type RequisitionDetailWithAuthority = RequisitionDetail & { Authority?: RequisitionAuthority | null };
 
 export const AdminRequisitionManagementPage = ({ module, token, role, userEmail, availableModuleIds = [], onModuleChange }: Props) => {
   const mode = 'history';

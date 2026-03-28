@@ -15,7 +15,7 @@ The project documentation is organized into logical categories within the `desig
 
 - [**PPA2007.md**](./design%20notes/compliance/PPA2007.md): The full text of the Public Procurement Act, 2007.
 - [**Workflow Blueprint**](./design%20notes/compliance/workflow_blueprint.md): The canonical BPMN-style process flow and state machine.
-- [**Implementation TODO**](./design%20notes/compliance/implementation_todo.md): Pragmatic execution checklist for workflow enforcement.
+- [**CGIS Approval Checklist**](./design%20notes/compliance/cgis_approval_implementation_checklist.md): Focused execution checklist for the CGIS approval workflow workspace.
 - [**State Coverage Matrix**](./design%20notes/compliance/state_matrix.md): Baseline audit of implemented vs. missing workflow states.
 - [**Phase 9 Verification Pack**](./design%20notes/compliance/phase9_verification.md): Repeatable evidence set for workflow implementation.
 - [**Budget Gaps Analysis**](./design%20notes/compliance/budget_gaps_analysis.md): Analysis of budget implementation and PPA 2007 alignment.

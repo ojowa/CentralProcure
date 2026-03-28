@@ -5,7 +5,6 @@ import { fetchTenderDetails } from '../services/moduleService';
 import { fetchTenders } from '../services/tenderService';
 import { fetchTenderWorkflowDisplay } from '../services/tenderWorkflowService';
 import { WorkflowProgressStepper } from './WorkflowProgressStepper';
-import { getHumanStatus } from '../utils/workflow';
 import type { WorkflowRuntimeDisplay } from './workflowDisplayTypes';
 import { getInternalDashboardPath } from '../utils/internalRoutes';
 
@@ -78,6 +77,11 @@ export const TenderManagementModule = ({ module, token, role, initialData }: Pro
     router.push(`${getInternalDashboardPath('tender-create')}?edit=${encodeURIComponent(tenderId)}&source=${encodeURIComponent(module.id)}`);
   };
 
+  const selectedTenderStatusLabel =
+    selectedWorkflow?.CurrentStageTitle ||
+    selectedTender?.Status ||
+    'Unknown';
+
   return (
     <section className="portal-module">
       <header className="portal-module__header">
@@ -137,7 +141,7 @@ export const TenderManagementModule = ({ module, token, role, initialData }: Pro
 
           <div className="plan-summary-card__grid">
             <div><small>Reference</small><p>{selectedTender.TenderId?.slice(0, 8).toUpperCase()}</p></div>
-            <div><small>Status</small><p>{getHumanStatus(selectedWorkflow?.CurrentStageKey, selectedWorkflow?.CurrentStageTitle || selectedTender.Status)}</p></div>
+            <div><small>Status</small><p>{selectedTenderStatusLabel}</p></div>
             <div><small>Budget</small><p>{(selectedTender.Budget || 0).toLocaleString('en-NG', { style: 'currency', currency: 'NGN' })}</p></div>
             <div><small>Category</small><p>{selectedTender.Category}</p></div>
           </div>

@@ -20,6 +20,7 @@ export const AdministrativeReviewModule = ({ module, token, role, initialData }:
   const [resolution, setResolution] = useState({ 
     outcome: 'Dismiss Complaint', resolutionNotes: '', resolutionStageKey: '' 
   });
+  const canChooseResolutionStage = resolution.outcome === 'Modify Decision';
 
   useEffect(() => {
     if (initialData) {
@@ -137,7 +138,7 @@ export const AdministrativeReviewModule = ({ module, token, role, initialData }:
               </label>
               <label className="plan-field">
                 <span>Return to Stage (Optional)</span>
-                <select className="plan-input" value={resolution.resolutionStageKey} onChange={e => setResolution({...resolution, resolutionStageKey: e.target.value})}>
+                <select className="plan-input" value={resolution.resolutionStageKey} disabled={!canChooseResolutionStage} onChange={e => setResolution({...resolution, resolutionStageKey: e.target.value})}>
                   <option value="">-- No Stage Change --</option>
                   <option value="solicitation">Back to Advert / Invitation / EOI / RFP</option>
                   <option value="evaluation">Back to Evaluation</option>
@@ -145,6 +146,9 @@ export const AdministrativeReviewModule = ({ module, token, role, initialData }:
                 </select>
               </label>
             </div>
+            <p className="plan-muted" style={{ marginTop: '12px' }}>
+              Backend workflow rules determine the resulting transition. A target stage is only provided here when the decision is `Modify Decision`.
+            </p>
             <label className="plan-field">
               <span>Decision Justification & Notes</span>
               <textarea className="plan-input" required rows={4} value={resolution.resolutionNotes} onChange={e => setResolution({...resolution, resolutionNotes: e.target.value})} />

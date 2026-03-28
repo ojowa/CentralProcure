@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   editableRequisitionStatuses,
   requisitionRoleGuidance,
-  thresholdBands,
   type BudgetLineItem
 } from '../data/internalData';
 import { fetchInternalUnits } from '../services/internalAuthService';
@@ -33,9 +32,11 @@ import {
   buildDepartmentHeadReviewNote,
   buildEmptyForm,
   buildFormFromDetail,
+  canEditRequisitionFromAuthority,
   DEPARTMENT_HEAD_QUEUE_STATUSES,
   getPageSize,
   getStepIndex,
+  isEditableRequisitionFromAuthority,
   normalizeItemCatalog,
   resolveDepartmentHeadAction,
   toNumber,
@@ -50,8 +51,6 @@ import {
 import {
   RequisitionHistoryView
 } from './requisitionWorkspace/sectionViews';
-import { WorkflowProgressStepper } from './WorkflowProgressStepper';
-import { getHumanStatus } from '../utils/workflow';
 
 interface Props {
   module: InternalModule;
@@ -98,9 +97,9 @@ export const RequisitionHistoryPage = ({ module, token, role, userEmail, availab
   const [workflowRefreshKey, setWorkflowRefreshKey] = useState(0);
 
   const activeStepIndex = getStepIndex(selectedDetail);
-  const canEditDrafts = Boolean(token && role && (role === 'requisitioning_officer' || role === 'department_head' || role === 'admin'));
+  const canEditDrafts = canEditRequisitionFromAuthority(selectedDetail?.Authority);
   const canOpenCreateModule = availableModuleIds.includes('create-requisition');
-  const isSelectedEditable = Boolean(selectedDetail && editableRequisitionStatuses.has(selectedDetail.Status));
+  const isSelectedEditable = isEditableRequisitionFromAuthority(selectedDetail?.Authority);
 
   const summary = useMemo(() => {
     const counts = requisitions.reduce<Record<string, number>>((accumulator, record) => {
@@ -395,7 +394,7 @@ export const RequisitionHistoryPage = ({ module, token, role, userEmail, availab
                 activeStepIndex={activeStepIndex}
                 isSelectedEditable={isSelectedEditable}
       isDepartmentHead={isDepartmentHead}
-      isAdmin={role === 'admin'}
+      isAdmin={Boolean(selectedDetail?.Authority?.CanDelete)}
       canEditDrafts={canEditDrafts}
       canOpenSelectedForEdit={canOpenCreateModule}
       isSaving={isSaving}

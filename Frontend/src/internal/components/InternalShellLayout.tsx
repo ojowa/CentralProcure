@@ -5,7 +5,7 @@ import { InternalHeader } from './InternalHeader';
 import { SidebarNav } from './SidebarNav';
 import { DashboardPage } from './DashboardPage';
 import { moduleRenderers, renderGenericModuleWorkspace } from './InternalModuleRenderers';
-import { fetchInternalModules, fetchInternalRoles, fetchInternalUserProfile, resolveRole } from '../services/internalAuthService';
+import { fetchInternalModules, fetchInternalRoles, fetchInternalUserProfile, resolveCanonicalRole } from '../services/internalAuthService';
 import { fetchModuleData } from '../services/moduleService';
 import { roles } from '../data/internalData';
 import { useAuth } from '../hooks/useAuth';
@@ -50,7 +50,7 @@ const formatRoleName = (value: string): string =>
 const roleFallbackByKey = new Map<RoleKey, RoleDefinition>(roles.map((role) => [role.key, role]));
 
 const mapRoleRecordToDefinition = (roleRecord: InternalRoleRecord): RoleDefinition | null => {
-  const key = resolveRole(roleRecord.RoleName);
+  const key = resolveCanonicalRole(roleRecord.CanonicalRoleKey, roleRecord.RoleName);
   if (!key) {
     return null;
   }
@@ -180,7 +180,7 @@ export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShel
         if (!isMounted) return;
 
         setProfileRoleNameRaw(profile.RoleName ?? null);
-        const resolvedKey = resolveRole(profile.RoleName);
+        const resolvedKey = resolveCanonicalRole(profile.CanonicalRoleKey, profile.RoleName);
         if (!resolvedKey) {
           setHeaderRoleOverride(null);
           setProfileRoleKey(userRole ?? null);

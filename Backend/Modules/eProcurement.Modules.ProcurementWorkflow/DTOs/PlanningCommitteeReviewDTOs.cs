@@ -33,11 +33,11 @@ public record MemberStatusResponse(
 public record CommitteeDecisionSubmitRequest(
     Guid RequisitionId,
     Guid PlanId,
-    string ChairmanUserId,
-    string SecretaryUserId,
+    string? ChairmanUserId,
+    string? SecretaryUserId,
     string OverallDecision,
     string? CommitteeRemarks,
-    DateTime? MeetingDate
+    DateTime? MeetingDate = null
 );
 
 public record CommitteeDecisionResponse(

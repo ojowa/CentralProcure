@@ -7,7 +7,7 @@ import {
   fetchCsrfToken,
   fetchInternalUserProfile,
   logoutInternalUser,
-  resolveRole
+  resolveCanonicalRole
 } from '../services/internalAuthService';
 
 type AuthUser = {
@@ -138,7 +138,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           return;
         }
 
-        const role = resolveRole(profile.RoleName);
+        const role = resolveCanonicalRole(profile.CanonicalRoleKey, profile.RoleName);
         console.log('[Internal Auth] Resolved role:', role);
         if (!role) {
           throw new Error('Internal user role is not configured.');

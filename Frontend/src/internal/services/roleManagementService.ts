@@ -63,6 +63,7 @@ const parseResponse = async <T>(response: Response, fallbackError: string): Prom
 export interface Role {
   RoleId: string;
   RoleName: string;
+  CanonicalRoleKey?: RoleKey;
   Description?: string;
   IsActive: boolean;
 }
@@ -95,7 +96,13 @@ export const fetchRoles = async (token?: string | null): Promise<Role[]> => {
     headers: buildAuthHeaders(token),
     credentials: 'include'
   });
-  return parseResponse<Role[]>(response, 'Failed to fetch roles');
+  const payload = await parseResponse<Role[]>(response, 'Failed to fetch roles');
+  return Array.isArray(payload)
+    ? payload.map((role) => ({
+        ...role,
+        CanonicalRoleKey: resolveCanonicalRole(role.CanonicalRoleKey, role.RoleName)
+      }))
+    : [];
 };
 
 export const fetchRole = async (roleId: string, token?: string | null): Promise<RoleDetail> => {
@@ -103,7 +110,11 @@ export const fetchRole = async (roleId: string, token?: string | null): Promise<
     headers: buildAuthHeaders(token),
     credentials: 'include'
   });
-  return parseResponse<RoleDetail>(response, 'Failed to fetch role');
+  const payload = await parseResponse<RoleDetail>(response, 'Failed to fetch role');
+  return {
+    ...payload,
+    CanonicalRoleKey: resolveCanonicalRole(payload?.CanonicalRoleKey, payload?.RoleName)
+  };
 };
 
 export const createRole = async (
@@ -120,7 +131,11 @@ export const createRole = async (
     credentials: 'include',
     body: JSON.stringify(data)
   });
-  return parseResponse<Role>(response, 'Failed to create role');
+  const payload = await parseResponse<Role>(response, 'Failed to create role');
+  return {
+    ...payload,
+    CanonicalRoleKey: resolveCanonicalRole(payload?.CanonicalRoleKey, payload?.RoleName)
+  };
 };
 
 export const updateRole = async (
@@ -138,7 +153,11 @@ export const updateRole = async (
     credentials: 'include',
     body: JSON.stringify(data)
   });
-  return parseResponse<Role>(response, 'Failed to update role');
+  const payload = await parseResponse<Role>(response, 'Failed to update role');
+  return {
+    ...payload,
+    CanonicalRoleKey: resolveCanonicalRole(payload?.CanonicalRoleKey, payload?.RoleName)
+  };
 };
 
 export const deactivateRole = async (
@@ -150,7 +169,11 @@ export const deactivateRole = async (
     headers: buildAuthHeaders(token),
     credentials: 'include'
   });
-  return parseResponse<Role>(response, 'Failed to deactivate role');
+  const payload = await parseResponse<Role>(response, 'Failed to deactivate role');
+  return {
+    ...payload,
+    CanonicalRoleKey: resolveCanonicalRole(payload?.CanonicalRoleKey, payload?.RoleName)
+  };
 };
 
 export const fetchRoleUsers = async (
@@ -163,3 +186,5 @@ export const fetchRoleUsers = async (
   });
   return parseResponse<RoleUser[]>(response, 'Failed to fetch role users');
 };
+import type { RoleKey } from '../types/internal';
+import { resolveCanonicalRole } from './internalAuthService';

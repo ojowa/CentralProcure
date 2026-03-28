@@ -5,6 +5,33 @@ namespace eProcurement.Modules.Identity.Controllers;
 
 public partial class AuthController
 {
+    private static string NormalizeCanonicalRoleKey(string? role)
+    {
+        if (string.IsNullOrWhiteSpace(role))
+        {
+            return string.Empty;
+        }
+
+        var trimmed = role.Trim();
+        var withUnderscores = trimmed.Replace("-", "_").Replace(" ", "_");
+        var snakeCase = System.Text.RegularExpressions.Regex.Replace(withUnderscores, "([a-z0-9])([A-Z])", "$1_$2");
+        return snakeCase.ToLowerInvariant() switch
+        {
+            "system_administrator" => "ict_admin",
+            "tenders_board_member" => "tenders_board",
+            "audit_officer" => "audit_oversight",
+            "department_user" => "requisitioning_officer",
+            "procurement_planning_committee" => "planning_statistics_officer",
+            "procurementsecretary" => "procurement_secretary",
+            "comptrollerprocurement" => "comptroller_procurement",
+            "legalreviewofficer" => "legal_reviewer",
+            "bppliaison" => "bpp_liaison",
+            "bppreviewer" => "bpp_reviewer",
+            "cgis" => "accounting_officer",
+            var value => value
+        };
+    }
+
     private static VendorRegistrationResult MapVendorRegistrationResult(NpgsqlDataReader r)
     {
         return new VendorRegistrationResult(
@@ -29,6 +56,7 @@ public partial class AuthController
             GetNullableGuid(r, "internal_user_id"),
             GetNullableString(r, "email"),
             GetNullableString(r, "role"),
+            NormalizeCanonicalRoleKey(GetNullableString(r, "role")),
             GetNullableString(r, "status"),
             GetNullableString(r, "error_message"));
     }
@@ -48,7 +76,8 @@ public partial class AuthController
         return new InternalUserRoleResult(
             r.GetGuid(r.GetOrdinal("internal_user_id")),
             r.GetString(r.GetOrdinal("email")),
-            r.GetString(r.GetOrdinal("role")));
+            r.GetString(r.GetOrdinal("role")),
+            NormalizeCanonicalRoleKey(r.GetString(r.GetOrdinal("role"))));
     }
 
     private static InternalUserProfileResult MapInternalUserProfileResult(NpgsqlDataReader r)
@@ -64,6 +93,7 @@ public partial class AuthController
             GetNullableGuid(r, "unit_id"),
             GetNullableString(r, "unit_name"),
             r.GetString(r.GetOrdinal("role_name")),
+            NormalizeCanonicalRoleKey(r.GetString(r.GetOrdinal("role_name"))),
             r.GetString(r.GetOrdinal("status")),
             GetNullableDateTime(r, "last_login"),
             r.GetDateTime(r.GetOrdinal("created_at")));
@@ -74,6 +104,7 @@ public partial class AuthController
         return new RoleResult(
             r.GetGuid(r.GetOrdinal("role_id")),
             r.GetString(r.GetOrdinal("role_name")),
+            NormalizeCanonicalRoleKey(r.GetString(r.GetOrdinal("role_name"))),
             GetNullableString(r, "description"),
             r.GetBoolean(r.GetOrdinal("is_active")));
     }

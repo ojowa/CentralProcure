@@ -123,48 +123,20 @@ export const normalizeRoleValue = (value: string): string => {
   return camelToSnake.toLowerCase();
 };
 
+// Keep this list limited to legacy role spellings that still appear in old data or tokens.
+// Canonical snake_case role keys are handled directly through VALID_ROLES.
 const ROLE_ALIASES: Record<string, RoleKey> = {
-  admin: 'admin',
   system_administrator: 'ict_admin',
-  requisitioning_officer: 'requisitioning_officer',
+  tenders_board_member: 'tenders_board',
+  audit_officer: 'audit_oversight',
   department_user: 'requisitioning_officer',
-  department_head: 'department_head',
-  comptroller_procurement: 'comptroller_procurement',
-  procurement_manager: 'procurement_manager',
   procurement_planning_committee: 'planning_statistics_officer',
-  planning_statistics_officer: 'planning_statistics_officer',
-  financial_unit_officer: 'financial_unit_officer',
-  procurement_secretary: 'procurement_secretary',
   procurementsecretary: 'procurement_secretary',
   comptrollerprocurement: 'comptroller_procurement',
-  legal_reviewer: 'legal_reviewer',
-  legal_review_officer: 'legal_reviewer',
   legalreviewofficer: 'legal_reviewer',
-  technical_evaluator: 'technical_evaluator',
-  financial_evaluator: 'financial_evaluator',
-  evaluation_committee: 'evaluation_committee',
-  tenders_board_member: 'tenders_board',
-  tenders_board: 'tenders_board',
-  tenders_board_secretary: 'tenders_board_secretary',
-  accounting_officer: 'accounting_officer',
-  cgis: 'accounting_officer',
-  bpp_liaison: 'bpp_liaison',
   bppliaison: 'bpp_liaison',
-  bpp_reviewer: 'bpp_reviewer',
   bppreviewer: 'bpp_reviewer',
-  complaints_review_officer: 'complaints_review_officer',
-  contract_manager: 'contract_manager',
-  inspection_officer: 'inspection_officer',
-  payment_officer: 'payment_officer',
-  audit_officer: 'audit_oversight'
-};
-
-const normalizeAllowedRole = (value: unknown): RoleKey | null => {
-  if (typeof value !== 'string') {
-    return null;
-  }
-
-  return resolveRole(value) ?? null;
+  cgis: 'accounting_officer'
 };
 
 export const resolveRole = (claim: unknown): RoleKey | undefined => {
@@ -182,6 +154,17 @@ export const resolveRole = (claim: unknown): RoleKey | undefined => {
   }
 
   return ROLE_ALIASES[normalized];
+};
+
+export const resolveCanonicalRole = (...claims: unknown[]): RoleKey | undefined => {
+  for (const claim of claims) {
+    const resolved = resolveRole(claim);
+    if (resolved) {
+      return resolved;
+    }
+  }
+
+  return undefined;
 };
 
 const parseBody = async (response: Response): Promise<unknown> => {
@@ -238,7 +221,7 @@ export const loginInternalUser = async (
 
   const token = payload?.Token as string | undefined;
   const jwtPayload = token ? parseJwtPayload(token) : null;
-  const role = resolveRole(payload?.Role) ?? resolveRole(jwtPayload?.role);
+  const role = resolveCanonicalRole(payload?.CanonicalRoleKey, payload?.Role, jwtPayload?.role);
   const internalUserId =
     (typeof payload?.InternalUserId === 'string' ? payload.InternalUserId : undefined) ??
     (typeof jwtPayload?.sub === 'string' ? jwtPayload.sub : undefined);
@@ -248,6 +231,7 @@ export const loginInternalUser = async (
     Status: payload?.Status ?? 'Success',
     Token: token ?? '',
     Role: role,
+    CanonicalRoleKey: role,
     InternalUserId: internalUserId,
     ErrorMessage: payload?.ErrorMessage
   } as InternalLoginResponse;
@@ -315,7 +299,13 @@ export const fetchInternalRoles = async (): Promise<InternalRoleRecord[]> => {
 
   return payload.filter((role): role is InternalRoleRecord => {
     return Boolean(role) && typeof role.RoleName === 'string';
-  });
+  }).map((role) => ({
+    RoleId: role.RoleId,
+    RoleName: role.RoleName,
+    CanonicalRoleKey: resolveCanonicalRole(role.CanonicalRoleKey, role.RoleName),
+    Description: role.Description,
+    IsActive: Boolean(role.IsActive)
+  }));
 };
 
 export const fetchInternalUnits = async (): Promise<InternalOrganizationalUnitRecord[]> => {
@@ -382,11 +372,10 @@ export const fetchInternalModules = async (token?: string | null): Promise<Inter
       catalogActions: Array.isArray(module.CatalogActions)
         ? module.CatalogActions.filter((action: unknown): action is string => typeof action === 'string')
         : [],
-      allowedRoles: Array.isArray(module.AllowedRoles)
-        ? module.AllowedRoles
-            .map((roleValue: unknown) => normalizeAllowedRole(roleValue))
-            .filter((roleValue: RoleKey | null): roleValue is RoleKey => Boolean(roleValue))
-        : []
+      grantSource: typeof module.GrantSource === 'string' ? module.GrantSource : undefined,
+      isVisible: typeof module.IsVisible === 'boolean' ? module.IsVisible : undefined,
+      hasRoleOverride: typeof module.HasRoleOverride === 'boolean' ? module.HasRoleOverride : undefined,
+      hasUserOverride: typeof module.HasUserOverride === 'boolean' ? module.HasUserOverride : undefined
     }));
 };
 
@@ -426,11 +415,10 @@ export const fetchInternalModulesCatalog = async (token?: string | null): Promis
       catalogActions: Array.isArray(module.CatalogActions)
         ? module.CatalogActions.filter((action: unknown): action is string => typeof action === 'string')
         : [],
-      allowedRoles: Array.isArray(module.AllowedRoles)
-        ? module.AllowedRoles
-            .map((roleValue: unknown) => normalizeAllowedRole(roleValue))
-            .filter((roleValue: RoleKey | null): roleValue is RoleKey => Boolean(roleValue))
-        : []
+      grantSource: typeof module.GrantSource === 'string' ? module.GrantSource : undefined,
+      isVisible: typeof module.IsVisible === 'boolean' ? module.IsVisible : undefined,
+      hasRoleOverride: typeof module.HasRoleOverride === 'boolean' ? module.HasRoleOverride : undefined,
+      hasUserOverride: typeof module.HasUserOverride === 'boolean' ? module.HasUserOverride : undefined
     }));
 };
 
@@ -655,7 +643,11 @@ export const fetchInternalUserProfile = async (token?: string | null): Promise<I
   });
   console.log('[Internal Auth] Profile response status:', response.status);
 
-  return parseResponse<InternalUserProfile>(response, 'Unable to load your profile.');
+  const payload = await parseResponse<InternalUserProfile>(response, 'Unable to load your profile.');
+  return {
+    ...payload,
+    CanonicalRoleKey: resolveCanonicalRole(payload?.CanonicalRoleKey, payload?.RoleName)
+  };
 };
 
 export const updateInternalUserProfile = async (
@@ -684,7 +676,13 @@ export const fetchInternalUsers = async (token: string): Promise<InternalUserPro
     credentials: 'include'
   });
 
-  return parseResponse<InternalUserProfile[]>(response, 'Unable to fetch internal users.');
+  const payload = await parseResponse<InternalUserProfile[]>(response, 'Unable to fetch internal users.');
+  return Array.isArray(payload)
+    ? payload.map((user) => ({
+        ...user,
+        CanonicalRoleKey: resolveCanonicalRole(user.CanonicalRoleKey, user.RoleName)
+      }))
+    : [];
 };
 
 export const updateInternalUserRole = async (

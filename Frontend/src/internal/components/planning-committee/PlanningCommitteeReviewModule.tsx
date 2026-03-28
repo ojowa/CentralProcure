@@ -380,7 +380,7 @@ export const PlanningCommitteeReviewModule: React.FC<Props> = ({
         onClose={() => setIsLinkModalOpen(false)}
         onLink={handleLinkSubmit}
         onLoadPlans={async () => {
-          return state.availablePlans.length > 0 ? state.availablePlans : await loadPlans('Under Review');
+          return state.availablePlans.length > 0 ? state.availablePlans : await loadPlans();
         }}
         error={planModalError}
         notice={planNotice}

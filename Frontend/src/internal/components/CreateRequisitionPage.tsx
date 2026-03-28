@@ -35,9 +35,12 @@ import {
   buildEmptyForm,
   buildFormFromDetail,
   buildPayload,
+  canCreateRequisitionFromModule,
+  canEditRequisitionFromAuthority,
   createLineItem,
   DEPARTMENT_HEAD_QUEUE_STATUSES,
   getPageSize,
+  isEditableRequisitionFromAuthority,
   getStepIndex,
   normalizeItemCatalog,
   resolveDepartmentHeadAction,
@@ -56,10 +59,8 @@ import {
   RequisitionCreateView
 } from './requisitionWorkspace/sectionViews';
 import { WorkflowProgressStepper } from './WorkflowProgressStepper';
-import { getHumanStatus } from '../utils/workflow';
 
 const EDIT_STORAGE_KEY = 'internal.requisitioningOfficer.editDraft';
-const ROLE_EDITABLE = new Set<RoleKey>(['requisitioning_officer', 'department_head', 'admin']);
 
 interface Props {
   module: InternalModule;
@@ -147,12 +148,17 @@ export const CreateRequisitionPage = ({ module, token, role, userEmail, availabl
 
   const routingBand = useMemo(() => resolveThresholdRouting(totalEstimate, thresholdBands), [totalEstimate]);
   const activeStepIndex = getStepIndex(selectedDetail);
-  const canEditDrafts = Boolean(token && role && ROLE_EDITABLE.has(role));
-  const canSaveCurrentForm = Boolean(token && canEditDrafts);
+  const canCreateDrafts = Boolean(token && canCreateRequisitionFromModule(module));
+  const canEditSelectedDetail = canEditRequisitionFromAuthority(selectedDetail?.Authority);
+  const canEditDrafts = editingId ? canEditSelectedDetail : canCreateDrafts;
+  const canSaveCurrentForm = Boolean(token && (editingId ? canEditSelectedDetail : canCreateDrafts));
   const canOpenCreateModule = availableModuleIds.includes('create-requisition');
-  const isSelectedEditable = Boolean(selectedDetail && editableRequisitionStatuses.has(selectedDetail.Status));
+  const isSelectedEditable = isEditableRequisitionFromAuthority(selectedDetail?.Authority);
   const departmentHeadQueue = useMemo(
-    () => requisitions.filter((record) => DEPARTMENT_HEAD_QUEUE_STATUSES.has(record.Status)),
+    () =>
+      requisitions.filter((record) =>
+        record.Authority?.CanEdit ||
+        DEPARTMENT_HEAD_QUEUE_STATUSES.has(record.Status)),
     [requisitions]
   );
   const assignableUnits = useMemo(
@@ -558,7 +564,7 @@ export const CreateRequisitionPage = ({ module, token, role, userEmail, availabl
       await loadRequisitions(1);
       setFilters((previous) => ({ ...previous, page: 1 }));
 
-      if (editableRequisitionStatuses.has(response.Status)) {
+      if (response.Authority?.IsEditable || editableRequisitionStatuses.has(response.Status)) {
         setEditingId(response.RequisitionId);
         setForm(buildFormFromDetail(response));
       } else {
@@ -644,7 +650,7 @@ export const CreateRequisitionPage = ({ module, token, role, userEmail, availabl
             : `Department head review note recorded for ${updated.Title}.`
       );
 
-      if (editingId === updated.RequisitionId && !editableRequisitionStatuses.has(updated.Status)) {
+      if (editingId === updated.RequisitionId && !isEditableRequisitionFromAuthority(updated.Authority)) {
         setEditingId(null);
         setForm(buildEmptyForm());
       }
@@ -746,7 +752,7 @@ export const CreateRequisitionPage = ({ module, token, role, userEmail, availabl
       activeStepIndex={activeStepIndex}
       isSelectedEditable={isSelectedEditable}
       isDepartmentHead={isDepartmentHead}
-      isAdmin={role === 'admin'}
+      isAdmin={Boolean(selectedDetail?.Authority?.CanDelete)}
       canEditDrafts={canEditDrafts}
       canOpenSelectedForEdit={canOpenCreateModule}
       isSaving={isSaving}

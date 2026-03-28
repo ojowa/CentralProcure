@@ -82,6 +82,12 @@ public partial class PlanningCommitteeReviewController
             ?? user.Identity?.Name
             ?? string.Empty;
 
+    private static string ResolveCommitteeDecisionActor(ClaimsPrincipal user)
+        => user.FindFirstValue(ClaimTypes.Email)
+            ?? user.FindFirstValue(ClaimTypes.Name)
+            ?? user.Identity?.Name
+            ?? string.Empty;
+
     private bool IsPlanningCommitteeAdmin()
     {
         var resolvedRole = WorkflowActionGrantService.ResolveRoleKey(User);

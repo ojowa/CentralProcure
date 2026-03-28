@@ -2,27 +2,21 @@
 
 import type { ReactNode } from 'react';
 import { requisitionSteps, type BudgetLineItem } from '../../data/internalData';
-import type { RequisitionDetail, WorkflowActionSnapshotResponse, WorkflowRuntimeHistoryEntry, WorkflowRuntimeSnapshot } from '../../types/internal';
+import type {
+  RequisitionDetail,
+  RequisitionRouteDecision,
+  WorkflowActionSnapshotResponse,
+  WorkflowRuntimeHistoryEntry,
+  WorkflowRuntimeSnapshot
+} from '../../types/internal';
 import { formatCurrency, formatDate, formatDateTimeShort, requisitionStatusTone, toTitle } from '../../utils/procureUtils';
-import { getHumanStatus } from '../../utils/workflow';
 import { WorkflowProgressStepper } from '../WorkflowProgressStepper';
 import type { WorkflowRuntimeWithDisplay } from '../workflowDisplayTypes';
-import { buildDepartmentHeadChecklist, resolveDepartmentHeadAction, type WorkspaceMode } from './helpers';
+import { buildDepartmentHeadChecklist, getAuthorityStageLabel, resolveDepartmentHeadAction, type WorkspaceMode } from './helpers';
 import { DepartmentHeadQueueCard, RequisitionQuickLinks } from './quickLinks';
 import { RequisitionRoutingTimeline } from '../RequisitionRoutingTimeline';
 
 export { DepartmentHeadQueueCard, RequisitionQuickLinks } from './quickLinks';
-
-type RequisitionRouteDecision = {
-  ApprovalRoute?: string | null;
-  ApprovalAuthorityCode?: string | null;
-  ApprovalAuthorityLabel?: string | null;
-  RequiresCgisApproval?: boolean;
-  RequiresBoard?: boolean;
-  RequiresBpp?: boolean;
-  GovernanceBodyName?: string | null;
-  Notes?: string | null;
-};
 
 type RequisitionDetailWithRouteDecision = RequisitionDetail & { RouteDecision?: RequisitionRouteDecision | null };
 
@@ -65,10 +59,9 @@ export const DepartmentHeadPanel = ({
   const checklist = buildDepartmentHeadChecklist(detail, catalog);
   const completedChecks = checklist.filter((item) => item.complete).length;
   const readinessPercent = Math.round((completedChecks / Math.max(checklist.length, 1)) * 100);
-  const runtimeStage = workflowRuntime?.CurrentStageTitle || workflowSnapshot?.CurrentStageTitle || detail.CurrentStage || detail.Status;
-  const routeDecision = workflowSnapshot?.RouteDecision;
+  const runtimeStage = getAuthorityStageLabel(detail, workflowRuntime?.Display?.CurrentStageTitle || workflowRuntime?.CurrentStageTitle || workflowSnapshot?.CurrentStageTitle);
+  const routeDecision = detail.RouteDecision ?? workflowSnapshot?.RouteDecision;
   const grantedActions = workflowSnapshot?.Actions ?? [];
-  const runtimeWithDisplay = workflowRuntime as WorkflowRuntimeWithDisplay | null;
 
   return (
     <>
@@ -151,7 +144,7 @@ export const DepartmentHeadPanel = ({
 
       <div className="requisition-detail-note">
         <h4>Workflow Timeline</h4>
-        <p>{runtimeWithDisplay?.Display?.CurrentPhaseLabel ? `Current phase: ${runtimeWithDisplay.Display.CurrentPhaseLabel}` : workflowRuntime?.CurrentPhaseKey ? `Current phase: ${toTitle(workflowRuntime.CurrentPhaseKey)}` : 'Live workflow timeline for this requisition.'}</p>
+        <p>{workflowRuntime?.Display?.CurrentPhaseLabel ? `Current phase: ${workflowRuntime.Display.CurrentPhaseLabel}` : workflowRuntime?.CurrentPhaseKey ? `Current phase: ${toTitle(workflowRuntime.CurrentPhaseKey)}` : 'Live workflow timeline for this requisition.'}</p>
 
         {workflowRuntime?.NextTransitions?.length ? (
           <div className="routing-steps" style={{ marginTop: '12px' }}>
@@ -236,10 +229,11 @@ export const RequisitionDetailContent = ({
   onDeleteRequisition,
   departmentHeadPanel
 }: RequisitionDetailContentProps) => {
-  const routeDecision = (detail as RequisitionDetailWithRouteDecision).RouteDecision;
+  const routeDecision = (detail as RequisitionDetailWithRouteDecision).RouteDecision ?? null;
   const runtimeWithDisplay = workflowRuntime as WorkflowRuntimeWithDisplay | null;
   const routingSummary = routeDecision?.ApprovalAuthorityLabel || routeDecision?.ApprovalRoute || 'Route not resolved';
   const routingNotes = routeDecision?.Notes || 'Live approval route and threshold decision from backend workflow policy.';
+  const currentStageLabel = getAuthorityStageLabel(detail, runtimeWithDisplay?.Display?.CurrentStageTitle || workflowRuntime?.CurrentStageTitle);
 
   return (
     <>
@@ -266,7 +260,7 @@ export const RequisitionDetailContent = ({
         <div><span>Funding Source</span><strong>{detail.FundingSource || 'Not set'}</strong></div>
         <div><span>Procurement Type</span><strong>{detail.ProcurementType || 'Not set'}</strong></div>
         <div><span>Required By</span><strong>{formatDate(detail.RequiredBy)}</strong></div>
-        <div><span>Current Stage</span><strong>{getHumanStatus(detail.CurrentStage, detail.Status)}</strong></div>
+        <div><span>Current Stage</span><strong>{currentStageLabel}</strong></div>
         <div><span>Final Committee Decision</span><strong>{detail.FinalCommitteeDecision || 'Pending'}</strong></div>
         <div><span>Budget Code</span><strong>{detail.BudgetCode || 'Not linked'}</strong></div>
         <div><span>APP Item</span><strong>{detail.AppItemId || 'Not linked'}</strong></div>
@@ -359,7 +353,7 @@ export const RequisitionDetailContent = ({
       <div className="requisition-detail-note">
         <RequisitionRoutingTimeline
           history={workflowHistory}
-          currentStage={workflowRuntime?.CurrentStageTitle || detail.CurrentStage}
+          currentStage={currentStageLabel}
           isLoading={isWorkflowLoading}
         />
       </div>

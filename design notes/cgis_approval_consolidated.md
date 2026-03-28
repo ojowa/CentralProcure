@@ -667,9 +667,6 @@ Tasks:
 
 ### Phase 9: Seed Data and Demo Coverage
 Tasks:
-- [ ] seed at least one low-value case awaiting CGIS approval
-- [ ] seed one approved case
-- [ ] seed one returned-for-clarification case
 - [ ] ensure complete supporting pack for at least one demo case
 - [ ] verify threshold alignment
 

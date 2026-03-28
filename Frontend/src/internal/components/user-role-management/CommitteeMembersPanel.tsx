@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import type { InternalRoleRecord, InternalUserProfile } from '../../types/internal';
-import { resolveRole } from '../../services/internalAuthService';
+import { resolveCanonicalRole } from '../../services/internalAuthService';
 import {
   fetchPlanningCommitteeRoleDefinitions,
   fetchPlanningCommitteeChairmanAssignment,
@@ -83,6 +83,11 @@ export const CommitteeMembersPanel: React.FC<CommitteeMembersPanelProps> = ({
     };
   }, [token]);
 
+  const getUserRoleKey = React.useCallback(
+    (user: InternalUserProfile) => resolveCanonicalRole(user.CanonicalRoleKey, user.RoleName),
+    []
+  );
+
   const fallbackCommitteeRoles = useMemo(() => {
     const allowed = new Set([
       'comptroller_procurement',
@@ -95,7 +100,7 @@ export const CommitteeMembersPanel: React.FC<CommitteeMembersPanelProps> = ({
 
     const mapped: PlanningCommitteeRoleDefinition[] = [];
     for (const role of roles) {
-      const roleKey = resolveRole(role.RoleName);
+      const roleKey = resolveCanonicalRole(role.CanonicalRoleKey, role.RoleName);
       if (!roleKey || !allowed.has(roleKey)) {
         continue;
       }
@@ -125,7 +130,7 @@ export const CommitteeMembersPanel: React.FC<CommitteeMembersPanelProps> = ({
 
     const mapped: PlanningCommitteeRoleDefinition[] = [];
     for (const role of roles) {
-      const roleKey = resolveRole(role.RoleName);
+      const roleKey = resolveCanonicalRole(role.CanonicalRoleKey, role.RoleName);
       if (!roleKey || !allowed.has(roleKey)) {
         continue;
       }
@@ -202,7 +207,7 @@ export const CommitteeMembersPanel: React.FC<CommitteeMembersPanelProps> = ({
       </div>
       <div className="roles-grid" style={{ marginTop: '16px' }}>
         {roleConfigs.map((roleConfig) => {
-          const members = users.filter((user) => resolveRole(user.RoleName) === roleConfig.RoleKey);
+          const members = users.filter((user) => getUserRoleKey(user) === roleConfig.RoleKey);
           const selectedUserId = selectionByRole[roleConfig.RoleKey] ?? '';
           const roleSearchQuery = searchByRole[roleConfig.RoleKey] ?? '';
           const filteredRoleUsers = getFilteredRoleUsers(roleConfig.RoleKey);

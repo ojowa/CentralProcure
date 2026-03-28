@@ -51,6 +51,10 @@ temp/
 Backend/.data-protection-keys/
 
 scripts/
+!scripts/
+scripts/*
+!scripts/verify-phase9-workflow.ps1
+!scripts/phase9-workflow-scenarios.json
 
 # Render and deployment-local folders
 .render/

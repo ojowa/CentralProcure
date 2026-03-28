@@ -6,7 +6,6 @@ import { createAuditCloseout } from '../services/auditService';
 import { fetchPaymentTracking, recordPayment } from '../services/paymentTrackingService';
 import { PaymentTrackingModals } from './PaymentTrackingModals';
 import type { WorkflowRuntimeDisplay } from './workflowDisplayTypes';
-import { getHumanStatus } from '../utils/workflow';
 
 const PAYMENT_STAGES = [
   'Awaiting Inspection',
@@ -292,7 +291,7 @@ export const PaymentTrackingModulePage = ({ module, token, userEmail }: Props) =
                 </div>
               </td>
               <td>
-                <div>{getHumanStatus(record.CurrentStageKey, record.CurrentStageTitle)}</div>
+                <div>{record.CurrentStageTitle || record.CurrentStageKey || 'Unknown'}</div>
                 <div className="plan-muted">{record.WorkflowStatus || 'No live status'}</div>
               </td>
               <td>

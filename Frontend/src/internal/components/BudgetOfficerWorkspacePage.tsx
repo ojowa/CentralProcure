@@ -32,6 +32,7 @@ import { BudgetReleaseForm } from './budget-officer/BudgetReleaseForm';
 import { BudgetCommitmentForm } from './budget-officer/BudgetCommitmentForm';
 import { BudgetCommitmentLedger } from './budget-officer/BudgetCommitmentLedger';
 import { BudgetReleaseLedger } from './budget-officer/BudgetReleaseLedger';
+import { hasModuleAction } from './requisitionWorkspace/helpers';
 
 type Props = {
   module: InternalModule;
@@ -92,13 +93,13 @@ export const BudgetOfficerWorkspacePage = ({ module, token, role }: Props) => {
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const allowedBudgetRoles = module.allowedRoles?.length
-    ? module.allowedRoles
-    : ['financial_unit_officer', 'accounting_officer', 'admin'];
+  const hasBudgetAuthority = Boolean(token) && (
+    hasModuleAction(module, 'budget.confirm') ||
+    hasModuleAction(module, 'budget.view') ||
+    hasModuleAction(module, 'planning_committee.view')
+  );
 
-  const hasBudgetAuthority = Boolean(role && allowedBudgetRoles.includes(role));
-
-  const canTakeDecisions = hasBudgetAuthority;
+  const canTakeDecisions = Boolean(token) && hasModuleAction(module, 'budget.confirm');
   const canCreateBudget = hasBudgetAuthority;
   const canViewLedger = hasBudgetAuthority;
 

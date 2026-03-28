@@ -4,7 +4,7 @@ import type {
   ModuleAccessAuditEntry
 } from './internalAuthService';
 import type { InternalUserProfile } from '../types/internal';
-import { COOKIE_SESSION_TOKEN } from './internalAuthService';
+import { COOKIE_SESSION_TOKEN, resolveCanonicalRole } from './internalAuthService';
 export type { RoleModuleAccessGrant, UserModuleAccessGrant, ModuleAccessAuditEntry } from './internalAuthService';
 
 const normalizeBasePath = (value: string): string => {
@@ -91,6 +91,7 @@ export type User = InternalUserProfile & {
 export interface Role {
   RoleId: string;
   RoleName: string;
+  CanonicalRoleKey?: InternalUserProfile['CanonicalRoleKey'];
   Description?: string;
   IsActive: boolean;
 }
@@ -125,7 +126,13 @@ export const fetchUsers = async (token: string): Promise<User[]> => {
     headers: buildAuthHeaders(token),
     credentials: 'include'
   });
-  return parseResponse<User[]>(response, 'Failed to fetch users');
+  const payload = await parseResponse<User[]>(response, 'Failed to fetch users');
+  return Array.isArray(payload)
+    ? payload.map((user) => ({
+        ...user,
+        CanonicalRoleKey: resolveCanonicalRole(user.CanonicalRoleKey, user.RoleName)
+      }))
+    : [];
 };
 
 export const updateUser = async (
@@ -143,7 +150,11 @@ export const updateUser = async (
     credentials: 'include',
     body: JSON.stringify(data)
   });
-  return parseResponse<User>(response, 'Failed to update user');
+  const payload = await parseResponse<User>(response, 'Failed to update user');
+  return {
+    ...payload,
+    CanonicalRoleKey: resolveCanonicalRole(payload?.CanonicalRoleKey, payload?.RoleName)
+  };
 };
 
 export const updateUserRole = async (
@@ -180,7 +191,11 @@ export const updateUserStatus = async (
     credentials: 'include',
     body: JSON.stringify({ Status: status, IsActive: isActive })
   });
-  return parseResponse<User>(response, 'Failed to update user status');
+  const payload = await parseResponse<User>(response, 'Failed to update user status');
+  return {
+    ...payload,
+    CanonicalRoleKey: resolveCanonicalRole(payload?.CanonicalRoleKey, payload?.RoleName)
+  };
 };
 
 export const resetUserPassword = async (

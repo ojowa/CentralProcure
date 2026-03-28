@@ -180,14 +180,6 @@ internal static class InternalModuleCatalog
                     .OrderBy(action => action, StringComparer.OrdinalIgnoreCase)
                     .ToArray();
 
-                var allowedRoles = group
-                    .SelectMany(module => module.AllowedRoles)
-                    .Select(NormalizeRoleKey)
-                    .OfType<string>()
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .OrderBy(roleKey => roleKey, StringComparer.OrdinalIgnoreCase)
-                    .ToArray();
-
                 return new InternalModuleResult(
                     first.Id,
                     first.Title,
@@ -196,8 +188,7 @@ internal static class InternalModuleCatalog
                     first.Microservice,
                     first.ControlPurpose,
                     actions,
-                    catalogActions,
-                    allowedRoles);
+                    catalogActions);
             })
             .ToArray();
     }
@@ -231,14 +222,6 @@ internal static class InternalModuleCatalog
                     .OrderBy(action => action, StringComparer.OrdinalIgnoreCase)
                     .ToArray();
 
-                var allowedRoles = group
-                    .SelectMany(module => module.AllowedRoles)
-                    .Select(NormalizeRoleKey)
-                    .OfType<string>()
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .OrderBy(roleKey => roleKey, StringComparer.OrdinalIgnoreCase)
-                    .ToArray();
-
                 return new InternalModuleResult(
                     first.Id,
                     first.Title,
@@ -247,8 +230,7 @@ internal static class InternalModuleCatalog
                     first.Microservice,
                     first.ControlPurpose,
                     actions,
-                    catalogActions,
-                    allowedRoles);
+                    catalogActions);
             })
             .ToArray();
     }

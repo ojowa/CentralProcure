@@ -6,7 +6,6 @@ import { fetchTenderWorkflowDisplay } from '../services/tenderWorkflowService';
 import { fetchTenders } from '../services/tenderService';
 import { fetchRequisitionDetail } from '../services/requisitionService';
 import { WorkflowProgressStepper } from './WorkflowProgressStepper';
-import { getHumanStatus } from '../utils/workflow';
 import type { WorkflowRuntimeDisplay } from './workflowDisplayTypes';
 import { getInternalDashboardPath } from '../utils/internalRoutes';
 
@@ -545,7 +544,7 @@ export const TenderCreatePage: React.FC<Props> = ({ token, module }) => {
             <h3>{tender.Title}</h3>
             <div className="plan-summary-card__grid">
               <div><small>Reference</small><p>{tender.TenderId?.slice(0, 8).toUpperCase()}</p></div>
-              <div><small>Status</small><p>{getHumanStatus(workflow?.CurrentStageKey, workflow?.CurrentStageTitle || tender.Status)}</p></div>
+              <div><small>Status</small><p>{workflow?.CurrentStageTitle || tender.Status || 'Unknown'}</p></div>
               <div><small>Budget</small><p>{tender.Budget?.toLocaleString('en-NG', { style: 'currency', currency: 'NGN' })}</p></div>
             </div>
           </div>

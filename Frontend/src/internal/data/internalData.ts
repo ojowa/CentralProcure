@@ -88,8 +88,7 @@ const requisitionDepartmentModules: InternalModule[] = [
     description: 'Initiate departmental procurement requests with budget and requirement metadata.',
     microservice: 'Requisition Service',
     controlPurpose: 'Controlled initiation of procurement.',
-    actions: ['requisition.create'],
-    allowedRoles: ['requisitioning_officer', 'department_head']
+    actions: ['requisition.create']
   },
   {
     id: 'requisition-history',
@@ -98,8 +97,7 @@ const requisitionDepartmentModules: InternalModule[] = [
     description: 'View historical department requests and current workflow states.',
     microservice: 'Requisition Service',
     controlPurpose: 'Visibility without unauthorized control.',
-    actions: ['requisition.view'],
-    allowedRoles: ['requisitioning_officer', 'department_head']
+    actions: ['requisition.view']
   },
   {
     id: 'requisition-tracking',
@@ -108,8 +106,7 @@ const requisitionDepartmentModules: InternalModule[] = [
     description: 'Track routing progress across procurement, evaluation, and approvals.',
     microservice: 'Audit and Compliance Service',
     controlPurpose: 'Read-only timeline for accountable traceability.',
-    actions: ['requisition.track'],
-    allowedRoles: ['requisitioning_officer', 'department_head', 'complaints_review_officer', 'audit_oversight', 'admin']
+    actions: ['requisition.track']
   },
   {
     id: 'department-head-review',
@@ -118,8 +115,7 @@ const requisitionDepartmentModules: InternalModule[] = [
     description: 'Review, endorse, return, or reject departmental requisitions awaiting approval.',
     microservice: 'Requisition Service',
     controlPurpose: 'Department-level validation before procurement processing.',
-    actions: ['requisition.endorse', 'requisition.return', 'requisition.reject'],
-    allowedRoles: ['department_head']
+    actions: ['requisition.endorse', 'requisition.return', 'requisition.reject']
   }
 ];
 
@@ -131,8 +127,7 @@ const procurementPlanningModules: InternalModule[] = [
     description: 'Manage departmental and agency-wide procurement plans and item ledgers.',
     microservice: 'Procurement Workflow Service',
     controlPurpose: 'Mandatory PPA 2007 baseline for all spending.',
-    actions: ['plan.create', 'plan.view', 'plan.update'],
-    allowedRoles: ['planning_statistics_officer', 'comptroller_procurement', 'accounting_officer']
+    actions: ['plan.create', 'plan.view', 'plan.update']
   },
   {
     id: 'procurement-planning-committee',
@@ -141,15 +136,7 @@ const procurementPlanningModules: InternalModule[] = [
     description: 'Link requisitions to APP items and record committee review decisions.',
     microservice: 'Procurement Workflow Service',
     controlPurpose: 'Section 21 planning committee visibility and pre-tender discipline.',
-    actions: ['planning_committee.view'],
-    allowedRoles: [
-      'planning_statistics_officer',
-      'financial_unit_officer',
-      'department_head',
-      'legal_reviewer',
-      'procurement_secretary',
-      'comptroller_procurement'
-    ]
+    actions: ['planning_committee.view']
   }
 ];
 
@@ -163,8 +150,7 @@ const tenderManagementModules: InternalModule[] = [
     description: 'Create tender drafts from approved requisitions and publish draft tenders from one workspace.',
     microservice: 'Vendor Sourcing Service',
     controlPurpose: 'Controlled drafting and publication of bidding opportunities.',
-    actions: ['tender.create', 'tender.publish'],
-    allowedRoles: ['comptroller_procurement']
+    actions: ['tender.create', 'tender.publish']
   },
   {
     id: 'bid-opening-session',
@@ -173,8 +159,7 @@ const tenderManagementModules: InternalModule[] = [
     description: 'Control and monitor public bid opening sessions in real-time.',
     microservice: 'Vendor Sourcing Service',
     controlPurpose: 'PPA compliance for transparent bid unlocking.',
-    actions: ['bidopening.control', 'bidopening.view'],
-    allowedRoles: ['comptroller_procurement', 'ict_admin']
+    actions: ['bidopening.control', 'bidopening.view']
   }
 ];
 
@@ -186,8 +171,7 @@ const evaluationModules: InternalModule[] = [
     description: 'Score vendor technical bids against eligibility and quality criteria.',
     microservice: 'Procurement Workflow Service',
     controlPurpose: 'Ensure technical compliance before financial opening.',
-    actions: ['evaluation.technical.score', 'evaluation.actions'],
-    allowedRoles: ['technical_evaluator', 'evaluation_committee']
+    actions: ['evaluation.technical.score', 'evaluation.actions']
   },
   {
     id: 'financial-evaluation',
@@ -196,8 +180,7 @@ const evaluationModules: InternalModule[] = [
     description: 'Review commercial bids and rank by lowest evaluated responsive cost.',
     microservice: 'Procurement Workflow Service',
     controlPurpose: 'Finalize value-for-money recommendations.',
-    actions: ['evaluation.financial.score', 'evaluation.actions'],
-    allowedRoles: ['financial_evaluator', 'evaluation_committee']
+    actions: ['evaluation.financial.score', 'evaluation.actions']
   }
 ];
 
@@ -209,8 +192,7 @@ const approvalModules: InternalModule[] = [
     description: 'Executive workspace for low-value procurement approvals and statutory executive decisions.',
     microservice: 'Procurement Workflow Service',
     controlPurpose: 'Direct executive authorization for low-value routes.',
-    actions: ['cgis.approve', 'cgis.reject', 'cgis.return', 'cgis.escalate'],
-    allowedRoles: ['accounting_officer', 'admin']
+    actions: ['cgis.approve', 'cgis.reject', 'cgis.return', 'cgis.escalate']
   },
   {
     id: 'tenders-board-approval',
@@ -219,8 +201,7 @@ const approvalModules: InternalModule[] = [
     description: 'Run CGIS direct approvals, board decisions chaired by CGIS, and escalation-ready award reviews.',
     microservice: 'Procurement Workflow Service',
     controlPurpose: 'Statutory oversight and final spending authorization.',
-    actions: ['approval.requisition', 'approval.award'],
-    allowedRoles: ['tenders_board', 'accounting_officer']
+    actions: ['approval.requisition', 'approval.award']
   }
 ];
 
@@ -232,8 +213,7 @@ const postAwardModules: InternalModule[] = [
     description: 'Track project execution, log field milestones, and monitor performance.',
     microservice: 'Post-Award Service',
     controlPurpose: 'Ensure value-for-money through physical progress tracking.',
-    actions: ['contract.view', 'milestone.log'],
-    allowedRoles: ['comptroller_procurement', 'department_head', 'accounting_officer']
+    actions: ['contract.view', 'milestone.log']
   }
 ];
 
@@ -245,8 +225,7 @@ const oversightModules: InternalModule[] = [
     description: 'Administrative control over all departmental procurement requests, including hard deletion and state overrides.',
     microservice: 'Requisition Service',
     controlPurpose: 'Ultimate administrative control over requisition lifecycle.',
-    actions: ['requisition.delete', 'requisition.view.all'],
-    allowedRoles: ['admin', 'comptroller_procurement']
+    actions: ['requisition.delete', 'requisition.view.all']
   },
   {
     id: 'threshold-configuration',
@@ -255,8 +234,7 @@ const oversightModules: InternalModule[] = [
     description: 'Configure procurement thresholds, approval routes, and governance rules.',
     microservice: 'Procurement Workflow Service',
     controlPurpose: 'Centralized management of threshold bands and approval authorities.',
-    actions: ['threshold.view', 'threshold.edit', 'threshold.configure'],
-    allowedRoles: ['admin', 'comptroller_procurement']
+    actions: ['threshold.view', 'threshold.edit', 'threshold.configure']
   },
   {
     id: 'bpp-escalation',
@@ -265,8 +243,7 @@ const oversightModules: InternalModule[] = [
     description: 'Manage board-endorsed projects that exceed agency thresholds and require BPP prior review.',
     microservice: 'Procurement Workflow Service',
     controlPurpose: 'PPA 2007 mandatory external validation for high-value projects.',
-    actions: ['bpp.escalate', 'bpp.view'],
-    allowedRoles: ['comptroller_procurement', 'bpp_liaison']
+    actions: ['bpp.escalate', 'bpp.view']
   },
   {
     id: 'administrative-review',
@@ -275,8 +252,7 @@ const oversightModules: InternalModule[] = [
     description: 'Process and resolve formal vendor protests and administrative reviews.',
     microservice: 'Procurement Workflow Service',
     controlPurpose: 'Section 54 compliance for statutory dispute resolution.',
-    actions: ['complaint.review', 'complaint.resolve'],
-    allowedRoles: ['legal_reviewer', 'complaints_review_officer', 'accounting_officer']
+    actions: ['complaint.review', 'complaint.resolve']
   }
 ];
 
@@ -288,29 +264,9 @@ const sharedModules: InternalModule[] = [
     description: 'Manage your personal account details, service identity, and security preferences.',
     microservice: 'Identity Service',
     controlPurpose: 'Self-service account management and identity verification.',
-    actions: ['profile.view', 'profile.update'],
-    allowedRoles: ['admin', 'requisitioning_officer', 'department_head', 'comptroller_procurement', 'procurement_manager', 'planning_statistics_officer', 'financial_unit_officer', 'procurement_secretary', 'legal_reviewer', 'technical_evaluator', 'financial_evaluator', 'evaluation_committee', 'tenders_board', 'tenders_board_secretary', 'accounting_officer', 'bpp_liaison', 'bpp_reviewer', 'complaints_review_officer', 'contract_manager', 'inspection_officer', 'payment_officer', 'audit_oversight', 'ict_admin']
+    actions: ['profile.view', 'profile.update']
   }
 ];
-
-export const roleModuleFallbacks: Partial<Record<RoleKey, InternalModule[]>> = {
-  requisitioning_officer: [...requisitionDepartmentModules, ...sharedModules],
-  department_head: [...requisitionDepartmentModules, ...postAwardModules, ...sharedModules],
-  planning_statistics_officer: [...procurementPlanningModules, ...sharedModules],
-  financial_unit_officer: [...financialControlModules, ...sharedModules],
-  procurement_secretary: [...procurementPlanningModules, ...sharedModules],
-  comptroller_procurement: [...procurementPlanningModules, ...tenderManagementModules, ...postAwardModules, ...oversightModules, ...sharedModules],
-  technical_evaluator: [...evaluationModules, ...sharedModules],
-  financial_evaluator: [...evaluationModules, ...sharedModules],
-  evaluation_committee: [...evaluationModules, ...sharedModules],
-  tenders_board: [...approvalModules, ...sharedModules],
-  accounting_officer: [...financialControlModules, ...approvalModules, ...postAwardModules, ...oversightModules, ...sharedModules],
-  bpp_liaison: [...oversightModules, ...sharedModules],
-  legal_reviewer: [...oversightModules, ...sharedModules],
-  complaints_review_officer: [...oversightModules, ...sharedModules],
-  admin: [...requisitionDepartmentModules, ...procurementPlanningModules, ...financialControlModules, ...tenderManagementModules, ...evaluationModules, ...approvalModules, ...postAwardModules, ...oversightModules, ...sharedModules],
-  ict_admin: [...tenderManagementModules, ...sharedModules]
-};
 
 export const requisitionTypes = ['Goods', 'Works', 'Services'];
 export const requisitionPriorities = ['Normal', 'Urgent', 'Strategic'];
