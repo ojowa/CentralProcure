@@ -11,7 +11,7 @@ This document provides foundational mandates for any AI agent working on the Cen
 ## 2. Technical Stack & Casing Standards
 - **Backend:** .NET 10 Web API (Modular Monolith architecture).
 - **Frontend:** Next.js (TypeScript) with Vanilla/Tailwind CSS.
-- **Database:** Microsoft SQL Server (per memory, strictly). 
+- **Database:** Postgres (per memory, strictly). 
 - **Casing Mandate:** 
     - **DTOs & API Payloads:** ALWAYS use `PascalCase` for property names (e.g., `TenderId`, `Status`).
     - **Frontend State:** Internal module form states must match backend PascalCase DTOs to ensure seamless serialization.
