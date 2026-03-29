@@ -6,6 +6,19 @@ namespace eProcurement.Modules.VendorSourcing.Controllers;
 
 public partial class TendersController
 {
+    private static async Task<List<T>> ExecuteQueryAsync<T>(NpgsqlCommand cmd, Func<NpgsqlDataReader, T> map, CancellationToken ct)
+    {
+        await using var reader = await cmd.ExecuteReaderAsync(ct);
+
+        var results = new List<T>();
+        while (await reader.ReadAsync(ct))
+        {
+            results.Add(map(reader));
+        }
+
+        return results;
+    }
+
     private static async Task<List<T>> ExecuteRefcursorAsync<T>(NpgsqlCommand cmd, Func<NpgsqlDataReader, T> map, CancellationToken ct)
     {
         await cmd.ExecuteNonQueryAsync(ct);

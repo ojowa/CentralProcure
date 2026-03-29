@@ -141,6 +141,32 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE PROCEDURE vendor_sourcing.get_tenders_sp(
+    IN p_status VARCHAR(50),
+    IN p_category VARCHAR(100),
+    IN p_query TEXT,
+    IN p_sort_by VARCHAR(50),
+    IN p_sort_dir VARCHAR(4),
+    IN p_limit INT,
+    IN p_offset INT,
+    OUT p_result refcursor
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    OPEN p_result FOR
+    SELECT * FROM vendor_sourcing.get_tenders(
+        p_status,
+        p_category,
+        p_query,
+        p_sort_by,
+        p_sort_dir,
+        p_limit,
+        p_offset
+    );
+END;
+$$;
+
 DROP PROCEDURE IF EXISTS vendor_sourcing.get_tender_details_sp(UUID);
 DROP FUNCTION IF EXISTS vendor_sourcing.get_tender_details(UUID);
 
@@ -192,6 +218,18 @@ BEGIN
         t.updated_at
     FROM vendor_sourcing.tenders t
     WHERE t.tender_id = p_tender_id;
+END;
+$$;
+
+CREATE OR REPLACE PROCEDURE vendor_sourcing.get_tender_details_sp(
+    IN p_tender_id UUID,
+    OUT p_result refcursor
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    OPEN p_result FOR
+    SELECT * FROM vendor_sourcing.get_tender_details(p_tender_id);
 END;
 $$;
 

@@ -102,11 +102,19 @@ public partial class TendersController : ControllerBase
             await using var tx = await conn.BeginTransactionAsync(ct);
 
             var total = await GetTenderCountAsync(conn, tx, status, category, query, ct);
-            await using var cmd = new NpgsqlCommand("vendor_sourcing.get_tenders_sp", conn, tx)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
-
+            const string sql = """
+SELECT *
+FROM vendor_sourcing.get_tenders(
+    @p_status,
+    @p_category,
+    @p_query,
+    @p_sort_by,
+    @p_sort_dir,
+    @p_limit,
+    @p_offset
+);
+""";
+            await using var cmd = new NpgsqlCommand(sql, conn, tx);
             cmd.Parameters.AddWithValue("p_status", NpgsqlDbType.Varchar, (object?)status ?? DBNull.Value);
             cmd.Parameters.AddWithValue("p_category", NpgsqlDbType.Varchar, (object?)category ?? DBNull.Value);
             cmd.Parameters.AddWithValue("p_query", NpgsqlDbType.Text, (object?)query ?? DBNull.Value);
@@ -114,9 +122,8 @@ public partial class TendersController : ControllerBase
             cmd.Parameters.AddWithValue("p_sort_dir", NpgsqlDbType.Varchar, sortDir);
             cmd.Parameters.AddWithValue("p_limit", NpgsqlDbType.Integer, pageSize);
             cmd.Parameters.AddWithValue("p_offset", NpgsqlDbType.Integer, (page - 1) * pageSize);
-            cmd.Parameters.Add(new NpgsqlParameter("p_result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.Output });
 
-            var items = await ExecuteRefcursorAsync(cmd, MapTenderSummary, ct);
+            var items = await ExecuteQueryAsync(cmd, MapTenderSummary, ct);
             await tx.CommitAsync(ct);
             return Ok(new TenderListResponse(items, page, pageSize, total));
         }
@@ -141,15 +148,14 @@ public partial class TendersController : ControllerBase
             await using var conn = new NpgsqlConnection(connectionString);
             await conn.OpenAsync(ct);
             await using var tx = await conn.BeginTransactionAsync(ct);
-            await using var cmd = new NpgsqlCommand("vendor_sourcing.get_tender_details_sp", conn, tx)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
-
+            const string sql = """
+SELECT *
+FROM vendor_sourcing.get_tender_details(@p_tender_id);
+""";
+            await using var cmd = new NpgsqlCommand(sql, conn, tx);
             cmd.Parameters.AddWithValue("p_tender_id", NpgsqlDbType.Uuid, tenderId);
-            cmd.Parameters.Add(new NpgsqlParameter("p_result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.Output });
 
-            var results = await ExecuteRefcursorAsync(cmd, MapTenderDetail, ct);
+            var results = await ExecuteQueryAsync(cmd, MapTenderDetail, ct);
             await tx.CommitAsync(ct);
             return results.FirstOrDefault() is { } result ? Ok(result) : NotFound();
         }
