@@ -44,6 +44,26 @@ const buildAuthHeaders = (token?: string | null): Record<string, string> => {
   };
 };
 
+const readErrorBody = async (response: Response): Promise<string> => {
+  try {
+    const text = await response.text();
+    return text || '';
+  } catch {
+    return '';
+  }
+};
+
+const logRequestFailure = async (label: string, url: string, response: Response) => {
+  const body = await readErrorBody(response);
+  console.error(`[${label}] request failed`, {
+    url,
+    status: response.status,
+    statusText: response.statusText,
+    body
+  });
+  return body;
+};
+
 export const fetchTenderDetails = async (tenderId: string, token: string) => {
   const url = `${serviceBaseUrls.vendorSourcing}/api/internal/tenders/${tenderId}`;
   const response = await fetch(url, {
@@ -174,7 +194,7 @@ export const fetchBidOpeningSessions = async (token: string) => {
     credentials: 'include'
   });
   if (!response.ok) {
-    const text = await response.text();
+    const text = await logRequestFailure('fetchBidOpeningSessions', url, response);
     throw new Error(text || `Failed to fetch bid opening sessions (${response.status})`);
   }
   const data = await response.json();
@@ -216,7 +236,10 @@ export const fetchBidOpeningSessionDetails = async (sessionId: string, token: st
     headers: buildAuthHeaders(token),
     credentials: 'include'
   });
-  if (!response.ok) throw new Error('Failed to fetch session details');
+  if (!response.ok) {
+    const text = await logRequestFailure('fetchBidOpeningSessionDetails', url, response);
+    throw new Error(text || 'Failed to fetch session details');
+  }
   return response.json();
 };
 
@@ -233,7 +256,7 @@ export const createBidOpeningSession = async (data: any, token: string) => {
     body: JSON.stringify(data)
   });
   if (!response.ok) {
-    const text = await response.text();
+    const text = await logRequestFailure('createBidOpeningSession', url, response);
     throw new Error(text || 'Failed to create session');
   }
   return response.json();
@@ -252,7 +275,7 @@ export const updateBidOpeningSession = async (sessionId: string, data: any, toke
     body: JSON.stringify(data)
   });
   if (!response.ok) {
-    const text = await response.text();
+    const text = await logRequestFailure('updateBidOpeningSession', url, response);
     throw new Error(text || 'Failed to update session');
   }
   return response.json();

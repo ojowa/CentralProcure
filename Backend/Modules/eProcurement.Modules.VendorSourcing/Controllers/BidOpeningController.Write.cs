@@ -46,6 +46,19 @@ public partial class BidOpeningController
 
             if (!hasAction)
             {
+                var roleKey = eProcurement.Shared.Workflow.WorkflowActionGrantService.ResolveRoleKey(User) ?? "unresolved";
+                var snapshot = await _workflowRuntimeTracker.GetAsync(
+                    GetConnectionString(),
+                    "tender",
+                    request.TenderId,
+                    ct);
+                _logger.LogWarning(
+                    "Bid opening session create forbidden for tender {TenderId}. Role={RoleKey}, Stage={StageKey}, Status={Status}, User={UserName}.",
+                    request.TenderId,
+                    roleKey,
+                    snapshot?.CurrentStageKey ?? "unknown",
+                    snapshot?.CurrentStatus ?? "unknown",
+                    User.Identity?.Name ?? User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "anonymous");
                 return Forbid();
             }
 
@@ -144,6 +157,19 @@ public partial class BidOpeningController
 
             if (!hasAction)
             {
+                var roleKey = eProcurement.Shared.Workflow.WorkflowActionGrantService.ResolveRoleKey(User) ?? "unresolved";
+                var snapshot = await _workflowRuntimeTracker.GetAsync(
+                    GetConnectionString(),
+                    "bid_opening_session",
+                    sessionId,
+                    ct);
+                _logger.LogWarning(
+                    "Bid opening session update forbidden for session {SessionId}. Role={RoleKey}, Stage={StageKey}, Status={Status}, User={UserName}.",
+                    sessionId,
+                    roleKey,
+                    snapshot?.CurrentStageKey ?? "unknown",
+                    snapshot?.CurrentStatus ?? "unknown",
+                    User.Identity?.Name ?? User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "anonymous");
                 return Forbid();
             }
 
