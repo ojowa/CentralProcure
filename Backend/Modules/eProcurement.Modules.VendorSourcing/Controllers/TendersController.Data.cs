@@ -72,32 +72,69 @@ public partial class TendersController
 
     private static string? GetNullableString(NpgsqlDataReader r, string n)
     {
-        var ordinal = r.GetOrdinal(n);
-        return r.IsDBNull(ordinal) ? null : r.GetString(ordinal);
+        var ordinal = TryGetOrdinal(r, n);
+        if (!ordinal.HasValue)
+        {
+            return null;
+        }
+
+        return r.IsDBNull(ordinal.Value) ? null : r.GetString(ordinal.Value);
     }
 
     private static DateTime? GetNullableDateTime(NpgsqlDataReader r, string n)
     {
-        var ordinal = r.GetOrdinal(n);
-        return r.IsDBNull(ordinal) ? null : r.GetDateTime(ordinal);
+        var ordinal = TryGetOrdinal(r, n);
+        if (!ordinal.HasValue)
+        {
+            return null;
+        }
+
+        return r.IsDBNull(ordinal.Value) ? null : r.GetDateTime(ordinal.Value);
     }
 
     private static decimal? GetNullableDecimal(NpgsqlDataReader r, string n)
     {
-        var ordinal = r.GetOrdinal(n);
-        return r.IsDBNull(ordinal) ? null : r.GetFieldValue<decimal>(ordinal);
+        var ordinal = TryGetOrdinal(r, n);
+        if (!ordinal.HasValue)
+        {
+            return null;
+        }
+
+        return r.IsDBNull(ordinal.Value) ? null : r.GetFieldValue<decimal>(ordinal.Value);
     }
 
     private static int? GetNullableInt(NpgsqlDataReader r, string n)
     {
-        var ordinal = r.GetOrdinal(n);
-        return r.IsDBNull(ordinal) ? null : r.GetInt32(ordinal);
+        var ordinal = TryGetOrdinal(r, n);
+        if (!ordinal.HasValue)
+        {
+            return null;
+        }
+
+        return r.IsDBNull(ordinal.Value) ? null : r.GetInt32(ordinal.Value);
     }
 
     private static Guid? GetNullableGuid(NpgsqlDataReader r, string n)
     {
-        var ordinal = r.GetOrdinal(n);
-        return r.IsDBNull(ordinal) ? null : r.GetGuid(ordinal);
+        var ordinal = TryGetOrdinal(r, n);
+        if (!ordinal.HasValue)
+        {
+            return null;
+        }
+
+        return r.IsDBNull(ordinal.Value) ? null : r.GetGuid(ordinal.Value);
+    }
+
+    private static int? TryGetOrdinal(NpgsqlDataReader r, string n)
+    {
+        try
+        {
+            return r.GetOrdinal(n);
+        }
+        catch (IndexOutOfRangeException)
+        {
+            return null;
+        }
     }
 
     private static async Task<long> GetTenderCountAsync(
