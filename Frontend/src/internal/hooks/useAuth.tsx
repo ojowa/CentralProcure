@@ -131,15 +131,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // First ensure we have a CSRF token for any state-changing requests later
         await fetchCsrfToken();
         
-        console.log('[Internal Auth] Fetching user profile...');
         const profile = await fetchInternalUserProfile();
-        console.log('[Internal Auth] Profile fetched:', profile);
         if (!isMounted) {
           return;
         }
 
         const role = resolveCanonicalRole(profile.CanonicalRoleKey, profile.RoleName);
-        console.log('[Internal Auth] Resolved role:', role);
         if (!role) {
           throw new Error('Internal user role is not configured.');
         }

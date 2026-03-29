@@ -635,13 +635,11 @@ export const fetchModuleAccessAudit = async (
 };
 
 export const fetchInternalUserProfile = async (token?: string | null): Promise<InternalUserProfile> => {
-  console.log('[Internal Auth] Calling profile endpoint:', API_ENDPOINTS.INTERNAL_PROFILE);
   const response = await fetch(API_ENDPOINTS.INTERNAL_PROFILE, {
     method: 'GET',
     headers: buildAuthHeaders(token),
     credentials: 'include'
   });
-  console.log('[Internal Auth] Profile response status:', response.status);
 
   const payload = await parseResponse<InternalUserProfile>(response, 'Unable to load your profile.');
   return {
