@@ -33,6 +33,7 @@ TestResults/
 .dotnet/
 .nuget/
 .offline-nuget/
+.dotnet-patch
 
 # Node / Next.js
 node_modules/
