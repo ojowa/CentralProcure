@@ -15,117 +15,64 @@ export const fetchApprovals = async (
     pageSize?: number;
   }
 ): Promise<PaginatedResponse<ApprovalSummary>> => {
-  // For now, we'll return mock data to simulate the API response
-  // In a real implementation, this would call the actual backend endpoint
-  
   const query = filters?.query?.toLowerCase() || '';
   const statusFilter = filters?.status || '';
   const categoryFilter = filters?.category || '';
   const page = filters?.page ?? 1;
   const pageSize = filters?.pageSize ?? 10;
   
-  // Mock data simulating approvals
-  const mockApprovals: ApprovalSummary[] = [
-    {
-      ApprovalId: 'APP-001',
-      Title: 'Office Equipment Procurement Approval',
-      Description: 'Approval request for new office equipment procurement',
-      Category: 'Office Supplies',
-      Status: 'Pending',
-      SubmittedBy: 'john.doe@gov.ng',
-      SubmittedOn: '2026-03-15T10:30:00Z',
-      Amount: 250000,
-      Priority: 'Medium'
+  // Build query parameters
+  const params = new URLSearchParams();
+  if (query) params.set('query', query);
+  if (statusFilter) params.set('status', statusFilter);
+  if (categoryFilter) params.set('category', categoryFilter);
+  if (page > 1) params.set('page', String(page));
+  if (pageSize !== 10) params.set('pageSize', String(pageSize));
+  
+  const queryString = params.toString();
+  const url = `${process.env.NEXT_PUBLIC_BACKEND_URL ?? 'https://centralprocure-backend.onrender.com'}/api/approvals${queryString ? '?' + queryString : ''}`;
+  
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`
     },
-    {
-      ApprovalId: 'APP-002',
-      Title: 'IT Infrastructure Upgrade',
-      Description: 'Approval for upgrading department IT infrastructure',
-      Category: 'Technology',
-      Status: 'Approved',
-      SubmittedBy: 'jane.smith@gov.ng',
-      SubmittedOn: '2026-03-10T14:15:00Z',
-      Amount: 1500000,
-      Priority: 'High'
-    },
-    {
-      ApprovalId: 'APP-003',
-      Title: 'Vehicle Fleet Maintenance',
-      Description: 'Approval for quarterly vehicle fleet maintenance',
-      Category: 'Transportation',
-      Status: 'Rejected',
-      SubmittedBy: 'mike.johnson@gov.ng',
-      SubmittedOn: '2026-03-05T09:00:00Z',
-      Amount: 75000,
-      Priority: 'Low'
-    }
-  ];
+    credentials: 'include'
+  });
   
-  // Apply filters
-  let filteredApprovals = mockApprovals;
-  
-  if (query) {
-    filteredApprovals = filteredApprovals.filter(approval =>
-      approval.Title.toLowerCase().includes(query) ||
-      approval.Description.toLowerCase().includes(query) ||
-      approval.Category.toLowerCase().includes(query)
-    );
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || `Failed to fetch approvals: ${response.status}`);
   }
   
-  if (statusFilter) {
-    filteredApprovals = filteredApprovals.filter(approval => 
-      approval.Status.toLowerCase() === statusFilter.toLowerCase()
-    );
-  }
-  
-  if (categoryFilter) {
-    filteredApprovals = filteredApprovals.filter(approval => 
-      approval.Category.toLowerCase() === categoryFilter.toLowerCase()
-    );
-  }
-  
-  // Apply pagination
-  const startIndex = (page - 1) * pageSize;
-  const paginatedApprovals = filteredApprovals.slice(startIndex, startIndex + pageSize);
-  
-  // Return mock response
+  const data = await response.json();
   return {
-    Items: paginatedApprovals,
-    Total: filteredApprovals.length
+    Items: data.Items || [],
+    Total: data.Total || 0
   };
 };
 
-// Mock function for fetching approval details
 export const fetchApprovalDetail = async (
   token: string,
   approvalId: string
 ): Promise<ApprovalDetail | null> => {
-  // In a real implementation, this would call the actual backend endpoint
-  // For now, we'll return mock data
+  if (!approvalId) return null;
   
-  const mockDetail: ApprovalDetail = {
-    ApprovalId: approvalId,
-    Title: 'Sample Approval Request',
-    Description: 'This is a detailed approval request for review purposes.',
-    Category: 'Sample Category',
-    Status: 'Pending',
-    SubmittedBy: 'user@example.com',
-    SubmittedOn: '2026-03-15T10:30:00Z',
-    Amount: 500000,
-    Priority: 'Medium',
-    Requirements: 'Detailed requirements would be specified here.',
-    Conditions: 'Specific conditions and contingencies apply.',
-    UpdatedAt: '2026-03-15T10:30:00Z',
-    CurrentStage: 'Pending Review',
-    ReviewHistory: [
-      {
-        Reviewer: 'system',
-        Action: 'submitted',
-        Timestamp: '2026-03-15T10:30:00Z',
-        Comments: 'Approval request submitted for review'
-      }
-    ]
-  };
+  const url = `${process.env.NEXT_PUBLIC_BACKEND_URL ?? 'https://centralprocure-backend.onrender.com'}/api/approvals/${approvalId}`;
   
-  return mockDetail;
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    credentials: 'include'
+  });
+  
+  if (!response.ok) {
+    if (response.status === 404) {
+      return null; // Not found
+    }
+    const errorText = await response.text();
+    throw new Error(errorText || `Failed to fetch approval detail: ${response.status}`);
+  }
+  
+  return response.json();
 };

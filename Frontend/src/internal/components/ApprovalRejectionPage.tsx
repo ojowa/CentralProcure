@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { fetchApprovals } from '../services/approvalService';
+import { fetchApprovals, fetchApprovalDetail } from '../services/approvalService';
 import type { InternalModule, ApprovalSummary, ApprovalDetail, RoleKey } from '../types/internal';
 import { ApprovalDetailContent } from './approvalWorkspace/detailViews';
 import { WorkflowProgressStepper } from './WorkflowProgressStepper';
@@ -88,19 +88,11 @@ export const ApprovalRejectionPage = ({ module, token, role, userEmail, availabl
 
     setIsDetailLoading(true);
     try {
-      // In a real implementation, we would call a fetchApprovalDetail service
-      // For now, we'll simulate with the list data
-      const approval = approvals.find(a => a.ApprovalId === selectedId);
-      if (approval) {
-        // Convert summary to detail (in reality, this would come from a detail endpoint)
-        setSelectedDetail({
-          ...approval,
-          Description: `Detailed description for ${approval.Title}`,
-          Requirements: 'Specific requirements would be here',
-          Conditions: 'Conditions and contingencies details',
-          UpdatedAt: approval.CreatedAt,
-          CurrentStage: 'Pending Review'
-        });
+      const detail = await fetchApprovalDetail(token, selectedId);
+      if (detail) {
+        setSelectedDetail(detail);
+      } else {
+        setSelectedDetail(null);
       }
     } catch (error) {
       setListError(error instanceof Error ? error.message : 'Unable to load approval detail.');

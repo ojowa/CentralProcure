@@ -341,6 +341,31 @@ export interface TenderDetail extends TenderSummary {
     CurrentStage?: string | null;
 }
 
+export interface ApprovalSummary {
+    ApprovalId: string;
+    Title: string;
+    Description: string;
+    Category: string;
+    Status: string;
+    SubmittedBy: string;
+    SubmittedOn: string;
+    Amount?: number | null;
+    Priority?: string;
+}
+
+export interface ApprovalDetail extends ApprovalSummary {
+    Requirements?: string | null;
+    Conditions?: string | null;
+    UpdatedAt: string;
+    CurrentStage?: string | null;
+    ReviewHistory?: Array<{
+        Reviewer: string;
+        Action: string;
+        Timestamp: string;
+        Comments?: string | null;
+    }>;
+}
+
 export interface TenderListResponse {
     Items: TenderSummary[];
     Page: number;
