@@ -11,6 +11,7 @@ Desktop.ini
 *.user
 *.userosscache
 *.sln.docstates
+.claude 
 
 # Logs
 *.log
@@ -33,6 +34,7 @@ TestResults/
 .dotnet/
 .nuget/
 .offline-nuget/
+.dotnet-patched/
 
 # Node / Next.js
 node_modules/
