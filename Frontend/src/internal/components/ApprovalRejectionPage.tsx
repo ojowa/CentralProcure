@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { fetchTenders } from '../services/tenderService';
-import type { InternalModule, TenderSummary, TenderDetail, RoleKey } from '../types/internal';
-import { TenderDetailContent } from './tenderWorkspace/detailViews';
+import { fetchApprovals } from '../services/approvalService';
+import type { InternalModule, ApprovalSummary, ApprovalDetail, RoleKey } from '../types/internal';
+import { ApprovalDetailContent } from './approvalWorkspace/detailViews';
 import { WorkflowProgressStepper } from './WorkflowProgressStepper';
-import { canEditTenderFromAuthority, toTitle } from './tenderWorkspace/helpers';
+import { canEditApprovalFromAuthority, toTitle } from './approvalWorkspace/helpers';
 
 interface Props {
   module: InternalModule;
@@ -16,7 +16,7 @@ interface Props {
   onModuleChange?: (moduleId: string) => void;
 }
 
-export const TenderReviewPage = ({ module, token, role, userEmail, availableModuleIds = [], onModuleChange }: Props) => {
+export const ApprovalRejectionPage = ({ module, token, role, userEmail, availableModuleIds = [], onModuleChange }: Props) => {
   const [filters, setFilters] = useState<{
     query: string;
     status: string;
@@ -29,12 +29,12 @@ export const TenderReviewPage = ({ module, token, role, userEmail, availableModu
     page: 1
   });
 
-  const [tenders, setTenders] = useState<TenderSummary[]>([]);
+  const [approvals, setApprovals] = useState<ApprovalSummary[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [isListLoading, setIsListLoading] = useState(false);
   const [listError, setListError] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [selectedDetail, setSelectedDetail] = useState<TenderDetail | null>(null);
+  const [selectedDetail, setSelectedDetail] = useState<ApprovalDetail | null>(null);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [workflowSnapshot, setWorkflowSnapshot] = useState<any>(null);
@@ -43,9 +43,9 @@ export const TenderReviewPage = ({ module, token, role, userEmail, availableModu
 
   const pageSize = 10;
 
-  const loadTenders = async (pageOverride?: number) => {
+  const loadApprovals = async (pageOverride?: number) => {
     if (!token) {
-      setTenders([]);
+      setApprovals([]);
       setTotalItems(0);
       return;
     }
@@ -55,32 +55,32 @@ export const TenderReviewPage = ({ module, token, role, userEmail, availableModu
     setListError('');
 
     try {
-      const response = await fetchTenders(token, {
+      const response = await fetchApprovals(token, {
         query: filters.query.trim() || undefined,
         status: filters.status || undefined,
         category: filters.category || undefined,
         page,
         pageSize
       });
-      setTenders(response.Items);
+      setApprovals(response.Items);
       setTotalItems(response.Total);
     } catch (error) {
-      setListError(error instanceof Error ? error.message : 'Unable to load tenders.');
+      setListError(error instanceof Error ? error.message : 'Unable to load approvals.');
     } finally {
       setIsListLoading(false);
     }
   };
 
   useEffect(() => {
-    void loadTenders();
+    void loadApprovals();
   }, [token, filters.query, filters.status, filters.category, filters.page, pageSize]);
 
-  const openDetail = (tenderId: string, modal = false) => {
-    setSelectedId(tenderId);
+  const openDetail = (approvalId: string, modal = false) => {
+    setSelectedId(approvalId);
     setIsDetailModalOpen(modal);
   };
 
-  const loadTenderDetail = async () => {
+  const loadApprovalDetail = async () => {
     if (!token || !selectedId) {
       setSelectedDetail(null);
       return;
@@ -88,23 +88,22 @@ export const TenderReviewPage = ({ module, token, role, userEmail, availableModu
 
     setIsDetailLoading(true);
     try {
-      // In a real implementation, we would call a fetchTenderDetail service
+      // In a real implementation, we would call a fetchApprovalDetail service
       // For now, we'll simulate with the list data
-      const tender = tenders.find(t => t.TenderId === selectedId);
-      if (tender) {
+      const approval = approvals.find(a => a.ApprovalId === selectedId);
+      if (approval) {
         // Convert summary to detail (in reality, this would come from a detail endpoint)
         setSelectedDetail({
-          ...tender,
-          Description: `Detailed description for ${tender.Title}`,
-          Specifications: 'Technical specifications would be here',
-          EligibilityCriteria: 'Eligibility criteria details',
-          EvaluationCriteria: 'Evaluation criteria details',
-          UpdatedAt: tender.CreatedAt,
-          CurrentStage: 'Under Review'
+          ...approval,
+          Description: `Detailed description for ${approval.Title}`,
+          Requirements: 'Specific requirements would be here',
+          Conditions: 'Conditions and contingencies details',
+          UpdatedAt: approval.CreatedAt,
+          CurrentStage: 'Pending Review'
         });
       }
     } catch (error) {
-      setListError(error instanceof Error ? error.message : 'Unable to load tender detail.');
+      setListError(error instanceof Error ? error.message : 'Unable to load approval detail.');
     } finally {
       setIsDetailLoading(false);
     }
@@ -112,9 +111,9 @@ export const TenderReviewPage = ({ module, token, role, userEmail, availableModu
 
   useEffect(() => {
     if (selectedId) {
-      void loadTenderDetail();
+      void loadApprovalDetail();
     }
-  }, [selectedId, token, tenders]);
+  }, [selectedId, token, approvals]);
 
   useEffect(() => {
     if (!isDetailModalOpen) {
@@ -138,12 +137,12 @@ export const TenderReviewPage = ({ module, token, role, userEmail, availableModu
     // For now, we'll simulate basic workflow data
     setTimeout(() => {
       setWorkflowSnapshot({
-        EntityType: 'tender',
+        EntityType: 'approval',
         EntityId: selectedId,
-        CurrentStageKey: 'under-review',
-        CurrentStageTitle: 'Under Review',
+        CurrentStageKey: 'pending-review',
+        CurrentStageTitle: 'Pending Review',
         RoleKey: role ?? 'procurement_officer',
-        Actions: ['approve', 'reject', 'request-revision']
+        Actions: ['approve', 'reject', 'request-info']
       });
       setIsWorkflowLoading(false);
     }, 500);
@@ -155,28 +154,28 @@ export const TenderReviewPage = ({ module, token, role, userEmail, availableModu
 
   const summary = {
     total: totalItems,
-    drafts: tenders.filter(t => t.Status === 'Draft').length,
-    active: tenders.filter(t => ['Published', 'Open', 'Under Evaluation'].includes(t.Status)).length,
-    approved: tenders.filter(t => t.Status === 'Awarded').length
+    pending: approvals.filter(a => a.Status === 'Pending').length,
+    approved: approvals.filter(a => a.Status === 'Approved').length,
+    rejected: approvals.filter(a => a.Status === 'Rejected').length
   };
 
   return (
     <section className="portal-module">
-      <div className="tender-header">
+      <div className="approval-header">
         <div>
           <h2>{module.title}</h2>
           <p>{module.description}</p>
         </div>
-        <div className="tender-badges">
-          <span className="tender-badge tender-badge--soft">{module.microservice}</span>
-          <span className="tender-badge tender-badge--accent">{summary.total} tenders</span>
+        <div className="approval-badges">
+          <span className="approval-badge approval-badge--soft">{module.microservice}</span>
+          <span className="approval-badge approval-badge--accent">{summary.total} approvals</span>
         </div>
       </div>
 
-      <div className="tender-metrics" style={{ marginTop: '16px' }}>
-        <div><span>Draft tenders</span><strong>{summary.drafts}</strong></div>
-        <div><span>Active tender processes</span><strong>{summary.active}</strong></div>
-        <div><span>Awarded tenders</span><strong>{summary.approved}</strong></div>
+      <div className="approval-metrics" style={{ marginTop: '16px' }}>
+        <div><span>Pending approvals</span><strong>{summary.pending}</strong></div>
+        <div><span>Approved</span><strong>{summary.approved}</strong></div>
+        <div><span>Rejected</span><strong>{summary.rejected}</strong></div>
         <div><span>Current role</span><strong>{role ? toTitle(role) : 'Unspecified'}</strong></div>
       </div>
 
@@ -188,31 +187,31 @@ export const TenderReviewPage = ({ module, token, role, userEmail, availableModu
       {listError ? <div className="portal-alert" style={{ marginTop: '16px' }}>{listError}</div> : null}
 
       <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
-        {tenders.map(tender => (
-          <div key={tender.TenderId} className="tender-card">
-            <div className="tender-card__header">
-              <h3>{tender.Title}</h3>
-              <p className="tender-card__status">{tender.Status}</p>
+        {approvals.map(approval => (
+          <div key={approval.ApprovalId} className="approval-card">
+            <div className="approval-card__header">
+              <h3>{approval.Title}</h3>
+              <p className="approval-card__status">{approval.Status}</p>
             </div>
-            <div className="tender-card__body">
-              <p><strong>Category:</strong> {tender.Category}</p>
-              <p><strong>Published:</strong> {new Date(tender.CreatedAt).toLocaleDateString()}</p>
-              {tender.Budget !== null && <p><strong>Budget:</strong> ${tender.Budget.toLocaleString()}</p>}
+            <div className="approval-card__body">
+              <p><strong>Category:</strong> {approval.Category}</p>
+              <p><strong>Submitted:</strong> {new Date(approval.CreatedAt).toLocaleDateString()}</p>
+              {approval.Amount !== null && <p><strong>Amount:</strong> ${approval.Amount.toLocaleString()}</p>}
             </div>
-            <div className="tender-card__actions">
+            <div className="approval-card__actions">
               <button 
                 type="button" 
-                className="tender-button tender-button--secondary"
-                onClick={() => openDetail(tender.TenderId, true)}
+                className="approval-button approval-button--secondary"
+                onClick={() => openDetail(approval.ApprovalId, true)}
               >
                 Review Details
               </button>
             </div>
           </div>
         ))}
-        {tenders.length === 0 && !isListLoading && (
+        {approvals.length === 0 && !isListLoading && (
           <div className="portal-empty">
-            <p>No tenders match the current filters.</p>
+            <p>No approvals match the current filters.</p>
           </div>
         )}
       </div>
@@ -220,11 +219,11 @@ export const TenderReviewPage = ({ module, token, role, userEmail, availableModu
       {isDetailModalOpen && selectedDetail ? (
         <div className="plan-modal" role="dialog" aria-modal="true">
           <div className="plan-modal__backdrop" onClick={() => setIsDetailModalOpen(false)} />
-          <div className="plan-modal__content tender-detail-modal">
-            <div className="tender-card__header">
+          <div className="plan-modal__content approval-detail-modal">
+            <div className="approval-card__header">
               <div>
-                <h3>Tender Detail Review</h3>
-                <p>Review the complete tender submission before making a decision.</p>
+                <h3>Approval Detail Review</h3>
+                <p>Review the complete approval submission before making a decision.</p>
               </div>
               <button type="button" className="plan-link" onClick={() => setIsDetailModalOpen(false)}>
                 Close
@@ -232,9 +231,9 @@ export const TenderReviewPage = ({ module, token, role, userEmail, availableModu
             </div>
             
             {isDetailLoading ? (
-              <div className="plan-loading">Loading tender detail...</div>
+              <div className="plan-loading">Loading approval detail...</div>
             ) : (
-              <TenderDetailContent
+              <ApprovalDetailContent
                 detail={selectedDetail}
                 isSelectedEditable={false} // Review mode is read-only
                 workflowSnapshot={workflowSnapshot}

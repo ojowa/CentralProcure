@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { fetchTenders } from '../services/tenderService';
 import type { InternalModule, TenderSummary, TenderDetail, RoleKey } from '../types/internal';
 import { TenderDetailContent } from './tenderWorkspace/detailViews';
+import { TenderCreateView } from './tenderWorkspace/sectionViews';
 import { WorkflowProgressStepper } from './WorkflowProgressStepper';
 import { canEditTenderFromAuthority, toTitle } from './tenderWorkspace/helpers';
 
@@ -16,16 +17,16 @@ interface Props {
   onModuleChange?: (moduleId: string) => void;
 }
 
-export const TenderReviewPage = ({ module, token, role, userEmail, availableModuleIds = [], onModuleChange }: Props) => {
+export const HighValueTendersPage = ({ module, token, role, userEmail, availableModuleIds = [], onModuleChange }: Props) => {
   const [filters, setFilters] = useState<{
     query: string;
-    status: string;
-    category: string;
+    minValue: number;
+    maxValue: number;
     page: number;
   }>({
     query: '',
-    status: '',
-    category: '',
+    minValue: 1000000, // High value threshold: 1,000,000+
+    maxValue: 100000000, // Up to 100M
     page: 1
   });
 
@@ -57,15 +58,15 @@ export const TenderReviewPage = ({ module, token, role, userEmail, availableModu
     try {
       const response = await fetchTenders(token, {
         query: filters.query.trim() || undefined,
-        status: filters.status || undefined,
-        category: filters.category || undefined,
+        minValue: filters.minValue,
+        maxValue: filters.maxValue,
         page,
         pageSize
       });
       setTenders(response.Items);
       setTotalItems(response.Total);
     } catch (error) {
-      setListError(error instanceof Error ? error.message : 'Unable to load tenders.');
+      setListError(error instanceof Error ? error.message : 'Unable to load high-value tenders.');
     } finally {
       setIsListLoading(false);
     }
@@ -73,7 +74,7 @@ export const TenderReviewPage = ({ module, token, role, userEmail, availableModu
 
   useEffect(() => {
     void loadTenders();
-  }, [token, filters.query, filters.status, filters.category, filters.page, pageSize]);
+  }, [token, filters.query, filters.minValue, filters.maxValue, filters.page, pageSize]);
 
   const openDetail = (tenderId: string, modal = false) => {
     setSelectedId(tenderId);
@@ -100,7 +101,7 @@ export const TenderReviewPage = ({ module, token, role, userEmail, availableModu
           EligibilityCriteria: 'Eligibility criteria details',
           EvaluationCriteria: 'Evaluation criteria details',
           UpdatedAt: tender.CreatedAt,
-          CurrentStage: 'Under Review'
+          CurrentStage: 'Under BPP Review'
         });
       }
     } catch (error) {
@@ -140,9 +141,9 @@ export const TenderReviewPage = ({ module, token, role, userEmail, availableModu
       setWorkflowSnapshot({
         EntityType: 'tender',
         EntityId: selectedId,
-        CurrentStageKey: 'under-review',
-        CurrentStageTitle: 'Under Review',
-        RoleKey: role ?? 'procurement_officer',
+        CurrentStageKey: 'bpp-review',
+        CurrentStageTitle: 'Under BPP Review',
+        RoleKey: role ?? 'bpp_officer',
         Actions: ['approve', 'reject', 'request-revision']
       });
       setIsWorkflowLoading(false);
@@ -155,9 +156,9 @@ export const TenderReviewPage = ({ module, token, role, userEmail, availableModu
 
   const summary = {
     total: totalItems,
-    drafts: tenders.filter(t => t.Status === 'Draft').length,
-    active: tenders.filter(t => ['Published', 'Open', 'Under Evaluation'].includes(t.Status)).length,
-    approved: tenders.filter(t => t.Status === 'Awarded').length
+    underReview: tenders.filter(t => t.Status === 'Published' || t.Status === 'Open').length,
+    evaluation: tenders.filter(t => t.Status === 'Under Evaluation').length,
+    awarded: tenders.filter(t => t.Status === 'Awarded').length
   };
 
   return (
@@ -169,19 +170,38 @@ export const TenderReviewPage = ({ module, token, role, userEmail, availableModu
         </div>
         <div className="tender-badges">
           <span className="tender-badge tender-badge--soft">{module.microservice}</span>
-          <span className="tender-badge tender-badge--accent">{summary.total} tenders</span>
+          <span className="tender-badge tender-badge--accent">{summary.total} high-value tenders</span>
         </div>
       </div>
 
       <div className="tender-metrics" style={{ marginTop: '16px' }}>
-        <div><span>Draft tenders</span><strong>{summary.drafts}</strong></div>
-        <div><span>Active tender processes</span><strong>{summary.active}</strong></div>
-        <div><span>Awarded tenders</span><strong>{summary.approved}</strong></div>
+        <div><span>Under Review</span><strong>{summary.underReview}</strong></div>
+        <div><span>In Evaluation</span><strong>{summary.evaluation}</strong></div>
+        <div><span>Awarded</span><strong>{summary.awarded}</strong></div>
         <div><span>Current role</span><strong>{role ? toTitle(role) : 'Unspecified'}</strong></div>
       </div>
 
       <div style={{ marginTop: '16px' }}>
-        {/* Quick links would go here in a full implementation */}
+        <div className="filter-controls">
+          <label>
+            Minimum Value (₦): 
+            <input 
+              type="number" 
+              value={filters.minValue} 
+              onChange={(e) => setFilters(prev => ({ ...prev, minValue: Number(e.target.value) || 0, page: 1 }))}
+              min="0"
+            />
+          </label>
+          <label>
+            Maximum Value (₦): 
+            <input 
+              type="number" 
+              value={filters.maxValue} 
+              onChange={(e) => setFilters(prev => ({ ...prev, maxValue: Number(e.target.value) || 100000000, page: 1 }))}
+              min="0"
+            />
+          </label>
+        </div>
       </div>
 
       {!token ? <div className="portal-alert" style={{ marginTop: '16px' }}>Authentication token is missing.</div> : null}
@@ -212,7 +232,7 @@ export const TenderReviewPage = ({ module, token, role, userEmail, availableModu
         ))}
         {tenders.length === 0 && !isListLoading && (
           <div className="portal-empty">
-            <p>No tenders match the current filters.</p>
+            <p>No high-value tenders match the current filters.</p>
           </div>
         )}
       </div>
@@ -223,8 +243,8 @@ export const TenderReviewPage = ({ module, token, role, userEmail, availableModu
           <div className="plan-modal__content tender-detail-modal">
             <div className="tender-card__header">
               <div>
-                <h3>Tender Detail Review</h3>
-                <p>Review the complete tender submission before making a decision.</p>
+                <h3>High-Value Tender Detail Review</h3>
+                <p>Review the complete tender submission before making a BPP decision.</p>
               </div>
               <button type="button" className="plan-link" onClick={() => setIsDetailModalOpen(false)}>
                 Close

@@ -11,7 +11,7 @@ Desktop.ini
 *.user
 *.userosscache
 *.sln.docstates
-.claude 
+.claude/
 
 # Logs
 *.log
@@ -20,14 +20,19 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+server-err.txt
+server-out.txt
 
 # Environment and secrets
 .env
 .env.local
 .env.*.local
 !.env.example
+*.local.json
+.data-protection-keys/
+Backend/.data-protection-keys/
 
-# .NET build output
+# .NET / MS Build artifacts
 [Bb]in/
 [Oo]bj/
 TestResults/
@@ -35,6 +40,13 @@ TestResults/
 .nuget/
 .offline-nuget/
 .dotnet-patched/
+.dotnet-cli/
+.dotnet-cli-home/
+.dotnet-home/
+$PWD/
+*.sentinel
+*.dotnetUserLevelCache
+.data-protection-keys/
 
 # Node / Next.js
 node_modules/
@@ -43,20 +55,19 @@ out/
 dist/
 .turbo/
 .vercel/
+tsconfig.tsbuildinfo
 
 # Coverage and temporary artifacts
 coverage/
 artifacts/
 tmp/
 temp/
-.data-protection-keys/
-Backend/.data-protection-keys/
 
-scripts/
-!scripts/
+# Scripts - Ignore all by default, allow specific tools
 scripts/*
 !scripts/verify-phase9-workflow.ps1
 !scripts/phase9-workflow-scenarios.json
+!scripts/publish-all-remotes.ps1
 
 # Render and deployment-local folders
 .render/

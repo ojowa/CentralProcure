@@ -15,6 +15,8 @@ export type TenderFilters = {
   pageSize?: number;
   sortBy?: string;
   sortDir?: string;
+  minValue?: number;
+  maxValue?: number;
 };
 
 const baseUrl = `${serviceBaseUrls.vendorSourcing}/api/internal/tenders`;
@@ -45,6 +47,12 @@ const buildQuery = (filters?: TenderFilters): string => {
   }
   if (filters.sortDir) {
     params.set('sortDir', filters.sortDir);
+  }
+  if (filters.minValue !== undefined && filters.minValue !== null) {
+    params.set('minValue', String(filters.minValue));
+  }
+  if (filters.maxValue !== undefined && filters.maxValue !== null) {
+    params.set('maxValue', String(filters.maxValue));
   }
 
   const query = params.toString();
