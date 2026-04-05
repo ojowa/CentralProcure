@@ -1,0 +1,32 @@
+services:
+  # Backend Service (.NET Docker)
+  - type: web
+    name: centralprocure-api
+    runtime: docker
+    plan: free
+    dockerContext: Backend
+    dockerfilePath: Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ConnectionStrings__Primary
+        sync: false # Set this in Render Dashboard (Postgres)
+      - key: Jwt__Key
+        sync: false # Set this in Render Dashboard (Secret)
+      - key: Jwt__Issuer
+        value: nis-eproc-identity
+      - key: Jwt__Audience
+        value: nis-eproc-clients
+
+  # Frontend Service (Next.js)
+  - type: web
+    name: centralprocure-web
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    rootDir: Frontend
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        sync: false # Set this to the centralprocure-api URL
