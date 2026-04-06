@@ -386,10 +386,7 @@ export const RequisitionTrackingPage = ({ module, token, role, userEmail, availa
           filters={filters}
           requisitions={requisitions}
           selectedId={selectedId}
-          selectedDetail={selectedDetail}
           isListLoading={isListLoading}
-          isDetailLoading={isDetailLoading}
-          detailContent={detailContent}
           onFilterChange={updateFilter}
           onRefresh={() => void loadRequisitions()}
           onOpenDetail={openDetail}

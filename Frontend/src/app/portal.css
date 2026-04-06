@@ -681,6 +681,10 @@
   color: var(--portal-slate);
 }
 
+.plan-table tr.plan-table-row--active td {
+  background: rgba(11, 93, 59, 0.05);
+}
+
 .plan-link {
   border: none;
   background: none;

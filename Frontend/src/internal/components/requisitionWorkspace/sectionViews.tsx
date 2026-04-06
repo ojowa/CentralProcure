@@ -350,10 +350,7 @@ interface RequisitionTrackingViewProps {
   filters: FiltersState;
   requisitions: RequisitionSummary[];
   selectedId: string | null;
-  selectedDetail: RequisitionDetail | null;
   isListLoading: boolean;
-  isDetailLoading: boolean;
-  detailContent?: ReactNode;
   onFilterChange: FilterChangeHandler;
   onRefresh: () => void;
   onOpenDetail: (requisitionId: string, modal?: boolean) => void;
@@ -363,10 +360,7 @@ export const RequisitionTrackingView = ({
   filters,
   requisitions,
   selectedId,
-  selectedDetail,
   isListLoading,
-  isDetailLoading,
-  detailContent,
   onFilterChange,
   onRefresh,
   onOpenDetail
@@ -393,44 +387,52 @@ export const RequisitionTrackingView = ({
       </div>
     </div>
 
-    <div className="requisition-tracking-grid">
-      <article className="requisition-card requisition-tracking-list">
-        <div className="requisition-card__header">
-          <div><h3>Tracked Requisitions</h3><p>Select a requisition to inspect its current routing state and underlying request details.</p></div>
-        </div>
-
-        <div className="requisition-tracking-cards">
+    <div className="plan-table-wrapper" style={{ marginTop: '16px' }}>
+      <table className="plan-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Title</th>
+            <th>Department</th>
+            <th>Date</th>
+            <th>Status</th>
+            <th>Priority</th>
+            <th style={{ textAlign: 'right' }}>Total Estimate</th>
+            <th style={{ textAlign: 'center' }}>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
           {requisitions.map((record) => (
-            <button
-              type="button"
-              key={record.RequisitionId}
-              className={`requisition-track-card ${record.RequisitionId === selectedId ? 'requisition-track-card--active' : ''}`.trim()}
-              onClick={() => onOpenDetail(record.RequisitionId, false)}
-            >
-              <div><h4>{record.Title}</h4><p>{record.Department} · {formatDate(record.CreatedAt)}</p></div>
-              <div className="requisition-badges">
+            <tr key={record.RequisitionId} className={record.RequisitionId === selectedId ? 'plan-table-row--active' : ''}>
+              <td title={record.RequisitionId}>{record.RequisitionId.split('-')[0].toUpperCase()}</td>
+              <td><strong>{record.Title}</strong></td>
+              <td>{record.Department}</td>
+              <td>{formatDate(record.CreatedAt)}</td>
+              <td>
                 <span className={`req-badge ${requisitionStatusTone(record.Status)}`.trim()}>{record.Status}</span>
-                {record.FinalCommitteeDecision ? (
-                  <span className="req-badge req-badge--soft">{record.FinalCommitteeDecision}</span>
-                ) : null}
-                <span className="req-badge req-badge--soft">{formatCurrency(record.TotalEstimate)}</span>
-              </div>
-            </button>
+              </td>
+              <td>
+                <span className="req-badge req-badge--soft">{record.Priority}</span>
+              </td>
+              <td style={{ textAlign: 'right' }}>{formatCurrency(record.TotalEstimate)}</td>
+              <td style={{ textAlign: 'center' }}>
+                <button
+                  type="button"
+                  className="plan-button plan-button--secondary plan-button--small"
+                  onClick={() => onOpenDetail(record.RequisitionId, true)}
+                >
+                  View
+                </button>
+              </td>
+            </tr>
           ))}
-          {!requisitions.length ? <div className="plan-empty">No requisitions match the tracking filters.</div> : null}
-        </div>
-      </article>
-
-      <div className="requisition-tracking-detail">
-        {isDetailLoading ? <div className="plan-loading">Loading requisition detail...</div> : null}
-        {selectedDetail ? <article className="requisition-detail">{detailContent}</article> : null}
-        {!selectedDetail && !isDetailLoading ? (
-          <article className="requisition-card">
-            <h3>No requisition selected</h3>
-            <p>Select a requisition card to review its current workflow progress.</p>
-          </article>
-        ) : null}
-      </div>
+          {!requisitions.length ? (
+            <tr>
+              <td colSpan={8} className="plan-empty">No requisitions match the tracking filters.</td>
+            </tr>
+          ) : null}
+        </tbody>
+      </table>
     </div>
   </>
 );
