@@ -23,6 +23,7 @@ jobs:
           action: "upload"
           app_location: "/" 
           api_location: "" 
-          output_location: "" # Leave empty for Next.js, it will be auto-detected
+          output_location: "" 
         env:
-          NEXT_PUBLIC_BACKEND_URL: ${{ secrets.NEXT_PUBLIC_BACKEND_URL }}
+          # Points to your Azure App Service backend URL from the JSON
+          NEXT_PUBLIC_BACKEND_URL: https://niseprocurement-a9g2fucnbxeda2cw.canadacentral-01.azurewebsites.net

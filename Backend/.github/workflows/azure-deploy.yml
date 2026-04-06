@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_WEBAPP_NAME: centralprocure-backend
+  AZURE_WEBAPP_NAME: niseprocurement # Updated from your JSON
   DOTNET_VERSION: '10.0.x'
 
 jobs:
