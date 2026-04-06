@@ -230,39 +230,7 @@ export const RequisitionCreateView = ({
         {catalogError ? <div className="req-error req-error--block">{catalogError}</div> : null}
       </article>
 
-      <article className="requisition-card">
-        <div className="requisition-card__header">
-          <div><h3>Routing Forecast</h3><p>{routingBand.escalation} This preview supports drafting only; backend policy remains authoritative after save.</p></div>
-          <span className="requisition-tag requisition-tag--accent">{routingBand.timeline}</span>
-        </div>
-
-        <div className="routing-panel routing-panel--empty">
-          <div className="routing-panel__header">
-            <div><h4>{routingBand.approvalLevel}</h4><p>{routingBand.label}</p></div>
-            <div className="routing-panel__badges"><span className="requisition-tag">{routingBand.requiresBpp ? 'BPP Required' : 'Internal Approval'}</span></div>
-          </div>
-          <div className="routing-steps">
-            {routingBand.steps.map((step, index) => (
-              <div key={`${routingBand.id}-${step}`} className="routing-step">
-                <span className="routing-step__index">{index + 1}</span>
-                <div><strong>{step}</strong><span className="routing-step__meta">{routingBand.timeline}</span></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </article>
-
       {departmentHeadQueueCard}
-
-      <article className="requisition-card">
-        <div className="requisition-card__header">
-          <div><h3>Role Focus</h3><p>{guidance?.focus || 'Prepare complete, defensible requisitions with clear planning and budget linkage.'}</p></div>
-        </div>
-        <div className="requisition-checklist">
-          {(guidance?.checks ?? []).map((check) => <div key={check} className="requisition-check"><input type="checkbox" checked readOnly /><span>{check}</span></div>)}
-        </div>
-        <div className="requisition-detail-note"><h4>Prepared By</h4><p>{userEmail || 'Current authenticated internal user'}</p></div>
-      </article>
     </div>
   </div>
 );
