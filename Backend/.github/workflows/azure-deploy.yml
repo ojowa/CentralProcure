@@ -29,9 +29,13 @@ jobs:
       - name: Publish
         run: dotnet publish eProcurement.Api.csproj --configuration Release --output ${{ runner.temp }}/publish
 
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          publish-profile: ${{ secrets.AZURE_BACKEND_PUBLISH_PROFILE }}
           package: ${{ runner.temp }}/publish
