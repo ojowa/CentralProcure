@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_WEBAPP_NAME: centralprocure-backend # Replace with your actual App Service name
+  AZURE_WEBAPP_NAME: centralprocure-backend
   DOTNET_VERSION: '10.0.x'
 
 jobs:
@@ -21,13 +21,13 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Install dependencies
-        run: dotnet restore Backend/eProcurement.Api.csproj
+        run: dotnet restore eProcurement.Api.csproj
 
       - name: Build
-        run: dotnet build Backend/eProcurement.Api.csproj --configuration Release --no-restore
+        run: dotnet build eProcurement.Api.csproj --configuration Release --no-restore
 
       - name: Publish
-        run: dotnet publish Backend/eProcurement.Api.csproj --configuration Release --output ${{ runner.temp }}/publish
+        run: dotnet publish eProcurement.Api.csproj --configuration Release --output ${{ runner.temp }}/publish
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
