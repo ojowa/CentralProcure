@@ -1,15 +1,15 @@
 services:
   - type: web
-    name: centralprocure-backend
+    name: centralprocure-api
     runtime: docker
     plan: free
-    dockerfilePath: ./Dockerfile
+    dockerfilePath: Dockerfile
     healthCheckPath: /health
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
       - key: ConnectionStrings__Primary
-        value: Host=ep-crimson-recipe-a4vfpflj-pooler.us-east-1.aws.neon.tech;Database=neondb;Username=neondb_owner;Password=npg_Q8BXmCJSbt3i;SSL Mode=Require;Channel Binding=Require
+        sync: false
       - key: Jwt__Key
         sync: false
       - key: Jwt__Issuer

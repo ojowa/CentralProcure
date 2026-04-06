@@ -1,12 +1,10 @@
 services:
   - type: web
-    name: centralprocure-frontend
+    name: centralprocure-web
     runtime: node
     plan: free
     buildCommand: npm install && npm run build
-    startCommand: npm start
+    startCommand: npm run start
     envVars:
-      - key: NEXT_PUBLIC_BACKEND_URL
-        value: https://centralprocure-backend.onrender.com
-      - key: NEXT_PUBLIC_APP_BASE_PATH
+      - key: NEXT_PUBLIC_API_URL
         sync: false
