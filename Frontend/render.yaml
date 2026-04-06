@@ -6,5 +6,5 @@ services:
     buildCommand: npm install && npm run build
     startCommand: npm run start
     envVars:
-      - key: NEXT_PUBLIC_API_URL
+      - key: NEXT_PUBLIC_BACKEND_URL
         sync: false
