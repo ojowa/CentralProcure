@@ -341,31 +341,6 @@ export interface TenderDetail extends TenderSummary {
     CurrentStage?: string | null;
 }
 
-export interface ApprovalSummary {
-    ApprovalId: string;
-    Title: string;
-    Description: string;
-    Category: string;
-    Status: string;
-    SubmittedBy: string;
-    SubmittedOn: string;
-    Amount?: number | null;
-    Priority?: string;
-}
-
-export interface ApprovalDetail extends ApprovalSummary {
-    Requirements?: string | null;
-    Conditions?: string | null;
-    UpdatedAt: string;
-    CurrentStage?: string | null;
-    ReviewHistory?: Array<{
-        Reviewer: string;
-        Action: string;
-        Timestamp: string;
-        Comments?: string | null;
-  }>;
-}
-
 export interface CgisQueueItem {
     InstanceId: string;
     EntityType: string;
@@ -377,6 +352,26 @@ export interface CgisQueueItem {
     ApprovalAuthorityLabel: string | null;
     Status: string | null;
     VendorName: string | null;
+    CreatedAt: string;
+    DaysPending: number;
+}
+
+export interface TendersBoardQueueItem {
+    InstanceId: string;
+    TenderId: string;
+    TenderTitle: string;
+    Department?: string | null;
+    Amount?: number | null;
+    ProcurementType?: string | null;
+    ApprovalRoute?: string | null;
+    ApprovalAuthorityLabel?: string | null;
+    RequiresBpp: boolean;
+    Status?: string | null;
+    VendorName?: string | null;
+    ReportCode?: string | null;
+    Recommendation?: string | null;
+    ScoreSummary?: string | null;
+    ReportSubmittedAt?: string | null;
     CreatedAt: string;
     DaysPending: number;
 }

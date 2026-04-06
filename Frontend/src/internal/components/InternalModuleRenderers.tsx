@@ -109,7 +109,7 @@ export const moduleRenderers: Partial<Record<string, (props: InternalModuleRende
     'evaluation-report': (props) => <EvaluationReportModule module={props.module} token={props.token} />,
     'user-role-management': (props) => <UserRoleManagementModule module={props.module} token={props.token} />,
     'bid-opening-session': (props) => <BidOpeningModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
-    'tenders-board-approval': (props) => <TendersBoardApprovalModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
+    'tenders-board-approval': (props) => <TendersBoardApprovalModule module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} availableModuleIds={props.availableModuleIds} onModuleChange={props.onModuleChange} initialData={props.moduleData} />,
     'final-approval': (props) => <CgisApprovalModule module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} />,
     'cgis-approval': (props) => <CgisApprovalModule module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} />,
     'workflow-configuration': (props) => <WorkflowConfigurationModulePage module={props.module} moduleData={props.moduleData} moduleError={props.moduleError} token={props.token} />,
@@ -118,7 +118,7 @@ export const moduleRenderers: Partial<Record<string, (props: InternalModuleRende
     'threshold-configuration': (props) => <ThresholdConfigurationModule module={props.module} token={props.token} />,
     'system-monitoring': (props) => <SystemMonitoringModule module={props.module} token={props.token} initialData={props.moduleData} />,
     'user-profile': (props) => <ProfilePage module={props.module} token={props.token} userEmail={props.userEmail} />,
-    'tender-review': (props) => <TenderReviewPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} availableModuleIds={props.availableModuleIds} onModuleChange={props.onModuleChange} />,
-    'approval-rejection': (props) => <ApprovalRejectionPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} availableModuleIds={props.availableModuleIds} onModuleChange={props.onModuleChange} />,
+    'tender-review': (props) => <TenderReviewPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} availableModuleIds={props.availableModuleIds} onModuleChange={props.onModuleChange} initialData={props.moduleData} />,
+    'approval-rejection': (props) => <ApprovalRejectionPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} availableModuleIds={props.availableModuleIds} onModuleChange={props.onModuleChange} initialData={props.moduleData} />,
     'high-value-tenders': (props) => <HighValueTendersPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} availableModuleIds={props.availableModuleIds} onModuleChange={props.onModuleChange} initialData={props.moduleData} />
 };

@@ -49,7 +49,7 @@ Benefits:
 |---|---|---|
 | `identity-service` | Authentication, authorization, account identity | `/api/Auth/*` |
 | `vendor-sourcing-service` | Vendor profile/compliance, tenders, bid submission/opening | `/api/VendorManagement/*`, `/api/TenderManagement/*`, `/api/BidSubmission/*`, `/api/bid-opening/sessions/*` |
-| `procurement-workflow-service` | Requisitions, planning, evaluation, approvals, BPP/workflow orchestration | `/api/requisitions/*`, `/api/procurement-plans/*`, `/api/evaluations/*`, `/api/approvals/*`, `/api/workflows/*`, `/api/bpp/*` |
+| `procurement-workflow-service` | Requisitions, planning, evaluation, Tenders Board approvals, CGIS approvals, BPP/workflow orchestration | `/api/requisitions/*`, `/api/procurement-plans/*`, `/api/evaluations/*`, `/api/tenders-board-approvals/*`, `/api/cgis-approval/*`, `/api/workflow-actions/*`, `/api/workflow-runtime/*`, `/api/bpp-no-objections/*` |
 | `post-award-service` | Contract lifecycle, inspection, payment tracking | `/api/contracts/*`, `/api/inspections/*`, `/api/payments/*` |
 | `governance-service` | Audit, notifications, monitoring | `/api/audit/*`, `/api/notifications/*`, `/api/monitoring/*` |
 

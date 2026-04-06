@@ -18,7 +18,7 @@
 | `requisition-service` | `/api/requisitions/*` | `procurement-workflow-service` | Requisition initiation and tracking are pre-award workflow. |
 | `procurement-planning-service` | `/api/procurement-plans/*` | `procurement-workflow-service` | APP and planning controls stay in workflow domain. |
 | `evaluation-service` | `/api/evaluations/*` | `procurement-workflow-service` | Technical/financial evaluation drives approval workflow. |
-| `approval-workflow-service` | `/api/approvals/*` | `procurement-workflow-service` | Formal approvals and threshold decisions. |
+| `approval-workflow-service` | `/api/tenders-board-approvals/*`, `/api/cgis-approval/*`, `/api/workflow-actions/*`, `/api/workflow-runtime/*` | `procurement-workflow-service` | Formal board, CGIS, and workflow-driven threshold decisions. |
 | `workflow-orchestration-service` | `/api/workflows/*` | `procurement-workflow-service` | Orchestration rules and sequencing engine. |
 | `bpp-integration-service` | `/api/bpp/*` | `procurement-workflow-service` | No-objection/regulatory interaction during workflow. |
 | `contract-management-service` | `/api/contracts/*` | `post-award-service` | Contract award and lifecycle are post-award activities. |
