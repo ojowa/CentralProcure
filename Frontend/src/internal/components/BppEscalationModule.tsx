@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { InternalModule, BppNoObjectionDetail, TenderSummary } from '../types/internal';
+import type { CgisQueueItem, InternalModule, BppNoObjectionDetail, TenderSummary } from '../types/internal';
 import { fetchBppNoObjections, createBppNoObjection, fetchModuleData } from '../services/moduleService';
 
 interface Props {
@@ -47,7 +47,25 @@ export const BppEscalationModule = ({ module, token, role, initialData }: Props)
     setLoading(true);
     try {
       const tenderData: any = await fetchModuleData('high-value-tenders', token);
-      setHighValueTenders(tenderData?.Items || []);
+      const queueItems: CgisQueueItem[] = Array.isArray(tenderData)
+        ? tenderData
+        : Array.isArray(tenderData?.Items)
+          ? tenderData.Items
+          : [];
+
+      const tenderOptions: TenderSummary[] = queueItems
+        .filter(item => item.EntityType.toLowerCase() === 'tender')
+        .map(item => ({
+          TenderId: item.EntityId,
+          Title: item.RecordTitle || 'Untitled Tender',
+          Category: item.ApprovalRoute || 'Not Stated',
+          Status: item.Status || 'Under Review',
+          Budget: item.Amount,
+          Department: item.Department,
+          CreatedAt: item.CreatedAt
+        }));
+
+      setHighValueTenders(tenderOptions);
       setView('create');
     } catch (err: any) {
       setError(err.message);
@@ -126,7 +144,20 @@ export const BppEscalationModule = ({ module, token, role, initialData }: Props)
           <div className="portal-form-grid">
             <label className="plan-field">
               <span>Select High-Value Project</span>
-              <select className="plan-input" required value={newEscalation.TenderId} onChange={e => setNewEscalation({...newEscalation, TenderId: e.target.value})}>
+              <select
+                className="plan-input"
+                required
+                value={newEscalation.TenderId}
+                onChange={e => {
+                  const selectedTender = highValueTenders.find(t => t.TenderId === e.target.value);
+                  setNewEscalation({
+                    ...newEscalation,
+                    TenderId: e.target.value,
+                    Amount: selectedTender?.Budget ?? 0,
+                    ProcurementType: selectedTender?.Category || newEscalation.ProcurementType
+                  });
+                }}
+              >
                 <option value="">-- Choose Project --</option>
                 {highValueTenders.map(t => (
                   <option key={t.TenderId} value={t.TenderId}>{t.Title} ({new Intl.NumberFormat('en-NG').format(t.Budget ?? 0)})</option>

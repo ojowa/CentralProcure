@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { fetchApprovals, fetchApprovalDetail } from '../services/approvalService';
-import type { InternalModule, ApprovalSummary, ApprovalDetail, RoleKey } from '../types/internal';
+import { fetchWorkflowActionSnapshot } from '../services/workflowContextService';
+import type { InternalModule, ApprovalSummary, ApprovalDetail, RoleKey, WorkflowActionSnapshotResponse } from '../types/internal';
 import { ApprovalDetailContent } from './approvalWorkspace/detailViews';
 import { WorkflowProgressStepper } from './WorkflowProgressStepper';
 import { canEditApprovalFromAuthority, toTitle } from './approvalWorkspace/helpers';
@@ -113,7 +114,7 @@ export const ApprovalRejectionPage = ({ module, token, role, userEmail, availabl
     }
   }, [isDetailModalOpen]);
 
-  // Workflow context loading (simplified)
+  // Workflow context loading
   useEffect(() => {
     if (!role || !token || !selectedId) {
       setWorkflowSnapshot(null);
@@ -122,26 +123,26 @@ export const ApprovalRejectionPage = ({ module, token, role, userEmail, availabl
       return;
     }
 
-    setIsWorkflowLoading(true);
-    setWorkflowError('');
+    const loadWorkflowContext = async () => {
+      setIsWorkflowLoading(true);
+      setWorkflowError('');
 
-    // In a real implementation, we would call workflow context services
-    // For now, we'll simulate basic workflow data
-    setTimeout(() => {
-      setWorkflowSnapshot({
-        EntityType: 'approval',
-        EntityId: selectedId,
-        CurrentStageKey: 'pending-review',
-        CurrentStageTitle: 'Pending Review',
-        RoleKey: role ?? 'procurement_officer',
-        Actions: ['approve', 'reject', 'request-info']
-      });
-      setIsWorkflowLoading(false);
-    }, 500);
-
-    return () => {
-      // Cleanup would go here
+      try {
+        // Fetch workflow action snapshot for the approval entity
+        const workflowSnapshot = await fetchWorkflowActionSnapshot(
+          token,
+          'approval',
+          selectedId
+        );
+        setWorkflowSnapshot(workflowSnapshot);
+      } catch (error) {
+        setWorkflowError(error instanceof Error ? error.message : 'Unable to load workflow context.');
+      } finally {
+        setIsWorkflowLoading(false);
+      }
     };
+
+    void loadWorkflowContext();
   }, [role, token, selectedId]);
 
   const summary = {
@@ -187,8 +188,8 @@ export const ApprovalRejectionPage = ({ module, token, role, userEmail, availabl
             </div>
             <div className="approval-card__body">
               <p><strong>Category:</strong> {approval.Category}</p>
-              <p><strong>Submitted:</strong> {new Date(approval.CreatedAt).toLocaleDateString()}</p>
-              {approval.Amount !== null && <p><strong>Amount:</strong> ${approval.Amount.toLocaleString()}</p>}
+              <p><strong>Submitted:</strong> {new Date(approval.SubmittedOn).toLocaleDateString()}</p>
+              {approval.Amount != null && <p><strong>Amount:</strong> ${approval.Amount.toLocaleString()}</p>}
             </div>
             <div className="approval-card__actions">
               <button 

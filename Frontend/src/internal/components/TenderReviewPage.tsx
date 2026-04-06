@@ -188,7 +188,7 @@ export const TenderReviewPage = ({ module, token, role, userEmail, availableModu
             <div className="approval-card__body">
               <p><strong>Category:</strong> {approval.Category}</p>
               <p><strong>Submitted:</strong> {new Date(approval.SubmittedOn).toLocaleDateString()}</p>
-              {approval.Amount !== null && <p><strong>Amount:</strong> ${approval.Amount.toLocaleString()}</p>}
+              {approval.Amount != null && <p><strong>Amount:</strong> ${approval.Amount.toLocaleString()}</p>}
             </div>
             <div className="approval-card__actions">
               <button 
@@ -225,7 +225,7 @@ export const TenderReviewPage = ({ module, token, role, userEmail, availableModu
             {isDetailLoading ? (
               <div className="plan-loading">Loading tender detail...</div>
             ) : (
-              <TenderDetailContent
+              <ApprovalDetailContent
                 detail={selectedDetail}
                 isSelectedEditable={false} // Review mode is read-only
                 workflowSnapshot={workflowSnapshot}

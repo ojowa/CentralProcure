@@ -43,8 +43,9 @@ const resolveModuleUrl = (moduleId: string): string => {
       return `${serviceBaseUrls.workflow}/api/evaluation-reports`;
     case 'tender-review':
     case 'approval-rejection':
-    case 'high-value-tenders':
       return `${serviceBaseUrls.workflow}/api/approvals`;
+    case 'high-value-tenders':
+      return `${serviceBaseUrls.workflow}/api/workflow-runtime/cgis-queue`;
     case 'cgis-approval':
     case 'final-approval':
       return `${serviceBaseUrls.workflow}/api/workflow-runtime/cgis-queue`;
@@ -53,6 +54,7 @@ const resolveModuleUrl = (moduleId: string): string => {
     case 'administrative-review':
       return `${serviceBaseUrls.workflow}/api/administrative-reviews`;
     case 'contract-award':
+      return `${serviceBaseUrls.postAward}/api/contracts/awards`;
     case 'contract-management':
       return `${serviceBaseUrls.postAward}/api/contracts`;
     case 'inspection-acceptance':

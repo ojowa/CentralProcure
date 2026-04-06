@@ -20,6 +20,7 @@ import { BidOpeningModule } from './BidOpeningModule';
 import { TendersBoardApprovalModule } from './TendersBoardApprovalModule';
 import { CgisApprovalModule } from './CgisApprovalModule';
 import { ContractManagementModule } from './ContractManagementModule';
+import { ContractAwardModule } from './ContractAwardModule';
 import { BppEscalationModule } from './BppEscalationModule';
 import { VendorRegistrationApprovalModule } from './VendorRegistrationApprovalModule';
 import { AdminRequisitionManagementPage } from './AdminRequisitionManagementPage';
@@ -30,6 +31,9 @@ import { TenderCreatePage } from './TenderCreatePage';
 import { EvaluationReportModule } from './EvaluationReportModule';
 import { AssignedTendersModule } from './AssignedTendersModule';
 import { SystemMonitoringModule } from './SystemMonitoringModule';
+import { TenderReviewPage } from './TenderReviewPage';
+import { ApprovalRejectionPage } from './ApprovalRejectionPage';
+import { HighValueTendersPage } from './HighValueTendersPage';
 
 export type InternalModuleRendererProps = {
   module: InternalModule;
@@ -92,7 +96,7 @@ export const moduleRenderers: Partial<Record<string, (props: InternalModuleRende
     'inspection-acceptance': (props) => <PostAwardInspectionModulePage module={props.module} token={props.token} />,
     'payment-tracking': (props) => <PaymentTrackingModulePage module={props.module} token={props.token} userEmail={props.userEmail} />,
     'contract-management': (props) => <ContractManagementModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
-    'contract-award': (props) => <ContractManagementModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
+    'contract-award': (props) => <ContractAwardModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} onModuleChange={props.onModuleChange} />,
     'bpp-escalation': (props) => <BppEscalationModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
     'administrative-review': (props) => <AdministrativeReviewModulePage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} />,
     'workflow-blueprint': (props) => <WorkflowBlueprintPage module={props.module} token={props.token} />,
@@ -116,5 +120,5 @@ export const moduleRenderers: Partial<Record<string, (props: InternalModuleRende
     'user-profile': (props) => <ProfilePage module={props.module} token={props.token} userEmail={props.userEmail} />,
     'tender-review': (props) => <TenderReviewPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} availableModuleIds={props.availableModuleIds} onModuleChange={props.onModuleChange} />,
     'approval-rejection': (props) => <ApprovalRejectionPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} availableModuleIds={props.availableModuleIds} onModuleChange={props.onModuleChange} />,
-    'high-value-tenders': (props) => <HighValueTendersPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} availableModuleIds={props.availableModuleIds} onModuleChange={props.onModuleChange} />
+    'high-value-tenders': (props) => <HighValueTendersPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} availableModuleIds={props.availableModuleIds} onModuleChange={props.onModuleChange} initialData={props.moduleData} />
 };

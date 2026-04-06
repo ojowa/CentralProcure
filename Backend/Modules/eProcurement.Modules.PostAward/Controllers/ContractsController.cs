@@ -421,6 +421,7 @@ public class ContractsController : ControllerBase
     private static ContractAwardItem MapContractAward(NpgsqlDataReader reader)
     {
         return new ContractAwardItem(
+            reader.GetGuid(reader.GetOrdinal("award_id")),
             reader.GetString(reader.GetOrdinal("award_code")),
             reader.GetString(reader.GetOrdinal("tender_title")),
             reader.GetString(reader.GetOrdinal("vendor_name")),

@@ -363,7 +363,22 @@ export interface ApprovalDetail extends ApprovalSummary {
         Action: string;
         Timestamp: string;
         Comments?: string | null;
-    }>;
+  }>;
+}
+
+export interface CgisQueueItem {
+    InstanceId: string;
+    EntityType: string;
+    EntityId: string;
+    RecordTitle: string | null;
+    Department: string | null;
+    Amount: number | null;
+    ApprovalRoute: string | null;
+    ApprovalAuthorityLabel: string | null;
+    Status: string | null;
+    VendorName: string | null;
+    CreatedAt: string;
+    DaysPending: number;
 }
 
 export interface TenderListResponse {
@@ -1128,6 +1143,7 @@ export interface RequisitionUpdateRequest {
 }
 
 export interface ContractAwardItem {
+    AwardEntityId: string;
     AwardId: string;
     TenderTitle: string;
     VendorName: string;

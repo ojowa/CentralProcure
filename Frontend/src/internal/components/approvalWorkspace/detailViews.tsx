@@ -1,4 +1,4 @@
-import type { ApprovalDetail, WorkflowActionSnapshotResponse } from '../types/internal';
+import type { ApprovalDetail, WorkflowActionSnapshotResponse } from '../../types/internal';
 
 interface ApprovalDetailContentProps {
   detail: ApprovalDetail;
@@ -24,7 +24,7 @@ export const ApprovalDetailContent = ({
           <div><span>Title:</span><span>{detail.Title}</span></div>
           <div><span>Category:</span><span>{detail.Category}</span></div>
           <div><span>Status:</span><span>{detail.Status}</span></div>
-          <div><span>Amount:</span><span>{detail.Amount !== null ? `$${detail.Amount.toLocaleString()}` : 'Not specified'}</span></div>
+          <div><span>Amount:</span><span>{detail.Amount != null ? `$${detail.Amount.toLocaleString()}` : 'Not specified'}</span></div>
           <div><span>Priority:</span><span>{detail.Priority}</span></div>
           <div><span>Submitted By:</span><span>{detail.SubmittedBy}</span></div>
           <div><span>Submitted On:</span><span>{new Date(detail.SubmittedOn).toLocaleDateString()}</span></div>
@@ -58,7 +58,7 @@ export const ApprovalDetailContent = ({
                 <div><span>Current Stage:</span><span>{workflowSnapshot.CurrentStageTitle}</span></div>
                 <div><span>Entity Type:</span><span>{workflowSnapshot.EntityType}</span></div>
                 <div><span>Assigned Role:</span><span>{workflowSnapshot.RoleKey}</span></div>
-                <div><span>Available Actions:</span><span>{workflowSnapshot.Actions?.length ? workflowSnapshot.Actions.join(', ') : 'None'}</span></div>
+                <div><span>Available Actions:</span><span>{workflowSnapshot.Actions?.length ? workflowSnapshot.Actions.map(action => action.ActionKey).join(', ') : 'None'}</span></div>
               </div>
             )
           )
