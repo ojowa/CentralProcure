@@ -178,6 +178,8 @@ export const TendersBoardWorkspacePage = ({
   const canDecide = mode === 'decision' &&
     (workflowActions?.Actions?.some((action) => action.ActionKey.toLowerCase() === 'approval.decide') ?? false);
   const canCreateBpp = availableModuleIds.includes('bpp-escalation');
+  const canOpenAwardWorkspace = availableModuleIds.includes('contract-award');
+  const activeFilterCount = (query.trim() ? 1 : 0) + (statusFilter !== 'all' ? 1 : 0);
 
   const handleDecision = async (action: 'approve' | 'reject' | 'return') => {
     if (!token || !selectedItem || !rationale.trim()) {
@@ -248,8 +250,14 @@ export const TendersBoardWorkspacePage = ({
                 </div>
               ) : null}
 
+              <div className={`app-status-banner ${selectedItem.RequiresBpp ? 'app-status-banner--warning' : 'app-status-banner--success'}`}>
+                {selectedItem.RequiresBpp
+                  ? 'Board approval here is not the final award. This case must be endorsed onward to BPP before publication.'
+                  : 'Board approval here is the final approval step before award publication and contract award preparation.'}
+              </div>
+
               <div className="app-stats-grid app-stats-grid--4">
-                <div className="app-stat-card">
+                <div className="app-stat-card app-stat-card--info">
                   <span className="app-stat-card__label">Tender amount</span>
                   <strong className="app-stat-card__value">{formatCurrency(selectedItem.Amount)}</strong>
                 </div>
@@ -257,7 +265,7 @@ export const TendersBoardWorkspacePage = ({
                   <span className="app-stat-card__label">Recommended vendor</span>
                   <strong className="app-stat-card__value">{selectedItem.VendorName || 'Pending'}</strong>
                 </div>
-                <div className="app-stat-card">
+                <div className="app-stat-card app-stat-card--success">
                   <span className="app-stat-card__label">Evaluation report</span>
                   <strong className="app-stat-card__value">{selectedItem.ReportCode || 'Not linked'}</strong>
                 </div>
@@ -398,10 +406,26 @@ export const TendersBoardWorkspacePage = ({
                         Return to Evaluation
                       </button>
                     </div>
+                    {!canDecide ? (
+                      <p className="app-muted" style={{ marginTop: 12 }}>
+                        Decision controls are unavailable for your current granted actions on this tender.
+                      </p>
+                    ) : null}
                     {selectedItem.RequiresBpp && canCreateBpp ? (
-                      <div style={{ marginTop: 12 }}>
+                      <div style={{ marginTop: 12, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                         <button className="app-btn app-btn--secondary" onClick={() => onModuleChange?.('bpp-escalation')}>
                           Open BPP Escalation Workspace
+                        </button>
+                        {canOpenAwardWorkspace ? (
+                          <button className="app-btn app-btn--secondary" onClick={() => onModuleChange?.('contract-award')}>
+                            Open Contract Award Workspace
+                          </button>
+                        ) : null}
+                      </div>
+                    ) : canOpenAwardWorkspace && !selectedItem.RequiresBpp ? (
+                      <div style={{ marginTop: 12 }}>
+                        <button className="app-btn app-btn--secondary" onClick={() => onModuleChange?.('contract-award')}>
+                          Open Contract Award Workspace
                         </button>
                       </div>
                     ) : null}
@@ -414,15 +438,15 @@ export const TendersBoardWorkspacePage = ({
       ) : (
         <>
           <div className="app-stats-grid app-stats-grid--4">
-            <div className="app-stat-card">
+            <div className="app-stat-card app-stat-card--info">
               <span className="app-stat-card__label">Board cases</span>
               <strong className="app-stat-card__value">{summary.total}</strong>
             </div>
-            <div className="app-stat-card">
+            <div className="app-stat-card app-stat-card--success">
               <span className="app-stat-card__label">Direct award route</span>
               <strong className="app-stat-card__value">{summary.directAward}</strong>
             </div>
-            <div className="app-stat-card">
+            <div className="app-stat-card app-stat-card--warning">
               <span className="app-stat-card__label">BPP route</span>
               <strong className="app-stat-card__value">{summary.bpp}</strong>
             </div>
@@ -430,6 +454,12 @@ export const TendersBoardWorkspacePage = ({
               <span className="app-stat-card__label">Over 5 days pending</span>
               <strong className="app-stat-card__value">{summary.dueReview}</strong>
             </div>
+          </div>
+
+          <div className={`app-status-banner ${mode === 'decision' ? 'app-status-banner--warning' : 'app-status-banner--info'}`}>
+            {mode === 'decision'
+              ? 'Use this workspace to record the formal Tenders Board decision. Threshold routing will determine whether approval goes to award publication or onward to BPP.'
+              : 'Use this workspace to inspect evaluation recommendations, procurement context, and supporting documents before any formal board decision is recorded.'}
           </div>
 
           <div className="app-card">
@@ -446,8 +476,24 @@ export const TendersBoardWorkspacePage = ({
                 <option value="approved">Approved</option>
                 <option value="rejected">Rejected</option>
               </select>
+              {activeFilterCount > 0 ? (
+                <button
+                  type="button"
+                  className="app-btn app-btn--secondary"
+                  onClick={() => {
+                    setQuery('');
+                    setStatusFilter('all');
+                  }}
+                >
+                  Clear Filters
+                </button>
+              ) : null}
             </div>
           </div>
+
+          <p className="app-muted">
+            Showing {filteredQueue.length} of {queue.length} board-routed tenders{activeFilterCount > 0 ? ' with active filters applied' : ''}.
+          </p>
 
           <div className="app-table-wrapper">
             <table className="app-table">

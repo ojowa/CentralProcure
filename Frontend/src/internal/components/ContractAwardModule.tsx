@@ -145,6 +145,7 @@ export const ContractAwardModule = ({ module, token, role, initialData, onModule
 
   const canPublish = actions?.Actions?.some((action) => action.ActionKey.toLowerCase() === 'contract_award.publish') ?? false;
   const canViewContracts = true;
+  const activeFilterCount = (query.trim() ? 1 : 0) + (statusFilter !== 'all' ? 1 : 0);
 
   const handlePublish = async () => {
     if (!token || !selectedAward) {
@@ -208,12 +209,20 @@ export const ContractAwardModule = ({ module, token, role, initialData, onModule
             <div className="app-loading-spinner">Loading award publication context...</div>
           ) : detail ? (
             <>
+              <div className={`app-status-banner ${detail.Status.toLowerCase() === 'published' ? 'app-status-banner--success' : canPublish ? 'app-status-banner--info' : 'app-status-banner--warning'}`}>
+                {detail.Status.toLowerCase() === 'published'
+                  ? 'This award notice has already been published and is ready for downstream contract management.'
+                  : canPublish
+                    ? 'This award is ready for publication, subject to the workflow controls shown below.'
+                    : 'Publication is currently unavailable for your granted actions or the award is not yet in a publishable state.'}
+              </div>
+
               <div className="app-stats-grid app-stats-grid--4">
-                <div className="app-stat-card">
+                <div className="app-stat-card app-stat-card--info">
                   <span className="app-stat-card__label">Award value</span>
                   <strong className="app-stat-card__value">{formatCurrency(detail.AwardValue)}</strong>
                 </div>
-                <div className="app-stat-card">
+                <div className="app-stat-card app-stat-card--success">
                   <span className="app-stat-card__label">Vendor</span>
                   <strong className="app-stat-card__value">{detail.VendorName}</strong>
                 </div>
@@ -326,6 +335,11 @@ export const ContractAwardModule = ({ module, token, role, initialData, onModule
                       </button>
                     ) : null}
                   </div>
+                  {!canPublish && detail.Status.toLowerCase() !== 'published' ? (
+                    <p className="app-muted" style={{ marginTop: 12 }}>
+                      Publication is blocked until the workflow grants the `contract_award.publish` action for this award.
+                    </p>
+                  ) : null}
                 </div>
               </div>
             </>
@@ -334,15 +348,15 @@ export const ContractAwardModule = ({ module, token, role, initialData, onModule
       ) : (
         <>
           <div className="app-stats-grid app-stats-grid--4">
-            <div className="app-stat-card">
+            <div className="app-stat-card app-stat-card--info">
               <span className="app-stat-card__label">Awards</span>
               <strong className="app-stat-card__value">{summary.total}</strong>
             </div>
-            <div className="app-stat-card">
+            <div className="app-stat-card app-stat-card--warning">
               <span className="app-stat-card__label">Ready to publish</span>
               <strong className="app-stat-card__value">{summary.ready}</strong>
             </div>
-            <div className="app-stat-card">
+            <div className="app-stat-card app-stat-card--success">
               <span className="app-stat-card__label">Published</span>
               <strong className="app-stat-card__value">{summary.published}</strong>
             </div>
@@ -350,6 +364,10 @@ export const ContractAwardModule = ({ module, token, role, initialData, onModule
               <span className="app-stat-card__label">Awarded this month</span>
               <strong className="app-stat-card__value">{summary.thisMonth}</strong>
             </div>
+          </div>
+
+          <div className="app-status-banner app-status-banner--info">
+            Use this register to confirm which awards are still awaiting publication and which ones have already progressed into the post-award phase.
           </div>
 
           <div className="app-card">
@@ -367,8 +385,24 @@ export const ContractAwardModule = ({ module, token, role, initialData, onModule
                 <option value="published">Published</option>
                 <option value="cancelled">Cancelled</option>
               </select>
+              {activeFilterCount > 0 ? (
+                <button
+                  type="button"
+                  className="app-btn app-btn--secondary"
+                  onClick={() => {
+                    setQuery('');
+                    setStatusFilter('all');
+                  }}
+                >
+                  Clear Filters
+                </button>
+              ) : null}
             </div>
           </div>
+
+          <p className="app-muted">
+            Showing {filteredAwards.length} of {awards.length} contract awards{activeFilterCount > 0 ? ' with active filters applied' : ''}.
+          </p>
 
           <div className="app-table-wrapper">
             <table className="app-table">

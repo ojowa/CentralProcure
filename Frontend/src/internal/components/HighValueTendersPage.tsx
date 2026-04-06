@@ -179,6 +179,8 @@ export const HighValueTendersPage = ({
   const canReturn = grantedActionKeys.includes('cgis.return');
   const canEscalate = grantedActionKeys.includes('cgis.escalate');
   const canCreateBpp = grantedActionKeys.includes('bpp.create') && availableModuleIds.includes('bpp-escalation');
+  const canOpenAwardWorkspace = availableModuleIds.includes('contract-award');
+  const activeFilterCount = (search.trim() ? 1 : 0) + (statusFilter !== 'all' ? 1 : 0);
 
   const submitAction = async () => {
     if (!token || !selectedCase || !pendingAction || !rationale.trim()) {
@@ -256,12 +258,18 @@ export const HighValueTendersPage = ({
 
           {detailError ? <div className="app-alert app-alert--error">{detailError}</div> : null}
 
+          <div className={`app-status-banner ${selectedCase.ApprovalRoute?.toLowerCase().includes('bpp') ? 'app-status-banner--warning' : 'app-status-banner--info'}`}>
+            {selectedCase.ApprovalRoute?.toLowerCase().includes('bpp')
+              ? 'This case sits on a threshold route that may still require BPP no-objection after executive review.'
+              : 'This case is in the CGIS approval lane for executive threshold review before award publication.'}
+          </div>
+
           <div className="app-stats-grid app-stats-grid--3">
-            <div className="app-stat-card">
+            <div className="app-stat-card app-stat-card--info">
               <span className="app-stat-card__label">Department</span>
               <strong className="app-stat-card__value">{selectedCase.Department || 'Not stated'}</strong>
             </div>
-            <div className="app-stat-card">
+            <div className="app-stat-card app-stat-card--success">
               <span className="app-stat-card__label">Tender Value</span>
               <strong className="app-stat-card__value">{formatCurrency(selectedCase.Amount)}</strong>
             </div>
@@ -396,10 +404,26 @@ export const HighValueTendersPage = ({
                       Escalate to Board
                     </button>
                   </div>
+                  {!canApprove && !canReject && !canReturn && !canEscalate ? (
+                    <p className="app-muted" style={{ marginTop: 12 }}>
+                      Decision controls are unavailable for your current granted actions on this tender.
+                    </p>
+                  ) : null}
                   {canCreateBpp ? (
-                    <div style={{ marginTop: 12 }}>
+                    <div style={{ marginTop: 12, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                       <button className="app-btn app-btn--secondary" onClick={() => onModuleChange?.('bpp-escalation')}>
                         Open BPP Escalation Workspace
+                      </button>
+                      {canOpenAwardWorkspace ? (
+                        <button className="app-btn app-btn--secondary" onClick={() => onModuleChange?.('contract-award')}>
+                          Open Contract Award Workspace
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : canOpenAwardWorkspace ? (
+                    <div style={{ marginTop: 12 }}>
+                      <button className="app-btn app-btn--secondary" onClick={() => onModuleChange?.('contract-award')}>
+                        Open Contract Award Workspace
                       </button>
                     </div>
                   ) : null}
@@ -411,15 +435,15 @@ export const HighValueTendersPage = ({
       ) : (
         <>
           <div className="app-stats-grid app-stats-grid--4">
-            <div className="app-stat-card">
+            <div className="app-stat-card app-stat-card--info">
               <span className="app-stat-card__label">Tender cases</span>
               <strong className="app-stat-card__value">{summary.total}</strong>
             </div>
-            <div className="app-stat-card">
+            <div className="app-stat-card app-stat-card--success">
               <span className="app-stat-card__label">Pending review</span>
               <strong className="app-stat-card__value">{summary.pending}</strong>
             </div>
-            <div className="app-stat-card">
+            <div className="app-stat-card app-stat-card--warning">
               <span className="app-stat-card__label">BPP-route cases</span>
               <strong className="app-stat-card__value">{summary.escalated}</strong>
             </div>
@@ -427,6 +451,10 @@ export const HighValueTendersPage = ({
               <span className="app-stat-card__label">Aged beyond 5 days</span>
               <strong className="app-stat-card__value">{summary.urgent}</strong>
             </div>
+          </div>
+
+          <div className="app-status-banner app-status-banner--info">
+            Review threshold-routed tenders here before recording the CGIS decision. Use the queue to separate direct executive approvals from cases likely to progress into BPP handling.
           </div>
 
           <div className="app-card">
@@ -443,8 +471,24 @@ export const HighValueTendersPage = ({
                 <option value="approved">Approved</option>
                 <option value="rejected">Rejected</option>
               </select>
+              {activeFilterCount > 0 ? (
+                <button
+                  type="button"
+                  className="app-btn app-btn--secondary"
+                  onClick={() => {
+                    setSearch('');
+                    setStatusFilter('all');
+                  }}
+                >
+                  Clear Filters
+                </button>
+              ) : null}
             </div>
           </div>
+
+          <p className="app-muted">
+            Showing {filteredQueue.length} of {queue.length} high-value tender cases{activeFilterCount > 0 ? ' with active filters applied' : ''}.
+          </p>
 
           <div className="app-table-wrapper">
             <table className="app-table">
