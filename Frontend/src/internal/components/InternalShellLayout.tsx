@@ -23,6 +23,7 @@ const moduleFetchSkipList = new Set<string>([
   'requisition-management',
   'workflow-blueprint',
   'annual-procurement-plan',
+  'procurement-method-determination',
   'create-tender',
   'bid-opening-session',
   'bpp-escalation',

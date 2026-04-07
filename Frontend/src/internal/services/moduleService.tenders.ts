@@ -312,3 +312,86 @@ export const applyCgisAction = async (action: 'approve' | 'reject' | 'return' | 
   }
   return response.json();
 };
+
+export const fetchProcurementMethodDetail = async (entityType: string, entityId: string, token: string) => {
+  const url = `${serviceBaseUrls.workflow}/api/procurement-methods/${entityType}/${entityId}`;
+  const response = await fetch(url, {
+    headers: buildAuthHeaders(token),
+    credentials: 'include'
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || 'Failed to fetch procurement method detail.');
+  }
+  return response.json();
+};
+
+export const recordProcurementMethodDecision = async (data: any, token: string) => {
+  const url = `${serviceBaseUrls.workflow}/api/procurement-methods/determine`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...buildAuthHeaders(token),
+      ...buildCsrfHeaders()
+    },
+    credentials: 'include',
+    body: JSON.stringify(data)
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || 'Failed to record procurement method.');
+  }
+  return response.json();
+};
+
+export const requestProcurementMethodException = async (data: any, token: string) => {
+  const url = `${serviceBaseUrls.workflow}/api/procurement-methods/request-exception`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...buildAuthHeaders(token),
+      ...buildCsrfHeaders()
+    },
+    credentials: 'include',
+    body: JSON.stringify(data)
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || 'Failed to submit late method-change exception.');
+  }
+  return response.json();
+};
+
+export const fetchMethodChangeExceptionQueue = async (token: string) => {
+  const url = `${serviceBaseUrls.workflow}/api/procurement-methods/exceptions/queue`;
+  const response = await fetch(url, {
+    headers: buildAuthHeaders(token),
+    credentials: 'include'
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || 'Failed to fetch method-change exception queue.');
+  }
+  return response.json();
+};
+
+export const decideMethodChangeException = async (action: 'approve' | 'reject' | 'return', data: any, token: string) => {
+  const url = `${serviceBaseUrls.workflow}/api/procurement-methods/exceptions/${action}`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...buildAuthHeaders(token),
+      ...buildCsrfHeaders()
+    },
+    credentials: 'include',
+    body: JSON.stringify(data)
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || `Failed to ${action} method-change exception.`);
+  }
+  return response.json();
+};

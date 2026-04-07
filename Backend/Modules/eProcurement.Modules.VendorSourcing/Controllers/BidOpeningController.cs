@@ -11,6 +11,7 @@ public partial class BidOpeningController : ControllerBase
 {
     private readonly IConfiguration _config;
     private readonly ILogger<BidOpeningController> _logger;
+    private readonly WorkflowPolicyGuard _workflowPolicyGuard;
     private readonly WorkflowRuntimeTracker _workflowRuntimeTracker;
     private readonly WorkflowActionGrantService _workflowActionGrantService;
 
@@ -56,11 +57,13 @@ public partial class BidOpeningController : ControllerBase
     public BidOpeningController(
         IConfiguration config,
         ILogger<BidOpeningController> logger,
+        WorkflowPolicyGuard workflowPolicyGuard,
         WorkflowRuntimeTracker workflowRuntimeTracker,
         WorkflowActionGrantService workflowActionGrantService)
     {
         _config = config;
         _logger = logger;
+        _workflowPolicyGuard = workflowPolicyGuard;
         _workflowRuntimeTracker = workflowRuntimeTracker;
         _workflowActionGrantService = workflowActionGrantService;
     }

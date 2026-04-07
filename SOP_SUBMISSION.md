@@ -259,6 +259,15 @@ The following project controls are mandatory:
 8. Role-based authorization shall use approved workflow and RBAC services.
 9. Sensitive credentials shall not be committed into source control.
 10. Split repositories shall be published through subtree methods, not by direct monorepo branch push.
+11. Low-value procurement cases shall proceed to direct `CGIS Approval` after completion of the required planning, procurement preparation, and evaluation or quotation review steps, without `Tenders Board Review`, unless an approved exception requires escalation.
+12. For low-value procurement, the `Comptroller Procurement` shall determine whether the case proceeds through the `Competitive Tender` path or the `Simplified Quotation` path.
+13. No low-value case shall proceed to tender publication, quotation request, or final approval unless the method determination has been recorded with the selected method, rationale, actor identity, and timestamp.
+14. Where a low-value procurement method must be changed before material vendor-facing progress, the `Comptroller Procurement` may re-determine the method with mandatory rationale and full audit recording.
+15. Where a low-value procurement method must be changed after vendor-facing activity or response handling has commenced, the `Comptroller Procurement` shall submit an exception request and `CGIS` shall act as the approving authority for that exception.
+16. `CGIS` may `Approve`, `Reject`, or `Return for Clarification` a late low-value method-change exception. No such late method change shall take effect unless and until `CGIS` approves the exception.
+17. Where `CGIS` rejects a late low-value method-change exception, the procurement case shall automatically resume on the previously valid procurement method.
+18. Where `CGIS` returns a late low-value method-change exception for clarification, the procurement case shall remain paused until clarification is resubmitted and a final decision is issued.
+19. No method re-determination or exception approval shall erase the original method decision record. The system shall preserve the full decision and exception history for audit purposes.
 
 ## 11. Standard Operating Procedure
 
@@ -433,7 +442,7 @@ The following records should be retained for releases or significant technical c
 - smoke test result
 - exception approval where applicable
 
-This document should be available for internal audit, release review, and project governance assessment.
+This document should be avaido ilable for internal audit, release review, and project governance assessment.
 
 Where required by internal controls, release records may be referenced during management reporting, compliance review, or post-incident assessment.
 
@@ -557,6 +566,29 @@ All users shall:
 5. enter notes or rationale where the workflow requires accountable decision making
 6. avoid sharing credentials or using another officer's account
 
+### C.1.1 Role Summary Matrix
+
+| Role | Main Workspace | Key Actions | Prohibited Actions |
+|------|----------------|-------------|--------------------|
+| Vendor | Public Portal / Vendor Dashboard | Maintain profile, upload compliance documents, view tenders, submit bids, track bid status | Access internal approval, evaluation, audit, or admin modules |
+| Requesting Officer | Department Dashboard | Create requisition, attach justification, submit request, track status, resubmit returned items | Approve budget, evaluation, award, or threshold-route decisions |
+| Department Head | Department Dashboard / Requisition Queue | Review requisitions, endorse, return, reject, add remarks | Perform budget confirmation, evaluation scoring, or final approval actions outside assigned workflow |
+| Budget Officer | Budget Officer Workspace | Review budget queue, inspect balances, confirm, hold, return, reject, record notes | Publish tenders, score evaluations, or issue award approvals |
+| Procurement Officer | Procurement Dashboard / APP / Tender Management | Manage APP flow, initiate procurement, create tenders, publish tenders, track process progression | Bypass threshold routing or take approval actions outside granted workflow permissions |
+| Planning Reviewer | Planning Review Workspace | Review requisitions, recommend, return, reject, confirm APP readiness | Publish tenders, approve awards, or override budget and approval controls |
+| Technical Evaluator | Evaluation Dashboard / Technical Evaluation | Review technical submissions, assess compliance, score, submit technical recommendation | Take financial evaluation, board, CGIS, or award decisions |
+| Financial Evaluator | Evaluation Dashboard / Financial Evaluation | Review commercial offers, compare pricing, submit financial recommendation | Take technical-only, board, CGIS, or award decisions outside role |
+| Evaluation Report Owner | Evaluation Dashboard / Evaluation Report | Consolidate findings, produce recommendation pack, submit evaluation report | Override approval routing or finalize award decisions |
+| Tenders Board Reviewer | Approval Dashboard | Review routed cases, approve, return, reject, escalate, record decision notes | Skip BPP-required controls or alter operational evaluation data |
+| CGIS Approval Officer | CGIS Approval Workspace | Review executive queue, inspect case detail, approve, reject, return, escalate, issue rationale | Edit tender setup, vendor records, or evaluation scores from executive workspace |
+| BPP Liaison | BPP Review Workspace | Track BPP-routed cases, verify documents, monitor no-objection, record outcome | Release cases to award without satisfying required BPP gate |
+| Contract Manager | Post-Award Modules | Create award records, manage contract milestones, coordinate execution and delivery tracking | Act before valid approval and award publication |
+| Inspection Officer | Inspection and Acceptance | Review deliveries, record inspection outcome, confirm acceptance or exception | Approve payments without inspection basis |
+| Payment Tracking Officer | Payment Tracking | Review payment readiness, update payment status, monitor completion | Override missing inspection, approval, or post-award controls |
+| Audit and Oversight Officer | Audit Dashboard / Audit Trail Viewer | Review audit history, compliance reports, trace role actions, escalate anomalies | Edit business records unless separately authorized |
+| Complaints Review Officer | Administrative Review Workspace | Review complaints, manage exception path, record review outcome, restore case to proper stage | Process complaint cases as if they were still in the normal happy-path workflow |
+| System Administrator | User and Role Management / Workflow Configuration / Monitoring | Manage users, roles, settings, workflow configuration, monitoring, support diagnostics | Take business approval, evaluation, budget, board, CGIS, or award decisions without separate operational role |
+
 ### C.2 Vendor
 
 Primary UI area:
@@ -582,7 +614,7 @@ Key control point:
 
 - Vendors may submit bids and maintain profile data, but shall not access internal approval, evaluation, or audit workspaces.
 
-### C.3 Requesting Officer or Department User
+### C.3 Requesting Officer
 
 Primary UI area:
 
@@ -602,7 +634,7 @@ Expected operating steps:
 
 Key control point:
 
-- Department users initiate requests but do not approve budget, procurement route, evaluation, or award decisions.
+- Requesting Officers initiate requests but do not approve budget, procurement route, evaluation, or award decisions.
 
 ### C.4 Department Head
 
@@ -647,7 +679,7 @@ Key control point:
 
 - The Budget Officer operates the budget confirmation stage and may block or return items that are not financially supportable.
 
-### C.6 Procurement Officer or Procurement Manager
+### C.6 Procurement Officer
 
 Primary UI area:
 
@@ -748,7 +780,7 @@ Key control point:
 
 - The evaluation report becomes the core recommendation pack for board, CGIS, or BPP review.
 
-### C.11 Tenders Board Secretary or Board Reviewer
+### C.11 Tenders Board Reviewer
 
 Primary UI area:
 
@@ -769,7 +801,7 @@ Key control point:
 
 - Board actions must follow threshold routing and shall not improperly skip BPP review where the route requires it.
 
-### C.12 CGIS Approver
+### C.12 CGIS Approval Officer
 
 Primary UI area:
 
@@ -870,7 +902,7 @@ Key control point:
 
 - Payment tracking shall follow approved post-award workflow and should not be used to override missing inspection or approval gates.
 
-### C.17 Audit Officer or Oversight User
+### C.17 Audit and Oversight Officer
 
 Primary UI area:
 
@@ -908,7 +940,7 @@ Key control point:
 
 - Administrative review is an exception path and shall be handled separately from the normal happy-path procurement flow.
 
-### C.19 System Administrator or ICT Administrator
+### C.19 System Administrator
 
 Primary UI area:
 
@@ -928,3 +960,148 @@ Expected operating steps:
 Key control point:
 
 - System administration rights shall be tightly controlled because they affect access, workflow, and platform availability.
+
+Administrative operating duties:
+
+1. open `User and Role Management` to create, disable, unlock, or update user accounts
+2. assign the correct role to each officer so the appropriate dashboard and workspace become visible
+3. review role mappings when a user reports missing modules or excess access
+4. open `Workflow Configuration` to maintain approved workflow stages, routing rules, and permitted action mappings
+5. open `System Settings` to manage configuration items that are intended for administrator control
+6. open `Monitoring and Health` to review system status, service health, failed jobs, and operational alerts
+7. use audit and monitoring views to investigate support incidents without altering business decisions
+8. support users by confirming where an item is stuck in workflow, which role currently owns it, and whether an allowed action is available
+9. verify notifications, role visibility, and environment-linked behavior after configuration or release changes
+10. document any high-impact administrative change and escalate it for approval where policy requires
+
+Administrative support across business tasks:
+
+1. for requisition issues, confirm the record stage, assigned actor, and whether the Requesting Officer or Department Head can still act
+2. for budget issues, confirm whether the item is in `budget_allocation_and_confirmation` and visible in the `Budget Officer Workspace`
+3. for procurement planning issues, confirm APP linkage, plan status, and whether procurement initiation is unlocked
+4. for tender issues, confirm publication state, bid stage, and whether evaluation or approval routes are correctly resolved
+5. for approval issues, confirm whether the case belongs to `CGIS Approval`, Tenders Board review, or BPP route based on the route diagnostics
+6. for post-award issues, confirm whether award publication, contract execution, inspection, and payment stages are progressing correctly
+7. for complaint issues, confirm whether the record has moved into administrative review and whether the normal workflow has been interrupted
+
+Detailed administrator task procedures:
+
+1. User account creation
+   Procedure:
+   Open `User and Role Management`, select `Create User`, enter the officer's identity details, assign the initial role, save the record, and confirm the user appears in the user list.
+   Undo or correction:
+   If created in error, open the user profile and use `Disable User` or `Deactivate Account`. If the profile data is wrong, use `Edit User` and save the corrected details.
+2. User profile update
+   Procedure:
+   Open `User and Role Management`, search for the officer, open the profile, update the permitted fields such as name, department, designation, email, or status, then save changes.
+   Undo or correction:
+   Reopen the same profile and restore the correct values. If the update caused access or routing issues, verify the department and role fields immediately after correction.
+3. User account disable or re-enable
+   Procedure:
+   Open the user record and select `Disable`, `Suspend`, or the equivalent status control when an account should no longer log in or act in workflow.
+   Undo or correction:
+   Reopen the user record and select `Enable`, `Reactivate`, or restore the prior active status after approval.
+4. Password reset or account unlock
+   Procedure:
+   Open the user record and select `Reset Password` or `Unlock Account`, then communicate the reset outcome through the approved channel.
+   Undo or correction:
+   A password reset is not normally undone. If triggered in error, reset the password again and notify the affected user. An unlock can be reversed by disabling the account where policy requires immediate restriction.
+5. Role assignment
+   Procedure:
+   Open the user profile, go to `Roles` or access mapping, assign the correct operational role, save, then ask the user to sign in again and confirm the expected workspace is visible.
+   Undo or correction:
+   Remove the incorrect role or restore the previous role assignment. Confirm that excessive access has been removed and that required access remains.
+6. Role removal
+   Procedure:
+   Open the user role mapping, remove the role that should no longer apply, save, and verify the user no longer sees the removed module.
+   Undo or correction:
+   Reassign the role if it was removed in error and confirm the associated workspace becomes visible again.
+7. Department or unit reassignment
+   Procedure:
+   Open the user profile and update the department or unit field so requisition ownership, queues, and dashboards align with the officer's current placement.
+   Undo or correction:
+   Restore the previous department if the reassignment was incorrect. Recheck any affected queue visibility after reversal.
+8. Workflow stage configuration
+   Procedure:
+   Open `Workflow Configuration`, locate the relevant workflow definition, review the current stage map, update the approved stage setting or label, save, and verify that the change matches the approved configuration record.
+   Undo or correction:
+   Restore the prior stage configuration from the documented baseline or approved configuration snapshot. Re-test route visibility after rollback.
+9. Workflow action mapping
+   Procedure:
+   Open the action or permission mapping for the relevant workflow stage, add or remove the approved allowed action, save, and verify the intended role now sees only the permitted action buttons.
+   Undo or correction:
+   Restore the prior action mapping if the wrong action became visible or disappeared. Confirm by reloading the affected case with the impacted role.
+10. Threshold or route configuration support
+   Procedure:
+   Open the approved workflow or route configuration screen, review threshold bands and route labels, apply the approved change, save, and verify that route diagnostics still resolve to the correct authority.
+   Undo or correction:
+   Reinstate the previous threshold or route values immediately if cases start resolving to the wrong approval path.
+11. System settings update
+   Procedure:
+   Open `System Settings`, locate the approved setting, change the value, save, and verify the expected system behavior in the related module.
+   Undo or correction:
+   Reopen the same setting and restore the prior value. Validate that the affected behavior has returned to normal.
+12. Notification configuration check
+   Procedure:
+   Open the notification or settings area, confirm that the affected event is enabled, verify recipient role mapping, and perform a controlled test where allowed.
+   Undo or correction:
+   Restore the previous notification state if a test change causes incorrect or excessive notifications.
+13. Monitoring and health review
+   Procedure:
+   Open `Monitoring and Health`, review service indicators, queue failures, recent errors, and alert panels, then identify the failing module or release window.
+   Undo or correction:
+   Monitoring review itself is read-only. If an operational control was changed during diagnosis, restore the prior value after the investigation unless a permanent fix was approved.
+14. Incident triage
+   Procedure:
+   Gather the record reference, user role, reported error, current stage, and time of failure. Open the relevant admin or audit views, confirm whether the issue is access-related, workflow-related, data-related, or environment-related, then route it to the responsible team.
+   Undo or correction:
+   If the admin made a temporary change for diagnosis, revert that temporary change once evidence is collected.
+15. Requisition support intervention
+   Procedure:
+   Search the requisition reference, inspect the current stage, assigned actor, previous notes, and pending actions. Confirm whether the Requesting Officer or Department Head can still act or whether the item is awaiting the next control role.
+   Undo or correction:
+   If a display or access issue was caused by admin role mapping or settings, restore the prior role or setting. Do not change the requisition decision itself unless an approved business-admin function exists.
+16. Budget workflow support intervention
+   Procedure:
+   Search the affected requisition or APP item, confirm whether it is in `budget_allocation_and_confirmation`, verify `Budget Officer Workspace` visibility for the correct role, and check whether the allowed action is present.
+   Undo or correction:
+   Reverse any incorrect role mapping or workflow action mapping that caused the budget queue or buttons to disappear.
+17. Procurement and tender support intervention
+   Procedure:
+   Open the tender or APP record, confirm stage, publication state, route diagnostics, and role ownership. Verify that procurement initiation, tender publication, bid opening, or evaluation access aligns with the workflow stage.
+   Undo or correction:
+   If the issue was caused by configuration error, restore the prior approved setting. Do not edit evaluation outcomes or approval decisions as an admin workaround.
+18. Approval routing support
+   Procedure:
+   Review route diagnostics to confirm whether the case belongs to `CGIS Approval`, `Tenders Board Review`, or `BPP` path. Verify that the assigned role can see the case and permitted actions.
+   Undo or correction:
+   If the wrong route was exposed due to configuration change, roll back the route or threshold configuration to the last approved state.
+19. Post-award support
+   Procedure:
+   Open the contract, inspection, or payment views, confirm the current stage and any missing predecessor event such as award publication or inspection completion, then advise the responsible operational user.
+   Undo or correction:
+   If a configuration issue blocked visibility or progression, restore the prior admin configuration. Do not fabricate post-award milestones.
+20. Complaint and administrative review support
+   Procedure:
+   Confirm whether the complaint has moved into administrative review, check who owns the review step, and verify that the normal workflow has been interrupted where required.
+   Undo or correction:
+   Reverse only the admin-side access or visibility issue if one exists. Do not close, dismiss, or advance the complaint outside the authorized review role.
+21. Audit support
+   Procedure:
+   Open `Audit Dashboard` or `Audit Trail Viewer`, search by reference number, user, date, or module, and inspect who acted, when they acted, and what stage transition occurred.
+   Undo or correction:
+   Audit review is read-only. If an audit-related access permission was changed in error, restore the previous permission mapping.
+22. Safe undo rule for administrators
+   Procedure:
+   An administrator may undo configuration, access, visibility, and status-management actions that the admin role itself created, provided the reversal is allowed by policy and the prior state is known.
+   Undo or correction:
+   Before undoing, confirm the previous state from audit history, configuration baseline, or approved request. After undoing, verify the affected module behaves as expected.
+23. Non-reversible actions rule
+   Procedure:
+   Where an action is inherently non-reversible, such as a password reset already communicated or an audit entry already created, the administrator shall apply the proper corrective action instead of attempting to erase history.
+   Undo or correction:
+   Use a new corrective action, document the reason, and preserve the audit trail.
+
+Administrator limitation:
+
+- A System Administrator may configure, support, monitor, and troubleshoot all UI areas, but shall not take business approval, evaluation, board, CGIS, budget, or award decisions unless separately assigned that operational role under approved access control.

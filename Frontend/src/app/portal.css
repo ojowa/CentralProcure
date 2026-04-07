@@ -867,7 +867,7 @@
 
 .requisition-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 250px;
+  grid-template-columns: minmax(0, 1fr) 230px;
   gap: 20px;
   margin-top: 16px;
   align-items: start;

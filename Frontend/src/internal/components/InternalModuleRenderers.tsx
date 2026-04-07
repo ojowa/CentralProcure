@@ -34,6 +34,7 @@ import { SystemMonitoringModule } from './SystemMonitoringModule';
 import { TenderReviewPage } from './TenderReviewPage';
 import { ApprovalRejectionPage } from './ApprovalRejectionPage';
 import { HighValueTendersPage } from './HighValueTendersPage';
+import { ProcurementMethodDeterminationModule } from './ProcurementMethodDeterminationModule';
 
 export type InternalModuleRendererProps = {
   module: InternalModule;
@@ -101,6 +102,7 @@ export const moduleRenderers: Partial<Record<string, (props: InternalModuleRende
     'administrative-review': (props) => <AdministrativeReviewModulePage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} />,
     'workflow-blueprint': (props) => <WorkflowBlueprintPage module={props.module} token={props.token} />,
     'annual-procurement-plan': (props) => <ProcurementPlanModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
+    'procurement-method-determination': (props) => <ProcurementMethodDeterminationModule module={props.module} token={props.token} />,
     'procurement-planning-committee': (props) => <PlanningCommitteeReviewModule module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} initialData={props.moduleData} />,
     'create-tender': (props) => <TenderCreatePage token={props.token} module={props.module} />,
     'assigned-tenders': (props) => <AssignedTendersModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} onModuleChange={props.onModuleChange} />,

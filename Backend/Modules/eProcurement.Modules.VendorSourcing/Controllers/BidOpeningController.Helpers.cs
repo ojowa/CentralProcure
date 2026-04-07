@@ -119,6 +119,19 @@ public partial class BidOpeningController
             return;
         }
 
+        var transition = await _workflowPolicyGuard.EvaluateTransitionAsync(
+            conn,
+            tx,
+            tenderWorkflow.EntityType,
+            tenderWorkflow.EntityId,
+            "bid_opening",
+            ct);
+
+        if (!transition.IsAllowed)
+        {
+            throw new InvalidOperationException(transition.Message ?? "Tender cannot move to bid opening.");
+        }
+
         await _workflowRuntimeTracker.SyncAsync(
             conn,
             tx,
