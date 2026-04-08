@@ -32,18 +32,21 @@ namespace eProcurement.Modules.Identity.Controllers
         private readonly WorkflowActionGrantService _workflowActionGrantService;
         private readonly InternalSessionActivityProtector _internalSessionActivityProtector;
         private readonly InternalSessionOptions _internalSessionOptions;
+        private readonly IModuleAccessService _moduleAccessService;
 
         public AuthController(
             IConfiguration config,
             ILogger<AuthController> logger,
             WorkflowActionGrantService workflowActionGrantService,
             InternalSessionActivityProtector internalSessionActivityProtector,
-            IOptions<InternalSessionOptions> internalSessionOptions)
+            IOptions<InternalSessionOptions> internalSessionOptions,
+            IModuleAccessService moduleAccessService)
             : base(config, logger)
         {
             _workflowActionGrantService = workflowActionGrantService;
             _internalSessionActivityProtector = internalSessionActivityProtector;
             _internalSessionOptions = internalSessionOptions.Value;
+            _moduleAccessService = moduleAccessService;
         }
 
         protected bool IsIdentityAdministrator()

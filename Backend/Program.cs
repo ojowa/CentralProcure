@@ -81,6 +81,16 @@ builder.Services.AddHealthChecks();
 builder.Services.AddScoped<WorkflowPolicyGuard>();
 builder.Services.AddScoped<WorkflowRuntimeTracker>();
 builder.Services.AddScoped<WorkflowActionGrantService>();
+builder.Services.AddScoped<eProcurement.Modules.Identity.Services.IModuleAccessService, eProcurement.Modules.Identity.Services.ModuleAccessService>();
+builder.Services.AddScoped<eProcurement.Modules.ProcurementWorkflow.Services.IPlanningCommitteeReviewService, eProcurement.Modules.ProcurementWorkflow.Services.PlanningCommitteeReviewService>();
+builder.Services.AddScoped<eProcurement.Modules.ProcurementWorkflow.Services.IBppNoObjectionService, eProcurement.Modules.ProcurementWorkflow.Services.BppNoObjectionService>();
+builder.Services.AddScoped<eProcurement.Modules.ProcurementWorkflow.Services.IEvaluationService, eProcurement.Modules.ProcurementWorkflow.Services.EvaluationService>();
+builder.Services.AddScoped<eProcurement.Modules.Governance.Services.IBudgetLedgerService, eProcurement.Modules.Governance.Services.BudgetLedgerService>();
+builder.Services.AddScoped<eProcurement.Modules.PostAward.Services.IContractService, eProcurement.Modules.PostAward.Services.ContractService>();
+builder.Services.AddScoped<eProcurement.Modules.PostAward.Services.IInspectionService, eProcurement.Modules.PostAward.Services.InspectionService>();
+builder.Services.AddScoped<eProcurement.Modules.VendorSourcing.Services.IVendorService, eProcurement.Modules.VendorSourcing.Services.VendorService>();
+builder.Services.AddScoped<eProcurement.Modules.VendorSourcing.Services.IVendorAdministrationService, eProcurement.Modules.VendorSourcing.Services.VendorAdministrationService>();
+builder.Services.AddScoped<eProcurement.Modules.VendorSourcing.Services.IVendorComplianceService, eProcurement.Modules.VendorSourcing.Services.VendorComplianceService>();
 builder.Services.Configure<InternalSessionOptions>(builder.Configuration.GetSection(InternalSessionOptions.SectionName));
 builder.Services.AddSingleton<InternalSessionActivityProtector>();
 builder.Services.Configure<ForwardedHeadersOptions>(options =>

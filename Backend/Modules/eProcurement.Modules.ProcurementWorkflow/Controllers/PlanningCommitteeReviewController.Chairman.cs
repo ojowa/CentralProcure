@@ -1,7 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Npgsql;
 using eProcurement.Modules.ProcurementWorkflow.DTOs;
 using eProcurement.Modules.ProcurementWorkflow.Services;
 using eProcurement.Shared.Workflow;
@@ -14,15 +13,9 @@ public partial class PlanningCommitteeReviewController
     [HttpGet("chairman")]
     public async Task<IActionResult> GetChairmanAssignment(CancellationToken ct)
     {
-        var connectionString = GetConnectionString();
         try
         {
-            await using var conn = new NpgsqlConnection(connectionString);
-            await conn.OpenAsync(ct);
-            await using var tx = await conn.BeginTransactionAsync(ct);
-
-            var assignment = await PlanningCommitteeChairmanRegistry.GetAssignmentAsync(conn, tx, ct);
-            await tx.CommitAsync(ct);
+            var assignment = await _reviewService.GetChairmanAssignmentAsync(ct);
             return Ok(assignment);
         }
         catch (Exception ex)
@@ -41,22 +34,14 @@ public partial class PlanningCommitteeReviewController
             return Forbid();
         }
 
-        var connectionString = GetConnectionString();
         try
         {
-            await using var conn = new NpgsqlConnection(connectionString);
-            await conn.OpenAsync(ct);
-            await using var tx = await conn.BeginTransactionAsync(ct);
-
-            var assignment = await PlanningCommitteeChairmanRegistry.UpsertAssignmentAsync(
-                conn,
-                tx,
+            var assignment = await _reviewService.UpsertChairmanAssignmentAsync(
                 request.InternalUserId,
                 ResolveChairmanAssignmentActor(User),
                 ResolveAuthenticatedInternalUserId(User),
                 ct);
 
-            await tx.CommitAsync(ct);
             return Ok(assignment);
         }
         catch (InvalidOperationException ex)
