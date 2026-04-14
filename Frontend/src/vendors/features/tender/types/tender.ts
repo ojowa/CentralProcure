@@ -4,13 +4,18 @@
 export type TenderStatus = 'Open' | 'Closed' | 'Under Evaluation' | 'Awarded' | 'Cancelled';
 
 /**
+ * Represents the procurement category of a tender.
+ */
+export type ProcurementCategory = 'Goods' | 'Works' | 'Services';
+
+/**
  * Represents a summary of a tender for listing purposes.
  * This is a lightweight object for displaying in a list.
  */
 export interface TenderSummary {
     Id: string;
     Title: string;
-    ProcurementCategory: 'Goods' | 'Works' | 'Services';
+    ProcurementCategory: ProcurementCategory;
     Status: TenderStatus;
     SubmissionDeadline: string; // ISO date string
 }
