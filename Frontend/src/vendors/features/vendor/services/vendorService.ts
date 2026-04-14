@@ -282,15 +282,33 @@ export const downloadComplianceChecklist = async (): Promise<Blob> => {
     }
 };
 
-export const checkVendorAvailability = async (params: {
-    email?: string;
-    registrationNumber?: string;
-    taxId?: string;
-}): Promise<VendorAvailabilityResponse> => {
+export type CheckVendorAvailabilityFunction = (
+    params: {
+        email?: string;
+        registrationNumber?: string;
+        taxId?: string;
+    },
+    signal?: AbortSignal
+) => Promise<VendorAvailabilityResponse>;
+
+export const checkVendorAvailability: CheckVendorAvailabilityFunction = async (
+    params: {
+        email?: string;
+        registrationNumber?: string;
+        taxId?: string;
+    },
+    signal?: AbortSignal
+): Promise<VendorAvailabilityResponse> => {
     try {
-        const response = await apiClient.get(API_ENDPOINTS.VENDOR_AVAILABILITY, { params });
+        const response = await apiClient.get(API_ENDPOINTS.VENDOR_AVAILABILITY, {
+            params,
+            ...(signal ? { signal } : {})
+        });
         return response.data as VendorAvailabilityResponse;
     } catch (error: any) {
+        if (error.name === 'AbortError') {
+            throw error;
+        }
         console.error("Vendor availability check failed:", error);
         if (error.response?.data?.message) {
             throw new Error(error.response.data.message);
