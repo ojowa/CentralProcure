@@ -138,7 +138,7 @@ export default function LoginPage() {
                   Nigeria Immigration Service
                 </div>
                 <div className="text-xs text-slate-500 -mt-1">
-                  Central Procurement Portal
+                  eProcurement Portal
                 </div>
               </div>
             </div>

@@ -305,7 +305,7 @@ export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShel
         <main className="portal-main">
           {modulesError ? <div className="portal-alert">{modulesError}</div> : null}
           {modulesLoading ? <div className="plan-loading">Loading role workspace...</div> : null}
-          {activeModuleId === 'dashboard' ? <DashboardPage modules={accessibleModules} /> : null}
+          {activeModuleId === 'dashboard' ? <DashboardPage modules={accessibleModules} role={selectedRole} userEmail={userEmail} /> : null}
           {activeModuleId && activeModuleId !== 'dashboard' && activeModule ? (
             <>
               {(activeModuleRenderer ?? renderGenericModuleWorkspace)({
