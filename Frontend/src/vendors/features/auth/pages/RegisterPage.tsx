@@ -451,7 +451,7 @@ const RegisterPage: React.FC = () => {
                                     label="Phone Number"
                                     htmlFor="phoneNumber"
                                     error={errors.PhoneNumber?.message}
-                                    hint="Include country code if applicable (e.g., +234)")
+                                    hint="Include country code if applicable (e.g., +234)"
                                 >
                                     <div className="app-input-with-icon">
                                         <Phone className="app-input-with-icon__icon" />
