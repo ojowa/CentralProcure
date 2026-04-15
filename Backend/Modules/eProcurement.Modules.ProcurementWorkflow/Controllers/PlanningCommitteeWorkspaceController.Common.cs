@@ -60,28 +60,34 @@ public partial class PlanningCommitteeWorkspaceController
         CommitteeDecisionResponse? decision)
     {
         var normalized = NormalizeRoleKey(roleKey);
-        var canActAsChairAssistant = normalized == NormalizeRoleKey(AdminRoleKey);
+        var isAdmin = normalized == NormalizeRoleKey(AdminRoleKey);
+        var isSecretary = normalized == "procurementsecretary";
+        var isChair = normalized == NormalizeRoleKey(ChairRoleKey);
+        
         var canUnlink = normalized is "financialunitofficer" or "admin";
         var hasFinalDecision = decision is not null;
         var isReviewReopened =
             string.Equals(plan?.CurrentStageKey, "planning_committee_review", StringComparison.OrdinalIgnoreCase) &&
             string.Equals(plan?.Status, "Returned", StringComparison.OrdinalIgnoreCase);
+        
         var canSubmitReview = !hasFinalDecision || isReviewReopened;
+        
         var hasSubmittedCurrentReview =
             !string.IsNullOrWhiteSpace(normalized) &&
-            normalized != NormalizeRoleKey(ChairRoleKey) &&
+            !isChair &&
             statuses.Any(status =>
                 NormalizeRoleKey(status.RoleKey) == normalized &&
                 !string.IsNullOrWhiteSpace(status.Decision));
+
         return new PlanningCommitteeWorkspaceAuthority(
             requisition.AppItemId is null && canSubmitReview,
             canSubmitReview &&
             !string.IsNullOrWhiteSpace(normalized) &&
-            normalized != NormalizeRoleKey(ChairRoleKey) &&
-            normalized != NormalizeRoleKey(AdminRoleKey) &&
+            !isChair &&
+            !isAdmin &&
             MemberRoleKeys.Any(role => NormalizeRoleKey(role) == normalized) &&
             !hasSubmittedCurrentReview,
-            canSubmitReview && (normalized == NormalizeRoleKey(ChairRoleKey) || canActAsChairAssistant || isAssignedChairman),
+            canSubmitReview && (isSecretary || isAdmin || isAssignedChairman),
             canUnlink,
             requisition.AppItemId is not null,
             isReviewReopened);

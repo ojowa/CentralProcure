@@ -37,16 +37,22 @@ export const MemberReviewForm: React.FC<MemberReviewFormProps> = ({
       </div>
       <div className={styles.field}>
         <label htmlFor="reviewRemarks">Remarks</label>
-        <textarea
+        <select
           id="reviewRemarks"
           className="plan-input"
-          rows={3}
           required
           value={remarks}
           onChange={(e) => setRemarks(e.target.value)}
-          placeholder="Provide justification for your decision..."
           disabled={disabled}
-        />
+        >
+          <option value="">-- Select a remark --</option>
+          <option value="Requisition satisfies departmental procurement guidelines.">Requisition satisfies departmental procurement guidelines.</option>
+          <option value="Budget alignment confirmed for this line item.">Budget alignment confirmed for this line item.</option>
+          <option value="Technical specifications require further clarification.">Technical specifications require further clarification.</option>
+          <option value="Proposed cost exceeds market threshold for this category.">Proposed cost exceeds market threshold for this category.</option>
+          <option value="Item description is too vague for accurate sourcing.">Item description is too vague for accurate sourcing.</option>
+          <option value="Recommended for inclusion in the annual plan.">Recommended for inclusion in the annual plan.</option>
+        </select>
       </div>
       <button
         type="submit"

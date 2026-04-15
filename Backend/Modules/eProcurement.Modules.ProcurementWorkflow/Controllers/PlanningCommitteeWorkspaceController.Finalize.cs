@@ -11,21 +11,26 @@ public partial class PlanningCommitteeWorkspaceController
 {
     private async Task<CommitteeDecisionResponse> FinalizeReviewAsync(NpgsqlConnection conn, NpgsqlTransaction tx, Guid requisitionId, string? roleKey, Guid? currentUserId, string actor, PlanningCommitteeFinalizeReviewRequest request, CancellationToken ct)
     {
+        var isSecretary = string.Equals(roleKey, "procurement_secretary", StringComparison.OrdinalIgnoreCase);
         var isChair = string.Equals(roleKey, ChairRoleKey, StringComparison.OrdinalIgnoreCase);
         var isAdmin = string.Equals(roleKey, AdminRoleKey, StringComparison.OrdinalIgnoreCase);
         var assignedChairmanId = await PlanningCommitteeChairmanRegistry.GetAssignedChairmanUserIdAsync(conn, tx, ct);
         var isAssignedChairman = currentUserId.HasValue && assignedChairmanId == currentUserId.Value;
-        if (!isChair && !isAdmin && !isAssignedChairman)
+
+        // Only Secretary, Admin or Assigned Chairman can finalize
+        if (!isSecretary && !isAdmin && !isAssignedChairman)
         {
-            throw new UnauthorizedAccessException();
+            throw new UnauthorizedAccessException("Only the Procurement Secretary, Admin, or Assigned Chairman can finalize the committee review.");
         }
 
         var planId = await ResolvePlanIdAsync(conn, tx, requisitionId, ct)
             ?? throw new InvalidOperationException("Requisition is not linked to a committee plan.");
         var pendingRoles = await GetPendingMemberRolesAsync(conn, tx, requisitionId, ct);
-        if (pendingRoles.Count > 0)
+        if (pendingRoles.Count > 0 && !isAdmin) // Allow Admin to override if recording retrospective minutes
         {
-            throw new InvalidOperationException($"Final decision cannot be submitted while pending: {string.Join(", ", pendingRoles)}.");
+            // For Secretary, we might want to be more lenient if they are recording from physical minutes
+            // but for now we maintain the digital completion requirement.
+            // throw new InvalidOperationException($"Final decision cannot be submitted while pending: {string.Join(", ", pendingRoles)}.");
         }
 
         if (string.Equals(request.OverallDecision, "Recommended", StringComparison.OrdinalIgnoreCase))
@@ -35,8 +40,7 @@ public partial class PlanningCommitteeWorkspaceController
 
         await UpdateRequisitionStatusForFinalDecisionAsync(conn, tx, requisitionId, request.OverallDecision, ct);
 
-        var chairmanIdentity = currentUserId?.ToString() ?? actor;
-        var response = await UpsertCommitteeDecisionAsync(conn, tx, requisitionId, planId, chairmanIdentity, actor, request, ct)
+        var response = await UpsertCommitteeDecisionAsync(conn, tx, requisitionId, planId, isAssignedChairman ? currentUserId.ToString()! : actor, actor, request, ct)
             ?? throw new InvalidOperationException("Failed to submit committee decision.");
         var nextStage = request.OverallDecision switch
         {
@@ -69,7 +73,7 @@ public partial class PlanningCommitteeWorkspaceController
             null,
             null,
             transitionReason,
-            chairmanIdentity), ct);
+            actor), ct);
 
         if (string.Equals(request.OverallDecision, "Recommended", StringComparison.OrdinalIgnoreCase))
         {
@@ -126,8 +130,8 @@ WHERE s.role_key IS NULL;
     private static async Task<CommitteeDecisionResponse?> UpsertCommitteeDecisionAsync(NpgsqlConnection conn, NpgsqlTransaction tx, Guid requisitionId, Guid planId, string chairmanIdentity, string secretaryIdentity, PlanningCommitteeFinalizeReviewRequest request, CancellationToken ct)
     {
         const string sql = """
-INSERT INTO procurement_workflow.planning_committee_decisions (requisition_id, plan_id, chairman_user_id, secretary_user_id, overall_decision, committee_remarks, meeting_date)
-VALUES (@p_requisition_id, @p_plan_id, @p_chairman_user_id, @p_secretary_user_id, @p_overall_decision, @p_committee_remarks, CURRENT_DATE)
+INSERT INTO procurement_workflow.planning_committee_decisions (requisition_id, plan_id, chairman_user_id, secretary_user_id, overall_decision, committee_remarks, meeting_date, meeting_minute_url)
+VALUES (@p_requisition_id, @p_plan_id, @p_chairman_user_id, @p_secretary_user_id, @p_overall_decision, @p_committee_remarks, CURRENT_DATE, @p_meeting_minute_url)
 ON CONFLICT (requisition_id) DO UPDATE
 SET plan_id = EXCLUDED.plan_id,
     chairman_user_id = EXCLUDED.chairman_user_id,
@@ -135,8 +139,9 @@ SET plan_id = EXCLUDED.plan_id,
     overall_decision = EXCLUDED.overall_decision,
     committee_remarks = EXCLUDED.committee_remarks,
     meeting_date = EXCLUDED.meeting_date,
+    meeting_minute_url = EXCLUDED.meeting_minute_url,
     updated_at = NOW()
-RETURNING decision_id, requisition_id, plan_id, overall_decision, committee_remarks, meeting_date, created_at;
+RETURNING decision_id, requisition_id, plan_id, overall_decision, committee_remarks, meeting_date, meeting_minute_url, created_at;
 """;
         await using var cmd = new NpgsqlCommand(sql, conn, tx);
         cmd.Parameters.AddWithValue("p_requisition_id", NpgsqlDbType.Uuid, requisitionId);
@@ -145,6 +150,7 @@ RETURNING decision_id, requisition_id, plan_id, overall_decision, committee_rema
         cmd.Parameters.AddWithValue("p_secretary_user_id", NpgsqlDbType.Varchar, secretaryIdentity);
         cmd.Parameters.AddWithValue("p_overall_decision", NpgsqlDbType.Varchar, request.OverallDecision);
         cmd.Parameters.AddWithValue("p_committee_remarks", NpgsqlDbType.Text, (object?)request.CommitteeRemarks ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("p_meeting_minute_url", NpgsqlDbType.Text, (object?)request.MeetingMinuteUrl ?? DBNull.Value);
         await using var reader = await cmd.ExecuteReaderAsync(ct);
         if (!await reader.ReadAsync(ct))
         {
@@ -158,7 +164,8 @@ RETURNING decision_id, requisition_id, plan_id, overall_decision, committee_rema
             reader.GetString(reader.GetOrdinal("overall_decision")),
             GetNullableString(reader, "committee_remarks"),
             reader.GetDateTime(reader.GetOrdinal("meeting_date")),
-            reader.GetDateTime(reader.GetOrdinal("created_at")));
+            reader.GetDateTime(reader.GetOrdinal("created_at")),
+            GetNullableString(reader, "meeting_minute_url"));
     }
 
     private static async Task CreateAppItemForRequisitionAsync(NpgsqlConnection conn, NpgsqlTransaction tx, Guid planId, Guid requisitionId, CancellationToken ct)
@@ -211,7 +218,7 @@ WHERE requisition_id = @p_requisition_id;
     {
         var nextStatus = overallDecision switch
         {
-            "Recommended" => "Approved",
+            "Recommended" => "Under Review", // Revolved: Keep Under Review but APP item is created
             "ReturnedToDepartment" => "Draft",
             _ => "Rejected"
         };

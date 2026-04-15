@@ -18,7 +18,7 @@ interface ReviewWorkspaceProps {
   finalDecisionError: string | null;
   loading: boolean;
   onSubmitReview: (decision: string, remarks: string) => Promise<boolean>;
-  onSubmitFinalDecision: (decision: string, remarks: string) => Promise<boolean>;
+  onSubmitFinalDecision: (decision: string, remarks: string, minuteUrl?: string) => Promise<boolean>;
   onLink: () => void;
   onUnlink: (reason: string) => Promise<boolean>;
   formatCurrency: (value: number) => string;
@@ -44,7 +44,8 @@ export const ReviewWorkspace: React.FC<ReviewWorkspaceProps> = ({
 }) => {
   const formatDecisionLabel = (value?: string | null) => {
     if (value === 'ReturnedToDepartment') return 'Returned to Department for Correction';
-    if (value === 'Recommended') return 'Recommended for Approval';
+    if (value === 'Recommended') return 'Approved & Added to Plan';
+    if (value === 'Rejected') return 'Dropped from Plan';
     return value || 'Pending';
   };
 
@@ -64,8 +65,8 @@ export const ReviewWorkspace: React.FC<ReviewWorkspaceProps> = ({
     }
   };
 
-  const handleFinalSubmit = async (decision: string, remarks: string) => {
-    const success = await onSubmitFinalDecision(decision, remarks);
+  const handleFinalSubmit = async (decision: string, remarks: string, minuteUrl?: string) => {
+    const success = await onSubmitFinalDecision(decision, remarks, minuteUrl);
     if (success) {
       // Parent handles state update
     }

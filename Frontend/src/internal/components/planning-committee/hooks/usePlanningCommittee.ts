@@ -155,7 +155,7 @@ export function usePlanningCommittee(token: string | null) {
     }
   }, [token, state.selectedRequisition, loadWorkspaceData, showSuccess, showError]);
 
-  const submitFinalDecision = useCallback(async (decision: string, remarks: string) => {
+  const submitFinalDecision = useCallback(async (decision: string, remarks: string, minuteUrl?: string) => {
     if (!token || !state.selectedRequisition) {
       return { success: false, error: 'A requisition must be selected before submitting a final decision.' };
     }
@@ -163,7 +163,8 @@ export function usePlanningCommittee(token: string | null) {
     try {
       await finalizePlanningCommitteeReview(token, state.selectedRequisition.RequisitionId, {
         OverallDecision: decision,
-        CommitteeRemarks: remarks
+        CommitteeRemarks: remarks,
+        MeetingMinuteUrl: minuteUrl
       });
       await loadRequisitions();
       await loadWorkspaceData(state.selectedRequisition);

@@ -26,6 +26,7 @@ export type CommitteeDecisionResponse = {
   CommitteeRemarks?: string | null;
   MeetingDate: string;
   CreatedAt: string;
+  MeetingMinuteUrl?: string | null;
 };
 
 const baseUrl = `${serviceBaseUrls.workflow}/api/planning-committee/workspace`;
@@ -113,5 +114,5 @@ export const submitPlanningCommitteeMemberReview = (
 export const finalizePlanningCommitteeReview = (
   token: string,
   requisitionId: string,
-  payload: { OverallDecision: string; CommitteeRemarks?: string }
+  payload: { OverallDecision: string; CommitteeRemarks?: string; MeetingMinuteUrl?: string }
 ) => send<CommitteeDecisionResponse>(`/requisitions/${requisitionId}/finalize`, token, { method: 'POST' }, payload);

@@ -47,7 +47,8 @@ public record CommitteeDecisionResponse(
     string OverallDecision,
     string? CommitteeRemarks,
     DateTime MeetingDate,
-    DateTime CreatedAt
+    DateTime CreatedAt,
+    string? MeetingMinuteUrl = null
 );
 
 public record PlanReviewStatusResponse(
@@ -160,5 +161,6 @@ public record PlanningCommitteeMemberReviewActionRequest(
 
 public record PlanningCommitteeFinalizeReviewRequest(
     string OverallDecision,
-    string? CommitteeRemarks
+    string? CommitteeRemarks,
+    string? MeetingMinuteUrl = null
 );
