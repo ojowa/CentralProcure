@@ -2,6 +2,8 @@ export type RoleKey =
   | 'admin'
   | 'requisitioning_officer'
   | 'department_head'
+  | 'formation_officer'
+  | 'formation_head'
   | 'comptroller_procurement'
   | 'procurement_manager'
   | 'planning_statistics_officer'

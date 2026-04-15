@@ -34,6 +34,16 @@ export const roles: RoleDefinition[] = [
     description: 'Originates requisitions and confirms APP and budget alignment.'
   },
   {
+    key: 'formation_officer',
+    name: 'Formation Officer',
+    description: 'Captures procurement needs and initiates requests at the formation level.'
+  },
+  {
+    key: 'formation_head',
+    name: 'Formation Head',
+    description: 'Reviews and endorses procurement needs for the formation.'
+  },
+  {
     key: 'department_head',
     name: 'Department Head',
     description: 'Confirms business need, scope, and readiness.'
