@@ -148,8 +148,8 @@ const VendorHomePage: React.FC = () => {
           style={{ backgroundImage: "url('/backgroundimage.jpeg')" }}
         />
         {/* Dark Overlay for text readability */}
-        <div className="absolute inset-0 bg-slate-900/80" />
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-900/60 via-emerald-950/40 to-slate-900/60" />
+        <div className="absolute inset-0 bg-slate-900/40" />
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900/30 via-emerald-950/20 to-slate-900/30" />
 
         {/* Grid Pattern */}
         <div
