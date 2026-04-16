@@ -7,8 +7,8 @@ ALTER TABLE procurement_workflow.need_assessment_items DROP COLUMN IF EXISTS est
 -- Remove total cost from need assessments
 ALTER TABLE procurement_workflow.need_assessments DROP COLUMN IF EXISTS total_estimated_cost;
 
--- Update upsert function (remove references if any, though it didn't handle cost directly in the signature)
--- The signature remains same, but we ensure no internal logic tries to touch those columns.
+-- Drop the existing function first because the return table structure has changed
+DROP FUNCTION IF EXISTS procurement_workflow.analyze_procurement_needs(INT, UUID, VARCHAR);
 
 -- Update analysis function to remove cost metrics
 CREATE OR REPLACE FUNCTION procurement_workflow.analyze_procurement_needs(
