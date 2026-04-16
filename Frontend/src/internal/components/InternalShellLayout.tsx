@@ -32,7 +32,8 @@ const moduleFetchSkipList = new Set<string>([
   'inspection-acceptance',
   'evaluation-report',
   'vendor-registration-approval',
-  'user-profile'
+  'user-profile',
+  'needs-collection'
 ]);
 
 interface InternalShellProps {

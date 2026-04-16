@@ -48,6 +48,7 @@ const roleDashboardConfig: Partial<Record<RoleKey, {
       { label: 'Approved', value: '8', trend: '67% success rate', icon: <CheckCircle /> }
     ],
     quickActions: [
+      { label: 'Needs Assessment', moduleId: 'needs-collection', icon: <FileText /> },
       { label: 'Create New Requisition', moduleId: 'create-requisition', icon: <Zap /> },
       { label: 'View Requisition History', moduleId: 'requisition-history', icon: <Clock /> },
       { label: 'Track Requests', moduleId: 'requisition-tracking', icon: <TrendingUp /> }
@@ -65,6 +66,7 @@ const roleDashboardConfig: Partial<Record<RoleKey, {
       { label: 'Team Requisitions', value: '24', icon: <FileText /> }
     ],
     quickActions: [
+      { label: 'Needs Assessment', moduleId: 'needs-collection', icon: <Shield /> },
       { label: 'Review Pending Requisitions', moduleId: 'department-head-review', icon: <Shield /> },
       { label: 'View Team History', moduleId: 'requisition-history', icon: <Clock /> }
     ],
@@ -81,6 +83,7 @@ const roleDashboardConfig: Partial<Record<RoleKey, {
       { label: 'Active Tenders', value: '12', icon: <TrendingUp /> }
     ],
     quickActions: [
+      { label: 'Needs Assessment', moduleId: 'needs-collection', icon: <Shield /> },
       { label: 'Planning Committee Review', moduleId: 'procurement-planning-committee', icon: <Shield /> },
       { label: 'Annual Procurement Plan', moduleId: 'annual-procurement-plan', icon: <Calendar /> },
       { label: 'Tender Management', moduleId: 'create-tender', icon: <Briefcase /> }
