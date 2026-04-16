@@ -190,4 +190,22 @@ public partial class NeedsCollectionController : ControllerBase
             return Problem("Internal server error processing decision.");
         }
     }
+
+    [HttpGet("authorized-users")]
+    public async Task<IActionResult> GetAuthorizedUsers(CancellationToken ct)
+    {
+        var connectionString = _config.GetConnectionString("Primary");
+        try
+        {
+            await using var conn = new NpgsqlConnection(connectionString);
+            await conn.OpenAsync(ct);
+            var results = await GetNeedAssessmentAuthorizedUsersAsync(conn, ct);
+            return Ok(results);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving authorized users for needs collection.");
+            return Problem("Internal server error retrieving authorized users.");
+        }
+    }
 }

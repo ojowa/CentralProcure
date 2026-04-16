@@ -171,4 +171,56 @@ public partial class NeedsCollectionController
         
         await cmd.ExecuteNonQueryAsync(ct);
     }
+
+    private async Task<List<NeedAssessmentAuthorizedUser>> GetNeedAssessmentAuthorizedUsersAsync(NpgsqlConnection conn, CancellationToken ct)
+    {
+        const string moduleId = "needs-collection";
+        var sql = @"
+            WITH module_roles AS (
+                -- Roles with explicit enabled grant
+                SELECT role_id, 'Role-Based' as access_type
+                FROM identity.internal_module_grants
+                WHERE module_id = @p_module_id AND is_enabled = TRUE AND role_id IS NOT NULL
+            ),
+            user_grants AS (
+                -- Users with explicit grants (can be enabled or disabled)
+                SELECT internal_user_id, is_enabled, 'Direct Grant' as access_type
+                FROM identity.internal_module_grants
+                WHERE module_id = @p_module_id AND internal_user_id IS NOT NULL
+            )
+            SELECT 
+                u.internal_user_id,
+                u.email,
+                u.first_name || ' ' || u.surname as full_name,
+                r.role_name,
+                ou.unit_name,
+                COALESCE(ug.access_type, mr.access_type) as access_type
+            FROM identity.internal_users u
+            JOIN identity.roles r ON u.role_id = r.role_id
+            JOIN identity.organizational_units ou ON u.unit_id = ou.unit_id
+            LEFT JOIN module_roles mr ON u.role_id = mr.role_id
+            LEFT JOIN user_grants ug ON u.internal_user_id = ug.internal_user_id
+            WHERE 
+                (mr.role_id IS NOT NULL OR (ug.internal_user_id IS NOT NULL AND ug.is_enabled = TRUE))
+                AND (ug.internal_user_id IS NULL OR ug.is_enabled = TRUE) -- Exclude if direct grant is FALSE
+            ORDER BY u.email ASC";
+
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("p_module_id", moduleId);
+
+        await using var reader = await cmd.ExecuteReaderAsync(ct);
+        var results = new List<NeedAssessmentAuthorizedUser>();
+        while (await reader.ReadAsync(ct))
+        {
+            results.Add(new NeedAssessmentAuthorizedUser(
+                reader.GetGuid(0),
+                reader.GetString(1),
+                reader.GetString(2),
+                reader.GetString(3),
+                reader.GetString(4),
+                reader.GetString(5)
+            ));
+        }
+        return results;
+    }
 }

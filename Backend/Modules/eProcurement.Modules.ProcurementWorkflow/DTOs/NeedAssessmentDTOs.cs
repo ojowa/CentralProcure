@@ -60,3 +60,12 @@ public record NeedAssessmentDecisionRequest(
     string Decision, -- Submit, Endorse, Return, Reject
     string? Remarks
 );
+
+public record NeedAssessmentAuthorizedUser(
+    Guid InternalUserId,
+    string Email,
+    string FullName,
+    string RoleName,
+    string UnitName,
+    string AccessType -- Role-Based or Direct Grant
+);

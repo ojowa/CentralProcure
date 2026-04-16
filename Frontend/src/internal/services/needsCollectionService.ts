@@ -47,3 +47,15 @@ export const updateNeedAssessment = (id: string, token: string, payload: any) =>
 
 export const submitNeedAssessmentDecision = (id: string, token: string, decision: string, remarks?: string) => 
   send<{ Status: string; Message: string }>(`/needs-collection/${id}/decision`, token, { method: 'POST' }, { Decision: decision, Remarks: remarks });
+
+export interface NeedAssessmentAuthorizedUser {
+  InternalUserId: string;
+  Email: string;
+  FullName: string;
+  RoleName: string;
+  UnitName: string;
+  AccessType: string;
+}
+
+export const fetchAuthorizedUsers = (token: string) =>
+  send<NeedAssessmentAuthorizedUser[]>('/needs-collection/authorized-users', token, { method: 'GET' });
