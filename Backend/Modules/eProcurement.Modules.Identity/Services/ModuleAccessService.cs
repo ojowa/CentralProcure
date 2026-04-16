@@ -20,7 +20,8 @@ public class ModuleAccessService : IModuleAccessService
 
     private string GetConnectionString() => _config.GetConnectionString("Primary") ?? string.Empty;
 
-    public IReadOnlyList<InternalModuleResult> GetModuleCatalog() => InternalModuleCatalog.GetAllModules();
+    public Task<IReadOnlyList<InternalModuleResult>> GetModuleCatalogAsync(string connectionString, CancellationToken ct) => 
+        InternalModuleCatalog.GetAllModulesAsync(connectionString, null, ct);
 
     public async Task<List<RoleModuleAccessGrantResult>> GetRoleModuleAccessAsync(CancellationToken ct)
     {

@@ -222,13 +222,13 @@ public partial class AuthController
             ? Array.Empty<string>()
             : await _workflowActionGrantService.GetRoleModuleActionsAsync(connectionString, role, ct);
 
-        var baseModules = InternalModuleCatalog.GetModulesForRole(role, workflowActions);
         if (string.IsNullOrWhiteSpace(connectionString))
         {
-            return Ok(baseModules);
+            return Problem("Database connection is not available.");
         }
 
-        var catalogModules = InternalModuleCatalog.GetAllModules(workflowActions);
+        var baseModules = await InternalModuleCatalog.GetModulesForRoleAsync(connectionString, role, workflowActions, ct);
+        var catalogModules = await InternalModuleCatalog.GetAllModulesAsync(connectionString, workflowActions, ct);
         var roleGrants = await LoadRoleModuleGrantsAsync(connectionString, role, ct);
         var userGrants = await LoadUserModuleGrantsAsync(connectionString, internalUserId, ct);
 

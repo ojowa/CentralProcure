@@ -8,10 +8,12 @@ public partial class AuthController
 {
     [Authorize]
     [HttpGet("internal/modules/catalog")]
-    public IActionResult GetInternalModuleCatalog()
+    public async Task<IActionResult> GetInternalModuleCatalog(CancellationToken ct)
     {
         if (!IsIdentityAdministrator()) return Forbid();
-        return Ok(_moduleAccessService.GetModuleCatalog());
+        var connectionString = GetConnectionString();
+        if (string.IsNullOrWhiteSpace(connectionString)) return Problem("Database connection is not available.");
+        return Ok(await _moduleAccessService.GetModuleCatalogAsync(connectionString, ct));
     }
 
     [Authorize]

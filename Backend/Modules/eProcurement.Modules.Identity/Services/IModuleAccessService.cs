@@ -4,7 +4,7 @@ namespace eProcurement.Modules.Identity.Services;
 
 public interface IModuleAccessService
 {
-    IReadOnlyList<InternalModuleResult> GetModuleCatalog();
+    Task<IReadOnlyList<InternalModuleResult>> GetModuleCatalogAsync(string connectionString, CancellationToken ct);
     Task<List<RoleModuleAccessGrantResult>> GetRoleModuleAccessAsync(CancellationToken ct);
     Task<List<UserModuleAccessGrantResult>> GetUserModuleAccessAsync(CancellationToken ct);
     Task<List<ModuleAccessAuditResult>> GetModuleAccessAuditAsync(string? roleName, Guid? internalUserId, int limit, CancellationToken ct);

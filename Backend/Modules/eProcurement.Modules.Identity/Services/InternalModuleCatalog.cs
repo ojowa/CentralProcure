@@ -1,4 +1,5 @@
 using eProcurement.Modules.Identity.DTOs;
+using Npgsql;
 
 namespace eProcurement.Modules.Identity.Services;
 
@@ -68,86 +69,7 @@ internal static class InternalModuleCatalog
         "administrative_review.resolve"
     };
 
-    private static readonly IReadOnlySet<string> AllInternalRoles = RoleSet(
-        "Admin",
-        "SystemAdministrator",
-        "RequisitioningOfficer",
-        "DepartmentHead",
-        "ComptrollerProcurement",
-        "ProcurementManager",
-        "PlanningStatisticsOfficer",
-        "FinancialUnitOfficer",
-        "ProcurementSecretary",
-        "ComptrollerProcurement",
-        "LegalReviewer",
-        "TechnicalEvaluator",
-        "FinancialEvaluator",
-        "EvaluationCommittee",
-        "TendersBoardMember",
-        "TendersBoardSecretary",
-        "AccountingOfficer",
-        "FormationOfficer",
-        "FormationHead",
-        "BPPLiaison",
-        "BPPReviewer",
-        "ComplaintsReviewOfficer",
-        "ContractManager",
-        "InspectionOfficer",
-        "PaymentOfficer",
-        "AuditOfficer");
-
-    private sealed record InternalModuleDefinition(
-        string Id,
-        string Title,
-        string Section,
-        string Description,
-        string Microservice,
-        string ControlPurpose,
-        IReadOnlyList<string> Actions,
-        IReadOnlySet<string> AllowedRoles);
-
-    private static readonly InternalModuleDefinition[] Modules =
-    [
-        new("workflow-blueprint", "Procurement Workflow Blueprint", "Governance and Planning", "Review the end-to-end APP, threshold, procurement, and oversight flow.", "Workflow Blueprint Service", "Single source of truth for statutory routing and responsibilities.", ActionSet("workflow_blueprint.view"), AllInternalRoles),
-        new("create-requisition", "Create Requisition", "Requisitioning Departments", "Initiate departmental procurement requests with budget and requirement metadata.", "Requisition Service", "Controlled initiation of procurement.", ActionSet("requisition.create"), RoleSet("RequisitioningOfficer", "DepartmentHead")),
-        new("requisition-history", "Requisition History", "Requisitioning Departments", "View historical department requests and current workflow states.", "Requisition Service", "Visibility without unauthorized control.", ActionSet("requisition.view"), RoleSet("RequisitioningOfficer", "DepartmentHead")),
-        new("requisition-tracking", "Requisition Tracking", "Requisitioning Departments", "Track routing progress across procurement, evaluation, and approvals.", "Audit and Compliance Service", "Read-only timeline for accountable traceability.", ActionSet("requisition.track"), RoleSet("RequisitioningOfficer", "DepartmentHead", "ComplaintsReviewOfficer", "AuditOfficer", "Admin")),
-        new("requisition-management", "Requisition Management", "Governance & Oversight", "Administrative control over all departmental procurement requests, including hard deletion and state overrides.", "Requisition Service", "Ultimate administrative control over requisition lifecycle.", ActionSet("requisition.delete", "requisition.view.all", "requisition.update", "requisition.view"), RoleSet("Admin", "ComptrollerProcurement")),
-        new("budget-workspace", "Budget Workspace", "Governance and Planning", "Review budget alignment, appropriations, releases, commitments, and funding readiness for procurement workflow.", "Budget Governance Service", "Budget control before planning and approval progression.", ActionSet("budget.view", "budget.confirm"), RoleSet("FinancialUnitOfficer", "AccountingOfficer", "Admin")),
-        new("procurement-planning-committee", "Planning Committee Review", "Procurement Planning Committee", "Review APP assumptions across planning, finance, legal, and procurement members.", "Procurement Planning Service", "Section 21 planning committee visibility and pre-tender discipline.", ActionSet("planning_committee.view"), RoleSet("Admin", "ComptrollerProcurement", "PlanningStatisticsOfficer", "FinancialUnitOfficer", "LegalReviewer", "DepartmentHead", "ProcurementSecretary", "ComptrollerProcurement")),
-        new("needs-collection", "Needs Collection", "Procurement Planning", "Collect and endorse procurement needs from formations and departments.", "Procurement Planning Service", "Pre-requisition needs identification and assessment.", ActionSet("needs.create", "needs.view", "needs.endorse", "needs.consolidate"), RoleSet("FormationOfficer", "FormationHead", "RequisitioningOfficer", "DepartmentHead", "ComptrollerProcurement", "Admin")),
-        new("annual-procurement-plan", "Annual Procurement Plan (APP)", "Procurement Unit", "Create and maintain planning items aligned to statutory thresholds.", "Procurement Planning Service", "Legal planning compliance and budget discipline.", ActionSet("procurement_plan.manage"), RoleSet("ComptrollerProcurement", "ProcurementSecretary", "SystemAdministrator", "Admin")),
-        new("procurement-method-determination", "Procurement Method Determination", "Procurement Unit", "Determine low-value procurement method and raise late method-change exceptions where required.", "Workflow Orchestration Service", "Controlled low-value method selection and exception governance.", ActionSet("method.determine"), RoleSet("ComptrollerProcurement", "Admin")),
-        new("create-tender", "Tender Management", "Procurement Unit", "Create tender drafts from approved requisitions and publish draft tenders from one workspace.", "Tender Management Service", "Tender drafting, routing, and publication control.", ActionSet("tender.manage"), RoleSet("ComptrollerProcurement", "ProcurementManager")),
-        new("bid-opening-session", "Bid Opening Session", "Procurement Unit", "Open bids at scheduled deadlines with committee-level controls.", "Bid Opening Service", "Timed and committee-controlled opening.", ActionSet("bid_opening.manage", "bid_opening.view_detail"), RoleSet("ComptrollerProcurement", "ProcurementManager", "SystemAdministrator", "Admin")),
-        new("bid-opening-session", "Bid Opening Session", "Procurement Unit", "Open bids at scheduled deadlines with committee-level controls.", "Bid Opening Service", "Timed and committee-controlled opening.", ActionSet("bid_opening.view_detail", "bid_opening.financial_view"), RoleSet("FinancialEvaluator")),
-        new("bid-opening-session", "Bid Opening Session", "Procurement Unit", "Open bids at scheduled deadlines with committee-level controls.", "Bid Opening Service", "Timed and committee-controlled opening.", ActionSet("bid_opening.view_detail"), RoleSet("TechnicalEvaluator", "EvaluationCommittee")),
-        new("assigned-tenders", "Assigned Tenders", "Evaluation Committees", "List tenders assigned to the current committee for scoring.", "Evaluation Service", "Controlled assignment and access.", ActionSet("evaluation.actions"), RoleSet("TechnicalEvaluator", "FinancialEvaluator", "EvaluationCommittee")),
-        new("technical-evaluation", "Technical Evaluation", "Evaluation Committees", "Score technical compliance against objective criteria.", "Evaluation Service", "Objective technical scoring controls.", ActionSet("evaluation.actions"), RoleSet("TechnicalEvaluator", "EvaluationCommittee")),
-        new("financial-evaluation", "Financial Evaluation", "Evaluation Committees", "Validate arithmetic accuracy and commercial competitiveness.", "Evaluation Service", "Arithmetic and price validation.", ActionSet("evaluation.actions"), RoleSet("FinancialEvaluator", "FinancialUnitOfficer", "EvaluationCommittee")),
-        new("evaluation-report", "Evaluation Report", "Evaluation Committees", "Generate structured recommendations for approval workflows.", "Evaluation Service", "Consolidated evaluation record.", ActionSet("evaluation_report.view"), RoleSet("TechnicalEvaluator", "FinancialEvaluator", "EvaluationCommittee", "TendersBoardMember", "TendersBoardSecretary")),
-        new("tender-review", "Tender Review", "NIS Tenders Board and CGIS Approvals", "Review committee outputs, clarifications, and exceptions for the NIS Tenders Board chaired by CGIS.", "Approval Workflow Service", "Threshold-based approval governance.", ActionSet("approval.review"), RoleSet("TendersBoardMember", "TendersBoardSecretary")),
-        new("approval-rejection", "Approval or Rejection", "NIS Tenders Board and CGIS Approvals", "Record board outcomes with mandatory rationale under the chairmanship of CGIS.", "Approval Workflow Service", "Non-repudiable approval decisions.", ActionSet("approval.decide"), RoleSet("TendersBoardMember", "TendersBoardSecretary")),
-        new("high-value-tenders", "High-Value Tenders", "CGIS", "Review tenders above delegated thresholds.", "Approval Workflow Service", "CGIS authority for high-value spend.", ActionSet("high_value_tenders.review"), RoleSet("AccountingOfficer")),
-        new("cgis-approval", "CGIS Approval", "CGIS", "Review departmental plans and other routed cases awaiting CGIS approval.", "Approval Workflow Service", "CGIS approval checkpoint before procurement can proceed.", ActionSet("high_value_tenders.review"), RoleSet("AccountingOfficer", "Admin")),
-        new("bpp-escalation", "BPP Escalation", "CGIS", "Escalate required cases for no-objection workflows.", "BPP Integration Service", "Regulatory compliance and external traceability.", ActionSet("bpp.create"), RoleSet("AccountingOfficer", "BPPLiaison")),
-        new("bpp-escalation", "BPP Escalation", "CGIS", "Escalate required cases for no-objection workflows.", "BPP Integration Service", "Regulatory compliance and external traceability.", ActionSet("bpp.review"), RoleSet("BPPReviewer")),
-        new("administrative-review", "Administrative Review", "Administrative Review", "Track complaints, review petitions, and challenge resolution records.", "Audit and Compliance Service", "Section 54 bidder review visibility and accountable resolution.", ActionSet("administrative_review.create", "administrative_review.view", "administrative_review.update", "administrative_review.resolve"), RoleSet("ComplaintsReviewOfficer", "AccountingOfficer", "BPPReviewer", "AuditOfficer", "ComptrollerProcurement", "TechnicalEvaluator", "FinancialEvaluator", "EvaluationCommittee")),
-        new("contract-award", "Contract Award", "Post-Award Management", "Publish award notices and transition to delivery controls.", "Contract Management Service", "Award legality and contract traceability.", ActionSet("contract_award.publish"), RoleSet("ComptrollerProcurement", "ProcurementManager", "AccountingOfficer")),
-        new("contract-award", "Contract Award", "Post-Award Management", "Publish award notices and transition to delivery controls.", "Contract Management Service", "Award legality and contract traceability.", ActionSet("contract_award.view"), RoleSet("ContractManager")),
-        new("contract-management", "Contract Management", "Post-Award Management", "Track milestones, variations, and completion status.", "Contract Management Service", "Lifecycle governance and change discipline.", ActionSet("contract_management.manage"), RoleSet("ComptrollerProcurement", "ProcurementManager", "AccountingOfficer", "ContractManager")),
-        new("inspection-acceptance", "Inspection and Acceptance", "Post-Award Management", "Record delivery verification before payment release.", "Inspection Service", "Delivery verification and accountability.", ActionSet("inspection.view", "inspection.update"), RoleSet("ComptrollerProcurement", "InspectionOfficer", "AuditOfficer")),
-        new("payment-tracking", "Payment Tracking", "Post-Award Management", "Monitor payment milestones against acceptance outcomes.", "Payment Tracking Service", "Financial transparency and spend monitoring.", ActionSet("payment_tracking.view", "closeout.create"), RoleSet("AccountingOfficer", "PaymentOfficer", "AuditOfficer")),
-        new("audit-dashboard", "Audit Dashboard", "Audit and Oversight", "Monitor compliance indicators across procurement lifecycle.", "Audit and Compliance Service", "Oversight and investigation visibility.", ActionSet("audit_dashboard.view"), RoleSet("Admin", "ComplaintsReviewOfficer", "AuditOfficer")),
-        new("audit-trail-viewer", "Audit Trail Viewer", "Audit and Oversight", "Review immutable event logs and user action trails.", "Audit and Compliance Service", "Immutable evidence for accountability.", ActionSet("audit_trail.view"), RoleSet("Admin", "BPPLiaison", "BPPReviewer", "ComplaintsReviewOfficer", "AuditOfficer")),
-        new("compliance-reports", "Compliance Reports", "Audit and Oversight", "Generate compliance packs for management and regulators.", "Audit and Compliance Service", "Formal governance reporting.", ActionSet("compliance_reports.view"), RoleSet("Admin", "BPPLiaison", "BPPReviewer", "ComplaintsReviewOfficer", "AuditOfficer")),
-        new("user-role-management", "User and Role Management", "System Administration", "Provision and maintain role-based access permissions.", "Identity and Access Service", "Separation-of-duties enforcement.", ActionSet("admin.manage_roles"), RoleSet("Admin", "SystemAdministrator")),
-        new("vendor-registration-approval", "Vendor Registration Approval", "System Administration", "Review vendor onboarding submissions, inspect compliance uploads, and activate approved suppliers.", "Vendor Sourcing Service", "Controlled activation of external supplier accounts.", ActionSet("admin.vendor_approval"), RoleSet("Admin", "SystemAdministrator")),
-        new("workflow-configuration", "Workflow Configuration", "System Administration", "Configure policy-controlled workflow routes and gates.", "Workflow Orchestration Service", "Policy enforcement across process states.", ActionSet("admin.manage_workflows"), RoleSet("Admin", "SystemAdministrator")),
-        new("system-monitoring", "System Monitoring and Health", "System Administration", "Track service health, integration failures, and alerts.", "Monitoring Service", "Operational oversight and resilience.", ActionSet("admin.monitor"), RoleSet("Admin", "SystemAdministrator"))
-    ];
-
-    public static IReadOnlyList<InternalModuleResult> GetModulesForRole(string? role, IReadOnlyList<string>? additionalActions = null)
+    public static async Task<IReadOnlyList<InternalModuleResult>> GetModulesForRoleAsync(string connectionString, string? role, IReadOnlyList<string>? additionalActions = null, CancellationToken ct = default)
     {
         var normalizedRole = NormalizeRoleKey(role);
         if (string.IsNullOrWhiteSpace(normalizedRole))
@@ -159,21 +81,16 @@ internal static class InternalModuleCatalog
             ? null
             : new HashSet<string>(additionalActions, StringComparer.OrdinalIgnoreCase);
 
-        return Modules
-            .Where(module => module.AllowedRoles.Any(allowedRole =>
-                string.Equals(NormalizeRoleKey(allowedRole), normalizedRole, StringComparison.OrdinalIgnoreCase)))
+        var modules = await LoadModulesFromDbAsync(connectionString, normalizedRole, ct);
+
+        return modules
             .GroupBy(module => module.Id, StringComparer.OrdinalIgnoreCase)
             .Select(group =>
             {
                 var first = group.First();
-                var catalogActions = group
-                    .SelectMany(module => module.Actions)
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .OrderBy(action => action, StringComparer.OrdinalIgnoreCase)
-                    .ToArray();
+                var catalogActions = first.CatalogActions;
 
-                var actions = group
-                    .SelectMany(module => module.Actions)
+                var actions = first.Actions
                     .Where(action =>
                         additionalActionSet is null ||
                         additionalActionSet.Count == 0 ||
@@ -197,25 +114,22 @@ internal static class InternalModuleCatalog
             .ToArray();
     }
 
-    public static IReadOnlyList<InternalModuleResult> GetAllModules(IReadOnlyList<string>? additionalActions = null)
+    public static async Task<IReadOnlyList<InternalModuleResult>> GetAllModulesAsync(string connectionString, IReadOnlyList<string>? additionalActions = null, CancellationToken ct = default)
     {
         var additionalActionSet = additionalActions is null
             ? null
             : new HashSet<string>(additionalActions, StringComparer.OrdinalIgnoreCase);
 
-        return Modules
+        var modules = await LoadModulesFromDbAsync(connectionString, null, ct);
+
+        return modules
             .GroupBy(module => module.Id, StringComparer.OrdinalIgnoreCase)
             .Select(group =>
             {
                 var first = group.First();
-                var catalogActions = group
-                    .SelectMany(module => module.Actions)
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .OrderBy(action => action, StringComparer.OrdinalIgnoreCase)
-                    .ToArray();
+                var catalogActions = first.CatalogActions;
 
-                var actions = group
-                    .SelectMany(module => module.Actions)
+                var actions = first.Actions
                     .Where(action =>
                         additionalActionSet is null ||
                         additionalActionSet.Count == 0 ||
@@ -239,10 +153,48 @@ internal static class InternalModuleCatalog
             .ToArray();
     }
 
-    private static IReadOnlyList<string> ActionSet(params string[] actions) => actions;
+    private static async Task<List<InternalModuleResult>> LoadModulesFromDbAsync(string connectionString, string? normalizedRole, CancellationToken ct)
+    {
+        await using var conn = new NpgsqlConnection(connectionString);
+        await conn.OpenAsync(ct);
 
-    private static IReadOnlySet<string> RoleSet(params string[] roles) =>
-        new HashSet<string>(roles, StringComparer.OrdinalIgnoreCase);
+        var sql = @"
+            SELECT m.module_id, m.title, m.section, m.description, m.microservice, m.control_purpose, m.actions
+            FROM identity.internal_modules m
+            WHERE m.is_active = TRUE";
+
+        if (normalizedRole != null)
+        {
+            sql += @" AND EXISTS (
+                SELECT 1 FROM identity.internal_module_allowed_roles ar
+                WHERE ar.module_id = m.module_id AND lower(ar.role_name) = lower(@p_role)
+            )";
+        }
+
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        if (normalizedRole != null)
+        {
+            cmd.Parameters.AddWithValue("p_role", normalizedRole);
+        }
+
+        var results = new List<InternalModuleResult>();
+        await using var reader = await cmd.ExecuteReaderAsync(ct);
+        while (await reader.ReadAsync(ct))
+        {
+            var actions = (string[])reader.GetValue(6);
+            results.Add(new InternalModuleResult(
+                reader.GetString(0),
+                reader.GetString(1),
+                reader.GetString(2),
+                reader.GetString(3),
+                reader.GetString(4),
+                reader.GetString(5),
+                actions,
+                actions
+            ));
+        }
+        return results;
+    }
 
     private static string? NormalizeRoleKey(string? role)
     {
@@ -261,5 +213,3 @@ internal static class InternalModuleCatalog
             : normalized;
     }
 }
-
-
