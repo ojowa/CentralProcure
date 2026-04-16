@@ -69,6 +69,7 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
   const [isLoading, setIsLoading] = useState(false);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [pendingDecision, setPendingDecision] = useState<VendorApprovalStatus | null>(null);
   const [downloadingDocumentId, setDownloadingDocumentId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [feedback, setFeedback] = useState('');
@@ -163,6 +164,7 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
     }
 
     setIsSaving(true);
+    setPendingDecision(decision);
     setError('');
     setFeedback('');
 
@@ -184,6 +186,7 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
       setError(saveError instanceof Error ? saveError.message : 'Unable to update vendor approval status.');
     } finally {
       setIsSaving(false);
+      setPendingDecision(null);
     }
   };
 
@@ -472,13 +475,13 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
                   </div>
                   <div className="plan-actions" style={{ marginTop: '24px' }}>
                     <button type="button" className="plan-button plan-button--secondary" onClick={() => void handleDecision('Pending Approval')} disabled={!canReview || isSaving}>
-                      {isSaving ? 'Saving...' : 'Mark Pending'}
+                      {pendingDecision === 'Pending Approval' ? 'Saving...' : 'Mark Pending'}
                     </button>
                     <button type="button" className="plan-button" onClick={() => void handleDecision('Active')} disabled={!canReview || isSaving}>
-                      {isSaving ? 'Saving...' : 'Approve Vendor'}
+                      {pendingDecision === 'Active' ? 'Saving...' : 'Approve Vendor'}
                     </button>
                     <button type="button" className="plan-button plan-button--danger" onClick={() => void handleDecision('Rejected')} disabled={!canReview || isSaving}>
-                      {isSaving ? 'Saving...' : 'Reject Vendor'}
+                      {pendingDecision === 'Rejected' ? 'Saving...' : 'Reject Vendor'}
                     </button>
                   </div>
                 </div>
