@@ -142,10 +142,14 @@ const VendorHomePage: React.FC = () => {
     <div className="min-h-screen bg-slate-50">
       {/* Hero Section */}
       <section className="relative overflow-hidden">
-        {/* Animated Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-emerald-500/20 via-transparent to-transparent" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-teal-500/10 via-transparent to-transparent" />
+        {/* Background Image */}
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: "url('/backgroundimage.jpeg')" }}
+        />
+        {/* Dark Overlay for text readability */}
+        <div className="absolute inset-0 bg-slate-900/80" />
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900/60 via-emerald-950/40 to-slate-900/60" />
 
         {/* Grid Pattern */}
         <div
