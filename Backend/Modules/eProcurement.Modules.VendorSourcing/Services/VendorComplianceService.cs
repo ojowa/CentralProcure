@@ -130,7 +130,46 @@ public class VendorComplianceService : IVendorComplianceService
         return results;
     }
 
-    private ComplianceDocumentResponse MapComplianceDocument(NpgsqlDataReader r) { var id = r.GetGuid(0); return new ComplianceDocumentResponse(id, r.GetString(1), r.GetString(2), r.IsDBNull(3) ? null : r.GetDateTime(3), r.IsDBNull(4) ? null : r.GetDateTime(4), $"/api/Vendor/compliance/{id}/file", null); }
-    private ComplianceDocumentResponse MapUploadedDocument(NpgsqlDataReader r) { var id = r.GetGuid(0); return new ComplianceDocumentResponse(id, r.GetString(1), r.GetString(2), null, DateTime.UtcNow, $"/api/Vendor/compliance/{id}/file", null); }
-    private ComplianceHistoryItem MapHistoryItem(NpgsqlDataReader r) { var id = r.GetGuid(0); return new ComplianceHistoryItem(id, r.GetGuid(1), r.GetString(2), r.GetString(3), r.IsDBNull(4) ? null : r.GetDateTime(4), r.GetString(5), r.GetDateTime(6), $"/api/Vendor/compliance/history/file/{id}"); }
+    private ComplianceDocumentResponse MapComplianceDocument(NpgsqlDataReader r) 
+    { 
+        var id = r.GetGuid(0); 
+        // 0: document_id (uuid), 1: vendor_id (uuid), 2: document_type (varchar), 3: document_url (text), 4: expiry_date (date), 5: verification_status (varchar), 6: created_at (timestamp)
+        return new ComplianceDocumentResponse(
+            id, 
+            r.GetString(2), 
+            r.GetString(3), 
+            r.IsDBNull(4) ? null : r.GetDateTime(4), 
+            r.IsDBNull(6) ? null : r.GetDateTime(6), 
+            $"/api/Vendor/compliance/{id}/file", 
+            r.IsDBNull(5) ? "Pending" : r.GetString(5)); 
+    }
+
+    private ComplianceDocumentResponse MapUploadedDocument(NpgsqlDataReader r) 
+    { 
+        var id = r.GetGuid(0); 
+        // identity.upload_compliance_document returns: document_id, vendor_id, document_type, document_url, verification_status
+        return new ComplianceDocumentResponse(
+            id, 
+            r.GetString(2), 
+            r.GetString(3), 
+            null, 
+            DateTime.UtcNow, 
+            $"/api/Vendor/compliance/{id}/file", 
+            r.IsDBNull(4) ? "Pending" : r.GetString(4)); 
+    }
+
+    private ComplianceHistoryItem MapHistoryItem(NpgsqlDataReader r) 
+    { 
+        var id = r.GetGuid(0); 
+        // identity.get_vendor_compliance_document_history returns: history_id, document_id, document_type, document_url, expiry_date, verification_status, created_at
+        return new ComplianceHistoryItem(
+            id, 
+            r.GetGuid(1), 
+            r.GetString(2), 
+            r.GetString(3), 
+            r.IsDBNull(4) ? null : r.GetDateTime(4), 
+            r.IsDBNull(5) ? "Pending" : r.GetString(5), 
+            r.GetDateTime(6), 
+            $"/api/Vendor/compliance/history/file/{id}"); 
+    }
 }
