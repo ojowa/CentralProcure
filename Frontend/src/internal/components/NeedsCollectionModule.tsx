@@ -263,7 +263,7 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
           </div>
         )}
 
-        <div className="dh-layout">
+        <div className="dh-layout" style={{ minHeight: 'calc(100vh - 220px)' }}>
           {/* Left Panel - Form */}
           <div className="dh-queue-panel" style={{ flex: 1.5 }}>
             <div className="app-card">
@@ -451,14 +451,14 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
           </div>
 
           {/* Right Panel - Status & Actions */}
-          <div className="dh-detail-panel" style={{ maxWidth: '280px', flex: '0 0 280px' }}>
+          <div className="dh-detail-panel" style={{ maxWidth: '320px', flex: '0 0 320px', display: 'flex', flexDirection: 'column', height: '100%' }}>
             {detail && (
-              <div className="app-card">
+              <div className="app-card" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                 <div className="app-card__header">
                   <h3 className="app-card__title">Status Overview</h3>
                 </div>
 
-                <div className="app-info-list">
+                <div className="app-info-list" style={{ flex: 1, overflowY: 'auto' }}>
                   <div className="app-info-item">
                     <span className="app-info-item__label">Current Status</span>
                     <span className={getStatusBadgeClass(detail.Status)}>{detail.Status}</span>
@@ -561,30 +561,6 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
               </div>
             )}
 
-            {/* Help Card */}
-            <div className="app-card app-card--compact" style={{ marginTop: '1rem' }}>
-              <div className="app-card__header">
-                <h3 className="app-card__title" style={{ fontSize: '0.85rem' }}>Need Assessment Guide</h3>
-              </div>
-              <div className="app-info-list" style={{ fontSize: '0.8rem' }}>
-                <div className="app-info-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '0.25rem' }}>
-                  <span className="app-info-item__label" style={{ fontSize: '0.7rem', textTransform: 'uppercase' }}>Step 1</span>
-                  <span className="app-info-item__value">Create assessment with items</span>
-                </div>
-                <div className="app-info-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '0.25rem' }}>
-                  <span className="app-info-item__label" style={{ fontSize: '0.7rem', textTransform: 'uppercase' }}>Step 2</span>
-                  <span className="app-info-item__value">Submit for endorsement</span>
-                </div>
-                <div className="app-info-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '0.25rem' }}>
-                  <span className="app-info-item__label" style={{ fontSize: '0.7rem', textTransform: 'uppercase' }}>Step 3</span>
-                  <span className="app-info-item__value">Department head reviews</span>
-                </div>
-                <div className="app-info-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '0.25rem' }}>
-                  <span className="app-info-item__label" style={{ fontSize: '0.7rem', textTransform: 'uppercase' }}>Step 4</span>
-                  <span className="app-info-item__value">Convert to requisitions</span>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </section>
