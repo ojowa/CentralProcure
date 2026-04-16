@@ -212,16 +212,13 @@ const VendorHomePage: React.FC = () => {
 
             {/* Main Heading */}
             <h1 className="mx-auto max-w-5xl font-poppins text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
-              <span className="block">Transparent Public Procurement</span>
-              <span className="mt-2 block bg-gradient-to-r from-emerald-200 via-cyan-200 to-emerald-200 bg-clip-text text-transparent">
-                for National Service Delivery
-              </span>
+              <span className="block">Open, Digital Procurement for NIS</span>
             </h1>
 
             {/* Subtitle */}
             <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-slate-300">
-              Participate in open bidding, track procurement notices, and manage vendor
-              submissions through our secure, accountable digital platform.
+              Access tenders, submit bids online, and engage with procurement processes
+              across all formations—anytime, anywhere.
             </p>
 
             {/* CTA Buttons */}
