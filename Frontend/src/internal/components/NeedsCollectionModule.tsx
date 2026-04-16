@@ -265,7 +265,7 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
 
         <div className="dh-layout">
           {/* Left Panel - Form */}
-          <div className="dh-queue-panel" style={{ flex: 1 }}>
+          <div className="dh-queue-panel" style={{ flex: 1.5 }}>
             <div className="app-card">
               <div className="app-card__header">
                 <div className="app-section-title">
@@ -451,7 +451,7 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
           </div>
 
           {/* Right Panel - Status & Actions */}
-          <div className="dh-detail-panel" style={{ maxWidth: '380px' }}>
+          <div className="dh-detail-panel" style={{ maxWidth: '280px', flex: '0 0 280px' }}>
             {detail && (
               <div className="app-card">
                 <div className="app-card__header">
@@ -564,28 +564,24 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
             {/* Help Card */}
             <div className="app-card app-card--compact" style={{ marginTop: '1rem' }}>
               <div className="app-card__header">
-                <h3 className="app-card__title" style={{ fontSize: '0.9rem' }}>Need Assessment Guide</h3>
+                <h3 className="app-card__title" style={{ fontSize: '0.85rem' }}>Need Assessment Guide</h3>
               </div>
-              <div className="app-info-list" style={{ fontSize: '0.85rem' }}>
-                <div className="app-info-item">
-                  <span className="app-info-item__value">
-                    1. Create a new assessment with required items
-                  </span>
+              <div className="app-info-list" style={{ fontSize: '0.8rem' }}>
+                <div className="app-info-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '0.25rem' }}>
+                  <span className="app-info-item__label" style={{ fontSize: '0.7rem', textTransform: 'uppercase' }}>Step 1</span>
+                  <span className="app-info-item__value">Create assessment with items</span>
                 </div>
-                <div className="app-info-item">
-                  <span className="app-info-item__value">
-                    2. Save as draft or submit for endorsement
-                  </span>
+                <div className="app-info-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '0.25rem' }}>
+                  <span className="app-info-item__label" style={{ fontSize: '0.7rem', textTransform: 'uppercase' }}>Step 2</span>
+                  <span className="app-info-item__value">Submit for endorsement</span>
                 </div>
-                <div className="app-info-item">
-                  <span className="app-info-item__value">
-                    3. Department head reviews and endorses
-                  </span>
+                <div className="app-info-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '0.25rem' }}>
+                  <span className="app-info-item__label" style={{ fontSize: '0.7rem', textTransform: 'uppercase' }}>Step 3</span>
+                  <span className="app-info-item__value">Department head reviews</span>
                 </div>
-                <div className="app-info-item">
-                  <span className="app-info-item__value">
-                    4. Endorsed needs can be converted to requisitions
-                  </span>
+                <div className="app-info-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '0.25rem' }}>
+                  <span className="app-info-item__label" style={{ fontSize: '0.7rem', textTransform: 'uppercase' }}>Step 4</span>
+                  <span className="app-info-item__value">Convert to requisitions</span>
                 </div>
               </div>
             </div>
