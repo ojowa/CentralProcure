@@ -109,9 +109,14 @@ BEGIN
         SELECT role_id FROM identity.roles 
         WHERE role_name IN ('FormationOfficer', 'FormationHead', 'RequisitioningOfficer', 'DepartmentHead', 'ComptrollerProcurement', 'Admin', 'SystemAdministrator')
     LOOP
-        INSERT INTO identity.internal_module_grants (role_id, module_id, is_enabled)
-        VALUES (v_role_record.role_id, v_module_id, TRUE)
-        ON CONFLICT (role_id, module_id) DO UPDATE SET is_enabled = TRUE;
+        IF NOT EXISTS (SELECT 1 FROM identity.internal_module_grants WHERE role_id = v_role_record.role_id AND module_id = v_module_id) THEN
+            INSERT INTO identity.internal_module_grants (role_id, module_id, is_enabled)
+            VALUES (v_role_record.role_id, v_module_id, TRUE);
+        ELSE
+            UPDATE identity.internal_module_grants 
+            SET is_enabled = TRUE 
+            WHERE role_id = v_role_record.role_id AND module_id = v_module_id;
+        END IF;
     END LOOP;
 END $$;
 
