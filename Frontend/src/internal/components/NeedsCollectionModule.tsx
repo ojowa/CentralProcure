@@ -16,7 +16,7 @@ import {
   type NeedAssessmentAuthorizedUser,
   type NeedAssessmentAnalysisResult
 } from '../services/needsCollectionService';
-import { formatCurrency, formatDateTimeShort } from '../utils/procureUtils';
+import { formatDateTimeShort } from '../utils/procureUtils';
 import {
   FileText,
   Users,
@@ -30,12 +30,10 @@ import {
   Search,
   Calendar,
   Building2,
-  Wallet,
   Package,
   Trash2,
   Loader2,
   BarChart3,
-  PieChart,
   Filter
 } from 'lucide-react';
 
@@ -135,10 +133,6 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
     };
   }, [assessments]);
 
-  const totalAnalysisValue = useMemo(() => {
-    return analysisResults.reduce((sum, r) => sum + Number(r.TotalEstimatedCost), 0);
-  }, [analysisResults]);
-
   const handleSelect = async (id: string) => {
     setLoading(true);
     try {
@@ -176,7 +170,7 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
   };
 
   const handleAddItem = () => {
-    setItems([...items, { Description: '', Quantity: 1, Unit: 'Unit', EstimatedUnitCost: 0, Priority: 'Normal', ProcurementType: 'Goods' }]);
+    setItems([...items, { Description: '', Quantity: 1, Unit: 'Unit', Priority: 'Normal', ProcurementType: 'Goods' }]);
   };
 
   const handleRemoveItem = (index: number) => {
@@ -187,10 +181,6 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
     const newItems = [...items];
     (newItems[index] as any)[field] = value;
     setItems(newItems);
-  };
-
-  const calculateTotal = () => {
-    return items.reduce((sum, item) => sum + (item.Quantity * item.EstimatedUnitCost), 0);
   };
 
   const canEdit = () => {
@@ -248,250 +238,175 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
 
   const getStatusBadgeClass = (status: string) => {
     const base = 'app-badge';
-    switch (status.toLowerCase()) {
-      case 'draft':
-        return `${base} app-badge--draft`;
-      case 'submitted':
-        return `${base} app-badge--submitted`;
-      case 'endorsed':
-        return `${base} app-badge--endorsed`;
-      case 'returned':
-        return `${base} app-badge--warning`;
-      case 'rejected':
-        return `${base} app-badge--rejected`;
-      default:
-        return base;
+    switch (status) {
+      case 'Draft': return `${base} bg-slate-100 text-slate-700`;
+      case 'Submitted': return `${base} bg-blue-100 text-blue-700`;
+      case 'Endorsed': return `${base} bg-emerald-100 text-emerald-700 font-bold`;
+      case 'Rejected': return `${base} bg-red-100 text-red-700`;
+      case 'Returned': return `${base} bg-amber-100 text-amber-700`;
+      default: return base;
     }
   };
 
-  // Assessment Detail View
   if (selectedId || isCreating) {
     return (
       <section className="app-module">
         <header className="app-module__header">
           <div className="app-module__title-group">
-            <button className="app-btn app-btn--secondary app-btn--sm" onClick={handleBackToList}>
-              <ArrowLeft className="app-btn__icon" /> Back to List
+            <button className="app-btn app-btn--secondary app-btn--sm mb-4" onClick={handleBackToList}>
+              <ArrowLeft size={16} className="mr-2" /> Back to List
             </button>
-            <h2 className="app-module__title" style={{ marginTop: '1rem' }}>
-              {isCreating ? 'Create New Assessment' : detail?.Title}
-            </h2>
-            <p className="app-module__description">
-              {isCreating ? 'Fill in the details to create a new needs assessment' : `View and manage assessment details`}
-            </p>
-          </div>
-          <div className="app-module__actions">
-            {canEdit() && (
-              <button className="app-btn app-btn--primary" onClick={handleSave} disabled={loading}>
-                {loading ? <Loader2 className="animate-spin" /> : <Save className="app-btn__icon" />}
-                Save Assessment
-              </button>
-            )}
+            <h2 className="app-module__title">{isCreating ? 'Create Need Assessment' : `Assessment: ${detail?.Title}`}</h2>
           </div>
         </header>
 
-        {error && (
-          <div className="app-alert app-alert--error">
-            <span className="app-alert__icon">⚠</span>
-            {error}
-          </div>
-        )}
-
-        {successMessage && (
-          <div className="app-alert app-alert--success">
-            <span className="app-alert__icon">✓</span>
-            {successMessage}
-          </div>
-        )}
+        {error && <div className="app-alert app-alert--error mb-6">{error}</div>}
+        {successMessage && <div className="app-alert app-alert--success mb-6">{successMessage}</div>}
 
         <div className="dh-layout" style={{ minHeight: 'calc(100vh - 220px)' }}>
           {/* Left Panel - Form */}
           <div className="dh-queue-panel" style={{ flex: 1.5 }}>
             <div className="app-card">
-              <div className="app-card__header">
-                <div className="app-section-title">
-                  <span className="app-section-title__icon">📋</span>
-                  <h3 className="app-section-title__text">Assessment Information</h3>
-                </div>
-              </div>
-
-              <div className="app-form-grid">
-                <div className="app-form-group">
-                  <label className="app-form-label">Title</label>
+              <div className="app-form-grid p-6">
+                <div className="app-form-group col-span-2">
+                  <label className="app-form-label">Assessment Title</label>
                   <input
-                    type="text"
                     className="app-form__input"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
+                    placeholder="e.g. FY 2026 ICT Equipment Needs"
                     disabled={!canEdit()}
-                    placeholder="Enter assessment title"
                   />
                 </div>
-
                 <div className="app-form-group">
                   <label className="app-form-label">Fiscal Year</label>
-                  <input
-                    type="number"
-                    className="app-form__input"
+                  <select
+                    className="app-form__select"
                     value={fiscalYear}
                     onChange={(e) => setFiscalYear(Number(e.target.value))}
                     disabled={!canEdit()}
+                  >
+                    {[0, 1, 2].map(offset => {
+                      const year = new Date().getFullYear() + offset;
+                      return <option key={year} value={year}>{year}</option>;
+                    })}
+                  </select>
+                </div>
+                <div className="app-form-group col-span-3">
+                  <label className="app-form-label">Internal Remarks / Context</label>
+                  <textarea
+                    className="app-form__input"
+                    rows={2}
+                    value={remarks}
+                    onChange={(e) => setRemarks(e.target.value)}
+                    placeholder="Additional context for this assessment..."
                   />
                 </div>
               </div>
 
-              <div className="app-form-group" style={{ marginTop: '1rem' }}>
-                <label className="app-form-label">Remarks / Justification</label>
-                <textarea
-                  className="app-form__textarea"
-                  rows={3}
-                  value={remarks}
-                  onChange={(e) => setRemarks(e.target.value)}
-                  disabled={!canEdit() && !detail?.Status}
-                  placeholder="Add any additional remarks or justification..."
-                />
-              </div>
-            </div>
-
-            {/* Items Section */}
-            <div className="app-card" style={{ marginTop: '1.5rem' }}>
-              <div className="app-card__header">
-                <div className="app-section-title">
-                  <span className="app-section-title__icon">📦</span>
-                  <h3 className="app-section-title__text">Items Required</h3>
-                  <span className="app-section-title__count">{items.length}</span>
+              {/* Items Section */}
+              <div className="p-6 border-t border-slate-100">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                    <Package size={18} className="text-emerald-600" />
+                    Required Items
+                  </h3>
+                  {canEdit() && (
+                    <button className="app-btn app-btn--secondary app-btn--sm" onClick={handleAddItem}>
+                      <Plus size={14} className="mr-1" /> Add Item
+                    </button>
+                  )}
                 </div>
-                {canEdit() && (
-                  <button className="app-btn app-btn--secondary app-btn--sm" onClick={handleAddItem}>
-                    <Plus className="app-btn__icon" /> Add Item
-                  </button>
-                )}
-              </div>
 
-              <div className="app-table-wrapper">
-                <table className="app-table app-table--compact">
-                  <thead>
-                    <tr>
-                      <th>Description</th>
-                      <th className="app-table__cell--numeric">Qty</th>
-                      <th>Unit</th>
-                      <th className="app-table__cell--numeric">Est. Unit Cost</th>
-                      <th className="app-table__cell--numeric">Total</th>
-                      <th>Type</th>
-                      {canEdit() && <th>Actions</th>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((item, idx) => (
-                      <tr key={idx}>
-                        <td>
-                          {canEdit() ? (
+                <div className="app-table-wrapper">
+                  <table className="app-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: '40%' }}>Description</th>
+                        <th>Type</th>
+                        <th style={{ width: '80px' }}>Qty</th>
+                        <th>Unit</th>
+                        <th>Priority</th>
+                        {canEdit() && <th style={{ width: '50px' }}></th>}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {items.map((item, idx) => (
+                        <tr key={idx}>
+                          <td>
                             <input
-                              type="text"
                               className="app-form__input app-form__input--sm"
                               value={item.Description}
                               onChange={(e) => handleItemChange(idx, 'Description', e.target.value)}
-                              placeholder="Item description"
+                              disabled={!canEdit()}
                             />
-                          ) : (
-                            item.Description
-                          )}
-                        </td>
-                        <td className="app-table__cell--numeric">
-                          {canEdit() ? (
-                            <input
-                              type="number"
-                              className="app-form__input app-form__input--sm"
-                              value={item.Quantity}
-                              onChange={(e) => handleItemChange(idx, 'Quantity', Number(e.target.value))}
-                              min={1}
-                            />
-                          ) : (
-                            item.Quantity
-                          )}
-                        </td>
-                        <td>
-                          {canEdit() ? (
-                            <input
-                              type="text"
-                              className="app-form__input app-form__input--sm"
-                              value={item.Unit}
-                              onChange={(e) => handleItemChange(idx, 'Unit', e.target.value)}
-                            />
-                          ) : (
-                            item.Unit
-                          )}
-                        </td>
-                        <td className="app-table__cell--numeric">
-                          {canEdit() ? (
-                            <input
-                              type="number"
-                              className="app-form__input app-form__input--sm"
-                              value={item.EstimatedUnitCost}
-                              onChange={(e) => handleItemChange(idx, 'EstimatedUnitCost', Number(e.target.value))}
-                              min={0}
-                            />
-                          ) : (
-                            formatCurrency(item.EstimatedUnitCost)
-                          )}
-                        </td>
-                        <td className="app-table__cell--numeric">
-                          {formatCurrency(item.Quantity * item.EstimatedUnitCost)}
-                        </td>
-                        <td>
-                          {canEdit() ? (
+                          </td>
+                          <td>
                             <select
                               className="app-form__select app-form__select--sm"
                               value={item.ProcurementType}
                               onChange={(e) => handleItemChange(idx, 'ProcurementType', e.target.value)}
+                              disabled={!canEdit()}
                             >
                               <option value="Goods">Goods</option>
                               <option value="Works">Works</option>
                               <option value="Services">Services</option>
                             </select>
-                          ) : (
-                            item.ProcurementType
-                          )}
-                        </td>
-                        {canEdit() && (
-                          <td>
-                            <button
-                              className="app-btn app-btn--danger app-btn--sm"
-                              onClick={() => handleRemoveItem(idx)}
-                              title="Remove item"
-                            >
-                              <Trash2 className="app-btn__icon" />
-                            </button>
                           </td>
-                        )}
-                      </tr>
-                    ))}
-                    {items.length === 0 && (
-                      <tr>
-                        <td colSpan={canEdit() ? 7 : 6} className="app-table__empty">
-                          No items added yet. Click "Add Item" to begin.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                  {items.length > 0 && (
-                    <tfoot>
-                      <tr>
-                        <td colSpan={4} className="app-table__cell--numeric app-table__total-label">
-                          Total Estimated Cost:
-                        </td>
-                        <td colSpan={2} className="app-table__total-value">
-                          {formatCurrency(calculateTotal())}
-                        </td>
-                      </tr>
-                    </tfoot>
-                  )}
-                </table>
+                          <td>
+                            <input
+                              type="number"
+                              className="app-form__input app-form__input--sm"
+                              value={item.Quantity}
+                              onChange={(e) => handleItemChange(idx, 'Quantity', Number(e.target.value))}
+                              disabled={!canEdit()}
+                            />
+                          </td>
+                          <td>
+                            <input
+                              className="app-form__input app-form__input--sm"
+                              value={item.Unit}
+                              onChange={(e) => handleItemChange(idx, 'Unit', e.target.value)}
+                              disabled={!canEdit()}
+                              placeholder="e.g. Pcs"
+                            />
+                          </td>
+                          <td>
+                            <select
+                              className="app-form__select app-form__select--sm"
+                              value={item.Priority}
+                              onChange={(e) => handleItemChange(idx, 'Priority', e.target.value)}
+                              disabled={!canEdit()}
+                            >
+                              <option value="Normal">Normal</option>
+                              <option value="Urgent">Urgent</option>
+                              <option value="Strategic">Strategic</option>
+                            </select>
+                          </td>
+                          {canEdit() && (
+                            <td>
+                              <button className="text-red-400 hover:text-red-600" onClick={() => handleRemoveItem(idx)}>
+                                <Trash2 size={14} />
+                              </button>
+                            </td>
+                          )}
+                        </tr>
+                      ))}
+                      {!items.length && (
+                        <tr>
+                          <td colSpan={canEdit() ? 6 : 5} className="py-8 text-center text-slate-400 italic">
+                            No items added yet. Click "Add Item" to begin.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Right Panel - Status & Actions */}
+          {/* Right Panel - Status & Actions */} 
           <div className="dh-detail-panel" style={{ maxWidth: '320px', flex: '0 0 320px', display: 'flex', flexDirection: 'column', height: '100%' }}>
             {detail && (
               <div className="app-card" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -515,12 +430,6 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
                   <div className="app-info-item">
                     <span className="app-info-item__label">Total Items</span>
                     <span className="app-info-item__value">{detail.Items.length}</span>
-                  </div>
-                  <div className="app-info-item">
-                    <span className="app-info-item__label">Total Cost</span>
-                    <span className="app-info-item__value app-info-item__value--highlight">
-                      {formatCurrency(detail.TotalEstimatedCost)}
-                    </span>
                   </div>
                   {detail.SubmittedAt && (
                     <div className="app-info-item">
@@ -601,14 +510,12 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
                 </div>
               </div>
             )}
-
           </div>
         </div>
       </section>
     );
   }
 
-  // List View
   return (
     <section className="app-module">
       <header className="app-module__header">
@@ -618,36 +525,22 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
         </div>
         <div className="app-module__actions">
           <button className="app-btn app-btn--primary" onClick={handleCreateNew}>
-            <Plus className="app-btn__icon" /> Create New Assessment
+            <Plus size={18} className="mr-2" /> New Assessment
           </button>
         </div>
       </header>
 
-      {error && (
-        <div className="app-alert app-alert--error">
-          <span className="app-alert__icon">⚠</span>
-          {error}
-        </div>
-      )}
-
-      {successMessage && (
-        <div className="app-alert app-alert--success">
-          <span className="app-alert__icon">✓</span>
-          {successMessage}
-        </div>
-      )}
-
-      {/* Stats Row */}
-      <div className="app-stats-grid">
-        <div className="app-stat-card app-stat-card--info">
+      {/* Stats Summary */}
+      <div className="app-stats-row">
+        <div className="app-stat-card">
           <div className="app-stat-card__value">{statusCounts.total}</div>
           <div className="app-stat-card__label">Total Assessments</div>
         </div>
         <div className="app-stat-card">
           <div className="app-stat-card__value">{statusCounts.draft}</div>
-          <div className="app-stat-card__label">Draft</div>
+          <div className="app-stat-card__label">In Draft</div>
         </div>
-        <div className="app-stat-card app-stat-card--warning">
+        <div className="app-stat-card app-stat-card--info">
           <div className="app-stat-card__value">{statusCounts.submitted}</div>
           <div className="app-stat-card__label">Pending Endorsement</div>
         </div>
@@ -724,14 +617,10 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
       </div>
 
       {activeTab === 'analysis' && (
-        <div className="app-stats-row" style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
+        <div className="app-stats-row" style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
           <div className="app-stat-card">
             <div className="app-stat-card__value">{filteredAnalysis.length}</div>
             <div className="app-stat-card__label">Unique Items Identified</div>
-          </div>
-          <div className="app-stat-card app-stat-card--success">
-            <div className="app-stat-card__value" style={{ fontSize: '1.1rem' }}>{formatCurrency(totalAnalysisValue)}</div>
-            <div className="app-stat-card__label">Total Estimated Value</div>
           </div>
           <div className="app-stat-card app-stat-card--info">
             <div className="app-stat-card__value">{analysisYear}</div>
@@ -760,9 +649,7 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
                   <th>Type</th>
                   <th>Unit</th>
                   <th className="app-table__cell--numeric">Total Qty</th>
-                  <th className="app-table__cell--numeric">Avg Unit Cost</th>
-                  <th className="app-table__cell--numeric">Total Cost</th>
-                  <th>Priority</th>
+                  <th>Priority Breakdown</th>
                   <th>Sources</th>
                 </tr>
               </thead>
@@ -772,9 +659,7 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
                     <td><div className="font-medium text-slate-800">{item.ItemDescription}</div></td>
                     <td><span className="app-badge">{item.ProcurementType}</span></td>
                     <td><span className="text-slate-600 text-xs">{item.Unit}</span></td>
-                    <td className="app-table__cell--numeric font-semibold">{item.TotalQuantity}</td>
-                    <td className="app-table__cell--numeric">{formatCurrency(item.AvgUnitCost)}</td>
-                    <td className="app-table__cell--numeric font-bold text-emerald-700">{formatCurrency(item.TotalEstimatedCost)}</td>
+                    <td className="app-table__cell--numeric font-semibold text-emerald-700">{item.TotalQuantity}</td>
                     <td>
                       <div className="flex flex-wrap gap-1">
                         {item.PrioritySummary.split(', ').map(p => (
@@ -794,7 +679,7 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
                 ))}
                 {!filteredAnalysis.length && (
                   <tr>
-                    <td colSpan={8} className="py-12 text-center text-slate-400">
+                    <td colSpan={6} className="py-12 text-center text-slate-400">
                       No analysis data found for the selected period and status.
                     </td>
                   </tr>
@@ -812,7 +697,6 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
                   <th>Title</th>
                   <th>Unit</th>
                   <th>Fiscal Year</th>
-                  <th className="app-table__cell--numeric">Total Cost</th>
                   <th>Status</th>
                   <th>Created</th>
                   <th>Actions</th>
@@ -830,38 +714,26 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
                         {a.UnitName}
                       </div>
                     </td>
-                    <td>
-                      <div className="app-table__meta">
-                        <Calendar className="app-table__meta-icon" />
-                        {a.FiscalYear}
-                      </div>
-                    </td>
-                    <td className="app-table__cell--numeric">
-                      <div className="app-table__meta">
-                        <Wallet className="app-table__meta-icon" />
-                        {formatCurrency(a.TotalEstimatedCost)}
-                      </div>
-                    </td>
+                    <td>{a.FiscalYear}</td>
                     <td>
                       <span className={getStatusBadgeClass(a.Status)}>{a.Status}</span>
                     </td>
                     <td>
-                      <span className="app-table__date">{formatDateTimeShort(a.CreatedAt)}</span>
+                      <div className="app-table__meta">
+                        {formatDateTimeShort(a.CreatedAt)}
+                      </div>
                     </td>
                     <td>
-                      <button
-                        className="app-btn app-btn--secondary app-btn--sm"
-                        onClick={() => handleSelect(a.NeedAssessmentId)}
-                      >
-                        View
+                      <button className="app-btn app-btn--secondary app-btn--sm" onClick={() => handleSelect(a.NeedAssessmentId)}>
+                        View Details
                       </button>
                     </td>
                   </tr>
                 ))}
-                {filteredAssessments.length === 0 && (
+                {!filteredAssessments.length && (
                   <tr>
-                    <td colSpan={7} className="app-table__empty">
-                      {searchQuery ? 'No assessments match your search' : 'No need assessments found. Create one to get started.'}
+                    <td colSpan={6} className="py-8 text-center text-slate-400">
+                      No assessments found.
                     </td>
                   </tr>
                 )}
@@ -871,7 +743,7 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
         </div>
       ) : (
         <div className="app-card" style={{ marginTop: '1rem' }}>
-          <div className="app-table-wrapper">
+           <div className="app-table-wrapper">
             <table className="app-table">
               <thead>
                 <tr>
@@ -879,34 +751,23 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
                   <th>Email</th>
                   <th>Role</th>
                   <th>Unit</th>
-                  <th>Access Basis</th>
+                  <th>Access Type</th>
                 </tr>
               </thead>
               <tbody>
                 {authorizedUsers.map((u) => (
                   <tr key={u.InternalUserId}>
-                    <td>
-                      <div className="app-table__title">{u.FullName}</div>
-                    </td>
-                    <td>{u.Email}</td>
-                    <td>
-                      <span className="app-badge">{u.RoleName}</span>
-                    </td>
+                    <td><div className="font-medium text-slate-800">{u.FullName}</div></td>
+                    <td><div className="text-slate-500 text-sm">{u.Email}</div></td>
+                    <td><span className="app-badge">{u.RoleName}</span></td>
                     <td>{u.UnitName}</td>
                     <td>
-                      <span className={`app-badge ${u.AccessType === 'Direct Grant' ? 'app-badge--endorsed' : 'app-badge--draft'}`}>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${u.AccessType === 'Direct Grant' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>
                         {u.AccessType}
                       </span>
                     </td>
                   </tr>
                 ))}
-                {authorizedUsers.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="app-table__empty">
-                      No authorized users found
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
           </div>
@@ -915,5 +776,3 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
     </section>
   );
 };
-
-export default NeedsCollectionModule;

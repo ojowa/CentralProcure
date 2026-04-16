@@ -7,7 +7,6 @@ export interface NeedAssessmentSummary {
   UnitName: string;
   Title: string;
   FiscalYear: number;
-  TotalEstimatedCost: number;
   Status: string;
   CreatedAt: string;
   CreatedBy: string;
@@ -18,8 +17,6 @@ export interface NeedAssessmentItemDetail {
   Description: string;
   Quantity: number;
   Unit: string;
-  EstimatedUnitCost: number;
-  EstimatedTotalCost?: number;
   Priority: string;
   ProcurementType: string;
 }
@@ -67,8 +64,6 @@ export interface NeedAssessmentAnalysisResult {
   ProcurementType: string;
   Unit: string;
   TotalQuantity: number;
-  AvgUnitCost: number;
-  TotalEstimatedCost: number;
   OccurrenceCount: number;
   PrioritySummary: string;
 }

@@ -11,7 +11,7 @@ public partial class NeedsCollectionController
     {
         var sql = @"
             SELECT na.need_assessment_id, na.unit_id, ou.unit_name, na.title, na.fiscal_year, 
-                   na.total_estimated_cost, na.status, na.created_at, na.created_by
+                   na.status, na.created_at, na.created_by
             FROM procurement_workflow.need_assessments na
             JOIN identity.organizational_units ou ON na.unit_id = ou.unit_id
             WHERE (@p_unit_id IS NULL OR na.unit_id = @p_unit_id)
@@ -30,10 +30,9 @@ public partial class NeedsCollectionController
                 reader.GetString(2),
                 reader.GetString(3),
                 reader.GetInt32(4),
-                reader.GetDecimal(5),
-                reader.GetString(6),
-                reader.GetDateTime(7),
-                reader.GetString(8)
+                reader.GetString(5),
+                reader.GetDateTime(6),
+                reader.GetString(7)
             ));
         }
         return results;
@@ -43,7 +42,7 @@ public partial class NeedsCollectionController
     {
         var sql = @"
             SELECT na.need_assessment_id, na.unit_id, ou.unit_name, na.title, na.fiscal_year, 
-                   na.total_estimated_cost, na.status, na.remarks, na.submitted_at, 
+                   na.status, na.remarks, na.submitted_at, 
                    na.endorsed_at, na.endorsed_by, na.created_at, na.created_by, na.updated_at
             FROM procurement_workflow.need_assessments na
             JOIN identity.organizational_units ou ON na.unit_id = ou.unit_id
@@ -61,22 +60,21 @@ public partial class NeedsCollectionController
             reader.GetString(2),
             reader.GetString(3),
             reader.GetInt32(4),
-            reader.GetDecimal(5),
-            reader.GetString(6),
-            reader.IsDBNull(7) ? null : reader.GetString(7),
+            reader.GetString(5),
+            reader.IsDBNull(6) ? null : reader.GetString(6),
+            reader.IsDBNull(7) ? null : reader.GetDateTime(7),
             reader.IsDBNull(8) ? null : reader.GetDateTime(8),
-            reader.IsDBNull(9) ? null : reader.GetDateTime(9),
-            reader.IsDBNull(10) ? null : reader.GetString(10),
+            reader.IsDBNull(9) ? null : reader.GetString(9),
             new List<NeedAssessmentItemDetail>(),
-            reader.GetDateTime(11),
-            reader.GetString(12),
-            reader.GetDateTime(13)
+            reader.GetDateTime(10),
+            reader.GetString(11),
+            reader.GetDateTime(12)
         );
         
         await reader.CloseAsync();
 
         var itemSql = @"
-            SELECT item_id, description, quantity, unit, estimated_unit_cost, estimated_total_cost, priority, procurement_type
+            SELECT item_id, description, quantity, unit, priority, procurement_type
             FROM procurement_workflow.need_assessment_items
             WHERE need_assessment_id = @p_id";
         
@@ -91,10 +89,8 @@ public partial class NeedsCollectionController
                 itemReader.GetString(1),
                 itemReader.GetDecimal(2),
                 itemReader.GetString(3),
-                itemReader.GetDecimal(4),
-                itemReader.GetDecimal(5),
-                itemReader.GetString(6),
-                itemReader.GetString(7)
+                itemReader.GetString(4),
+                itemReader.GetString(5)
             ));
         }
 
@@ -127,15 +123,14 @@ public partial class NeedsCollectionController
     private async Task CreateNeedAssessmentItemAsync(NpgsqlConnection conn, NpgsqlTransaction tx, Guid assessmentId, NeedAssessmentItemDetail item, CancellationToken ct)
     {
         var sql = @"
-            INSERT INTO procurement_workflow.need_assessment_items (need_assessment_id, description, quantity, unit, estimated_unit_cost, priority, procurement_type)
-            VALUES (@p_assessment_id, @p_description, @p_quantity, @p_unit, @p_unit_cost, @p_priority, @p_type)";
+            INSERT INTO procurement_workflow.need_assessment_items (need_assessment_id, description, quantity, unit, priority, procurement_type)
+            VALUES (@p_assessment_id, @p_description, @p_quantity, @p_unit, @p_priority, @p_type)";
         
         await using var cmd = new NpgsqlCommand(sql, conn, tx);
         cmd.Parameters.AddWithValue("p_assessment_id", NpgsqlDbType.Uuid, assessmentId);
         cmd.Parameters.AddWithValue("p_description", NpgsqlDbType.Text, item.Description);
         cmd.Parameters.AddWithValue("p_quantity", NpgsqlDbType.Numeric, item.Quantity);
         cmd.Parameters.AddWithValue("p_unit", NpgsqlDbType.Varchar, item.Unit);
-        cmd.Parameters.AddWithValue("p_unit_cost", NpgsqlDbType.Numeric, item.EstimatedUnitCost);
         cmd.Parameters.AddWithValue("p_priority", NpgsqlDbType.Varchar, item.Priority);
         cmd.Parameters.AddWithValue("p_type", NpgsqlDbType.Varchar, item.ProcurementType);
         
@@ -263,8 +258,6 @@ public partial class NeedsCollectionController
             reader.GetString(reader.GetOrdinal("procurement_type")),
             reader.GetString(reader.GetOrdinal("unit")),
             reader.GetDecimal(reader.GetOrdinal("total_quantity")),
-            reader.GetDecimal(reader.GetOrdinal("avg_unit_cost")),
-            reader.GetDecimal(reader.GetOrdinal("total_estimated_cost")),
             reader.GetInt32(reader.GetOrdinal("occurrence_count")),
             reader.IsDBNull(reader.GetOrdinal("priority_summary")) ? "" : reader.GetString(reader.GetOrdinal("priority_summary"))
         );

@@ -6,7 +6,6 @@ public record NeedAssessmentSummary(
     string UnitName,
     string Title,
     int FiscalYear,
-    decimal TotalEstimatedCost,
     string Status,
     DateTime CreatedAt,
     string CreatedBy
@@ -17,8 +16,6 @@ public record NeedAssessmentItemDetail(
     string Description,
     decimal Quantity,
     string Unit,
-    decimal EstimatedUnitCost,
-    decimal EstimatedTotalCost,
     string Priority,
     string ProcurementType
 );
@@ -29,7 +26,6 @@ public record NeedAssessmentDetail(
     string UnitName,
     string Title,
     int FiscalYear,
-    decimal TotalEstimatedCost,
     string Status,
     string? Remarks,
     DateTime? SubmittedAt,
@@ -75,8 +71,6 @@ public record NeedAssessmentAnalysisResult(
     string ProcurementType,
     string Unit,
     decimal TotalQuantity,
-    decimal AvgUnitCost,
-    decimal TotalEstimatedCost,
     int OccurrenceCount,
     string PrioritySummary
 );
