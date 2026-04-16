@@ -84,8 +84,10 @@ public class VendorAdministrationService : IVendorAdministrationService
         await using var sCmd = new NpgsqlCommand(sSql, conn, tx);
         sCmd.Parameters.AddWithValue("p_vendor_id", vendorId);
         VendorApprovalSummary? result = null;
-        await using var reader = await sCmd.ExecuteReaderAsync(ct);
-        if (await reader.ReadAsync(ct)) result = MapSummary(reader);
+        await using (var reader = await sCmd.ExecuteReaderAsync(ct))
+        {
+            if (await reader.ReadAsync(ct)) result = MapSummary(reader);
+        }
         await tx.CommitAsync(ct);
         return result;
     }
