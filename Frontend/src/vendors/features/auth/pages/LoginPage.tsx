@@ -3,8 +3,8 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
 import { useAuth } from '../../../hooks/useAuth';
+import '../styles/auth.css';
 import { vendorLogin } from '../../vendor/services/vendorService';
 import { VendorLoginData } from '../../vendor/types/vendor';
 import {
@@ -13,13 +13,11 @@ import {
   Eye,
   EyeOff,
   ArrowRight,
-  Shield,
-  CheckCircle,
+  ShieldCheck,
   AlertCircle,
   Loader2,
   Building2,
-  FileText,
-  TrendingUp,
+  ArrowLeft,
 } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
@@ -30,19 +28,6 @@ const LoginPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { login } = useAuth();
-
-  const stats = [
-    { label: 'Active Tenders', value: '24', icon: FileText },
-    { label: 'Registered Vendors', value: '1,247', icon: Building2 },
-    { label: 'Contracts Awarded', value: '89', icon: TrendingUp },
-  ];
-
-  const features = [
-    'Access exclusive procurement opportunities',
-    'Submit bids securely online',
-    'Track your submissions in real-time',
-    'Manage compliance documents',
-  ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,190 +67,133 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="auth-page">
-      <div className="auth-page__container">
-        {/* Left Side - Visual */}
-        <div className="auth-page__visual">
-          <div className="auth-page__visual-content">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-            >
-              <div className="auth-page__logo">
-                <Shield className="auth-page__logo-icon" />
-                <span className="auth-page__logo-text">NIS e-Procurement</span>
-              </div>
+    <div className="vendor-login">
+      {/* Background Image */}
+      <div className="vendor-login__bg" />
 
-              <h2 className="auth-page__visual-title">
-                Welcome to the Vendor Portal
-              </h2>
-              <p className="auth-page__visual-text">
-                Access procurement opportunities and manage your bids through our secure,
-                transparent digital platform.
-              </p>
-
-              <ul className="auth-page__visual-features">
-                {features.map((feature, index) => (
-                  <motion.li
-                    key={index}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.3 + index * 0.1, duration: 0.4 }}
-                  >
-                    <CheckCircle className="auth-page__feature-icon" />
-                    <span>{feature}</span>
-                  </motion.li>
-                ))}
-              </ul>
-            </motion.div>
-
-            {/* Stats */}
-            <motion.div
-              className="auth-page__stats"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8, duration: 0.6 }}
-            >
-              {stats.map((stat, index) => (
-                <div key={stat.label} className="auth-page__stat-item">
-                  <div className="auth-page__stat-value">{stat.value}</div>
-                  <div className="auth-page__stat-label">{stat.label}</div>
-                </div>
-              ))}
-            </motion.div>
-          </div>
+      {/* Content */}
+      <div className="vendor-login__content">
+        {/* Header */}
+        <div className="vendor-login__header">
+          <Link href="/vendors" className="vendor-login__back">
+            <ArrowLeft className="vendor-login__back-icon" />
+            Back to Home
+          </Link>
         </div>
 
-        {/* Right Side - Form */}
-        <div className="auth-page__form-wrapper">
-          <motion.div
-            className="auth-card"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-          >
-            <div className="auth-card__header">
-              <div className="auth-card__icon">
-                <div className="auth-card__icon-bg">
-                  <Lock className="auth-card__icon-svg" />
-                </div>
+        {/* Card */}
+        <div className="vendor-login__card">
+          {/* Logo */}
+          <div className="vendor-login__brand">
+            <div className="vendor-login__logo">
+              <ShieldCheck className="vendor-login__logo-icon" />
+            </div>
+            <h1 className="vendor-login__title">Vendor Portal</h1>
+            <p className="vendor-login__subtitle">
+              Nigeria Immigration Service e-Procurement
+            </p>
+          </div>
+
+          {/* Error */}
+          {error && (
+            <div className="vendor-login__error">
+              <AlertCircle className="vendor-login__error-icon" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="vendor-login__form">
+            <div className="vendor-login__field">
+              <label htmlFor="email" className="vendor-login__label">
+                Email
+              </label>
+              <div className="vendor-login__input-wrap">
+                <Mail className="vendor-login__input-icon" />
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="vendor-login__input"
+                  placeholder="you@company.com"
+                  required
+                  disabled={isLoading}
+                />
               </div>
-              <h1 className="auth-card__title">Vendor Login</h1>
-              <p className="auth-card__subtitle">
-                Sign in to access your vendor dashboard
-              </p>
             </div>
 
-            {error && (
-              <motion.div
-                className="auth-alert auth-alert--error"
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-              >
-                <AlertCircle className="auth-alert__icon" />
-                <span>{error}</span>
-              </motion.div>
-            )}
-
-            <form onSubmit={handleSubmit} className="auth-form">
-              <div className="auth-form__field">
-                <label htmlFor="email" className="auth-form__label">
-                  Email Address
-                </label>
-                <div className="auth-form__input-wrapper">
-                  <Mail className="auth-form__input-icon" />
-                  <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="auth-form__input"
-                    placeholder="your.email@company.com"
-                    required
-                    disabled={isLoading}
-                  />
-                </div>
-              </div>
-
-              <div className="auth-form__field">
-                <label htmlFor="password" className="auth-form__label">
-                  Password
-                </label>
-                <div className="auth-form__input-wrapper">
-                  <Lock className="auth-form__input-icon" />
-                  <input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="auth-form__input auth-form__input--with-toggle"
-                    placeholder="Enter your password"
-                    required
-                    disabled={isLoading}
-                  />
-                  <button
-                    type="button"
-                    className="auth-form__toggle"
-                    onClick={() => setShowPassword(!showPassword)}
-                    tabIndex={-1}
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="auth-form__toggle-icon" />
-                    ) : (
-                      <Eye className="auth-form__toggle-icon" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              <div className="auth-form__options">
-                <Link
-                  href="/vendors/forgot-password"
-                  className="auth-form__forgot-link"
+            <div className="vendor-login__field">
+              <label htmlFor="password" className="vendor-login__label">
+                Password
+              </label>
+              <div className="vendor-login__input-wrap">
+                <Lock className="vendor-login__input-icon" />
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="vendor-login__input"
+                  placeholder="••••••••"
+                  required
+                  disabled={isLoading}
+                />
+                <button
+                  type="button"
+                  className="vendor-login__toggle"
+                  onClick={() => setShowPassword(!showPassword)}
+                  tabIndex={-1}
                 >
-                  Forgot password?
-                </Link>
+                  {showPassword ? (
+                    <EyeOff className="vendor-login__toggle-icon" />
+                  ) : (
+                    <Eye className="vendor-login__toggle-icon" />
+                  )}
+                </button>
               </div>
-
-              <button
-                type="submit"
-                disabled={isLoading || !email || !password}
-                className="auth-form__submit"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="auth-form__submit-icon auth-form__submit-icon--spin" />
-                    <span>Signing in...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Sign In</span>
-                    <ArrowRight className="auth-form__submit-icon" />
-                  </>
-                )}
-              </button>
-            </form>
-
-            <div className="auth-card__divider">
-              <span className="auth-card__divider-text">New to the portal?</span>
             </div>
 
-            <div className="auth-card__footer">
-              <Link href="/vendors/register" className="auth-card__secondary-btn">
-                <Building2 className="auth-card__secondary-icon" />
-                <span>Register your organization</span>
-                <ArrowRight className="auth-card__secondary-arrow" />
+            <div className="vendor-login__actions">
+              <Link href="/vendors/forgot-password" className="vendor-login__link">
+                Forgot password?
               </Link>
             </div>
 
-            <div className="auth-card__back">
-              <Link href="/vendors" className="auth-card__back-link">
-                ← Back to homepage
-              </Link>
-            </div>
-          </motion.div>
+            <button
+              type="submit"
+              disabled={isLoading || !email || !password}
+              className="vendor-login__submit"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="vendor-login__spinner" />
+                  Signing in...
+                </>
+              ) : (
+                <>
+                  Sign In
+                  <ArrowRight className="vendor-login__arrow" />
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Divider */}
+          <div className="vendor-login__divider">
+            <span>or</span>
+          </div>
+
+          {/* Register */}
+          <Link href="/vendors/register" className="vendor-login__register">
+            <Building2 className="vendor-login__register-icon" />
+            Create a vendor account
+          </Link>
+        </div>
+
+        {/* Footer */}
+        <div className="vendor-login__footer">
+          <p>Nigeria Immigration Service &copy; {new Date().getFullYear()}</p>
         </div>
       </div>
     </div>
