@@ -208,4 +208,26 @@ public partial class NeedsCollectionController : ControllerBase
             return Problem("Internal server error retrieving authorized users.");
         }
     }
+
+    [HttpGet("analysis")]
+    public async Task<IActionResult> GetNeedsAnalysis(
+        [FromQuery] int fiscalYear,
+        [FromQuery] Guid? unitId = null,
+        [FromQuery] string status = "Endorsed",
+        CancellationToken ct = default)
+    {
+        var connectionString = _config.GetConnectionString("Primary");
+        try
+        {
+            await using var conn = new NpgsqlConnection(connectionString);
+            await conn.OpenAsync(ct);
+            var results = await GetNeedsAnalysisAsync(conn, fiscalYear, unitId, status, ct);
+            return Ok(results);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving needs analysis for FY {FiscalYear}.", fiscalYear);
+            return Problem("Internal server error retrieving needs analysis.");
+        }
+    }
 }

@@ -61,3 +61,20 @@ export interface NeedAssessmentAuthorizedUser {
 
 export const fetchAuthorizedUsers = (token: string) =>
   send<NeedAssessmentAuthorizedUser[]>(baseUrl, '/authorized-users', token, { method: 'GET' });
+
+export interface NeedAssessmentAnalysisResult {
+  ItemDescription: string;
+  ProcurementType: string;
+  Unit: string;
+  TotalQuantity: number;
+  AvgUnitCost: number;
+  TotalEstimatedCost: number;
+  OccurrenceCount: number;
+  PrioritySummary: string;
+}
+
+export const fetchNeedsAnalysis = (token: string, fiscalYear: number, unitId?: string, status: string = 'Endorsed') => {
+  const query = new URLSearchParams({ fiscalYear: String(fiscalYear), status });
+  if (unitId) query.append('unitId', unitId);
+  return send<NeedAssessmentAnalysisResult[]>(baseUrl, `/analysis?${query.toString()}`, token, { method: 'GET' });
+};

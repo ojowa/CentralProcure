@@ -314,3 +314,29 @@ export const submitCommitteeDecision = async (data: any, token: string) => {
   }
   return response.json();
 };
+
+export const fetchNeedsAnalysis = async (
+  fiscalYear: number,
+  token: string,
+  unitId?: string,
+  status: string = 'Endorsed'
+) => {
+  const query = new URLSearchParams({
+    fiscalYear: String(fiscalYear),
+    status
+  });
+  if (unitId) {
+    query.append('unitId', unitId);
+  }
+
+  const url = `${serviceBaseUrls.workflow}/api/needs-collection/analysis?${query.toString()}`;
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+    credentials: 'include'
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || 'Failed to fetch needs analysis');
+  }
+  return response.json();
+};

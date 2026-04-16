@@ -69,3 +69,14 @@ public record NeedAssessmentAuthorizedUser(
     string UnitName,
     string AccessType // Role-Based or Direct Grant
 );
+
+public record NeedAssessmentAnalysisResult(
+    string ItemDescription,
+    string ProcurementType,
+    string Unit,
+    decimal TotalQuantity,
+    decimal AvgUnitCost,
+    decimal TotalEstimatedCost,
+    int OccurrenceCount,
+    string PrioritySummary
+);

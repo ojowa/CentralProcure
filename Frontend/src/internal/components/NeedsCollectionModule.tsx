@@ -9,10 +9,12 @@ import {
   updateNeedAssessment,
   submitNeedAssessmentDecision,
   fetchAuthorizedUsers,
+  fetchNeedsAnalysis,
   type NeedAssessmentSummary,
   type NeedAssessmentDetail,
   type NeedAssessmentItemDetail,
-  type NeedAssessmentAuthorizedUser
+  type NeedAssessmentAuthorizedUser,
+  type NeedAssessmentAnalysisResult
 } from '../services/needsCollectionService';
 import { formatCurrency, formatDateTimeShort } from '../utils/procureUtils';
 import {
@@ -31,7 +33,10 @@ import {
   Wallet,
   Package,
   Trash2,
-  Loader2
+  Loader2,
+  BarChart3,
+  PieChart,
+  Filter
 } from 'lucide-react';
 
 interface NeedsCollectionModuleProps {
@@ -43,7 +48,8 @@ interface NeedsCollectionModuleProps {
 export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ module, token, role }) => {
   const [assessments, setAssessments] = useState<NeedAssessmentSummary[]>([]);
   const [authorizedUsers, setAuthorizedUsers] = useState<NeedAssessmentAuthorizedUser[]>([]);
-  const [activeTab, setActiveTab] = useState<'assessments' | 'users'>('assessments');
+  const [analysisResults, setAnalysisResults] = useState<NeedAssessmentAnalysisResult[]>([]);
+  const [activeTab, setActiveTab] = useState<'assessments' | 'users' | 'analysis'>('assessments');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<NeedAssessmentDetail | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -51,6 +57,10 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Analysis Filters
+  const [analysisYear, setAnalysisYear] = useState(new Date().getFullYear());
+  const [analysisStatus, setAnalysisStatus] = useState('Endorsed');
 
   // Form State
   const [title, setTitle] = useState('');
@@ -74,9 +84,26 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
     }
   };
 
+  const loadAnalysis = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await fetchNeedsAnalysis(token, analysisYear, undefined, analysisStatus);
+      setAnalysisResults(data);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    loadList();
-  }, [token]);
+    if (activeTab === 'analysis') {
+      loadAnalysis();
+    } else {
+      loadList();
+    }
+  }, [token, activeTab, analysisYear, analysisStatus]);
 
   const filteredAssessments = useMemo(() => {
     if (!searchQuery.trim()) return assessments;
@@ -89,6 +116,16 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
     );
   }, [assessments, searchQuery]);
 
+  const filteredAnalysis = useMemo(() => {
+    if (!searchQuery.trim()) return analysisResults;
+    const query = searchQuery.toLowerCase();
+    return analysisResults.filter(
+      (r) =>
+        r.ItemDescription.toLowerCase().includes(query) ||
+        r.ProcurementType.toLowerCase().includes(query)
+    );
+  }, [analysisResults, searchQuery]);
+
   const statusCounts = useMemo(() => {
     return {
       total: assessments.length,
@@ -97,6 +134,10 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
       endorsed: assessments.filter((a) => a.Status === 'Endorsed').length,
     };
   }, [assessments]);
+
+  const totalAnalysisValue = useMemo(() => {
+    return analysisResults.reduce((sum, r) => sum + Number(r.TotalEstimatedCost), 0);
+  }, [analysisResults]);
 
   const handleSelect = async (id: string) => {
     setLoading(true);
@@ -630,28 +671,137 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
         >
           <Users className="app-tab__icon" /> Authorized Users ({authorizedUsers.length})
         </button>
+        <button
+          className={`app-tab ${activeTab === 'analysis' ? 'app-tab--active' : ''}`}
+          onClick={() => setActiveTab('analysis')}
+        >
+          <BarChart3 className="app-tab__icon" /> Needs Analysis
+        </button>
       </div>
 
-      {/* Search Bar */}
-      {activeTab === 'assessments' && (
-        <div className="app-search-bar" style={{ marginTop: '1rem' }}>
-          <div className="app-search">
-            <Search className="app-search__icon" />
-            <input
-              className="app-search__input"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search assessments by title, unit, or status..."
-            />
+      {/* Search Bar & Filters */}
+      <div className="app-search-bar" style={{ marginTop: '1rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+        <div className="app-search" style={{ flex: 1 }}>
+          <Search className="app-search__icon" />
+          <input
+            className="app-search__input"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={activeTab === 'analysis' ? "Search by item description or type..." : "Search assessments by title, unit, or status..."}
+          />
+        </div>
+        
+        {activeTab === 'analysis' && (
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 bg-white border border-slate-200 rounded px-2 py-1">
+              <Calendar size={14} className="text-slate-400" />
+              <select 
+                className="text-xs font-medium text-slate-600 bg-transparent border-none outline-none"
+                value={analysisYear}
+                onChange={e => setAnalysisYear(Number(e.target.value))}
+              >
+                {[0, 1, 2].map(offset => {
+                  const year = new Date().getFullYear() + offset;
+                  return <option key={year} value={year}>{year} Budget Year</option>;
+                })}
+              </select>
+            </div>
+            
+            <div className="flex items-center gap-1 bg-white border border-slate-200 rounded px-2 py-1">
+              <Filter size={14} className="text-slate-400" />
+              <select 
+                className="text-xs font-medium text-slate-600 bg-transparent border-none outline-none"
+                value={analysisStatus}
+                onChange={e => setAnalysisStatus(e.target.value)}
+              >
+                <option value="Endorsed">Endorsed Only</option>
+                <option value="Submitted">Submitted & Endorsed</option>
+                <option value="">All Statuses</option>
+              </select>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {activeTab === 'analysis' && (
+        <div className="app-stats-row" style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
+          <div className="app-stat-card">
+            <div className="app-stat-card__value">{filteredAnalysis.length}</div>
+            <div className="app-stat-card__label">Unique Items Identified</div>
+          </div>
+          <div className="app-stat-card app-stat-card--success">
+            <div className="app-stat-card__value" style={{ fontSize: '1.1rem' }}>{formatCurrency(totalAnalysisValue)}</div>
+            <div className="app-stat-card__label">Total Estimated Value</div>
+          </div>
+          <div className="app-stat-card app-stat-card--info">
+            <div className="app-stat-card__value">{analysisYear}</div>
+            <div className="app-stat-card__label">Fiscal Analysis Period</div>
+          </div>
+          <div className="app-stat-card">
+            <div className="app-stat-card__value">{analysisResults.reduce((sum, r) => sum + Number(r.OccurrenceCount), 0)}</div>
+            <div className="app-stat-card__label">Assessment Sources</div>
           </div>
         </div>
       )}
 
       {/* Content */}
-      {loading && !assessments.length ? (
+      {loading && (activeTab !== 'analysis' || !analysisResults.length) ? (
         <div className="app-empty-state">
           <Loader2 className="animate-spin" />
           <p>Loading...</p>
+        </div>
+      ) : activeTab === 'analysis' ? (
+        <div className="app-card" style={{ marginTop: '1rem' }}>
+          <div className="app-table-wrapper">
+            <table className="app-table">
+              <thead>
+                <tr>
+                  <th>Description</th>
+                  <th>Type</th>
+                  <th>Unit</th>
+                  <th className="app-table__cell--numeric">Total Qty</th>
+                  <th className="app-table__cell--numeric">Avg Unit Cost</th>
+                  <th className="app-table__cell--numeric">Total Cost</th>
+                  <th>Priority</th>
+                  <th>Sources</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAnalysis.map((item, idx) => (
+                  <tr key={idx}>
+                    <td><div className="font-medium text-slate-800">{item.ItemDescription}</div></td>
+                    <td><span className="app-badge">{item.ProcurementType}</span></td>
+                    <td><span className="text-slate-600 text-xs">{item.Unit}</span></td>
+                    <td className="app-table__cell--numeric font-semibold">{item.TotalQuantity}</td>
+                    <td className="app-table__cell--numeric">{formatCurrency(item.AvgUnitCost)}</td>
+                    <td className="app-table__cell--numeric font-bold text-emerald-700">{formatCurrency(item.TotalEstimatedCost)}</td>
+                    <td>
+                      <div className="flex flex-wrap gap-1">
+                        {item.PrioritySummary.split(', ').map(p => (
+                          <span key={p} className={`text-[10px] px-1.5 rounded-full ${p === 'Urgent' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'}`}>
+                            {p}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="flex items-center gap-1 text-slate-500 text-xs">
+                        <Users size={12} />
+                        {item.OccurrenceCount}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {!filteredAnalysis.length && (
+                  <tr>
+                    <td colSpan={8} className="py-12 text-center text-slate-400">
+                      No analysis data found for the selected period and status.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       ) : activeTab === 'assessments' ? (
         <div className="app-card" style={{ marginTop: '1rem' }}>

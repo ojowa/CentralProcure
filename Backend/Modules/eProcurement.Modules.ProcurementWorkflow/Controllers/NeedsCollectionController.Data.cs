@@ -223,4 +223,50 @@ public partial class NeedsCollectionController
         }
         return results;
     }
+
+    private async Task<List<NeedAssessmentAnalysisResult>> GetNeedsAnalysisAsync(
+        NpgsqlConnection conn, 
+        int fiscalYear, 
+        Guid? unitId, 
+        string status, 
+        CancellationToken ct)
+    {
+        await using var cmd = new NpgsqlCommand("procurement_workflow.analyze_procurement_needs_sp", conn)
+        {
+            CommandType = CommandType.StoredProcedure
+        };
+
+        cmd.Parameters.AddWithValue("p_fiscal_year", NpgsqlDbType.Integer, fiscalYear);
+        cmd.Parameters.AddWithValue("p_unit_id", NpgsqlDbType.Uuid, (object?)unitId ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("p_status", NpgsqlDbType.Varchar, (object?)status ?? DBNull.Value);
+        
+        var resultParam = new NpgsqlParameter("p_result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.Output };
+        cmd.Parameters.Add(resultParam);
+
+        await cmd.ExecuteNonQueryAsync(ct);
+        
+        await using var fetchCmd = new NpgsqlCommand($"FETCH ALL IN \"{resultParam.Value}\"", conn);
+        await using var fetchReader = await fetchCmd.ExecuteReaderAsync(ct);
+        
+        var results = new List<NeedAssessmentAnalysisResult>();
+        while (await fetchReader.ReadAsync(ct))
+        {
+            results.Add(MapNeedsAnalysisResult(fetchReader));
+        }
+        return results;
+    }
+
+    private static NeedAssessmentAnalysisResult MapNeedsAnalysisResult(NpgsqlDataReader reader)
+    {
+        return new NeedAssessmentAnalysisResult(
+            reader.GetString(reader.GetOrdinal("item_description")),
+            reader.GetString(reader.GetOrdinal("procurement_type")),
+            reader.GetString(reader.GetOrdinal("unit")),
+            reader.GetDecimal(reader.GetOrdinal("total_quantity")),
+            reader.GetDecimal(reader.GetOrdinal("avg_unit_cost")),
+            reader.GetDecimal(reader.GetOrdinal("total_estimated_cost")),
+            reader.GetInt32(reader.GetOrdinal("occurrence_count")),
+            reader.IsDBNull(reader.GetOrdinal("priority_summary")) ? "" : reader.GetString(reader.GetOrdinal("priority_summary"))
+        );
+    }
 }
