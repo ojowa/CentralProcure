@@ -178,9 +178,9 @@ const defaultConfig = {
   title: 'Procurement Dashboard',
   subtitle: 'Welcome to the CentralProcure internal workspace',
   primaryMetrics: [
-    { label: 'Accessible Modules', value: '0', icon: <Briefcase /> },
-    { label: 'Active Workflows', value: '0', icon: <TrendingUp /> },
-    { label: 'Pending Items', value: '0', icon: <Clock /> }
+    { label: 'Accessible Modules', value: '0', trend: undefined as string | undefined, icon: <Briefcase /> },
+    { label: 'Active Workflows', value: '0', trend: undefined as string | undefined, icon: <TrendingUp /> },
+    { label: 'Pending Items', value: '0', trend: undefined as string | undefined, icon: <Clock /> }
   ],
   quickActions: [] as { label: string; moduleId: string; icon: React.ReactNode }[],
   alerts: [] as { type: 'warning' | 'info' | 'success'; message: string }[]

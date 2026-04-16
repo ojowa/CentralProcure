@@ -120,3 +120,59 @@ export const fetchModuleData = async (moduleId: string, token: string): Promise<
 };
 
 export { buildCsrfHeaders };
+
+export type JsonBody = Record<string, unknown> | null;
+
+export type ProblemDetails = {
+  title?: string;
+  detail?: string;
+  status?: number;
+  errors?: Record<string, string[]>;
+};
+
+export const formatProblemDetails = (payload: ProblemDetails) => {
+  const fieldErrors = payload.errors
+    ? Object.values(payload.errors)
+        .flat()
+        .filter(Boolean)
+    : [];
+
+  if (fieldErrors.length > 0) {
+    return fieldErrors.join(' ');
+  }
+
+  return payload.detail || payload.title || (payload.status ? `Request failed (${payload.status}).` : 'Request failed.');
+};
+
+export const parseJson = async <T>(response: Response): Promise<T> => {
+  const text = await response.text();
+  if (!response.ok) {
+    if (text) {
+      try {
+        const problem = JSON.parse(text) as ProblemDetails;
+        throw new Error(formatProblemDetails(problem));
+      } catch {
+        throw new Error(text);
+      }
+    }
+
+    throw new Error(`Request failed (${response.status}).`);
+  }
+
+  return text ? JSON.parse(text) as T : ({} as T);
+};
+
+export const send = async <T>(baseUrl: string, path: string, token: string, init?: RequestInit, body?: JsonBody): Promise<T> => {
+  const response = await fetch(`${baseUrl}${path}`, {
+    ...init,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(body ? { 'Content-Type': 'application/json', ...buildCsrfHeaders() } : {}),
+      ...(init?.headers ?? {})
+    },
+    credentials: 'include',
+    body: body ? JSON.stringify(body) : init?.body
+  });
+
+  return parseJson<T>(response);
+};

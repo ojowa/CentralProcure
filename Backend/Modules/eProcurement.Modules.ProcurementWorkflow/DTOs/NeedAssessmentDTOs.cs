@@ -57,7 +57,7 @@ public record NeedAssessmentUpdateRequest(
 );
 
 public record NeedAssessmentDecisionRequest(
-    string Decision, -- Submit, Endorse, Return, Reject
+    string Decision, // Submit, Endorse, Return, Reject
     string? Remarks
 );
 
@@ -67,5 +67,5 @@ public record NeedAssessmentAuthorizedUser(
     string FullName,
     string RoleName,
     string UnitName,
-    string AccessType -- Role-Based or Direct Grant
+    string AccessType // Role-Based or Direct Grant
 );

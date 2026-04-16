@@ -8,9 +8,11 @@ import {
   createNeedAssessment, 
   updateNeedAssessment, 
   submitNeedAssessmentDecision,
+  fetchAuthorizedUsers,
   type NeedAssessmentSummary,
   type NeedAssessmentDetail,
-  type NeedAssessmentItemDetail
+  type NeedAssessmentItemDetail,
+  type NeedAssessmentAuthorizedUser
 } from '../services/needsCollectionService';
 
 interface NeedsCollectionModuleProps {

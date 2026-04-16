@@ -13,9 +13,9 @@ export interface Activity {
 }
 
 // Mock activities generator based on role
-const generateMockActivities = (role: RoleKey): Activity[] = {
+const generateMockActivities = (role: RoleKey): Activity[] => {
   const now = new Date();
-  const activities: Record<RoleKey, Activity[]> = {
+  const activities: Partial<Record<RoleKey, Activity[]>> = {
     requisitioning_officer: [
       {
         id: '1',
@@ -202,7 +202,7 @@ const generateMockActivities = (role: RoleKey): Activity[] = {
   ];
 };
 
-export const useRecentActivity = (role: RoleKey | null, limit: number = 5) => {
+export const useRecentActivity = (role: RoleKey | null | undefined, limit: number = 5) => {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
 

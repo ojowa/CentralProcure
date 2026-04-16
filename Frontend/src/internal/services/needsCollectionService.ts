@@ -1,5 +1,5 @@
-import { buildCsrfHeaders } from './internalAuthService';
-import { send } from './moduleService';
+import { send } from './moduleService.shared';
+import { serviceBaseUrls } from './moduleService';
 
 export interface NeedAssessmentSummary {
   NeedAssessmentId: string;
@@ -33,20 +33,22 @@ export interface NeedAssessmentDetail extends NeedAssessmentSummary {
   UpdatedAt: string;
 }
 
+const baseUrl = `${serviceBaseUrls.workflow}/api/needs-collection`;
+
 export const fetchNeedAssessments = (token: string) => 
-  send<NeedAssessmentSummary[]>('/needs-collection', token, { method: 'GET' });
+  send<NeedAssessmentSummary[]>(baseUrl, '', token, { method: 'GET' });
 
 export const fetchNeedAssessmentDetail = (id: string, token: string) => 
-  send<NeedAssessmentDetail>(`/needs-collection/${id}`, token, { method: 'GET' });
+  send<NeedAssessmentDetail>(baseUrl, `/${id}`, token, { method: 'GET' });
 
 export const createNeedAssessment = (token: string, payload: any) => 
-  send<{ NeedAssessmentId: string; Message: string }>('/needs-collection', token, { method: 'POST' }, payload);
+  send<{ NeedAssessmentId: string; Message: string }>(baseUrl, '', token, { method: 'POST' }, payload);
 
 export const updateNeedAssessment = (id: string, token: string, payload: any) => 
-  send<{ Message: string }>(`/needs-collection/${id}`, token, { method: 'PUT' }, payload);
+  send<{ Message: string }>(baseUrl, `/${id}`, token, { method: 'PUT' }, payload);
 
 export const submitNeedAssessmentDecision = (id: string, token: string, decision: string, remarks?: string) => 
-  send<{ Status: string; Message: string }>(`/needs-collection/${id}/decision`, token, { method: 'POST' }, { Decision: decision, Remarks: remarks });
+  send<{ Status: string; Message: string }>(baseUrl, `/${id}/decision`, token, { method: 'POST' }, { Decision: decision, Remarks: remarks });
 
 export interface NeedAssessmentAuthorizedUser {
   InternalUserId: string;
@@ -58,4 +60,4 @@ export interface NeedAssessmentAuthorizedUser {
 }
 
 export const fetchAuthorizedUsers = (token: string) =>
-  send<NeedAssessmentAuthorizedUser[]>('/needs-collection/authorized-users', token, { method: 'GET' });
+  send<NeedAssessmentAuthorizedUser[]>(baseUrl, '/authorized-users', token, { method: 'GET' });

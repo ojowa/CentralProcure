@@ -98,31 +98,21 @@ BEGIN
 END;
 $$;
 
--- Register Module in Catalog
-INSERT INTO identity.internal_modules (module_id, title, section, description, microservice, control_purpose, actions)
-VALUES (
-    'needs-collection',
-    'Needs Collection',
-    'Procurement Planning',
-    'Collect and endorse procurement needs from formations and departments.',
-    'Procurement Workflow Service',
-    'Pre-requisition needs identification and assessment.',
-    ARRAY['needs.create', 'needs.view', 'needs.endorse', 'needs.consolidate']
-)
-ON CONFLICT (module_id) DO UPDATE
-SET description = EXCLUDED.description,
-    actions = EXCLUDED.actions;
-
--- Grant access to roles
--- Formation Officer can create/view
-INSERT INTO identity.internal_module_access_roles (role_name, module_id, is_enabled)
-VALUES 
-    ('FormationOfficer', 'needs-collection', TRUE),
-    ('FormationHead', 'needs-collection', TRUE),
-    ('RequisitioningOfficer', 'needs-collection', TRUE),
-    ('DepartmentHead', 'needs-collection', TRUE),
-    ('ComptrollerProcurement', 'needs-collection', TRUE),
-    ('SystemAdministrator', 'needs-collection', TRUE)
-ON CONFLICT (role_name, module_id) DO UPDATE SET is_enabled = TRUE;
+-- Grant access to roles via internal_module_grants
+-- (We use the module_id 'needs-collection' which will be defined in the C# catalog)
+DO $$
+DECLARE
+    v_module_id VARCHAR := 'needs-collection';
+    v_role_record RECORD;
+BEGIN
+    FOR v_role_record IN 
+        SELECT role_id FROM identity.roles 
+        WHERE role_name IN ('FormationOfficer', 'FormationHead', 'RequisitioningOfficer', 'DepartmentHead', 'ComptrollerProcurement', 'Admin', 'SystemAdministrator')
+    LOOP
+        INSERT INTO identity.internal_module_grants (role_id, module_id, is_enabled)
+        VALUES (v_role_record.role_id, v_module_id, TRUE)
+        ON CONFLICT (role_id, module_id) DO UPDATE SET is_enabled = TRUE;
+    END LOOP;
+END $$;
 
 COMMIT;
