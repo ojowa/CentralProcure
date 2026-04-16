@@ -15,18 +15,18 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
     IF p_role_name IS NOT NULL THEN
-        IF EXISTS (SELECT 1 FROM identity.roles WHERE role_name = p_role_name AND role_id <> p_role_id) THEN
+        IF EXISTS (SELECT 1 FROM identity.roles WHERE roles.role_name = p_role_name AND roles.role_id <> p_role_id) THEN
             RAISE EXCEPTION 'Role name already exists';
         END IF;
     END IF;
 
     UPDATE identity.roles
     SET
-        role_name = COALESCE(p_role_name, role_name),
-        description = COALESCE(p_description, description),
-        is_active = COALESCE(p_is_active, is_active),
+        role_name = COALESCE(p_role_name, roles.role_name),
+        description = COALESCE(p_description, roles.description),
+        is_active = COALESCE(p_is_active, roles.is_active),
         updated_at = NOW()
-    WHERE role_id = p_role_id;
+    WHERE roles.role_id = p_role_id;
 
     RETURN QUERY
     SELECT roles.role_id, roles.role_name, roles.description, roles.is_active

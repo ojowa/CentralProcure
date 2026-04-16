@@ -1,6 +1,5 @@
--- Function for Updating a Role (PostgreSQL)
-CREATE OR REPLACE FUNCTION identity.update_role(
-    p_role_id UUID,
+-- Function for Creating a Role (PostgreSQL)
+CREATE OR REPLACE FUNCTION identity.create_role(
     p_role_name VARCHAR(100),
     p_description TEXT
 )
@@ -13,22 +12,15 @@ RETURNS TABLE (
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    UPDATE identity.roles
-    SET role_name = p_role_name,
-        description = p_description,
-        updated_at = NOW()
-    WHERE role_id = p_role_id;
-
     RETURN QUERY
-    SELECT r.role_id, r.role_name, r.description, r.is_active
-    FROM identity.roles r
-    WHERE r.role_id = p_role_id;
+    INSERT INTO identity.roles (role_name, description)
+    VALUES (p_role_name, p_description)
+    RETURNING roles.role_id, roles.role_name, roles.description, roles.is_active;
 END;
 $$;
 
--- Procedure wrapper for update_role
-CREATE OR REPLACE PROCEDURE identity.update_role_sp(
-    IN p_role_id UUID,
+-- Procedure wrapper for create_role
+CREATE OR REPLACE PROCEDURE identity.create_role_sp(
     IN p_role_name VARCHAR(100),
     IN p_description TEXT,
     OUT p_result refcursor
@@ -37,14 +29,12 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
     OPEN p_result FOR
-    SELECT * FROM identity.update_role(p_role_id, p_role_name, p_description);
+    SELECT * FROM identity.create_role(p_role_name, p_description);
 END;
 $$;
 
--- Function for Deactivating a Role (PostgreSQL)
-CREATE OR REPLACE FUNCTION identity.deactivate_role(
-    p_role_id UUID
-)
+-- Function for Getting Roles (PostgreSQL)
+CREATE OR REPLACE FUNCTION identity.get_roles()
 RETURNS TABLE (
     role_id UUID,
     role_name VARCHAR(100),
@@ -54,27 +44,21 @@ RETURNS TABLE (
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    UPDATE identity.roles
-    SET is_active = FALSE,
-        updated_at = NOW()
-    WHERE role_id = p_role_id;
-
     RETURN QUERY
-    SELECT r.role_id, r.role_name, r.description, r.is_active
-    FROM identity.roles r
-    WHERE r.role_id = p_role_id;
+    SELECT roles.role_id, roles.role_name, roles.description, roles.is_active
+    FROM identity.roles
+    ORDER BY roles.role_name ASC;
 END;
 $$;
 
--- Procedure wrapper for deactivate_role
-CREATE OR REPLACE PROCEDURE identity.deactivate_role_sp(
-    IN p_role_id UUID,
+-- Procedure wrapper for get_roles
+CREATE OR REPLACE PROCEDURE identity.get_roles_sp(
     OUT p_result refcursor
 )
 LANGUAGE plpgsql
 AS $$
 BEGIN
     OPEN p_result FOR
-    SELECT * FROM identity.deactivate_role(p_role_id);
+    SELECT * FROM identity.get_roles();
 END;
 $$;

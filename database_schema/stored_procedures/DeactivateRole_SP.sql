@@ -15,7 +15,7 @@ BEGIN
     SET
         is_active = FALSE,
         updated_at = NOW()
-    WHERE role_id = p_role_id;
+    WHERE roles.role_id = p_role_id;
 
     RETURN QUERY
     SELECT roles.role_id, roles.role_name, roles.description, roles.is_active

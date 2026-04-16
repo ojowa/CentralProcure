@@ -11,13 +11,13 @@ RETURNS TABLE (
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    IF EXISTS (SELECT 1 FROM identity.internal_users WHERE role_id = p_role_id) THEN
+    IF EXISTS (SELECT 1 FROM identity.internal_users WHERE internal_users.role_id = p_role_id) THEN
         RAISE EXCEPTION 'Role is in use and cannot be deleted';
     END IF;
 
     RETURN QUERY
     DELETE FROM identity.roles
-    WHERE role_id = p_role_id
+    WHERE roles.role_id = p_role_id
     RETURNING roles.role_id, roles.role_name, roles.description, roles.is_active;
 END;
 $$;
