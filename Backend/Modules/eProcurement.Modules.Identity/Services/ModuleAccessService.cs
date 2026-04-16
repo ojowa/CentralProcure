@@ -161,6 +161,41 @@ public class ModuleAccessService : IModuleAccessService
         return results;
     }
 
+    public async Task<InternalOrganizationalUnitResult?> ManageInternalUnitAsync(ManageInternalOrganizationalUnitRequest request, Guid adminUserId, CancellationToken ct)
+    {
+        await using var conn = new NpgsqlConnection(GetConnectionString());
+        await conn.OpenAsync(ct);
+        await using var tx = await conn.BeginTransactionAsync(ct);
+        await using var cmd = new NpgsqlCommand("identity.manage_organizational_unit_sp", conn, tx) { CommandType = CommandType.StoredProcedure };
+        cmd.Parameters.AddWithValue("p_unit_id", NpgsqlDbType.Uuid, (object?)request.UnitId ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("p_unit_code", NpgsqlDbType.Varchar, request.UnitCode);
+        cmd.Parameters.AddWithValue("p_unit_name", NpgsqlDbType.Varchar, request.UnitName);
+        cmd.Parameters.AddWithValue("p_unit_type", NpgsqlDbType.Varchar, request.UnitType);
+        cmd.Parameters.AddWithValue("p_parent_unit_id", NpgsqlDbType.Uuid, (object?)request.ParentUnitId ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("p_sort_order", NpgsqlDbType.Integer, request.SortOrder);
+        cmd.Parameters.AddWithValue("p_is_assignable", NpgsqlDbType.Boolean, request.IsAssignable);
+        cmd.Parameters.AddWithValue("p_is_active", NpgsqlDbType.Boolean, request.IsActive);
+        cmd.Parameters.AddWithValue("p_updated_by", NpgsqlDbType.Varchar, adminUserId.ToString());
+        cmd.Parameters.Add(new NpgsqlParameter("p_result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.Output });
+
+        var results = await ExecuteRefcursorAsync(cmd, MapInternalOrganizationalUnitResult, ct);
+        await tx.CommitAsync(ct);
+        return results.FirstOrDefault();
+    }
+
+    private async Task<List<T>> ExecuteRefcursorAsync<T>(NpgsqlCommand cmd, Func<NpgsqlDataReader, T> mapper, CancellationToken ct)
+    {
+        await using var reader = await cmd.ExecuteReaderAsync(ct);
+        if (!await reader.ReadAsync(ct)) return new List<T>();
+        var cursorName = reader.GetString(0);
+        await reader.CloseAsync();
+        await using var fetchCmd = new NpgsqlCommand($"FETCH ALL IN \"{cursorName}\";", cmd.Connection, cmd.Transaction);
+        await using var fetchReader = await fetchCmd.ExecuteReaderAsync(ct);
+        var list = new List<T>();
+        while (await fetchReader.ReadAsync(ct)) list.Add(mapper(fetchReader));
+        return list;
+    }
+
     public async Task DeleteRoleModuleAccessBulkAsync(string roleName, Guid adminUserId, CancellationToken ct)
     {
         await using var conn = new NpgsqlConnection(GetConnectionString());

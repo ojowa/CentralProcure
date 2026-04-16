@@ -13,6 +13,7 @@ public interface IModuleAccessService
     Task DeleteRoleModuleAccessAsync(string roleName, string moduleId, Guid adminUserId, CancellationToken ct);
     Task DeleteUserModuleAccessAsync(Guid internalUserId, string moduleId, Guid adminUserId, CancellationToken ct);
     Task<List<InternalOrganizationalUnitResult>> GetInternalUnitsAsync(CancellationToken ct);
+    Task<InternalOrganizationalUnitResult?> ManageInternalUnitAsync(ManageInternalOrganizationalUnitRequest request, Guid adminUserId, CancellationToken ct);
     Task DeleteRoleModuleAccessBulkAsync(string roleName, Guid adminUserId, CancellationToken ct);
     Task BulkUpdateUserModuleAccessAsync(BulkUserModuleAccessRequest request, Guid adminUserId, CancellationToken ct);
     Task DeleteUserModuleAccessBulkAsync(Guid internalUserId, Guid adminUserId, CancellationToken ct);

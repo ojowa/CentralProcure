@@ -54,6 +54,16 @@ namespace eProcurement.Modules.Identity.DTOs
 
     public record UpdateRoleModuleAccessRequest(string RoleName, string ModuleId, bool IsEnabled);
 
+    public record ManageInternalOrganizationalUnitRequest(
+        Guid? UnitId,
+        string UnitCode,
+        string UnitName,
+        string UnitType,
+        Guid? ParentUnitId,
+        int SortOrder,
+        bool IsAssignable,
+        bool IsActive);
+
     public record UpdateUserModuleAccessRequest(Guid InternalUserId, string ModuleId, bool IsEnabled);
 
     public record ModuleAccessGrantInput(string ModuleId, bool IsEnabled);

@@ -1,6 +1,7 @@
 using eProcurement.Modules.Identity.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Npgsql;
 
 namespace eProcurement.Modules.Identity.Controllers;
 
@@ -17,6 +18,41 @@ public partial class AuthController
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error fetching organizational units.");
+            return Problem("Internal server error.");
+        }
+    }
+
+    [Authorize]
+    [HttpPost("internal/units")]
+    public async Task<IActionResult> ManageInternalUnit([FromBody] ManageInternalOrganizationalUnitRequest request, CancellationToken ct)
+    {
+        if (!IsIdentityAdministrator())
+        {
+            return Forbid();
+        }
+
+        if (!TryGetAuthenticatedInternalUserId(out var adminUserId, out var authError))
+        {
+            return authError!;
+        }
+
+        if (string.IsNullOrWhiteSpace(request.UnitName) || string.IsNullOrWhiteSpace(request.UnitCode) || string.IsNullOrWhiteSpace(request.UnitType))
+        {
+            return BadRequest(new { message = "Unit name, code, and type are required." });
+        }
+
+        try
+        {
+            var result = await _moduleAccessService.ManageInternalUnitAsync(request, adminUserId, ct);
+            return result is null ? Problem("Failed to manage organizational unit.") : Ok(result);
+        }
+        catch (PostgresException ex) when (ex.SqlState == "23505")
+        {
+            return Conflict(new { message = "An organizational unit with that code already exists." });
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error managing organizational unit.");
             return Problem("Internal server error.");
         }
     }

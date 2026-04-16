@@ -333,6 +333,33 @@ export const fetchInternalUnits = async (): Promise<InternalOrganizationalUnitRe
   });
 };
 
+export const manageInternalUnit = async (
+  token: string,
+  data: {
+    UnitId?: string;
+    UnitCode: string;
+    UnitName: string;
+    UnitType: string;
+    ParentUnitId?: string;
+    SortOrder: number;
+    IsAssignable: boolean;
+    IsActive: boolean;
+  }
+): Promise<InternalOrganizationalUnitRecord> => {
+  const response = await fetch(API_ENDPOINTS.INTERNAL_UNITS, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...buildAuthHeaders(token),
+      ...buildCsrfHeaders()
+    },
+    credentials: 'include',
+    body: JSON.stringify(data)
+  });
+
+  return parseResponse<InternalOrganizationalUnitRecord>(response, 'Unable to manage organizational unit.');
+};
+
 export const fetchInternalModules = async (token?: string | null): Promise<InternalModule[]> => {
   const response = await fetch(API_ENDPOINTS.INTERNAL_MODULES, {
     method: 'GET',
