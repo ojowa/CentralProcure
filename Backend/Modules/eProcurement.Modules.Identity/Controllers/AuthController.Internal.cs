@@ -78,6 +78,7 @@ public partial class AuthController
             SetInternalSessionActivityCookie(result.InternalUserId.Value);
             return Ok(new
             {
+                Token = token,
                 Email = result.Email ?? resolvedEmail ?? request.Email,
                 Status = result.Status ?? "Success",
                 Role = role,

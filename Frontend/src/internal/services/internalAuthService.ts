@@ -221,21 +221,27 @@ export const loginInternalUser = async (
 
   const payload = await parseResponse<any>(response, 'Internal login failed.');
 
-  const token = payload?.Token as string | undefined;
+  const token = (payload?.Token ?? payload?.token) as string | undefined;
   const jwtPayload = token ? parseJwtPayload(token) : null;
-  const role = resolveCanonicalRole(payload?.CanonicalRoleKey, payload?.Role, jwtPayload?.role);
+  const role = resolveCanonicalRole(
+    payload?.CanonicalRoleKey,
+    payload?.canonicalRoleKey,
+    payload?.Role,
+    payload?.role,
+    jwtPayload?.role
+  );
   const internalUserId =
-    (typeof payload?.InternalUserId === 'string' ? payload.InternalUserId : undefined) ??
+    (typeof payload?.InternalUserId === 'string' ? payload.InternalUserId : (typeof payload?.internalUserId === 'string' ? payload.internalUserId : undefined)) ??
     (typeof jwtPayload?.sub === 'string' ? jwtPayload.sub : undefined);
 
   return {
-    Email: payload?.Email ?? credentials.Email,
-    Status: payload?.Status ?? 'Success',
+    Email: payload?.Email ?? payload?.email ?? credentials.Email,
+    Status: payload?.Status ?? payload?.status ?? 'Success',
     Token: token ?? '',
     Role: role,
     CanonicalRoleKey: role,
     InternalUserId: internalUserId,
-    ErrorMessage: payload?.ErrorMessage
+    ErrorMessage: payload?.ErrorMessage ?? payload?.errorMessage
   } as InternalLoginResponse;
 };
 
