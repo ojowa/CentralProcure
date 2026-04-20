@@ -79,6 +79,13 @@ scripts/*
 # Render and deployment-local folders
 .render/
 
+# Local documentation and SOPs
+Agent.md
+GEMINI.md
+SOP.md
+SOP_INSTITUTIONAL.md
+SOP_SUBMISSION.md
+
 # Preserve tracked source folders that match ignored names
 !Frontend/src/public/
 !Frontend/src/public/**
