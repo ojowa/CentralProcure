@@ -202,6 +202,9 @@ export interface InternalUserProfile {
     Status: string;
     LastLogin?: string | null;
     CreatedAt: string;
+    RoleEffectiveFrom?: string | null;
+    RoleExpiresAt?: string | null;
+    BackupRoleName?: string | null;
 }
 
 export interface InternalUserProfileUpdateRequest {
@@ -220,6 +223,28 @@ export interface InternalOrganizationalUnitRecord {
     ParentUnitName?: string | null;
     SortOrder: number;
     IsAssignable: boolean;
+    IsActive: boolean;
+}
+
+export interface InternalUnitStaffRecord {
+    InternalUserId: string;
+    Email: string;
+    Username: string;
+    FirstName: string;
+    Surname: string;
+    RoleName: string;
+    Status: string;
+}
+
+export interface InternalNotificationResult {
+    NotificationId: string;
+    Title: string;
+    Message: string;
+    NotificationType: string;
+    IsRead: boolean;
+    CreatedAt: string;
+    ReadAt?: string | null;
+    ActionUrl?: string | null;
 }
 
 export interface ProcurementPlanSummary {

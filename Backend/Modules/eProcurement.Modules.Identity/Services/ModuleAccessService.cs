@@ -71,6 +71,38 @@ public class ModuleAccessService : IModuleAccessService
         catch (PostgresException ex) when (ex.SqlState == "42P01") { return new List<ModuleAccessAuditResult>(); }
     }
 
+    public async Task<List<UserRoleAuditResult>> GetUserRoleAuditAsync(Guid? internalUserId, int limit, CancellationToken ct)
+    {
+        await using var conn = new NpgsqlConnection(GetConnectionString());
+        await conn.OpenAsync(ct);
+        const string sql = @"
+            SELECT 
+                a.audit_id, a.target_internal_user_id, 
+                iu_target.email AS target_email, iu_target.username AS target_username,
+                r_old.role_name AS previous_role_name, 
+                r_new.role_name AS new_role_name,
+                iu_admin.email AS changed_by_email, iu_admin.username AS changed_by_username,
+                a.changed_at, a.change_reason
+            FROM identity.user_role_audit a
+            JOIN identity.internal_users iu_target ON iu_target.internal_user_id = a.target_internal_user_id
+            LEFT JOIN identity.roles r_old ON r_old.role_id = a.previous_role_id
+            JOIN identity.roles r_new ON r_new.role_id = a.new_role_id
+            LEFT JOIN identity.internal_users iu_admin ON iu_admin.internal_user_id = a.changed_by_user_id
+            WHERE (@p_internal_user_id IS NULL OR a.target_internal_user_id = @p_internal_user_id)
+            ORDER BY a.changed_at DESC LIMIT @p_limit;";
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("p_internal_user_id", NpgsqlDbType.Uuid, (object?)internalUserId ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("p_limit", NpgsqlDbType.Integer, limit);
+        try
+        {
+            await using var reader = await cmd.ExecuteReaderAsync(ct);
+            var results = new List<UserRoleAuditResult>();
+            while (await reader.ReadAsync(ct)) results.Add(MapUserRoleAuditResult(reader));
+            return results;
+        }
+        catch (PostgresException ex) when (ex.SqlState == "42P01") { return new List<UserRoleAuditResult>(); }
+    }
+
     public async Task<RoleModuleAccessGrantResult?> UpdateRoleModuleAccessAsync(UpdateRoleModuleAccessRequest request, Guid adminUserId, CancellationToken ct)
     {
         await using var conn = new NpgsqlConnection(GetConnectionString());
@@ -153,7 +185,7 @@ public class ModuleAccessService : IModuleAccessService
     {
         await using var conn = new NpgsqlConnection(GetConnectionString());
         await conn.OpenAsync(ct);
-        const string sql = @"SELECT ou.unit_id, ou.unit_name, ou.unit_code, ou.unit_type, ou.parent_unit_id, parent.unit_name AS parent_unit_name, ou.sort_order, ou.is_assignable FROM identity.organizational_units ou LEFT JOIN identity.organizational_units parent ON parent.unit_id = ou.parent_unit_id WHERE ou.is_active = TRUE ORDER BY ou.sort_order ASC, ou.unit_name ASC";
+        const string sql = @"SELECT ou.unit_id, ou.unit_name, ou.unit_code, ou.unit_type, ou.parent_unit_id, parent.unit_name AS parent_unit_name, ou.sort_order, ou.is_assignable, ou.is_active FROM identity.organizational_units ou LEFT JOIN identity.organizational_units parent ON parent.unit_id = ou.parent_unit_id ORDER BY ou.sort_order ASC, ou.unit_name ASC";
         await using var cmd = new NpgsqlCommand(sql, conn);
         await using var reader = await cmd.ExecuteReaderAsync(ct);
         var results = new List<InternalOrganizationalUnitResult>();
@@ -181,6 +213,26 @@ public class ModuleAccessService : IModuleAccessService
         var results = await ExecuteRefcursorAsync(cmd, MapInternalOrganizationalUnitResult, ct);
         await tx.CommitAsync(ct);
         return results.FirstOrDefault();
+    }
+
+    public async Task<List<InternalUnitStaffResult>> GetUnitStaffAsync(Guid unitId, CancellationToken ct)
+    {
+        await using var conn = new NpgsqlConnection(GetConnectionString());
+        await conn.OpenAsync(ct);
+        const string sql = @"
+            SELECT iu.internal_user_id, iu.email, iu.username, iu.first_name, iu.surname, r.role_name, iu.status
+            FROM identity.internal_users iu
+            JOIN identity.roles r ON r.role_id = iu.role_id
+            WHERE iu.unit_id = @p_unit_id
+            ORDER BY iu.surname ASC, iu.first_name ASC";
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("p_unit_id", NpgsqlDbType.Uuid, unitId);
+        await using var reader = await cmd.ExecuteReaderAsync(ct);
+        var results = new List<InternalUnitStaffResult>();
+        while (await reader.ReadAsync(ct)) results.Add(new InternalUnitStaffResult(
+            reader.GetGuid(0), reader.GetString(1), reader.GetString(2), reader.GetString(3), reader.GetString(4), reader.GetString(5), reader.GetString(6)
+        ));
+        return results;
     }
 
     private async Task<List<T>> ExecuteRefcursorAsync<T>(NpgsqlCommand cmd, Func<NpgsqlDataReader, T> mapper, CancellationToken ct)
@@ -266,7 +318,16 @@ public class ModuleAccessService : IModuleAccessService
         return res;
     }
 
-    private static InternalOrganizationalUnitResult MapInternalOrganizationalUnitResult(NpgsqlDataReader r) => new(r.GetGuid(0), r.GetString(1), r.GetString(2), r.GetString(3), r.IsDBNull(4) ? null : r.GetGuid(4), r.IsDBNull(5) ? null : r.GetString(5), r.GetInt32(6), r.GetBoolean(7));
+    private static InternalOrganizationalUnitResult MapInternalOrganizationalUnitResult(NpgsqlDataReader r) => new(
+        r.GetGuid(0), 
+        r.GetString(1), 
+        r.GetString(2), 
+        r.GetString(3), 
+        r.IsDBNull(4) ? null : r.GetGuid(4), 
+        r.IsDBNull(5) ? null : r.GetString(5), 
+        r.GetInt32(6), 
+        r.GetBoolean(7),
+        r.GetBoolean(8));
 
 
     private static async Task<Guid?> ResolveRoleIdAsync(NpgsqlConnection conn, NpgsqlTransaction tx, string roleName, CancellationToken ct)
@@ -297,4 +358,16 @@ public class ModuleAccessService : IModuleAccessService
     private static RoleModuleAccessGrantResult MapRoleModuleAccessGrantResult(NpgsqlDataReader r) => new(r.GetString(0), r.GetString(1), r.GetBoolean(2), r.GetDateTime(3));
     private static UserModuleAccessGrantResult MapUserModuleAccessGrantResult(NpgsqlDataReader r) => new(r.GetGuid(0), r.GetString(1), r.GetString(2), r.GetString(3), r.GetString(4), r.GetBoolean(5), r.GetDateTime(6));
     private static ModuleAccessAuditResult MapModuleAccessAuditResult(NpgsqlDataReader r) => new(r.GetGuid(0), r.GetString(1), r.IsDBNull(2) ? null : r.GetString(2), r.IsDBNull(3) ? null : r.GetGuid(3), r.IsDBNull(4) ? null : r.GetString(4), r.IsDBNull(5) ? null : r.GetString(5), r.GetString(6), r.IsDBNull(7) ? null : r.GetBoolean(7), r.IsDBNull(8) ? null : r.GetBoolean(8), r.IsDBNull(9) ? null : r.GetGuid(9), r.GetString(10), r.GetDateTime(11));
+
+    private static UserRoleAuditResult MapUserRoleAuditResult(NpgsqlDataReader r) => new(
+        r.GetGuid(0),
+        r.GetGuid(1),
+        r.GetString(2),
+        r.GetString(3),
+        r.IsDBNull(4) ? null : r.GetString(4),
+        r.GetString(5),
+        r.IsDBNull(6) ? null : r.GetString(6),
+        r.IsDBNull(7) ? null : r.GetString(7),
+        r.GetDateTime(8),
+        r.IsDBNull(9) ? null : r.GetString(9));
 }

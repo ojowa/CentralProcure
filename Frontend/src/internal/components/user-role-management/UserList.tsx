@@ -11,8 +11,10 @@ interface UserListProps {
   roles: InternalRoleRecord[];
   isLoading: boolean;
   onRoleChange: (userId: string, newRole: string) => void | Promise<void>;
+  onScheduleRole: (user: InternalUserProfile) => void;
   onEditUser: (user: InternalUserProfile) => void;
   onResetPassword: (user: InternalUserProfile) => void;
+  onViewHistory: (user: InternalUserProfile) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
 }
@@ -22,8 +24,10 @@ export const UserList: React.FC<UserListProps> = ({
   roles,
   isLoading,
   onRoleChange,
+  onScheduleRole,
   onEditUser,
   onResetPassword,
+  onViewHistory,
   searchQuery,
   onSearchChange
 }) => {
@@ -129,20 +133,37 @@ export const UserList: React.FC<UserListProps> = ({
                       </div>
                     </td>
                     <td>
-                      <select
-                        className="plan-select"
-                        style={{ fontSize: '0.75rem', padding: '4px 8px' }}
-                        value={user.RoleName}
-                        onChange={e => handleRoleChange(user.InternalUserId, e.target.value)}
-                        disabled={isLoading}
-                      >
-                        {roles.map(r => (
-                          <option key={r.RoleId} value={r.RoleName}>{r.RoleName}</option>
-                        ))}
-                      </select>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <select
+                          className="plan-select"
+                          style={{ fontSize: '0.75rem', padding: '4px 8px', flex: 1 }}
+                          value={user.RoleName}
+                          onChange={e => handleRoleChange(user.InternalUserId, e.target.value)}
+                          disabled={isLoading}
+                        >
+                          {roles.map(r => (
+                            <option key={r.RoleId} value={r.RoleName}>{r.RoleName}</option>
+                          ))}
+                        </select>
+                        <button 
+                          type="button" 
+                          className="plan-button plan-button--secondary" 
+                          style={{ padding: '4px', fontSize: '0.65rem' }}
+                          title="Schedule/Configure Role"
+                          onClick={() => onScheduleRole(user)}
+                          disabled={isLoading}
+                        >
+                          ⚙️
+                        </button>
+                      </div>
                       <div className="plan-muted" style={{ fontSize: '0.75rem', marginTop: '4px' }}>
                         {getRoleDisplayName(user)}
                       </div>
+                      {(user.RoleEffectiveFrom || user.RoleExpiresAt) && (
+                        <div style={{ fontSize: '0.65rem', color: 'var(--portal-accent)', marginTop: '2px', fontWeight: 600 }}>
+                          🗓️ Scheduled
+                        </div>
+                      )}
                       <div className="plan-muted" style={{ fontSize: '0.75rem', marginTop: '2px' }}>
                         {user.UnitName || 'No Unit'}
                       </div>
@@ -195,6 +216,14 @@ export const UserList: React.FC<UserListProps> = ({
                             disabled={isLoading}
                           >
                             Reset Password
+                          </button>
+                          <button
+                            type="button"
+                            className="plan-button plan-button--secondary"
+                            onClick={() => onViewHistory(user)}
+                            disabled={isLoading}
+                          >
+                            View Role History
                           </button>
                         </div>
                       </td>

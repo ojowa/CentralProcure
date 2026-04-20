@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import type { InternalModule, InternalOrganizationalUnitRecord } from '../types/internal';
 import { fetchInternalUnits, manageInternalUnit } from '../services/internalAuthService';
+import { UnitStaffModal } from './UnitStaffModal';
 import {
   Building2,
   Plus,
@@ -15,7 +16,11 @@ import {
   Loader2,
   Save,
   ArrowLeft,
-  LayoutGrid
+  LayoutGrid,
+  Users,
+  Eye,
+  ToggleLeft,
+  ToggleRight
 } from 'lucide-react';
 
 interface OrganizationManagementModuleProps {
@@ -45,6 +50,7 @@ export const OrganizationManagementModule: React.FC<OrganizationManagementModule
   const [selectedUnit, setSelectedUnit] = useState<InternalOrganizationalUnitRecord | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [viewingStaffUnit, setViewingStaffUnit] = useState<InternalOrganizationalUnitRecord | null>(null);
 
   // Form State
   const [unitName, setUnitName] = useState('');
@@ -144,16 +150,42 @@ export const OrganizationManagementModule: React.FC<OrganizationManagementModule
     }
   };
 
+  const handleToggleActive = async (unit: InternalOrganizationalUnitRecord) => {
+    setLoading(true);
+    try {
+      await manageInternalUnit(token, {
+        UnitId: unit.UnitId,
+        UnitName: unit.UnitName,
+        UnitCode: unit.UnitCode,
+        UnitType: unit.UnitType,
+        ParentUnitId: unit.ParentUnitId || undefined,
+        SortOrder: unit.SortOrder,
+        IsAssignable: unit.IsAssignable,
+        IsActive: !unit.IsActive
+      });
+      setSuccessMessage(`Unit ${unit.IsActive ? 'deactivated' : 'activated'} successfully`);
+      setTimeout(() => setSuccessMessage(null), 3000);
+      loadUnits();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const renderUnitRow = (unit: InternalOrganizationalUnitRecord, depth = 0) => {
     const children = unitTree.get(unit.UnitId) || [];
     return (
       <React.Fragment key={unit.UnitId}>
-        <tr>
+        <tr className={!unit.IsActive ? 'opacity-60 bg-slate-50' : ''}>
           <td style={{ paddingLeft: `${depth * 1.5 + 0.75}rem` }}>
             <div className="flex items-center gap-2">
               {children.length > 0 ? <ChevronDown size={14} className="text-slate-400" /> : <div style={{ width: 14 }} />}
-              <Building2 size={16} className="text-emerald-600" />
-              <span className="font-medium text-slate-800">{unit.UnitName}</span>
+              <Building2 size={16} className={unit.IsActive ? "text-emerald-600" : "text-slate-400"} />
+              <span className={`font-medium ${unit.IsActive ? 'text-slate-800' : 'text-slate-500 italic'}`}>
+                {unit.UnitName}
+                {!unit.IsActive && <span className="ml-2 text-[10px] bg-slate-200 text-slate-600 px-1 rounded uppercase tracking-tighter not-italic font-bold">Inactive</span>}
+              </span>
             </div>
           </td>
           <td><code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">{unit.UnitCode}</code></td>
@@ -162,8 +194,18 @@ export const OrganizationManagementModule: React.FC<OrganizationManagementModule
           <td className="app-table__cell--numeric">{unit.SortOrder}</td>
           <td>
             <div className="flex gap-2">
-              <button className="app-btn app-btn--secondary app-btn--sm" onClick={() => handleEdit(unit)}>
+              <button className="app-btn app-btn--secondary app-btn--sm" onClick={() => setViewingStaffUnit(unit)} title="View Unit Staff">
+                <Users size={14} />
+              </button>
+              <button className="app-btn app-btn--secondary app-btn--sm" onClick={() => handleEdit(unit)} title="Edit Unit">
                 <Edit2 size={14} />
+              </button>
+              <button 
+                className={`app-btn app-btn--sm ${unit.IsActive ? 'app-btn--secondary' : 'app-btn--primary'}`} 
+                onClick={() => handleToggleActive(unit)} 
+                title={unit.IsActive ? "Deactivate Unit" : "Activate Unit"}
+              >
+                {unit.IsActive ? <ToggleRight size={14} className="text-emerald-600" /> : <ToggleLeft size={14} />}
               </button>
               <button className="app-btn app-btn--secondary app-btn--sm" onClick={() => handleCreateNew(unit.UnitId)} title="Add Sub-unit">
                 <Plus size={14} />
@@ -320,9 +362,21 @@ export const OrganizationManagementModule: React.FC<OrganizationManagementModule
                     <td>{unit.IsAssignable ? <CheckCircle size={16} className="text-emerald-500" /> : <XCircle size={16} className="text-slate-300" />}</td>
                     <td className="app-table__cell--numeric">{unit.SortOrder}</td>
                     <td>
-                      <button className="app-btn app-btn--secondary app-btn--sm" onClick={() => handleEdit(unit)}>
-                        <Edit2 size={14} />
-                      </button>
+                      <div className="flex gap-2">
+                        <button className="app-btn app-btn--secondary app-btn--sm" onClick={() => setViewingStaffUnit(unit)} title="View Unit Staff">
+                          <Users size={14} />
+                        </button>
+                        <button className="app-btn app-btn--secondary app-btn--sm" onClick={() => handleEdit(unit)} title="Edit Unit">
+                          <Edit2 size={14} />
+                        </button>
+                        <button 
+                          className={`app-btn app-btn--sm ${unit.IsActive ? 'app-btn--secondary' : 'app-btn--primary'}`} 
+                          onClick={() => handleToggleActive(unit)} 
+                          title={unit.IsActive ? "Deactivate Unit" : "Activate Unit"}
+                        >
+                          {unit.IsActive ? <ToggleRight size={14} className="text-emerald-600" /> : <ToggleLeft size={14} />}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -340,6 +394,13 @@ export const OrganizationManagementModule: React.FC<OrganizationManagementModule
           </table>
         </div>
       </div>
+
+      <UnitStaffModal 
+        unit={viewingStaffUnit} 
+        isOpen={!!viewingStaffUnit} 
+        token={token} 
+        onClose={() => setViewingStaffUnit(null)} 
+      />
     </section>
   );
 };

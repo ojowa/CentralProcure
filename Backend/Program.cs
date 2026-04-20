@@ -82,6 +82,7 @@ builder.Services.AddScoped<WorkflowPolicyGuard>();
 builder.Services.AddScoped<WorkflowRuntimeTracker>();
 builder.Services.AddScoped<WorkflowActionGrantService>();
 builder.Services.AddScoped<eProcurement.Modules.Identity.Services.IModuleAccessService, eProcurement.Modules.Identity.Services.ModuleAccessService>();
+builder.Services.AddScoped<eProcurement.Modules.Identity.Services.INotificationService, eProcurement.Modules.Identity.Services.NotificationService>();
 builder.Services.AddScoped<eProcurement.Modules.ProcurementWorkflow.Services.IPlanningCommitteeReviewService, eProcurement.Modules.ProcurementWorkflow.Services.PlanningCommitteeReviewService>();
 builder.Services.AddScoped<eProcurement.Modules.ProcurementWorkflow.Services.IBppNoObjectionService, eProcurement.Modules.ProcurementWorkflow.Services.BppNoObjectionService>();
 builder.Services.AddScoped<eProcurement.Modules.ProcurementWorkflow.Services.IEvaluationService, eProcurement.Modules.ProcurementWorkflow.Services.EvaluationService>();
@@ -190,6 +191,7 @@ if (HasConfiguredHttpsEndpoint(configuredUrls, httpsPort))
 
 app.UseCors(FrontendCorsPolicy);
 app.UseAuthentication();
+app.UseMiddleware<InternalSecurityStampMiddleware>();
 app.UseMiddleware<InternalSessionIdleTimeoutMiddleware>();
 app.UseAuthorization();
 

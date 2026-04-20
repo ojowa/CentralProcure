@@ -1,13 +1,15 @@
 import React from 'react';
 import type { RoleDefinition } from '../types/internal';
 import { toTitle, formatDateTimeShort } from '../utils/procureUtils';
+import { NotificationBell } from './NotificationBell';
 
 interface HeaderProps {
   role: RoleDefinition;
+  token: string | null;
   onSignOut: () => void;
 }
 
-export const InternalHeader = ({ role, onSignOut }: HeaderProps) => {
+export const InternalHeader = ({ role, token, onSignOut }: HeaderProps) => {
   const today = new Date().toLocaleDateString('en-NG', {
     weekday: 'short',
     day: '2-digit',
@@ -25,6 +27,7 @@ export const InternalHeader = ({ role, onSignOut }: HeaderProps) => {
         </div>
       </div>
       <div className="portal-meta">
+        <NotificationBell token={token} />
         <span className="portal-chip">
           Role: <strong>{role.name}</strong>
         </span>

@@ -72,6 +72,26 @@ public partial class AuthController
     }
 
     [Authorize]
+    [HttpGet("internal/user-role/audit")]
+    public async Task<IActionResult> GetUserRoleAudit(
+        [FromQuery] Guid? internalUserId,
+        [FromQuery] int limit = 100,
+        CancellationToken ct = default)
+    {
+        if (!IsIdentityAdministrator()) return Forbid();
+        try
+        {
+            var results = await _moduleAccessService.GetUserRoleAuditAsync(internalUserId, limit, ct);
+            return Ok(results);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error fetching user role audit.");
+            return Problem("Internal server error.");
+        }
+    }
+
+    [Authorize]
     [HttpPut("internal/module-access/roles")]
     public async Task<IActionResult> UpdateRoleModuleAccess([FromBody] UpdateRoleModuleAccessRequest request, CancellationToken ct)
     {

@@ -3,6 +3,8 @@ export { RoleList } from './RoleList';
 export { ModuleAccessPanel } from './ModuleAccessPanel';
 export { EditUserModal } from './EditUserModal';
 export { ResetPasswordModal } from './ResetPasswordModal';
+export { UserRoleHistoryModal } from './UserRoleHistoryModal';
+export { ScheduleRoleModal } from './ScheduleRoleModal';
 export { CreateRoleModal, EditRoleModal } from './RoleModals';
 export { OnboardingForm } from './OnboardingForm';
 export { AccessAuditPanel, CompactAuditLog } from './AccessAuditPanel';

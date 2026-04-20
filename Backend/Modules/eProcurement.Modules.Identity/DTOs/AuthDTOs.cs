@@ -50,6 +50,9 @@ namespace eProcurement.Modules.Identity.DTOs
     {
         public Guid? InternalUserId { get; init; }
         public string Role { get; init; } = string.Empty;
+        public DateTime? EffectiveFrom { get; init; }
+        public DateTime? ExpiresAt { get; init; }
+        public string? BackupRole { get; init; }
     }
 
     public record UpdateRoleModuleAccessRequest(string RoleName, string ModuleId, bool IsEnabled);
@@ -89,6 +92,7 @@ namespace eProcurement.Modules.Identity.DTOs
         string? Role,
         string? CanonicalRoleKey,
         string? Status,
+        string? SecurityStamp,
         string? ErrorMessage);
 
     public record InternalUserRegistrationResult(Guid InternalUserId, string Email, string Role, Guid? UnitId = null, string? UnitName = null);
@@ -109,7 +113,10 @@ namespace eProcurement.Modules.Identity.DTOs
         string CanonicalRoleKey,
         string Status,
         DateTime? LastLogin,
-        DateTime CreatedAt);
+        DateTime CreatedAt,
+        DateTime? RoleEffectiveFrom,
+        DateTime? RoleExpiresAt,
+        string? BackupRoleName);
 
     public record UpdateInternalUserProfileRequest(
         string Username,
@@ -131,7 +138,27 @@ namespace eProcurement.Modules.Identity.DTOs
         Guid? ParentUnitId,
         string? ParentUnitName,
         int SortOrder,
-        bool IsAssignable);
+        bool IsAssignable,
+        bool IsActive);
+
+    public record InternalUnitStaffResult(
+        Guid InternalUserId,
+        string Email,
+        string Username,
+        string FirstName,
+        string Surname,
+        string RoleName,
+        string Status);
+
+    public record InternalNotificationResult(
+        Guid NotificationId,
+        string Title,
+        string Message,
+        string NotificationType,
+        bool IsRead,
+        DateTime CreatedAt,
+        DateTime? ReadAt,
+        string? ActionUrl);
 
     public record InternalModuleResult(
         string Id,
@@ -175,6 +202,18 @@ namespace eProcurement.Modules.Identity.DTOs
         Guid? ChangedBy,
         string ChangeSource,
         DateTime ChangedAt);
+
+    public record UserRoleAuditResult(
+        Guid AuditId,
+        Guid TargetInternalUserId,
+        string TargetEmail,
+        string TargetUsername,
+        string? PreviousRoleName,
+        string NewRoleName,
+        string? ChangedByEmail,
+        string? ChangedByUsername,
+        DateTime ChangedAt,
+        string? ChangeReason);
 
     public record PasswordAuditResult(
         Guid AuditId,

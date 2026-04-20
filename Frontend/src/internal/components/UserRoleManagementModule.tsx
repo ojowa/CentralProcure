@@ -7,11 +7,12 @@ import type { InternalModule, InternalUserProfile, InternalRoleRecord, InternalO
 import { useUserManagement } from '../hooks/useUserManagement';
 import { useRoleManagement } from '../hooks/useRoleManagement';
 import { useModuleAccess } from '../hooks/useModuleAccess';
-import { fetchInternalUnits, fetchInternalModulesCatalog, registerInternalUser } from '../services/internalAuthService';
+import { fetchInternalUnits, fetchInternalModulesCatalog, registerInternalUser, updateInternalUserRole } from '../services/internalAuthService';
 import { updatePlanningCommitteeChairmanAssignment } from '../services/moduleService.planning';
 import {
   UserList, RoleList, ModuleAccessPanel, EditUserModal, ResetPasswordModal,
-  CreateRoleModal, EditRoleModal, OnboardingForm, CommitteeMembersPanel, EvaluationCommitteeAssignmentsPanel
+  CreateRoleModal, EditRoleModal, OnboardingForm, CommitteeMembersPanel, EvaluationCommitteeAssignmentsPanel,
+  UserRoleHistoryModal, ScheduleRoleModal
 } from './user-role-management';
 import * as roleService from '../services/roleManagementService';
 
@@ -38,6 +39,8 @@ export const UserRoleManagementModule = ({ module, token }: Props) => {
   const [editingUser, setEditingUser] = useState<InternalUserProfile | null>(null);
   const [editUserError, setEditUserError] = useState<string | null>(null);
   const [resettingUser, setResettingUser] = useState<InternalUserProfile | null>(null);
+  const [historyUser, setHistoryUser] = useState<InternalUserProfile | null>(null);
+  const [schedulingUser, setSchedulingUser] = useState<InternalUserProfile | null>(null);
   const [editingRole, setEditingRole] = useState<InternalRoleRecord | null>(null);
   const [isCreateRoleOpen, setIsCreateRoleOpen] = useState(false);
 
@@ -132,6 +135,27 @@ export const UserRoleManagementModule = ({ module, token }: Props) => {
     clearMessages();
     try { await resetPassword(userId, newPassword, true); setResettingUser(null); showSuccess('Password reset successfully.'); }
     catch (err) { showError(err instanceof Error ? err.message : 'Failed to reset password.'); }
+  };
+
+  const handleConfirmSchedule = async (data: {
+    Role: string;
+    EffectiveFrom?: string | null;
+    ExpiresAt?: string | null;
+    BackupRole?: string | null;
+  }) => {
+    if (!schedulingUser || !token) return;
+    clearMessages();
+    try {
+      await updateInternalUserRole(token, {
+        InternalUserId: schedulingUser.InternalUserId,
+        ...data
+      });
+      setSchedulingUser(null);
+      showSuccess('Role schedule updated successfully.');
+      await refreshUsers();
+    } catch (err) {
+      showError(err instanceof Error ? err.message : 'Failed to update role schedule.');
+    }
   };
 
   const handleCreateRole = async (data: roleService.CreateRoleRequest) => {
@@ -235,7 +259,8 @@ export const UserRoleManagementModule = ({ module, token }: Props) => {
       <div className="management-viewport" style={{ marginTop: '24px' }}>
         {activeTab === 'users' && (
           <UserList users={filteredUsers} roles={roles} isLoading={isLoading} onRoleChange={handleRoleChange}
-            onEditUser={setEditingUser} onResetPassword={setResettingUser}
+            onScheduleRole={setSchedulingUser}
+            onEditUser={setEditingUser} onResetPassword={setResettingUser} onViewHistory={setHistoryUser}
             searchQuery={searchQuery} onSearchChange={setSearchQuery} />
         )}
 
@@ -291,6 +316,13 @@ export const UserRoleManagementModule = ({ module, token }: Props) => {
 
       <EditRoleModal role={editingRole} isOpen={!!editingRole} isLoading={isLoading}
         onClose={() => setEditingRole(null)} onConfirm={handleEditRole} />
+
+      <UserRoleHistoryModal user={historyUser} isOpen={!!historyUser} token={token}
+        onClose={() => setHistoryUser(null)} />
+
+      <ScheduleRoleModal user={schedulingUser} roles={roles} isOpen={!!schedulingUser}
+        isLoading={isLoading} onClose={() => setSchedulingUser(null)}
+        onConfirm={handleConfirmSchedule} />
     </section>
   );
 };

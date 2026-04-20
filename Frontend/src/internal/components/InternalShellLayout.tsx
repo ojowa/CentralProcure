@@ -296,7 +296,7 @@ export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShel
   const moduleIds = accessibleModules.map((module) => module.id);
   return (
     <div className="portal-shell">
-      <InternalHeader role={headerRoleDefinition} onSignOut={handleSignOut} />
+      <InternalHeader role={headerRoleDefinition} token={token} onSignOut={handleSignOut} />
       <div className="portal-flagband" aria-hidden="true" />
       <div className="portal-content">
         <SidebarNav

@@ -33,6 +33,7 @@ namespace eProcurement.Modules.Identity.Controllers
         private readonly InternalSessionActivityProtector _internalSessionActivityProtector;
         private readonly InternalSessionOptions _internalSessionOptions;
         private readonly IModuleAccessService _moduleAccessService;
+        private readonly INotificationService _notificationService;
 
         public AuthController(
             IConfiguration config,
@@ -40,13 +41,15 @@ namespace eProcurement.Modules.Identity.Controllers
             WorkflowActionGrantService workflowActionGrantService,
             InternalSessionActivityProtector internalSessionActivityProtector,
             IOptions<InternalSessionOptions> internalSessionOptions,
-            IModuleAccessService moduleAccessService)
+            IModuleAccessService moduleAccessService,
+            INotificationService notificationService)
             : base(config, logger)
         {
             _workflowActionGrantService = workflowActionGrantService;
             _internalSessionActivityProtector = internalSessionActivityProtector;
             _internalSessionOptions = internalSessionOptions.Value;
             _moduleAccessService = moduleAccessService;
+            _notificationService = notificationService;
         }
 
         protected bool IsIdentityAdministrator()

@@ -163,7 +163,7 @@ public partial class AuthController
             StringComparison.OrdinalIgnoreCase);
     }
 
-    private string GenerateToken(Guid userId, string email, string role)
+    private string GenerateToken(Guid userId, string email, string role, string? securityStamp = null)
     {
         if (string.IsNullOrWhiteSpace(role))
         {
@@ -178,12 +178,17 @@ public partial class AuthController
         var audience = string.IsNullOrEmpty(jwtSettings.Audience) ? "nis-eproc-clients" : jwtSettings.Audience;
         var durationMinutes = jwtSettings.DurationInMinutes <= 0 ? 1440 : jwtSettings.DurationInMinutes;
 
-        var claims = new[]
+        var claims = new List<Claim>
         {
             new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, email),
             new Claim("role", role)
         };
+
+        if (!string.IsNullOrWhiteSpace(securityStamp))
+        {
+            claims.Add(new Claim("security_stamp", securityStamp));
+        }
 
         var creds = new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)), SecurityAlgorithms.HmacSha256);
         var token = new JwtSecurityToken(

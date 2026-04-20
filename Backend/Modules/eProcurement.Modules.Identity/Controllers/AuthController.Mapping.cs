@@ -58,6 +58,7 @@ public partial class AuthController
             GetNullableString(r, "role"),
             NormalizeCanonicalRoleKey(GetNullableString(r, "role")),
             GetNullableString(r, "status"),
+            GetNullableString(r, "security_stamp"),
             GetNullableString(r, "error_message"));
     }
 
@@ -96,7 +97,10 @@ public partial class AuthController
             NormalizeCanonicalRoleKey(r.GetString(r.GetOrdinal("role_name"))),
             r.GetString(r.GetOrdinal("status")),
             GetNullableDateTime(r, "last_login"),
-            r.GetDateTime(r.GetOrdinal("created_at")));
+            r.GetDateTime(r.GetOrdinal("created_at")),
+            GetNullableDateTime(r, "role_effective_from"),
+            GetNullableDateTime(r, "role_expires_at"),
+            GetNullableString(r, "backup_role_name"));
     }
 
     private static RoleResult MapRoleResult(NpgsqlDataReader r)
@@ -119,7 +123,8 @@ public partial class AuthController
             GetNullableGuid(r, "parent_unit_id"),
             GetNullableString(r, "parent_unit_name"),
             r.GetInt32(r.GetOrdinal("sort_order")),
-            r.GetBoolean(r.GetOrdinal("is_assignable")));
+            r.GetBoolean(r.GetOrdinal("is_assignable")),
+            r.GetBoolean(r.GetOrdinal("is_active")));
     }
 
     private static RoleModuleAccessGrantResult MapRoleModuleAccessGrantResult(NpgsqlDataReader r)

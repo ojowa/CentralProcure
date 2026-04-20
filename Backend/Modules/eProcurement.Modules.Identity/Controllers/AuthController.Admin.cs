@@ -58,6 +58,26 @@ public partial class AuthController
     }
 
     [Authorize]
+    [HttpGet("internal/units/{unitId}/staff")]
+    public async Task<IActionResult> GetUnitStaff(Guid unitId, CancellationToken ct)
+    {
+        if (!IsIdentityAdministrator())
+        {
+            return Forbid();
+        }
+
+        try
+        {
+            return Ok(await _moduleAccessService.GetUnitStaffAsync(unitId, ct));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error fetching staff for unit {UnitId}.", unitId);
+            return Problem("Internal server error.");
+        }
+    }
+
+    [Authorize]
     [HttpDelete("internal/module-access/roles/bulk")]
     public async Task<IActionResult> DeleteRoleModuleAccessBulk([FromQuery] string roleName, CancellationToken ct)
     {

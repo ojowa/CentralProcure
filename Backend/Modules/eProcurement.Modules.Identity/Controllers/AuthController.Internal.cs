@@ -73,7 +73,7 @@ public partial class AuthController
             }
 
             var role = result.Role;
-            var token = GenerateToken(result.InternalUserId.Value, result.Email ?? resolvedEmail ?? request.Email, role);
+            var token = GenerateToken(result.InternalUserId.Value, result.Email ?? resolvedEmail ?? request.Email, role, result.SecurityStamp);
             SetAuthCookie(InternalAuthCookieName, token);
             SetInternalSessionActivityCookie(result.InternalUserId.Value);
             return Ok(new

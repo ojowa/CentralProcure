@@ -10,7 +10,9 @@ import {
   InternalRoleRecord,
   InternalModule,
   InternalUserProfile,
-  InternalUserProfileUpdateRequest
+  InternalUserProfileUpdateRequest,
+  InternalUnitStaffRecord,
+  InternalNotificationResult
 } from '../types/internal';
 
 const normalizeBasePath = (value: string): string => {
@@ -33,6 +35,7 @@ const API_ENDPOINTS = {
   INTERNAL_REGISTER: withBasePath('/api/Auth/internal/register'),
   INTERNAL_ROLES: withBasePath('/api/Auth/roles'),
   INTERNAL_UNITS: withBasePath('/api/Auth/internal/units'),
+  INTERNAL_UNIT_STAFF: (unitId: string) => withBasePath(`/api/Auth/internal/units/${unitId}/staff`),
   INTERNAL_MODULES: withBasePath('/api/Auth/internal/modules'),
   INTERNAL_PROFILE: withBasePath('/api/Auth/internal/profile'),
   INTERNAL_USERS: withBasePath('/api/Auth/internal/users'),
@@ -41,6 +44,9 @@ const API_ENDPOINTS = {
   INTERNAL_MODULE_ACCESS_ROLES: withBasePath('/api/Auth/internal/module-access/roles'),
   INTERNAL_MODULE_ACCESS_USERS: withBasePath('/api/Auth/internal/module-access/users'),
   INTERNAL_MODULE_ACCESS_AUDIT: withBasePath('/api/Auth/internal/module-access/audit'),
+  INTERNAL_USER_ROLE_AUDIT: withBasePath('/api/Auth/internal/user-role/audit'),
+  INTERNAL_NOTIFICATIONS: withBasePath('/api/Auth/internal/notifications'),
+  INTERNAL_NOTIFICATION_READ: (id: string) => withBasePath(`/api/Auth/internal/notifications/${id}/read`),
   CSRF_INIT: withBasePath('/api/Auth/csrf'),
 };
 
@@ -366,6 +372,19 @@ export const manageInternalUnit = async (
   return parseResponse<InternalOrganizationalUnitRecord>(response, 'Unable to manage organizational unit.');
 };
 
+export const fetchInternalUnitStaff = async (
+  token: string,
+  unitId: string
+): Promise<InternalUnitStaffRecord[]> => {
+  const response = await fetch(API_ENDPOINTS.INTERNAL_UNIT_STAFF(unitId), {
+    method: 'GET',
+    headers: buildAuthHeaders(token),
+    credentials: 'include'
+  });
+
+  return parseResponse<InternalUnitStaffRecord[]>(response, 'Unable to load unit staff.');
+};
+
 export const fetchInternalModules = async (token?: string | null): Promise<InternalModule[]> => {
   const response = await fetch(API_ENDPOINTS.INTERNAL_MODULES, {
     method: 'GET',
@@ -651,6 +670,19 @@ export type ModuleAccessAuditEntry = {
   ChangedAt: string;
 };
 
+export type UserRoleAuditResult = {
+  AuditId: string;
+  TargetInternalUserId: string;
+  TargetEmail: string;
+  TargetUsername: string;
+  PreviousRoleName?: string | null;
+  NewRoleName: string;
+  ChangedByEmail?: string | null;
+  ChangedByUsername?: string | null;
+  ChangedAt: string;
+  ChangeReason?: string | null;
+};
+
 export const fetchModuleAccessAudit = async (
   token: string,
   params: { RoleName?: string; InternalUserId?: string; Limit?: number }
@@ -667,9 +699,54 @@ export const fetchModuleAccessAudit = async (
   });
 
   return parseResponse<ModuleAccessAuditEntry[]>(response, 'Unable to load module access audit.');
-};
+  };
 
-export const fetchInternalUserProfile = async (token?: string | null): Promise<InternalUserProfile> => {
+  export const fetchUserRoleAudit = async (
+  token: string,
+  params: { InternalUserId?: string; Limit?: number }
+  ): Promise<UserRoleAuditResult[]> => {
+  const query = new URLSearchParams();
+  if (params.InternalUserId) query.set('internalUserId', params.InternalUserId);
+  if (params.Limit) query.set('limit', String(params.Limit));
+
+  const response = await fetch(`${API_ENDPOINTS.INTERNAL_USER_ROLE_AUDIT}?${query.toString()}`, {
+    method: 'GET',
+    credentials: 'include',
+    headers: buildAuthHeaders(token)
+  });
+
+  return parseResponse<UserRoleAuditResult[]>(response, 'Unable to load user role audit.');
+  };
+
+  export const fetchInternalNotifications = async (
+  token: string,
+  limit: number = 50
+  ): Promise<InternalNotificationResult[]> => {
+  const response = await fetch(`${API_ENDPOINTS.INTERNAL_NOTIFICATIONS}?limit=${limit}`, {
+    method: 'GET',
+    headers: buildAuthHeaders(token),
+    credentials: 'include'
+  });
+
+  return parseResponse<InternalNotificationResult[]>(response, 'Unable to load notifications.');
+  };
+
+  export const markInternalNotificationAsRead = async (
+  token: string,
+  notificationId: string
+  ): Promise<void> => {
+  const response = await fetch(API_ENDPOINTS.INTERNAL_NOTIFICATION_READ(notificationId), {
+    method: 'PUT',
+    headers: buildAuthHeaders(token),
+    credentials: 'include'
+  });
+
+  await parseResponse<void>(response, 'Unable to mark notification as read.');
+  };
+
+  export const fetchInternalUserProfile = async (
+
+token?: string | null): Promise<InternalUserProfile> => {
   const response = await fetch(API_ENDPOINTS.INTERNAL_PROFILE, {
     method: 'GET',
     headers: buildAuthHeaders(token),
@@ -720,7 +797,13 @@ export const fetchInternalUsers = async (token: string): Promise<InternalUserPro
 
 export const updateInternalUserRole = async (
   token: string,
-  data: { InternalUserId: string; Role: string }
+  data: { 
+    InternalUserId: string; 
+    Role: string;
+    EffectiveFrom?: string | null;
+    ExpiresAt?: string | null;
+    BackupRole?: string | null;
+  }
 ): Promise<any> => {
   const response = await fetch(API_ENDPOINTS.INTERNAL_USER_ROLE, {
     method: 'PUT',

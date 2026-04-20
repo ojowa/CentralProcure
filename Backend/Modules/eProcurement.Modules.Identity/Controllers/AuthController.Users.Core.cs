@@ -57,6 +57,17 @@ public partial class AuthController
             return Forbid();
         }
 
+        if (!TryGetAuthenticatedInternalUserId(out var adminUserId, out var authError))
+        {
+            return authError!;
+        }
+
+        // Prevent self-deactivation via general update
+        if (internalUserId == adminUserId && !request.IsActive)
+        {
+            return BadRequest(new { message = "You cannot deactivate your own account to prevent administrative lockout." });
+        }
+
         var connectionString = GetConnectionString();
         if (string.IsNullOrWhiteSpace(connectionString))
         {
@@ -135,7 +146,12 @@ public partial class AuthController
             return BadRequest(new { message = "Role is required." });
         }
 
-        Logger.LogInformation("Updating role for internal user {UserId} to {Role}", internalUserId, request.Role);
+        if (!TryGetAuthenticatedInternalUserId(out var adminUserId, out var authError))
+        {
+            return authError!;
+        }
+
+        Logger.LogInformation("Updating role for internal user {UserId} to {Role} by admin {AdminId}", internalUserId, request.Role, adminUserId);
         var connectionString = GetConnectionString();
         if (string.IsNullOrWhiteSpace(connectionString))
         {
@@ -154,12 +170,20 @@ public partial class AuthController
 
             cmd.Parameters.AddWithValue("p_internal_user_id", NpgsqlDbType.Uuid, internalUserId);
             cmd.Parameters.AddWithValue("p_role_name", NpgsqlDbType.Varchar, request.Role);
+            cmd.Parameters.AddWithValue("p_changed_by_user_id", NpgsqlDbType.Uuid, adminUserId);
+            cmd.Parameters.AddWithValue("p_effective_from", NpgsqlDbType.TimestampTz, (object?)request.EffectiveFrom ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("p_expires_at", NpgsqlDbType.TimestampTz, (object?)request.ExpiresAt ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("p_backup_role_name", NpgsqlDbType.Varchar, (object?)request.BackupRole ?? DBNull.Value);
             cmd.Parameters.Add(new NpgsqlParameter("p_result", NpgsqlDbType.Refcursor) { Direction = ParameterDirection.Output });
 
             var results = await ExecuteRefcursorAsync(cmd, MapInternalUserRoleResult, ct);
             await tx.CommitAsync(ct);
 
             return Ok(results.FirstOrDefault());
+        }
+        catch (PostgresException ex) when (ex.MessageText.Contains("Self-role modification"))
+        {
+            return BadRequest(new { message = ex.MessageText });
         }
         catch (Exception ex)
         {
@@ -175,6 +199,17 @@ public partial class AuthController
         if (!IsIdentityAdministrator())
         {
             return Forbid();
+        }
+
+        if (!TryGetAuthenticatedInternalUserId(out var adminUserId, out var authError))
+        {
+            return authError!;
+        }
+
+        // Prevent self-deactivation
+        if (internalUserId == adminUserId && !request.IsActive)
+        {
+            return BadRequest(new { message = "You cannot deactivate your own account." });
         }
 
         var connectionString = GetConnectionString();
@@ -221,6 +256,17 @@ public partial class AuthController
             return Forbid();
         }
 
+        if (!TryGetAuthenticatedInternalUserId(out var adminUserId, out var authError))
+        {
+            return authError!;
+        }
+
+        // Prevent self-deactivation
+        if (internalUserId == adminUserId)
+        {
+            return BadRequest(new { message = "You cannot deactivate your own account." });
+        }
+
         var connectionString = GetConnectionString();
         if (string.IsNullOrWhiteSpace(connectionString))
         {
@@ -235,11 +281,15 @@ public partial class AuthController
 
             await using var cmd = new NpgsqlCommand(@"
                 UPDATE identity.internal_users
-                SET is_active = FALSE, status = 'Inactive', updated_at = NOW()
+                SET is_active = FALSE, 
+                    status = 'Inactive', 
+                    security_stamp = @p_new_stamp,
+                    updated_at = NOW()
                 WHERE internal_user_id = @p_internal_user_id
                 RETURNING internal_user_id;", conn, tx);
 
             cmd.Parameters.AddWithValue("p_internal_user_id", NpgsqlDbType.Uuid, internalUserId);
+            cmd.Parameters.AddWithValue("p_new_stamp", NpgsqlDbType.Varchar, Guid.NewGuid().ToString());
 
             var result = await cmd.ExecuteScalarAsync(ct);
             await tx.CommitAsync(ct);
