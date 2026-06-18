@@ -9,7 +9,7 @@ const API_ENDPOINTS = {
 
 /**
  * Submits a bid for a tender.
- * This function communicates with the backend's Post-Award Service.
+ * This function communicates with the API's Post-Award routes.
  *
  * @param bid The bid submission data.
  * @returns A promise that resolves with the submitted bid data.
@@ -42,7 +42,7 @@ export const submitBid = async (bid: BidSubmission, technicalProposalFile?: File
 
 /**
  * Fetches all bids submitted by a specific vendor.
- * This function communicates with the backend's Post-Award Service.
+ * This function communicates with the API's Post-Award routes.
  *
  * @param vendorId The ID of the vendor whose bids are to be fetched.
  * @returns A promise that resolves to an array of submitted bids.

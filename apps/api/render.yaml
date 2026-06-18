@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: centralprocure-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./apps/api/Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_KEY
+        sync: false
+      - key: JWT_ISSUER
+        value: nis-eproc-identity
+      - key: JWT_AUDIENCE
+        value: nis-eproc-clients
+      - key: JWT_DURATION_MINUTES
+        value: 1440

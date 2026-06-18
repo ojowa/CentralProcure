@@ -594,7 +594,7 @@ export const AdministrativeReviewModulePage = ({ module, token, role, userEmail 
                         value={updateForm.resolutionStageKey}
                         disabled={!canResolve || !canChooseResolutionStage}
                         onChange={(event) => setUpdateForm((previous) => ({ ...previous, resolutionStageKey: event.target.value }))}
-                        placeholder={canChooseResolutionStage ? 'Only needed when modifying the workflow decision' : 'Backend will infer the workflow transition'}
+                        placeholder={canChooseResolutionStage ? 'Only needed when modifying the workflow decision' : 'Server will infer the workflow transition'}
                       />
                     </label>
                     <label className="plan-field plan-field--span">
@@ -610,7 +610,7 @@ export const AdministrativeReviewModulePage = ({ module, token, role, userEmail 
                     </label>
                   </div>
                   <p className="plan-muted" style={{ marginTop: '12px' }}>
-                    Backend workflow rules remain authoritative. Resolution stage is only supplied here for the `Modify Decision` outcome; other outcomes are resolved server-side.
+                    Server workflow rules remain authoritative. Resolution stage is only supplied here for the `Modify Decision` outcome; other outcomes are resolved server-side.
                   </p>
                   <div className="plan-actions">
                     <button type="button" className="plan-button" onClick={handleUpdate} disabled={!canMutate || isSaving}>

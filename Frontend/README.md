@@ -19,19 +19,19 @@ This application will be built using Next.js 16 (React + TypeScript) and will pr
 
 ## Render
 
-This repo can be deployed on Render as a Web Service using the included `render.yaml`.
+This app is part of the root npm monorepo. Prefer deploying from the root `render.yaml`, which defines both `centralprocure-web` and `centralprocure-api`.
 
 Deploy flow:
 
-1. Create a new Blueprint or Web Service from this repository.
+1. Create a new Blueprint from the repository root.
 2. Use the Node runtime.
-3. Set `NEXT_PUBLIC_BACKEND_URL` to your deployed backend base URL, for example `https://centralprocure-backend.onrender.com`.
+3. Set `NEXT_PUBLIC_API_URL` to your API base URL, for example `http://localhost:5000` locally or `https://centralprocure-api.onrender.com` in production.
 4. Set `NEXT_PUBLIC_APP_BASE_PATH` only if you are serving the app from a subpath.
 
 Render notes:
 
--   Build command: `npm install && npm run build`
--   Start command: `npm start`
+-   Build command: `npm ci && npm run build:web`
+-   Start command: `npm run start -w @centralprocure/web`
 -   The production start script uses `next start`, which lets Render provide the port via the `PORT` environment variable.
 -   `NEXT_PUBLIC_*` variables are compiled into the frontend bundle at build time, so changing them requires a new deploy.
 

@@ -1,0 +1,26 @@
+{
+  "name": "centralprocure",
+  "private": true,
+  "version": "0.0.0",
+  "description": "CentralProcure TypeScript monorepo",
+  "workspaces": [
+    "packages/*",
+    "apps/*",
+    "Frontend"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @centralprocure/web",
+    "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "build:web": "npm run build -w @centralprocure/web",
+    "dev:web": "npm run dev -w @centralprocure/web",
+    "build:api": "npm run build -w @centralprocure/api",
+    "dev:api": "npm run dev -w @centralprocure/api",
+    "start:api": "npm run start -w @centralprocure/api"
+  },
+  "engines": {
+    "node": ">=20.9.0",
+    "npm": ">=10.0.0"
+  }
+}

@@ -71,7 +71,7 @@ export const RoleList: React.FC<RoleListProps> = ({
                 </div>
                 {getRoleDisplayName(role) !== role.RoleName ? (
                   <p className="plan-muted" style={{ marginTop: '6px', fontSize: '0.75rem' }}>
-                    Backend role: {role.RoleName}
+                    API role: {role.RoleName}
                   </p>
                 ) : null}
                 <p className="plan-muted" style={{ marginTop: '12px', fontSize: '0.875rem' }}>

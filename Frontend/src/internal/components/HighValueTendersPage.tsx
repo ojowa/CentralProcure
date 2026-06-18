@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { WorkflowProgressStepper } from './WorkflowProgressStepper';
 import { CgisDecisionModal } from './cgis/CgisDecisionModal';
 import { CgisDocumentsPanel } from './cgis/CgisDocumentsPanel';
-import { applyCgisAction, fetchModuleData, fetchTenderDetails } from '../services/moduleService';
+import { applyCgisAction, fetchCgisQueue, fetchTenderDetails } from '../services/moduleService';
 import {
   fetchWorkflowActionSnapshot,
   fetchWorkflowRuntime,
@@ -94,7 +94,7 @@ export const HighValueTendersPage = ({
     setQueueError('');
 
     try {
-      const payload = seedData ?? await fetchModuleData('high-value-tenders', token);
+      const payload = seedData ?? await fetchCgisQueue(token);
       setQueue(normalizeQueuePayload(payload));
     } catch (error) {
       setQueueError(error instanceof Error ? error.message : 'Unable to load high-value tender queue.');

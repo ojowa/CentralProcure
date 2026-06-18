@@ -55,7 +55,7 @@ export const CommitteeMembersPanel: React.FC<CommitteeMembersPanelProps> = ({
       .catch((err: unknown) => {
         if (isMounted) {
           setCommitteeRoles([]);
-          setRolesError(err instanceof Error ? err.message : 'Unable to load committee role definitions from backend.');
+          setRolesError(err instanceof Error ? err.message : 'Unable to load committee role definitions from the API.');
         }
       })
       .finally(() => {
@@ -221,10 +221,10 @@ export const CommitteeMembersPanel: React.FC<CommitteeMembersPanelProps> = ({
                 </span>
               </div>
               <p className="plan-muted" style={{ marginTop: '6px' }}>
-                {roleConfig.Description || 'Role configured from backend.'}
+                {roleConfig.Description || 'Role configured from API.'}
               </p>
               <p className="plan-muted" style={{ marginTop: '4px' }}>
-                Backend role: <strong>{roleConfig.RoleName}</strong>
+                API role: <strong>{roleConfig.RoleName}</strong>
               </p>
 
               <div style={{ marginTop: '10px' }}>

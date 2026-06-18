@@ -147,7 +147,7 @@ export const AdministrativeReviewModule = ({ module, token, role, initialData }:
               </label>
             </div>
             <p className="plan-muted" style={{ marginTop: '12px' }}>
-              Backend workflow rules determine the resulting transition. A target stage is only provided here when the decision is `Modify Decision`.
+              Server workflow rules determine the resulting transition. A target stage is only provided here when the decision is `Modify Decision`.
             </p>
             <label className="plan-field">
               <span>Decision Justification & Notes</span>

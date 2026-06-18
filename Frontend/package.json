@@ -1,5 +1,5 @@
 {
-  "name": "frontend",
+  "name": "@centralprocure/web",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -7,9 +7,11 @@
     "dev": "next dev -p 6006",
     "build": "next build",
     "lint": "next lint",
-    "start": "next start"
+    "start": "next start",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@centralprocure/shared": "file:../packages/shared",
     "@hookform/resolvers": "^3.6.0",
     "axios": "^1.6.8",
     "framer-motion": "^12.38.0",

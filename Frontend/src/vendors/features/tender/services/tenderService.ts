@@ -10,7 +10,7 @@ const API_ENDPOINTS = {
 
 /**
  * Fetches a list of open tenders available for bidding.
- * This function communicates with the backend's Tender Service.
+ * This function communicates with the API's Tender routes.
  *
  * @returns A promise that resolves to an array of tender summaries.
  */
@@ -52,7 +52,7 @@ export const getOpenTenders = async (): Promise<TenderSummary[]> => {
 
 /**
  * Fetches detailed information about a specific tender.
- * This function communicates with the backend's Tender Service.
+ * This function communicates with the API's Tender routes.
  *
  * @param tenderId The ID of the tender to fetch details for.
  * @returns A promise that resolves to the tender details.
@@ -80,7 +80,7 @@ export const getTenderDetails = async (tenderId: string): Promise<TenderDetails>
 
 /**
  * Submits a bid for a tender.
- * This function communicates with the backend's Tender Service.
+ * This function communicates with the API's Tender routes.
  *
  * @param bid The bid submission data.
  * @returns A promise that resolves with the BidSubmissionResponse containing the bidId.
@@ -98,7 +98,7 @@ export const submitBid = async (bid: BidSubmission): Promise<BidSubmissionRespon
 
 /**
  * Fetches all bids submitted by the currently logged-in vendor.
- * This function communicates with the backend's Tender Service.
+ * This function communicates with the API's Tender routes.
  *
  * @returns A promise that resolves to an array of submitted bids.
  */

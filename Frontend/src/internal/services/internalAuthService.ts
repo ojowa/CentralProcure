@@ -1,10 +1,10 @@
 import {
   RoleKey,
   InternalLoginData,
-  InternalLoginRequestBackend,
+  InternalLoginRequestApi,
   InternalLoginResponse,
   InternalRegistrationData,
-  InternalRegistrationRequestBackend,
+  InternalRegistrationRequestApi,
   InternalRegistrationResponse,
   InternalOrganizationalUnitRecord,
   InternalRoleRecord,
@@ -210,7 +210,7 @@ const parseResponse = async <T>(response: Response, fallbackError: string): Prom
 export const loginInternalUser = async (
   credentials: InternalLoginData
 ): Promise<InternalLoginResponse> => {
-  const requestPayload: InternalLoginRequestBackend = {
+  const requestPayload: InternalLoginRequestApi = {
     Email: credentials.Email,
     Password: credentials.Password,
   };
@@ -266,7 +266,7 @@ export const logoutInternalUser = async (): Promise<void> => {
 export const registerInternalUser = async (
   data: InternalRegistrationData
 ): Promise<InternalRegistrationResponse> => {
-  const requestPayload: InternalRegistrationRequestBackend = {
+  const requestPayload: InternalRegistrationRequestApi = {
     Username: data.Username.trim(),
     FirstName: data.FirstName.trim(),
     MiddleName: data.MiddleName.trim() || undefined,

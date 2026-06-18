@@ -2,9 +2,9 @@
 
 /**
  * Generates a SHA-256 hash of the input string.
- * This is a client-side hashing for password comparison as per backend stored procedure design.
+ * This is a client-side hashing helper retained for API compatibility.
  * NOTE: This approach is generally insecure for password storage. Ideally, passwords should be sent over HTTPS
- * and hashed/salted securely on the backend. This implementation adheres to the existing backend stored procedure's
+ * and hashed/salted securely on the server. This implementation adheres to the existing API contract's
  * expectation of receiving an already hashed password for direct comparison.
  *
  * @param message The string to hash (e.g., plain-text password).

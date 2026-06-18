@@ -57,22 +57,22 @@ export interface VendorLoginData {
     Password: string; // Frontend gets plain password
 }
 
-// Backend request types (for clarity and security)
+// API request types (for clarity and security)
 /**
- * Represents the request payload for vendor login to the backend.
+ * Represents the request payload for vendor login to the API.
  */
-export interface VendorLoginRequestBackend {
+export interface VendorLoginRequestApi {
     Email: string;
     Password: string;
 }
 
 /**
- * Represents the request payload for vendor registration to the backend.
+ * Represents the request payload for vendor registration to the API.
  */
-export interface VendorRegistrationRequestBackend {
+export interface VendorRegistrationRequestApi {
     CompanyName: string;
     RegistrationNumber: string;
-    TaxID: string; // Backend expects 'TaxID' (uppercase ID)
+    TaxID: string; // API expects 'TaxID' (uppercase ID)
     CompanyAddress: string;
     ContactPerson: string;
     PhoneNumber: string;

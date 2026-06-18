@@ -3,8 +3,10 @@ services:
     name: centralprocure-web
     runtime: node
     plan: free
-    buildCommand: npm install && npm run build
-    startCommand: npm run start
+    buildCommand: npm ci && npm run build:web
+    startCommand: npm run start -w @centralprocure/web
     envVars:
-      - key: NEXT_PUBLIC_BACKEND_URL
+      - key: NEXT_PUBLIC_API_URL
+        value: https://centralprocure-api.onrender.com
+      - key: NEXT_PUBLIC_APP_BASE_PATH
         sync: false

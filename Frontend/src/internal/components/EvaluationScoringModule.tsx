@@ -72,7 +72,7 @@ export const EvaluationScoringModule = ({ module, token, role, initialData }: Pr
     if (!token) return;
     setLoading(true);
     try {
-      // Note: Backend might not have this specific bids endpoint yet, 
+      // Note: API might not have this specific bids endpoint yet,
       // but we prepare the UI for it.
       try {
         const bidData = await fetchTenderBids(tender.TenderId, token);

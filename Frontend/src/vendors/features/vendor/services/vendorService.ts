@@ -3,8 +3,8 @@ export { fetchCsrfToken };
 import {
     VendorLoginData,
     VendorRegistrationData,
-    VendorLoginRequestBackend,
-    VendorRegistrationRequestBackend,
+    VendorLoginRequestApi,
+    VendorRegistrationRequestApi,
     VendorLoginResponse,
     VendorRegistrationResponse,
     VendorAvailabilityResponse,
@@ -104,7 +104,7 @@ export const uploadComplianceDocument = async (
  */
 export const vendorLogin = async (credentials: VendorLoginData): Promise<VendorLoginResponse> => {
     try {
-        const requestPayload: VendorLoginRequestBackend = {
+        const requestPayload: VendorLoginRequestApi = {
             Email: credentials.Email,
             Password: credentials.Password
         };
@@ -120,7 +120,7 @@ export const vendorLogin = async (credentials: VendorLoginData): Promise<VendorL
             Token: token,
             Email: email,
             VendorId: vendorId,
-            CompanyName: response.data.CompanyName || '', // Backend AuthResponse might not have this, but let's see
+            CompanyName: response.data.CompanyName || '',
             VendorStatus: response.data.Status || 'Success',
             Status: response.data.Status
         } as unknown as VendorLoginResponse;
@@ -153,7 +153,7 @@ export const vendorLogin = async (credentials: VendorLoginData): Promise<VendorL
  */
 export const registerVendor = async (data: VendorRegistrationData): Promise<VendorRegistrationResponse> => {
     try {
-        const registrationData: VendorRegistrationRequestBackend = { 
+        const registrationData: VendorRegistrationRequestApi = { 
             CompanyName: data.CompanyName,
             RegistrationNumber: data.RegistrationNumber,
             TaxID: data.TaxId,
@@ -347,14 +347,14 @@ export const updateVendorProfile = async (
 };
 
 /**
- * Logs out the current vendor by calling the backend logout endpoint.
+ * Logs out the current vendor by calling the API logout endpoint.
  */
 export const logoutVendor = async (): Promise<void> => {
     try {
         await apiClient.post(API_ENDPOINTS.VENDOR_LOGOUT);
     } catch (error) {
         console.error("Failed to logout vendor:", error);
-        // Still proceed with frontend logout if backend fails
+        // Still proceed with frontend logout if the API call fails
     }
 };
 

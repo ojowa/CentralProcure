@@ -8,11 +8,13 @@ const normalizeBasePath = (value: string): string => {
   return value.endsWith('/') ? value.slice(0, -1) : value;
 };
 
-const defaultBackendBaseUrl = 'https://centralprocure-backend.onrender.com';
+const defaultApiBaseUrl = process.env.NODE_ENV === 'development'
+  ? 'http://localhost:5000'
+  : 'https://centralprocure-api.onrender.com';
 
 const appBasePath = normalizeBasePath(process.env.NEXT_PUBLIC_APP_BASE_PATH ?? '');
 
-export const backendServiceBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? defaultBackendBaseUrl;
+export const apiServiceBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? defaultApiBaseUrl;
 
 export const serviceBaseUrls = {
   identity: appBasePath,
@@ -97,15 +99,33 @@ export const fetchModuleData = async (moduleId: string, token: string): Promise<
   const text = await response.text();
 
   if (!response.ok) {
-    if (response.status === 404) {
-      return {
-        message: 'No live data available yet.',
-        moduleId,
-        endpoint: url
-      };
-    }
-
     throw new Error(text || `Request failed for module '${moduleId}'.`);
+  }
+
+  if (!text) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+};
+
+export const fetchCgisQueue = async (token: string): Promise<unknown> => {
+  const url = `${serviceBaseUrls.workflow}/api/workflow-runtime/cgis-queue`;
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    credentials: 'include'
+  });
+
+  const text = await response.text();
+
+  if (!response.ok) {
+    throw new Error(text || 'Unable to load the CGIS queue.');
   }
 
   if (!text) {

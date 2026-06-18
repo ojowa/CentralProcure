@@ -232,7 +232,7 @@ export const RequisitionDetailContent = ({
   const routeDecision = (detail as RequisitionDetailWithRouteDecision).RouteDecision ?? null;
   const runtimeWithDisplay = workflowRuntime as WorkflowRuntimeWithDisplay | null;
   const routingSummary = routeDecision?.ApprovalAuthorityLabel || routeDecision?.ApprovalRoute || 'Route not resolved';
-  const routingNotes = routeDecision?.Notes || 'Live approval route and threshold decision from backend workflow policy.';
+  const routingNotes = routeDecision?.Notes || 'Live approval route and threshold decision from API workflow policy.';
   const currentStageLabel = getAuthorityStageLabel(detail, runtimeWithDisplay?.Display?.CurrentStageTitle || workflowRuntime?.CurrentStageTitle);
 
   return (

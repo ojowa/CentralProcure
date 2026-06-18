@@ -93,7 +93,7 @@ export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShel
     key: userRole ?? 'ict_admin',
     name: profileRoleNameRaw ? formatRoleName(profileRoleNameRaw) : 'Role Unavailable',
     description: profileRoleNameRaw
-      ? 'Resolved from backend profile (custom role label).'
+      ? 'Resolved from API profile (custom role label).'
       : 'Unable to resolve your current role.'
   };
 

@@ -142,13 +142,13 @@ export interface InternalRegistrationData {
     Role: string;
 }
 
-// Backend request models (hashed password)
-export interface InternalLoginRequestBackend {
+// API request models
+export interface InternalLoginRequestApi {
     Email: string;
     Password: string;
 }
 
-export interface InternalRegistrationRequestBackend {
+export interface InternalRegistrationRequestApi {
     Username: string;
     FirstName: string;
     MiddleName?: string;

@@ -257,7 +257,7 @@ const InternalRegisterPage: React.FC = () => {
                                 })}
                             </select>
                             {!rolesLoading && availableUnits.length === 0 ? (
-                                <p className="mt-2 text-sm text-red-500">No assignable organizational units are available in the backend.</p>
+                                <p className="mt-2 text-sm text-red-500">No assignable organizational units are available from the API.</p>
                             ) : null}
                         </div>
                     </div>
@@ -361,11 +361,11 @@ const InternalRegisterPage: React.FC = () => {
                             })}
                         </select>
                         {!rolesLoading && availableRoles.length === 0 ? (
-                            <p className="mt-2 text-sm text-red-500">No active roles are available in the backend.</p>
+                            <p className="mt-2 text-sm text-red-500">No active roles are available from the API.</p>
                         ) : null}
                         {!rolesLoading && availableRoles.length > 0 ? (
                             <p className="mt-2 text-sm text-gray-500">
-                                {availableRoles.find((entry) => entry.RoleName === role)?.Description ?? 'Select the backend role to assign.'}
+                                {availableRoles.find((entry) => entry.RoleName === role)?.Description ?? 'Select the API role to assign.'}
                             </p>
                         ) : null}
                     </div>

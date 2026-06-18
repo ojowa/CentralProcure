@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { InternalModule, ProcurementPlanItemDetail, RoleKey } from '../types/internal';
-import { fetchModuleData, applyCgisAction, fetchPlanDetails } from '../services/moduleService';
+import { fetchCgisQueue, applyCgisAction, fetchPlanDetails } from '../services/moduleService';
 import { decideMethodChangeException, fetchMethodChangeExceptionQueue } from '../services/moduleService.tenders';
 import { CgisDecisionModal } from './cgis/CgisDecisionModal';
 import { CgisDocumentsPanel } from './cgis/CgisDocumentsPanel';
@@ -65,7 +65,7 @@ export const CgisApprovalModule = ({ module, token, userEmail }: CgisApprovalMod
     setIsLoading(true);
     setError(null);
     try {
-      const data = await fetchModuleData('cgis-approval', token) as CgisQueueItem[];
+      const data = await fetchCgisQueue(token) as CgisQueueItem[];
       setQueue(data || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load CGIS queue.');
