@@ -104,7 +104,7 @@ export const BudgetCommitmentLedger = ({ token }: Props) => {
       item.CommitmentCode,
       item.Description,
       item.Beneficiary ?? '',
-      item.ReleaseId,
+      item.ReleaseId ?? '',
       item.Amount,
       item.Status
     ]);

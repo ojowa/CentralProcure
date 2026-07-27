@@ -1,5 +1,0 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<SoftwareIdentity tagId="wix:bundle/0F5B2E32-3589-49EE-BFA6-5BF2A30369F4" name="Microsoft .NET SDK 8.0.319 (x64)" version="8.3.1925.52801" versionScheme="multipartnumeric" xmlns="http://standards.iso.org/iso/19770/-2/2015/schema.xsd">
-  <Entity name="Microsoft Corporation" regid="microsoft.com" role="softwareCreator tagCreator" />
-  <Meta persistentId="wix:bundle.upgrade/D56E82C8-5E6D-7D66-7C56-CEDE6610CFBA" />
-</SoftwareIdentity>

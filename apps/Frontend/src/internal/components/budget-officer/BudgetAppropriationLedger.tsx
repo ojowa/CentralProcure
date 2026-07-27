@@ -96,11 +96,11 @@ export const BudgetAppropriationLedger = ({ token }: { token?: string | null }) 
   const handleExport = () => {
     if (!items.length) return;
 
-    const headers = ["Fiscal Year", "Budget Code", "Description", "Amount", "Status", "Created"];
+    const headers = ["Fiscal Year", "Description", "Appropriation Code", "TotalAmount", "Status", "Created"];
     const rows = items.map(item => [
       item.FiscalYear,
-      `"${item.AppropriationCode}"`,
       item.Description,
+      `"${item.AppropriationCode}"`,
       item.TotalAmount,
       item.Status,
       item.CreatedAt
@@ -230,8 +230,8 @@ export const BudgetAppropriationLedger = ({ token }: { token?: string | null }) 
               <thead>
                 <tr className="bg-gradient-to-r from-indigo-500 to-blue-600 text-white">
                   <th className="p-4 font-semibold rounded-tl-xl">Fiscal Year</th>
-                  <th className="p-4 font-semibold">Budget Code</th>
                   <th className="p-4 font-semibold">Description</th>
+                  <th className="p-4 font-semibold">Appropriation Code</th>
                   <th className="p-4 font-semibold text-right">Amount</th>
                   <th className="p-4 font-semibold">Status</th>
                   <th className="p-4 font-semibold">Created</th>
@@ -242,10 +242,10 @@ export const BudgetAppropriationLedger = ({ token }: { token?: string | null }) 
                 {items.map((item) => (
                   <tr key={item.AppropriationId} className="hover:bg-slate-50 border-b border-slate-100 even:bg-slate-50/50">
                     <td className="p-4 font-mono text-lg">{item.FiscalYear}</td>
+                    <td className="p-4 font-medium">{item.Description}</td>
                     <td className="p-4">
                       <code className="plan-code bg-indigo-50 text-indigo-800 px-3 py-2 rounded-xl font-semibold">{item.AppropriationCode}</code>
                     </td>
-                    <td className="p-4 font-medium">{item.Description}</td>
                     <td className="p-4 text-right">
                       <div className="text-2xl font-bold text-green-600">{formatCurrency(item.TotalAmount)}</div>
                     </td>

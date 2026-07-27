@@ -498,7 +498,6 @@ export const TenderCreatePage: React.FC<Props> = ({ token, module }) => {
               placeholder="Enter technical specifications, scope details, deliverables, standards, or bill of quantities."
             />
           </label>
-
           <label className="plan-field">
             <span>Evaluation Criteria</span>
             <textarea
