@@ -29,8 +29,8 @@ services:
     name: centralprocure-frontend
     runtime: node
     plan: free
-    buildCommand: cd apps/Frontend && npm ci && npm run build
-    startCommand: cd apps/Frontend && npm run start
+    buildCommand: cd apps/frontend && npm ci && npm run build
+    startCommand: cd apps/frontend && npm run start
     autoDeploy: true
     envVars:
       - key: NODE_ENV
