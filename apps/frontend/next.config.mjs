@@ -15,10 +15,8 @@ if (
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const appBasePath = process.env.NEXT_PUBLIC_APP_BASE_PATH ?? '';
-const defaultApiServiceUrl = process.env.NODE_ENV === 'development'
-  ? 'http://localhost:5000'
-  : 'https://centralprocure.onrender.com';
-const apiServiceUrl = process.env.NEXT_PUBLIC_API_URL ?? defaultApiServiceUrl;
+const defaultApiServiceUrl = 'https://centralprocure.onrender.com';
+const apiServiceUrl = process.env.NEXT_PUBLIC_API_URL || defaultApiServiceUrl;
 const normalizeBasePath = (value) => {
   if (!value || value === '/') {
     return '';
