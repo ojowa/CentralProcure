@@ -5,8 +5,7 @@
   "description": "CentralProcure TypeScript monorepo",
   "workspaces": [
     "packages/*",
-    "apps/*",
-    "Frontend"
+    "apps/*"
   ],
   "scripts": {
     "dev": "npm run dev -w @centralprocure/web",
