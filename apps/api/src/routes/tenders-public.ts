@@ -12,16 +12,16 @@ tendersPublicRouter.get('/api/Tender/open', async (_req, res) => {
   }
 
   try {
-    const result = await pool.query('SELECT * FROM vendor_sourcing.get_open_tenders()');
+    const result = await pool.query(
+      "SELECT * FROM vendor_sourcing.get_tenders(p_status := 'Open', p_limit := 100)"
+    );
 
     const tenders = result.rows.map((t) => ({
-      TenderId: t.tender_id,
+      Id: t.tender_id,
       Title: t.title,
-      Description: t.description,
-      EstimatedValue: t.estimated_value,
+      ProcurementCategory: t.category,
       Status: t.status,
-      PublishedAt: t.published_at,
-      ClosingDate: t.closing_date,
+      SubmissionDeadline: t.closing_date,
     }));
 
     res.json(tenders);
@@ -48,15 +48,19 @@ tendersPublicRouter.get('/api/Tender/:tenderId', async (req, res) => {
 
     const t = result.rows[0];
     res.json({
-      TenderId: t.tender_id,
+      Id: t.tender_id,
       Title: t.title,
-      Description: t.description,
-      EstimatedValue: t.estimated_value,
+      ProcurementCategory: t.category,
       Status: t.status,
-      PublishedAt: t.published_at,
+      SubmissionDeadline: t.closing_date,
+      OpeningDate: t.opening_date,
       ClosingDate: t.closing_date,
-      Requirements: t.requirements,
+      Description: t.description,
+      Specifications: t.specifications,
+      Budget: t.budget,
+      EligibilityCriteria: t.eligibility_criteria,
       EvaluationCriteria: t.evaluation_criteria,
+      Documents: [],
     });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching tender details.' });
