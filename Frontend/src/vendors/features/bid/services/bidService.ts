@@ -19,14 +19,12 @@ export const submitBid = async (bid: BidSubmission, technicalProposalFile?: File
         const formData = new FormData();
         formData.append('TenderId', bid.TenderId);
         formData.append('VendorId', bid.VendorId);
-        formData.append('FinancialBid', String(bid.FinancialBid));
-        formData.append('TechnicalProposal', bid.TechnicalProposal ?? '');
-        formData.append('ValidityPeriodDays', String(bid.ValidityPeriodDays));
+        formData.append('BidAmount', String(bid.BidAmount));
+        formData.append('Proposal', bid.Proposal ?? '');
         if (technicalProposalFile) {
-            formData.append('TechnicalProposalFile', technicalProposalFile);
+            formData.append('FileName', technicalProposalFile.name);
         }
 
-        // Use multipart form data for optional file uploads
         const response = await apiClient.post(API_ENDPOINTS.BIDS_SUBMIT, formData, {
             headers: {
                 'Content-Type': 'multipart/form-data'
@@ -64,11 +62,10 @@ export interface BidDetailResponse {
     TenderId: string;
     TenderTitle: string;
     VendorId: string;
-    FinancialBid: number;
-    TechnicalProposal: string;
-    ValidityPeriodDays: number;
-    SubmissionDate: string;
-    BidStatus: string;
+    BidAmount: number;
+    Proposal: string;
+    Status: string;
+    SubmittedAt: string;
 }
 
 export const getBidById = async (bidId: string): Promise<BidDetailResponse> => {

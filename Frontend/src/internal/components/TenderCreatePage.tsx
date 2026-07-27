@@ -37,9 +37,9 @@ export const TenderCreatePage: React.FC<Props> = ({ token, module }) => {
     Title: '',
     Description: '',
     Category: 'Goods',
-    Specifications: '',
-    EligibilityCriteria: '',
-    EvaluationCriteria: ''
+    Requirements: '',
+    EvaluationCriteria: '',
+    EstimatedValue: 0
   });
 
   const [publishForm, setPublishForm] = useState({
@@ -264,8 +264,7 @@ export const TenderCreatePage: React.FC<Props> = ({ token, module }) => {
         Title: req?.Title ?? detail.Title ?? '',
         Description: req ? `Tender for ${req.Title}` : `Tender for ${detail.Title}`,
         Category: detail.ProcurementType || 'Goods',
-        Specifications: buildSpecificationsFromLineItems(detail),
-        EligibilityCriteria: buildEligibilityCriteriaTemplate(),
+        Requirements: buildSpecificationsFromLineItems(detail),
         EvaluationCriteria: buildEvaluationCriteriaByProcurementType(detail.ProcurementType)
       });
       setStep('draft');
@@ -322,7 +321,10 @@ export const TenderCreatePage: React.FC<Props> = ({ token, module }) => {
 
     setLoading(true);
     try {
-      const result = await publishTender(tenderId, publishForm, token);
+      const result = await publishTender(tenderId, {
+        PublishedAt: publishForm.PublishDate,
+        ClosingDate: publishForm.ClosingDate
+      }, token);
       console.log('[Authorize Publication] publish succeeded', {
         tenderId,
         result
@@ -389,7 +391,7 @@ export const TenderCreatePage: React.FC<Props> = ({ token, module }) => {
               <div key={item.TenderId} className="requisition-card">
                 <div className="requisition-card__title">{item.Title}</div>
                 <div className="requisition-card__meta">
-                  {item.Category} • {(item.Budget ?? 0).toLocaleString('en-NG', { style: 'currency', currency: 'NGN' })}
+                  {item.Category} • {(item.EstimatedValue ?? 0).toLocaleString('en-NG', { style: 'currency', currency: 'NGN' })}
                 </div>
                 <div className="portal-form-actions" style={{ marginTop: '12px', gap: '8px' }}>
                   <button
@@ -486,12 +488,12 @@ export const TenderCreatePage: React.FC<Props> = ({ token, module }) => {
             <textarea className="plan-input" rows={4} value={form.Description} onChange={e => setForm({ ...form, Description: e.target.value })} />
           </label>
           <label className="plan-field">
-            <span>Specifications</span>
+            <span>Requirements</span>
             <textarea
               className="plan-input"
               rows={5}
-              value={form.Specifications}
-              onChange={e => setForm({ ...form, Specifications: e.target.value })}
+              value={form.Requirements}
+              onChange={e => setForm({ ...form, Requirements: e.target.value })}
               placeholder="Enter technical specifications, scope details, deliverables, standards, or bill of quantities."
             />
           </label>
@@ -545,7 +547,7 @@ export const TenderCreatePage: React.FC<Props> = ({ token, module }) => {
             <div className="plan-summary-card__grid">
               <div><small>Reference</small><p>{tender.TenderId?.slice(0, 8).toUpperCase()}</p></div>
               <div><small>Status</small><p>{workflow?.CurrentStageTitle || tender.Status || 'Unknown'}</p></div>
-              <div><small>Budget</small><p>{tender.Budget?.toLocaleString('en-NG', { style: 'currency', currency: 'NGN' })}</p></div>
+              <div><small>Estimated Value</small><p>{tender.EstimatedValue?.toLocaleString('en-NG', { style: 'currency', currency: 'NGN' })}</p></div>
             </div>
           </div>
 

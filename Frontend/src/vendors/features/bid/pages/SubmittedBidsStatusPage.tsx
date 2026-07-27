@@ -101,10 +101,10 @@ const SubmittedBidsStatusPage: React.FC = () => {
                                         </Link>
                                     </td>
                                     <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                                        <p className="text-gray-900 whitespace-no-wrap">₦{bid.FinancialBid.toLocaleString()}</p>
+                                        <p className="text-gray-900 whitespace-no-wrap">₦{bid.BidAmount.toLocaleString()}</p>
                                     </td>
                                     <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                                        <p className="text-gray-900 whitespace-no-wrap">{bid.TechnicalProposal ? bid.TechnicalProposal.substring(0, 50) + '...' : 'N/A'}</p>
+                                        <p className="text-gray-900 whitespace-no-wrap">{bid.Proposal ? bid.Proposal.substring(0, 50) + '...' : 'N/A'}</p>
                                     </td>
                                     <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
                                         <p className="text-gray-900 whitespace-no-wrap">{bid.ValidityPeriodDays}</p>

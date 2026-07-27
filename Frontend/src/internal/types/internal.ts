@@ -348,23 +348,18 @@ export interface ProcurementPlanListResponse {
 export interface TenderSummary {
     TenderId: string;
     Title: string;
-    Category: string;
+    Description?: string;
+    Category?: string;
+    EstimatedValue?: number | null;
     Status: string;
-    Budget?: number | null;
-    Department?: string | null;
-    BudgetCode?: string | null;
-    FiscalYear?: number | null;
-    PublishDate?: string | null;
-    OpeningDate?: string | null;
+    PublishedAt?: string | null;
     ClosingDate?: string | null;
     CreatedAt: string;
 }
 export interface TenderDetail extends TenderSummary {
-    Description: string;
-    Specifications?: string | null;
-    EligibilityCriteria?: string | null;
+    Requirements?: string | null;
     EvaluationCriteria?: string | null;
-    UpdatedAt: string;
+    UpdatedAt?: string;
     CurrentStage?: string | null;
 }
 
@@ -411,21 +406,21 @@ export interface TenderListResponse {
 }
 
 export interface TenderCreateRequest {
-    RequisitionId?: string | null;
     Title: string;
     Description: string;
-    Category: string;
+    EstimatedValue?: number | null;
     Status?: string | null;
-    Budget?: number | null;
-    Department?: string | null;
-    BudgetCode?: string | null;
-    FiscalYear?: number | null;
-    Specifications?: string | null;
-    EligibilityCriteria?: string | null;
-    EvaluationCriteria?: string | null;
-    PublishDate?: string | null;
-    OpeningDate?: string | null;
     ClosingDate?: string | null;
+    Requirements?: string | null;
+    EvaluationCriteria?: string | null;
+    Category?: string | null;
+    ProcurementType?: string | null;
+    FundingSource?: string | null;
+    ApprovalLevel?: string | null;
+    UnitId?: string | null;
+    DepartmentId?: string | null;
+    ProjectId?: string | null;
+    RequisitionId?: string | null;
 }
 
 export interface TenderUpdateRequest {
@@ -452,7 +447,15 @@ export interface TenderPublishRequest {
 }
 
 export interface BudgetAvailabilityResponse {
-    Available: number;
+    AppropriationId: string;
+    AppropriationCode: string;
+    TotalAmount: number;
+    ReleasedTotal: number;
+    CommittedTotal: number;
+    PaidTotal: number;
+    UnreleasedBalance: number;
+    AvailableForCommitment: number;
+    OutstandingCommitments: number;
 }
 
 export interface BudgetSummaryResponse {
@@ -1208,25 +1211,26 @@ export interface ContractMilestoneCreateRequest {
 
 export interface InspectionItem {
     InspectionId: string;
+    ContractId: string;
     ContractCode: string;
     TenderTitle: string;
     VendorName: string;
-    Status: string;
+    InspectorId: string | null;
+    InspectorName: string | null;
     ScheduledDate: string;
     CompletedDate?: string | null;
-    InspectorName: string;
     Outcome?: string | null;
-    Location: string;
-    Notes?: string | null;
+    Findings?: string | null;
+    Status: string;
 }
 
 export interface InspectionUpdateRequest {
-    Status?: string | null;
-    Outcome?: string | null;
+    InspectorId?: string | null;
+    ScheduledDate?: string | null;
     CompletedDate?: string | null;
-    InspectorName?: string | null;
-    Location?: string | null;
-    Notes?: string | null;
+    Outcome?: string | null;
+    Findings?: string | null;
+    Status?: string | null;
 }
 
 export interface PaymentTrackingItem {

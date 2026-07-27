@@ -149,11 +149,12 @@ export const BudgetAlignmentPanel = ({ token, requisition, onAligned, onClose }:
     setIsChecking(true);
     setStatus(null);
     try {
-      const availabilityResult = await fetchBudgetAvailability(token, {
-        budgetCode: budgetCode.trim(),
-        department: requisition.Department,
-        fiscalYear
-      });
+      const matchedAppropriation = budgetOptions.find(
+        (item) => item.AppropriationCode === budgetCode.trim()
+      );
+      const availabilityResult = matchedAppropriation
+        ? await fetchBudgetAvailability(token, { appropriationId: matchedAppropriation.AppropriationId })
+        : null;
       const summaryResult = await fetchBudgetSummary(token, {
         budgetCode: budgetCode.trim(),
         department: requisition.Department,
@@ -395,7 +396,7 @@ export const BudgetAlignmentPanel = ({ token, requisition, onAligned, onClose }:
               {availability && (
                 <div>
                   <p className="plan-muted">Current availability</p>
-                  <strong>{formatCurrency(availability.Available)}</strong>
+                  <strong>{formatCurrency(availability.AvailableForCommitment)}</strong>
                 </div>
               )}
               {summary && (

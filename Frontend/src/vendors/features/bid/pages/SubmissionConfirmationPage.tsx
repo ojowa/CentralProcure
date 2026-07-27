@@ -55,8 +55,8 @@ const SubmissionConfirmationPage: React.FC = () => {
             TenderId: matchedBid.TenderId,
             TenderTitle: matchedBid.TenderTitle ?? 'Tender details unavailable',
             VendorId: vendorId,
-            FinancialBid: matchedBid.FinancialBid,
-            TechnicalProposal: matchedBid.TechnicalProposal,
+            BidAmount: matchedBid.BidAmount,
+            Proposal: matchedBid.Proposal,
             ValidityPeriodDays: matchedBid.ValidityPeriodDays,
             SubmissionDate: matchedBid.SubmissionDate,
             BidStatus: matchedBid.BidStatus
@@ -158,7 +158,7 @@ const SubmissionConfirmationPage: React.FC = () => {
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">Bid Amount</p>
                       <p className="mt-2 text-lg font-semibold text-slate-900">
-                        ₦{bid.FinancialBid.toLocaleString()}
+                        ₦{bid.BidAmount.toLocaleString()}
                       </p>
                     </div>
                     <div>
@@ -169,7 +169,7 @@ const SubmissionConfirmationPage: React.FC = () => {
                     </div>
                     <div className="sm:col-span-2">
                       <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">Technical Proposal</p>
-                      {isProposalFile(bid.TechnicalProposal) ? (
+                      {isProposalFile(bid.Proposal) ? (
                         <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
                           <span className="text-sm text-slate-600">Attached document</span>
                           <a
@@ -180,7 +180,7 @@ const SubmissionConfirmationPage: React.FC = () => {
                           </a>
                         </div>
                       ) : (
-                        <p className="mt-2 text-sm text-slate-700 whitespace-pre-wrap">{bid.TechnicalProposal}</p>
+                        <p className="mt-2 text-sm text-slate-700 whitespace-pre-wrap">{bid.Proposal}</p>
                       )}
                     </div>
                   </div>

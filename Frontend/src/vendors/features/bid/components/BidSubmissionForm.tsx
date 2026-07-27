@@ -13,8 +13,8 @@ interface BidSubmissionFormProps {
 
 const BidSubmissionForm: React.FC<BidSubmissionFormProps> = ({ tenderId, onBack, onClose }) => {
   const { user } = useAuth();
-  const [financialBid, setFinancialBid] = useState<number>(0);
-  const [technicalProposal, setTechnicalProposal] = useState<string>('');
+  const [bidAmount, setBidAmount] = useState<number>(0);
+  const [proposal, setProposal] = useState<string>('');
   const [technicalProposalFile, setTechnicalProposalFile] = useState<File | null>(null);
   const [validityPeriod, setValidityPeriod] = useState<number>(90);
   const [loading, setLoading] = useState<boolean>(false);
@@ -81,8 +81,8 @@ const BidSubmissionForm: React.FC<BidSubmissionFormProps> = ({ tenderId, onBack,
       const bidData: BidSubmission = {
         TenderId: tenderId,
         VendorId: user.UserId,
-        FinancialBid: financialBid,
-        TechnicalProposal: technicalProposalFile ? '' : technicalProposal,
+        BidAmount: bidAmount,
+        Proposal: technicalProposalFile ? '' : proposal,
         ValidityPeriodDays: validityPeriod
       };
       const response = await submitBid(bidData, technicalProposalFile);
@@ -177,8 +177,8 @@ const BidSubmissionForm: React.FC<BidSubmissionFormProps> = ({ tenderId, onBack,
           <input
             type="number"
             id="financialBid"
-            value={financialBid}
-            onChange={(e) => setFinancialBid(Number(e.target.value))}
+            value={bidAmount}
+            onChange={(e) => setBidAmount(Number(e.target.value))}
             required
             min="0"
             step="0.01"
@@ -193,8 +193,8 @@ const BidSubmissionForm: React.FC<BidSubmissionFormProps> = ({ tenderId, onBack,
           </label>
           <textarea
             id="technicalProposal"
-            value={technicalProposal}
-            onChange={(e) => setTechnicalProposal(e.target.value)}
+            value={proposal}
+            onChange={(e) => setProposal(e.target.value)}
             disabled={hasExistingBid || Boolean(technicalProposalFile)}
             rows={8}
             placeholder="Describe your technical approach, qualifications, and how you meet the tender requirements."

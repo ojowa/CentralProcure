@@ -94,9 +94,9 @@ export const useDebouncedAvailability = ({
 
                 // Check if this specific field is available
                 let isAvailable = false;
-                if (field === 'email') isAvailable = response.emailAvailable ?? false;
-                else if (field === 'registrationNumber') isAvailable = response.registrationAvailable ?? false;
-                else if (field === 'taxId') isAvailable = response.taxAvailable ?? false;
+                if (field === 'email') isAvailable = response.EmailAvailable ?? false;
+                else if (field === 'registrationNumber') isAvailable = response.RegistrationNumberAvailable ?? false;
+                else if (field === 'taxId') isAvailable = response.TaxIdAvailable ?? false;
 
                 if (isAvailable) {
                     setState({

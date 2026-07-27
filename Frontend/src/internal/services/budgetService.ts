@@ -52,12 +52,10 @@ const parseResponse = async <T>(response: Response): Promise<T> => {
 
 export const fetchBudgetAvailability = async (
   token: string,
-  params: { budgetCode: string; department: string; fiscalYear: number }
+  params: { appropriationId: string }
 ): Promise<BudgetAvailabilityResponse> => {
   const query = new URLSearchParams({
-    budgetCode: params.budgetCode,
-    department: params.department,
-    fiscalYear: String(params.fiscalYear)
+    appropriationId: params.appropriationId
   });
   const response = await fetch(`${baseUrl}/availability?${query.toString()}`, {
     headers: {
@@ -65,13 +63,7 @@ export const fetchBudgetAvailability = async (
     }
   });
 
-  const data = await parseResponse<unknown>(response);
-
-  if (data && typeof data === 'object' && 'Available' in data) {
-    return { Available: (data as { Available: number }).Available } as BudgetAvailabilityResponse;
-  }
-
-  return data as BudgetAvailabilityResponse;
+  return parseResponse<BudgetAvailabilityResponse>(response);
 };
 
 export const fetchBudgetSummary = async (

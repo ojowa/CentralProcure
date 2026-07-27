@@ -105,9 +105,9 @@ export interface VendorRegistrationResponse {
  * Represents the availability response for vendor fields.
  */
 export interface VendorAvailabilityResponse {
-    emailAvailable: boolean;
-    registrationAvailable: boolean;
-    taxAvailable: boolean;
+    EmailAvailable: boolean;
+    RegistrationNumberAvailable: boolean;
+    TaxIdAvailable: boolean;
 }
 
 export interface VendorProfileUpdateRequest {

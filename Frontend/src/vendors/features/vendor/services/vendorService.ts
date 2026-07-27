@@ -76,17 +76,12 @@ export const uploadComplianceDocument = async (
     expiryDate?: string
 ): Promise<ComplianceDocumentResponse> => {
     try {
-        const formData = new FormData();
-        formData.append('documentType', documentType);
-        if (expiryDate) {
-            formData.append('expiryDate', expiryDate);
-        }
-        formData.append('file', file);
+        const fileContent = await file.text();
 
-        const response = await apiClient.post(API_ENDPOINTS.VENDOR_COMPLIANCE_UPLOAD, formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-            },
+        const response = await apiClient.post(API_ENDPOINTS.VENDOR_COMPLIANCE_UPLOAD, {
+            DocumentType: documentType,
+            FileName: file.name,
+            FileContent: fileContent
         });
         return response.data as ComplianceDocumentResponse;
     } catch (error) {
