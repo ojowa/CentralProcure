@@ -114,7 +114,7 @@ export const BudgetAlignmentPanel = ({ token, requisition, onAligned, onClose }:
         setBudgetOptions(nextOptions);
 
         if (!budgetCode && nextOptions.length === 1) {
-          setBudgetCode(nextOptions[0].BudgetCode);
+          setBudgetCode(nextOptions[0].AppropriationCode);
         }
       })
       .catch(() => {
@@ -353,8 +353,8 @@ export const BudgetAlignmentPanel = ({ token, requisition, onAligned, onClose }:
                       : 'No budget codes found'}
                 </option>
                 {budgetOptions.map((option) => (
-                  <option key={option.AppropriationId} value={option.BudgetCode}>
-                    {option.BudgetCode} - {formatCurrency(option.Amount)}
+                  <option key={option.AppropriationId} value={option.AppropriationCode}>
+                    {option.AppropriationCode} - {formatCurrency(option.TotalAmount)}
                   </option>
                 ))}
               </select>

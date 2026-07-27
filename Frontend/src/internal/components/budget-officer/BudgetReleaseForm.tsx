@@ -86,7 +86,7 @@ export const BudgetReleaseForm = ({ token, onSuccess }: Props) => {
     [releases]
   );
 
-  const remainingAmount = selectedAppropriation ? selectedAppropriation.Amount - releasedAmount : 0;
+  const remainingAmount = selectedAppropriation ? selectedAppropriation.TotalAmount - releasedAmount : 0;
 
   useEffect(() => {
     if (!token || !form.appropriationId) {
@@ -177,7 +177,7 @@ export const BudgetReleaseForm = ({ token, onSuccess }: Props) => {
               </option>
               {appropriations.map((item) => (
                 <option key={item.AppropriationId} value={item.AppropriationId}>
-                  {item.BudgetCode} - {item.Department} - FY {item.FiscalYear}
+                  {item.AppropriationCode} - {formatCurrency(item.TotalAmount)} - FY {item.FiscalYear}
                 </option>
               ))}
             </select>
@@ -220,7 +220,7 @@ export const BudgetReleaseForm = ({ token, onSuccess }: Props) => {
 
         {selectedAppropriation ? (
           <div className="plan-loading" style={{ margin: '0 16px 12px' }}>
-            Posting release against {selectedAppropriation.BudgetCode} for {selectedAppropriation.Department}. Remaining balance:{' '}
+            Posting release against {selectedAppropriation.AppropriationCode}. Remaining balance:{' '}
             {formatCurrency(remainingAmount)}.
           </div>
         ) : null}

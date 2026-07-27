@@ -56,7 +56,7 @@ export const BudgetCommitmentForm = ({ token, onSuccess }: Props) => {
 
     let isMounted = true;
     setIsLoadingReleases(true);
-    fetchBudgetReleases(token, { status: 'Active', page: 1, pageSize: 100 })
+    fetchBudgetReleases(token, { page: 1, pageSize: 100 })
       .then((response) => {
         if (isMounted) {
           setReleases(response.Items);

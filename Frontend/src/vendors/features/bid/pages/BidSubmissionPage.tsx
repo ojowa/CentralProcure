@@ -49,7 +49,7 @@ const BidSubmissionPage: React.FC = () => {
             return;
         }
 
-        if (!technicalProposalFile && !technicalProposal.trim()) {
+        if (!technicalProposalFile && !proposal.trim()) {
             setError('Provide a technical proposal text or attach a file.');
             setLoading(false);
             return;
@@ -61,7 +61,6 @@ const BidSubmissionPage: React.FC = () => {
                 VendorId: vendorId,
                 BidAmount: bidAmount,
                 Proposal: technicalProposalFile ? '' : proposal,
-                ValidityPeriodDays: validityPeriod,
             };
             const response = await submitBid(bidData, technicalProposalFile);
             const bidId = response?.BidId ?? response?.bidId ?? null;
@@ -232,7 +231,7 @@ const BidSubmissionPage: React.FC = () => {
                         <input
                             type="number"
                             id="financialBid"
-                            value={financialBid}
+                            value={bidAmount}
                             onChange={(e) => setBidAmount(Number(e.target.value))}
                             required
                             min="0"
@@ -245,7 +244,7 @@ const BidSubmissionPage: React.FC = () => {
                         <label htmlFor="technicalProposal" className="block text-gray-700 text-sm font-bold mb-2">Technical Proposal</label>
                         <textarea
                             id="technicalProposal"
-                            value={technicalProposal}
+                            value={proposal}
                             onChange={(e) => setProposal(e.target.value)}
                             rows={8}
                             placeholder="Describe your technical approach, qualifications, and how you meet the tender requirements."

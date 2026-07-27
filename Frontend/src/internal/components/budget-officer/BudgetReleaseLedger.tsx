@@ -83,22 +83,22 @@ export const BudgetReleaseLedger = ({ token }: Props) => {
     const releaseRows = filteredItems.map((item) => [
       'Release',
       item.ReleaseId,
-      item.ReleaseDate,
-      item.FiscalYear,
-      item.Department,
-      item.BudgetCode,
-      item.AppropriationAmount,
+      item.CreatedAt,
+      '',
+      '',
+      item.ReleaseCode,
+      '',
       item.Amount,
-      item.Notes ?? ''
+      item.Description ?? ''
     ]);
     const commitmentRows = commitmentResponse.Items.map((item) => [
       'Commitment',
       item.CommitmentId,
-      item.CommittedAt,
-      item.FiscalYear,
-      item.Department,
-      item.BudgetCode,
-      item.AppropriationAmount,
+      item.CreatedAt,
+      '',
+      '',
+      item.CommitmentCode,
+      '',
       item.Amount,
       item.Status
     ]);
@@ -294,23 +294,23 @@ export const BudgetReleaseLedger = ({ token }: Props) => {
                 {filteredItems.map((item) => (
                   <tr key={item.ReleaseId} className="hover:bg-slate-50 border-b border-slate-100 even:bg-slate-50/50">
                     <td className="p-4">
-                      <div className="text-sm font-semibold text-slate-800">{formatDateTimeShort(item.ReleaseDate)}</div>
-                      <div className="text-xs text-slate-500">FY {item.FiscalYear}</div>
+                      <div className="text-sm font-semibold text-slate-800">{formatDateTimeShort(item.CreatedAt)}</div>
+                      <div className="text-xs text-slate-500">{item.ReleaseCode}</div>
                     </td>
                     <td className="p-4">
                       <code className="plan-code bg-emerald-50 text-emerald-800 px-3 py-2 rounded-xl font-semibold">
-                        {item.BudgetCode}
+                        {item.ReleaseCode}
                       </code>
                     </td>
-                    <td className="p-4 font-medium text-slate-700">{item.Department}</td>
+                    <td className="p-4 font-medium text-slate-700">{item.Description || '—'}</td>
                     <td className="p-4 text-right">
-                      <div className="text-base font-semibold text-slate-700">{formatCurrency(item.AppropriationAmount)}</div>
+                      <div className="text-base font-semibold text-slate-700">{formatCurrency(item.Amount)}</div>
                     </td>
                     <td className="p-4 text-right">
                       <div className="text-lg font-bold text-emerald-700">{formatCurrency(item.Amount)}</div>
                     </td>
                     <td className="p-4 text-sm text-slate-600">
-                      <div>{item.Notes || 'No note'}</div>
+                      <div>{item.Description || 'No description'}</div>
                       <div className="text-xs text-slate-400" style={{ marginTop: '4px' }}>
                         Transaction ID: {item.ReleaseId.slice(0, 8)}
                       </div>

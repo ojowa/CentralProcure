@@ -24,25 +24,16 @@ export const TenderDetailContent = ({
           <div><span>Title:</span><span>{detail.Title}</span></div>
           <div><span>Category:</span><span>{detail.Category}</span></div>
           <div><span>Status:</span><span>{detail.Status}</span></div>
-          <div><span>Budget:</span><span>{detail.Budget != null ? `$${detail.Budget.toLocaleString()}` : 'Not specified'}</span></div>
-          <div><span>Department:</span><span>{detail.Department ?? 'Not specified'}</span></div>
-          <div><span>Published:</span><span>{detail.PublishDate ? new Date(detail.PublishDate).toLocaleDateString() : 'Not scheduled'}</span></div>
-          <div><span>Opening Date:</span><span>{detail.OpeningDate ? new Date(detail.OpeningDate).toLocaleDateString() : 'Not scheduled'}</span></div>
+          <div><span>Estimated Value:</span><span>{detail.EstimatedValue != null ? `$${detail.EstimatedValue.toLocaleString()}` : 'Not specified'}</span></div>
+          <div><span>Published:</span><span>{detail.PublishedAt ? new Date(detail.PublishedAt).toLocaleDateString() : 'Not scheduled'}</span></div>
           <div><span>Closing Date:</span><span>{detail.ClosingDate ? new Date(detail.ClosingDate).toLocaleDateString() : 'Not scheduled'}</span></div>
         </div>
       </div>
 
-      {detail.Specifications && (
+      {detail.Requirements && (
         <div className="tender-detail-section">
-          <h3>Specifications</h3>
-          <p>{detail.Specifications}</p>
-        </div>
-      )}
-
-      {detail.EligibilityCriteria && (
-        <div className="tender-detail-section">
-          <h3>Eligibility Criteria</h3>
-          <p>{detail.EligibilityCriteria}</p>
+          <h3>Requirements</h3>
+          <p>{detail.Requirements}</p>
         </div>
       )}
 

@@ -210,7 +210,7 @@ export const BudgetOfficerWorkspacePage = ({ module, token, role }: Props) => {
   };
 
   const handleAppropriationCreated = (response: BudgetAppropriationResponse) => {
-    setFeedback(`Appropriation ${response.BudgetCode} added for FY ${response.FiscalYear}.`);
+    setFeedback(`Appropriation ${response.AppropriationCode} added for FY ${response.FiscalYear}.`);
     void loadQueueAndDashboard();
   };
 

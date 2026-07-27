@@ -57,9 +57,8 @@ const SubmissionConfirmationPage: React.FC = () => {
             VendorId: vendorId,
             BidAmount: matchedBid.BidAmount,
             Proposal: matchedBid.Proposal,
-            ValidityPeriodDays: matchedBid.ValidityPeriodDays,
-            SubmissionDate: matchedBid.SubmissionDate,
-            BidStatus: matchedBid.BidStatus
+            Status: matchedBid.Status,
+            SubmittedAt: matchedBid.SubmittedAt
           };
 
           if (active) {
@@ -143,7 +142,7 @@ const SubmissionConfirmationPage: React.FC = () => {
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                   <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Status</p>
                   <p className="mt-2 inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700">
-                    {bid?.BidStatus ?? 'Under review'}
+                    {bid?.Status ?? 'Under review'}
                   </p>
                 </div>
               </div>
@@ -164,7 +163,7 @@ const SubmissionConfirmationPage: React.FC = () => {
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">Submitted</p>
                       <p className="mt-2 text-sm text-slate-700">
-                        {new Date(bid.SubmissionDate).toLocaleString()}
+                        {new Date(bid.SubmittedAt).toLocaleString()}
                       </p>
                     </div>
                     <div className="sm:col-span-2">

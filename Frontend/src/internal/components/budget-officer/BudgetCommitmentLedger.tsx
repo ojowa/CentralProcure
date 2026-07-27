@@ -127,7 +127,7 @@ export const BudgetCommitmentLedger = ({ token }: Props) => {
 
   const handleCancel = async (item: BudgetCommitmentResponse) => {
     if (!token) return;
-    if (!confirm(`Are you sure you want to cancel the commitment of ${formatCurrency(item.Amount)} for ${item.BudgetCode}?`)) return;
+    if (!confirm(`Are you sure you want to cancel the commitment of ${formatCurrency(item.Amount)} for ${item.CommitmentCode}?`)) return;
 
     setCancellingId(item.CommitmentId);
     setError(null);
@@ -135,7 +135,7 @@ export const BudgetCommitmentLedger = ({ token }: Props) => {
 
     try {
       await cancelBudgetCommitment(token, item.CommitmentId);
-      setSuccess(`Commitment for ${item.BudgetCode} cancelled successfully.`);
+      setSuccess(`Commitment for ${item.CommitmentCode} cancelled successfully.`);
       await loadCommitments();
     } catch (cancelError) {
       setError(cancelError instanceof Error ? cancelError.message : 'Unable to cancel commitment.');
@@ -256,11 +256,11 @@ export const BudgetCommitmentLedger = ({ token }: Props) => {
               <tbody>
                 {items.map((item) => (
                   <tr key={item.CommitmentId} className="border-b border-slate-100 hover:bg-slate-50 even:bg-slate-50/50">
-                    <td className="p-4 text-sm text-slate-700">{formatDateTimeShort(item.CommittedAt)}</td>
-                    <td className="p-4 font-mono text-slate-800">{item.BudgetCode}</td>
-                    <td className="p-4 font-medium text-slate-700">{item.Department}</td>
-                    <td className="p-4 text-sm font-semibold text-slate-800">{item.RequisitionTitle || '—'}</td>
-                    <td className="p-4 text-sm text-slate-600">{item.RequisitionStatus || '—'}</td>
+                    <td className="p-4 text-sm text-slate-700">{formatDateTimeShort(item.CreatedAt)}</td>
+                    <td className="p-4 font-mono text-slate-800">{item.CommitmentCode}</td>
+                    <td className="p-4 font-medium text-slate-700">{item.Description || '—'}</td>
+                    <td className="p-4 text-sm font-semibold text-slate-800">{item.Beneficiary || '—'}</td>
+                    <td className="p-4 text-sm text-slate-600">{item.ReleaseId || '—'}</td>
                     <td className="p-4 text-right font-semibold text-amber-800">{formatCurrency(item.Amount)}</td>
                     <td className="p-4">
                       <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${

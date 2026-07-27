@@ -71,7 +71,7 @@ const BidSubmissionForm: React.FC<BidSubmissionFormProps> = ({ tenderId, onBack,
       return;
     }
 
-    if (!technicalProposalFile && !technicalProposal.trim()) {
+    if (!technicalProposalFile && !proposal.trim()) {
       setError('Provide a technical proposal text or attach a file.');
       return;
     }
@@ -82,8 +82,7 @@ const BidSubmissionForm: React.FC<BidSubmissionFormProps> = ({ tenderId, onBack,
         TenderId: tenderId,
         VendorId: user.UserId,
         BidAmount: bidAmount,
-        Proposal: technicalProposalFile ? '' : proposal,
-        ValidityPeriodDays: validityPeriod
+        Proposal: technicalProposalFile ? '' : proposal
       };
       const response = await submitBid(bidData, technicalProposalFile);
       const bidId = response?.BidId ?? response?.bidId ?? null;

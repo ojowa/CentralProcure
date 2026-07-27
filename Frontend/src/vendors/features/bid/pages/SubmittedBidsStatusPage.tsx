@@ -107,23 +107,23 @@ const SubmittedBidsStatusPage: React.FC = () => {
                                         <p className="text-gray-900 whitespace-no-wrap">{bid.Proposal ? bid.Proposal.substring(0, 50) + '...' : 'N/A'}</p>
                                     </td>
                                     <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                                        <p className="text-gray-900 whitespace-no-wrap">{bid.ValidityPeriodDays}</p>
+                                        <p className="text-gray-900 whitespace-no-wrap">—</p>
                                     </td>
                                     <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                                        <p className="text-gray-900 whitespace-no-wrap">{new Date(bid.SubmissionDate).toLocaleDateString()}</p>
+                                        <p className="text-gray-900 whitespace-no-wrap">{new Date(bid.SubmittedAt).toLocaleDateString()}</p>
                                     </td>
                                     <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
                                         <span className={`relative inline-block px-3 py-1 font-semibold leading-tight ${
-                                            bid.BidStatus === 'Approved' ? 'text-green-900' :
-                                            bid.BidStatus === 'Rejected' ? 'text-red-900' :
+                                            bid.Status === 'Approved' ? 'text-green-900' :
+                                            bid.Status === 'Rejected' ? 'text-red-900' :
                                             'text-yellow-900'
                                         }`}>
                                             <span aria-hidden className={`absolute inset-0 opacity-50 rounded-full ${
-                                                bid.BidStatus === 'Approved' ? 'bg-green-200' :
-                                                bid.BidStatus === 'Rejected' ? 'bg-red-200' :
+                                                bid.Status === 'Approved' ? 'bg-green-200' :
+                                                bid.Status === 'Rejected' ? 'bg-red-200' :
                                                 'bg-yellow-200'
                                             }`}></span>
-                                            <span className="relative">{bid.BidStatus}</span>
+                                            <span className="relative">{bid.Status}</span>
                                         </span>
                                     </td>
                                 </tr>

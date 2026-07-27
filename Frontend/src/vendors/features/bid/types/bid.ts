@@ -3,7 +3,6 @@ export interface BidSubmission {
     VendorId: string;
     BidAmount: number;
     Proposal: string;
-    ValidityPeriodDays: number;
 }
 
 export interface SubmittedBid {
@@ -12,7 +11,6 @@ export interface SubmittedBid {
     TenderTitle: string; 
     BidAmount: number;
     Proposal: string;
-    ValidityPeriodDays: number;
-    SubmissionDate: string;
-    BidStatus: 'Submitted' | 'Under Review' | 'Approved' | 'Rejected';
+    Status: string;
+    SubmittedAt: string;
 }
