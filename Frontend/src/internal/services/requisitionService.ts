@@ -107,7 +107,13 @@ export const fetchRequisitions = async (
     credentials: 'include'
   });
 
-  return parseResponse<RequisitionListResponse>(response);
+  const data = await parseResponse<Record<string, unknown>>(response);
+  return {
+    Items: (data.Requisitions ?? []) as RequisitionListResponse['Items'],
+    Page: (data.Page ?? 1) as number,
+    PageSize: (data.PageSize ?? 20) as number,
+    Total: (data.TotalCount ?? data.Total ?? 0) as number
+  };
 };
 
 export const fetchRequisitionDetail = async (token: string, requisitionId: string): Promise<RequisitionDetail> => {
@@ -184,7 +190,7 @@ export const updateRequisition = async (
 export const unlinkRequisitionAppItem = async (
   token: string,
   requisitionId: string,
-  payload: { Reason: string }
+  payload: { ItemId: string }
 ): Promise<void> => {
   const response = await fetch(`${baseUrl}/${requisitionId}/unlink-app`, {
     method: 'POST',
@@ -208,7 +214,13 @@ export const submitDepartmentHeadReview = async (
   token: string,
   requisitionId: string,
   payload: { Decision: 'endorse' | 'return' | 'reject'; Notes: string }
-): Promise<{ message: string; requisitionId: string; newStatus: string }> => {
+): Promise<{ RequisitionId: string; RequisitionNumber: string; Title: string; Status: string; UpdatedAt: string }> => {
+  const decisionMap: Record<string, string> = {
+    endorse: 'Approved',
+    return: 'Returned',
+    reject: 'Rejected'
+  };
+
   const response = await fetch(`${baseUrl}/${requisitionId}/department-head-review`, {
     method: 'POST',
     headers: {
@@ -217,8 +229,11 @@ export const submitDepartmentHeadReview = async (
       ...buildCsrfHeaders()
     },
     credentials: 'include',
-    body: JSON.stringify(payload)
+    body: JSON.stringify({
+      Decision: decisionMap[payload.Decision] || payload.Decision,
+      Comments: payload.Notes
+    })
   });
 
-  return parseResponse<{ message: string; requisitionId: string; newStatus: string }>(response);
+  return parseResponse<{ RequisitionId: string; RequisitionNumber: string; Title: string; Status: string; UpdatedAt: string }>(response);
 };

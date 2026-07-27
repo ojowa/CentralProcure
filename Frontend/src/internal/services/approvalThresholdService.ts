@@ -43,7 +43,8 @@ export const fetchApprovalThresholds = async (
     }
   });
 
-  return parseResponse<ApprovalThresholdDetail[]>(response);
+  const data = await parseResponse<Record<string, unknown>>(response);
+  return (data.Thresholds ?? data) as ApprovalThresholdDetail[];
 };
 
 export const resolveApprovalThreshold = async (

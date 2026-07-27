@@ -603,24 +603,21 @@ export interface BudgetDecisionResponse {
 }
 
 export interface BudgetAppropriationCreateRequest {
+    AppropriationCode: string;
+    Description?: string | null;
+    TotalAmount: number;
     FiscalYear: number;
-    Department: string;
-    BudgetCode: string;
-    Amount: number;
-    Status?: string | null;
-    Notes?: string | null;
 }
 
 export interface BudgetAppropriationResponse {
     AppropriationId: string;
+    AppropriationCode: string;
+    Description: string;
+    TotalAmount: number;
     FiscalYear: number;
-    Department: string;
-    BudgetCode: string;
-    Amount: number;
     Status: string;
-    Notes?: string | null;
+    CreatedBy: string;
     CreatedAt: string;
-    UpdatedAt: string;
 }
 
 export interface BudgetAppropriationListResponse {
@@ -632,23 +629,20 @@ export interface BudgetAppropriationListResponse {
 
 export interface BudgetReleaseCreateRequest {
     AppropriationId: string;
+    ReleaseCode: string;
+    Description?: string | null;
     Amount: number;
-    ReleaseDate?: string | null;
-    Notes?: string | null;
 }
 
 export interface BudgetReleaseResponse {
     ReleaseId: string;
     AppropriationId: string;
-    FiscalYear: number;
-    Department: string;
-    BudgetCode: string;
-    AppropriationAmount: number;
+    ReleaseCode: string;
+    Description: string;
     Amount: number;
-    ReleaseDate: string;
-    Notes?: string | null;
+    Status: string;
+    CreatedBy: string;
     CreatedAt: string;
-    UpdatedAt: string;
 }
 
 export interface BudgetReleaseListResponse {
@@ -659,26 +653,23 @@ export interface BudgetReleaseListResponse {
 }
 
 export interface BudgetCommitmentCreateRequest {
-    AppropriationId: string;
+    ReleaseId: string;
+    CommitmentCode: string;
+    Description?: string | null;
     Amount: number;
-    CommittedAt?: string | null;
+    Beneficiary?: string | null;
 }
 
 export interface BudgetCommitmentResponse {
-  CommitmentId: string;
-  AppropriationId: string | null;
-  RequisitionId: string | null;
-  RequisitionTitle: string | null;
-  RequisitionStatus: string | null;
-  FiscalYear: number;
-  Department: string;
-  BudgetCode: string;
-    AppropriationAmount: number;
+    CommitmentId: string;
+    ReleaseId: string;
+    CommitmentCode: string;
+    Description: string;
     Amount: number;
-    CommittedAt: string;
+    Beneficiary: string;
     Status: string;
+    CreatedBy: string;
     CreatedAt: string;
-    UpdatedAt: string;
 }
 
 export interface BudgetCommitmentListResponse {
@@ -1130,8 +1121,7 @@ export interface RequisitionDetail extends RequisitionSummary {
 
 export interface RequisitionCreateRequest {
     Title: string;
-    Department: string;
-    UnitId?: string | null;
+    DepartmentId?: string | null;
     ProcurementType?: string | null;
     Priority?: string | null;
     FundingSource?: string | null;
@@ -1148,8 +1138,7 @@ export interface RequisitionCreateRequest {
 
 export interface RequisitionUpdateRequest {
     Title?: string | null;
-    Department?: string | null;
-    UnitId?: string | null;
+    DepartmentId?: string | null;
     ProcurementType?: string | null;
     Priority?: string | null;
     FundingSource?: string | null;
@@ -1267,18 +1256,27 @@ export interface PaymentTrackingItem {
 }
 
 export interface PaymentRecordRequest {
-    ContractCode: string;
+    ContractId: string;
+    PaymentReference: string;
+    PayeeName: string;
     Amount: number;
+    PaymentDate?: string | null;
+    PaymentMethod?: string | null;
+    CloseoutEligible?: boolean | null;
     Notes?: string | null;
 }
 
 export interface PaymentRecordResponse {
     PaymentId: string;
+    ContractId: string;
     PaymentReference: string;
-    ContractCode: string;
+    PayeeName: string;
     Amount: number;
-    Status: string;
     PaymentDate: string;
+    PaymentMethod: string;
+    CloseoutEligible: boolean;
+    Status: string;
+    CreatedAt: string;
 }
 
 export interface AuditEventItem {

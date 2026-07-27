@@ -200,8 +200,7 @@ export const buildPayload = (
   status: string
 ): RequisitionCreateRequest => ({
   Title: form.Title.trim(),
-  Department: form.Department.trim(),
-  UnitId: form.UnitId || undefined,
+  DepartmentId: form.UnitId || undefined,
   ProcurementType: form.ProcurementType || undefined,
   Priority: form.Priority || undefined,
   FundingSource: form.FundingSource || undefined,

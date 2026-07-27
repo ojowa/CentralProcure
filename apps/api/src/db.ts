@@ -1,10 +1,13 @@
 import pg from 'pg';
 import { config } from './config.js';
 
+const hasSsl = (url: string): boolean =>
+  /sslmode=require|sslmode=verify-ca|sslmode=verify-full|ssl=true/i.test(url);
+
 export const pool = config.databaseUrl
   ? new pg.Pool({
       connectionString: config.databaseUrl,
-      ssl: config.databaseUrl.includes('sslmode=require')
+      ssl: hasSsl(config.databaseUrl)
         ? { rejectUnauthorized: false }
         : undefined
     })

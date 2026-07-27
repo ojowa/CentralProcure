@@ -27,5 +27,16 @@ export const fetchWorkflowBlueprint = async (token: string): Promise<WorkflowBlu
     throw new Error(payload?.ErrorMessage || payload?.message || 'Unable to load workflow blueprint.');
   }
 
-  return payload as WorkflowBlueprint;
+  return {
+    Title: 'Workflow Blueprint',
+    Summary: 'System workflow configuration',
+    ThresholdSource: '',
+    CurrentRole: null,
+    DatabaseTables: [],
+    Phases: payload?.Phases ?? [],
+    States: payload?.States ?? [],
+    Transitions: payload?.Transitions ?? [],
+    RoleTasks: payload?.RoleTasks ?? [],
+    Thresholds: payload?.Thresholds ?? []
+  } as WorkflowBlueprint;
 };

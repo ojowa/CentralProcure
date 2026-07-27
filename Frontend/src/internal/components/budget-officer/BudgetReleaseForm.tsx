@@ -18,14 +18,14 @@ type Props = {
 type FormState = {
   appropriationId: string;
   amount: string;
-  releaseDate: string;
+  releaseCode: string;
   notes: string;
 };
 
 const defaultFormState: FormState = {
   appropriationId: '',
   amount: '',
-  releaseDate: new Date().toISOString().slice(0, 10),
+  releaseCode: '',
   notes: ''
 };
 
@@ -130,16 +130,16 @@ export const BudgetReleaseForm = ({ token, onSuccess }: Props) => {
 
     const payload: BudgetReleaseCreateRequest = {
       AppropriationId: form.appropriationId,
-      Amount: amountValue,
-      ReleaseDate: form.releaseDate ? new Date(form.releaseDate).toISOString() : undefined,
-      Notes: form.notes.trim() || undefined
+      ReleaseCode: form.releaseCode.trim(),
+      Description: form.notes.trim() || `Release for appropriation ${form.appropriationId.slice(0, 8)}`,
+      Amount: amountValue
     };
 
     try {
       const response = await createBudgetRelease(token, payload);
-      setSuccess(`Release of ${response.Amount.toLocaleString('en-NG', { style: 'currency', currency: 'NGN' })} recorded.`);
+      setSuccess(`Release ${response.ReleaseCode} of ${response.Amount.toLocaleString('en-NG', { style: 'currency', currency: 'NGN' })} recorded.`);
       onSuccess(response);
-      setForm((prev) => ({ ...defaultFormState, releaseDate: prev.releaseDate }));
+      setForm((prev) => ({ ...defaultFormState }));
       if (response.AppropriationId) {
         const history = await fetchBudgetReleases(token, {
           appropriationId: response.AppropriationId,
@@ -197,12 +197,12 @@ export const BudgetReleaseForm = ({ token, onSuccess }: Props) => {
           </label>
 
           <label className="plan-field">
-            <span>Release Date</span>
+            <span>Release Code</span>
             <input
               className="plan-input"
-              type="date"
-              value={form.releaseDate}
-              onChange={(event) => handleChange('releaseDate', event.target.value)}
+              value={form.releaseCode}
+              onChange={(event) => handleChange('releaseCode', event.target.value)}
+              placeholder="e.g. REL-2026-001"
             />
           </label>
 

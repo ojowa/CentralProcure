@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { createBudgetCommitment, fetchBudgetAppropriations, fetchBudgetCommitments } from '../../services/budgetService';
+import { createBudgetCommitment, fetchBudgetReleases, fetchBudgetCommitments } from '../../services/budgetService';
 import type {
-  BudgetAppropriationResponse,
+  BudgetReleaseResponse,
   BudgetCommitmentCreateRequest,
   BudgetCommitmentListResponse,
   BudgetCommitmentResponse
@@ -16,22 +16,26 @@ type Props = {
 };
 
 type FormState = {
-  appropriationId: string;
+  releaseId: string;
+  commitmentCode: string;
   amount: string;
-  committedAt: string;
+  description: string;
+  beneficiary: string;
 };
 
 const defaultFormState: FormState = {
-  appropriationId: '',
+  releaseId: '',
+  commitmentCode: '',
   amount: '',
-  committedAt: new Date().toISOString().slice(0, 10)
+  description: '',
+  beneficiary: ''
 };
 
 export const BudgetCommitmentForm = ({ token, onSuccess }: Props) => {
   const [form, setForm] = useState<FormState>(defaultFormState);
-  const [appropriations, setAppropriations] = useState<BudgetAppropriationResponse[]>([]);
+  const [releases, setReleases] = useState<BudgetReleaseResponse[]>([]);
   const [commitments, setCommitments] = useState<BudgetCommitmentResponse[]>([]);
-  const [isLoadingAppropriations, setIsLoadingAppropriations] = useState(false);
+  const [isLoadingReleases, setIsLoadingReleases] = useState(false);
   const [isLoadingCommitments, setIsLoadingCommitments] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,43 +46,31 @@ export const BudgetCommitmentForm = ({ token, onSuccess }: Props) => {
     return Number.isFinite(parsed) ? parsed : 0;
   }, [form.amount]);
 
-  const canSubmit = Boolean(token && form.appropriationId && amountValue > 0);
-
-  const selectedAppropriation = useMemo(
-    () => appropriations.find((item) => item.AppropriationId === form.appropriationId) ?? null,
-    [appropriations, form.appropriationId]
-  );
-
-  const committedAmount = useMemo(
-    () => commitments.reduce((sum, item) => sum + item.Amount, 0),
-    [commitments]
-  );
-
-  const remainingAmount = selectedAppropriation ? selectedAppropriation.Amount - committedAmount : 0;
+  const canSubmit = Boolean(token && form.releaseId && form.commitmentCode.trim() && amountValue > 0);
 
   useEffect(() => {
     if (!token) {
-      setAppropriations([]);
+      setReleases([]);
       return;
     }
 
     let isMounted = true;
-    setIsLoadingAppropriations(true);
-    fetchBudgetAppropriations(token, { status: 'Active', page: 1, pageSize: 100 })
+    setIsLoadingReleases(true);
+    fetchBudgetReleases(token, { status: 'Active', page: 1, pageSize: 100 })
       .then((response) => {
         if (isMounted) {
-          setAppropriations(response.Items);
+          setReleases(response.Items);
         }
       })
       .catch((loadError) => {
         if (isMounted) {
-          setAppropriations([]);
-          setError(loadError instanceof Error ? loadError.message : 'Unable to load appropriations.');
+          setReleases([]);
+          setError(loadError instanceof Error ? loadError.message : 'Unable to load releases.');
         }
       })
       .finally(() => {
         if (isMounted) {
-          setIsLoadingAppropriations(false);
+          setIsLoadingReleases(false);
         }
       });
 
@@ -88,14 +80,14 @@ export const BudgetCommitmentForm = ({ token, onSuccess }: Props) => {
   }, [token]);
 
   useEffect(() => {
-    if (!token || !form.appropriationId) {
+    if (!token || !form.releaseId) {
       setCommitments([]);
       return;
     }
 
     let isMounted = true;
     setIsLoadingCommitments(true);
-    fetchBudgetCommitments(token, { appropriationId: form.appropriationId, page: 1, pageSize: 20 })
+    fetchBudgetCommitments(token, { releaseId: form.releaseId, page: 1, pageSize: 20 })
       .then((response: BudgetCommitmentListResponse) => {
         if (!isMounted) return;
         setCommitments(response.Items);
@@ -103,7 +95,6 @@ export const BudgetCommitmentForm = ({ token, onSuccess }: Props) => {
       .catch(() => {
         if (!isMounted) return;
         setCommitments([]);
-        setError('Unable to load commitment history.');
       })
       .finally(() => {
         if (isMounted) {
@@ -114,7 +105,19 @@ export const BudgetCommitmentForm = ({ token, onSuccess }: Props) => {
     return () => {
       isMounted = false;
     };
-  }, [token, form.appropriationId]);
+  }, [token, form.releaseId]);
+
+  const committedAmount = useMemo(
+    () => commitments.reduce((sum, item) => sum + item.Amount, 0),
+    [commitments]
+  );
+
+  const selectedRelease = useMemo(
+    () => releases.find((item) => item.ReleaseId === form.releaseId) ?? null,
+    [releases, form.releaseId]
+  );
+
+  const remainingAmount = selectedRelease ? selectedRelease.Amount - committedAmount : 0;
 
   const handleChange = (field: keyof FormState, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -123,7 +126,7 @@ export const BudgetCommitmentForm = ({ token, onSuccess }: Props) => {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!token || !canSubmit) {
-      setError('Select an appropriation and enter a valid commitment amount.');
+      setError('Select a release, enter a commitment code, and a valid amount.');
       return;
     }
 
@@ -132,33 +135,29 @@ export const BudgetCommitmentForm = ({ token, onSuccess }: Props) => {
     setIsSaving(true);
 
     const payload: BudgetCommitmentCreateRequest = {
-      AppropriationId: form.appropriationId,
+      ReleaseId: form.releaseId,
+      CommitmentCode: form.commitmentCode.trim(),
+      Description: form.description.trim() || undefined,
       Amount: amountValue,
-      CommittedAt: form.committedAt ? new Date(form.committedAt).toISOString() : undefined
+      Beneficiary: form.beneficiary.trim() || undefined
     };
 
-    try
-    {
+    try {
       const response = await createBudgetCommitment(token, payload);
-      setSuccess(`Commitment of ${formatCurrency(response.Amount)} recorded.`);
+      setSuccess(`Commitment ${response.CommitmentCode} of ${formatCurrency(response.Amount)} recorded.`);
       onSuccess(response);
-      setForm((prev) => ({ ...defaultFormState, committedAt: prev.committedAt }));
-      if (response.AppropriationId)
-      {
+      setForm(defaultFormState);
+      if (response.ReleaseId) {
         const history = await fetchBudgetCommitments(token, {
-          appropriationId: response.AppropriationId,
+          releaseId: response.ReleaseId,
           page: 1,
           pageSize: 20
         });
         setCommitments(history.Items);
       }
-    }
-    catch (saveError)
-    {
+    } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'Unable to save budget commitment.');
-    }
-    finally
-    {
+    } finally {
       setIsSaving(false);
     }
   };
@@ -167,28 +166,38 @@ export const BudgetCommitmentForm = ({ token, onSuccess }: Props) => {
     <article className="portal-module-card">
       <div className="view-header">
         <h3>Create a commitment</h3>
-        <p style={{ marginBottom: '0.5rem' }}>Reserve funds against an appropriation.</p>
+        <p style={{ marginBottom: '0.5rem' }}>Reserve funds against a release.</p>
       </div>
 
       <form className="plan-toolbar" onSubmit={handleSubmit}>
         <div className="plan-filters">
           <label className="plan-field">
-            <span>Appropriation</span>
+            <span>Release</span>
             <select
               className="plan-select"
-              value={form.appropriationId}
-              onChange={(event) => handleChange('appropriationId', event.target.value)}
-              disabled={isLoadingAppropriations}
+              value={form.releaseId}
+              onChange={(event) => handleChange('releaseId', event.target.value)}
+              disabled={isLoadingReleases}
             >
               <option value="">
-                {isLoadingAppropriations ? 'Loading appropriations...' : 'Select appropriation'}
+                {isLoadingReleases ? 'Loading releases...' : 'Select release'}
               </option>
-              {appropriations.map((item) => (
-                <option key={item.AppropriationId} value={item.AppropriationId}>
-                  {item.BudgetCode} - {item.Department} - FY {item.FiscalYear}
+              {releases.map((item) => (
+                <option key={item.ReleaseId} value={item.ReleaseId}>
+                  {item.ReleaseCode} - {formatCurrency(item.Amount)}
                 </option>
               ))}
             </select>
+          </label>
+
+          <label className="plan-field">
+            <span>Commitment Code</span>
+            <input
+              className="plan-input"
+              value={form.commitmentCode}
+              onChange={(event) => handleChange('commitmentCode', event.target.value)}
+              placeholder="e.g. COM-2026-001"
+            />
           </label>
 
           <label className="plan-field">
@@ -205,19 +214,27 @@ export const BudgetCommitmentForm = ({ token, onSuccess }: Props) => {
           </label>
 
           <label className="plan-field">
-            <span>Commitment Date</span>
+            <span>Description (optional)</span>
             <input
               className="plan-input"
-              type="date"
-              value={form.committedAt}
-              onChange={(event) => handleChange('committedAt', event.target.value)}
+              value={form.description}
+              onChange={(event) => handleChange('description', event.target.value)}
+            />
+          </label>
+
+          <label className="plan-field">
+            <span>Beneficiary (optional)</span>
+            <input
+              className="plan-input"
+              value={form.beneficiary}
+              onChange={(event) => handleChange('beneficiary', event.target.value)}
             />
           </label>
         </div>
 
-        {selectedAppropriation ? (
+        {selectedRelease ? (
           <div className="plan-loading" style={{ margin: '0 16px 12px' }}>
-            {isLoadingCommitments ? 'Loading commitment history...' : `Current committed total ${formatCurrency(committedAmount)} (remaining ${formatCurrency(remainingAmount)}).`}
+            {isLoadingCommitments ? 'Loading commitment history...' : `Committed: ${formatCurrency(committedAmount)} / ${formatCurrency(selectedRelease.Amount)} (remaining ${formatCurrency(remainingAmount)}).`}
           </div>
         ) : null}
 

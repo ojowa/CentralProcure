@@ -107,7 +107,21 @@ export const fetchModuleData = async (moduleId: string, token: string): Promise<
   }
 
   try {
-    return JSON.parse(text);
+    const parsed = JSON.parse(text);
+    if (moduleId === 'workflow-configuration') {
+      const stages = Array.isArray(parsed) ? parsed : parsed?.Stages ?? [];
+      return {
+        Title: 'Workflow Configuration',
+        Summary: 'System workflow configuration',
+        Stages: stages,
+        Transitions: parsed?.Transitions ?? [],
+        RoleTasks: parsed?.RoleTasks ?? [],
+        Thresholds: parsed?.Thresholds ?? [],
+        Roles: parsed?.Roles ?? [],
+        GovernanceBodies: parsed?.GovernanceBodies ?? []
+      };
+    }
+    return parsed;
   } catch {
     return text;
   }

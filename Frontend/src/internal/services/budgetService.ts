@@ -65,7 +65,13 @@ export const fetchBudgetAvailability = async (
     }
   });
 
-  return parseResponse<BudgetAvailabilityResponse>(response);
+  const data = await parseResponse<unknown>(response);
+
+  if (data && typeof data === 'object' && 'Available' in data) {
+    return { Available: (data as { Available: number }).Available } as BudgetAvailabilityResponse;
+  }
+
+  return data as BudgetAvailabilityResponse;
 };
 
 export const fetchBudgetSummary = async (
@@ -83,7 +89,19 @@ export const fetchBudgetSummary = async (
     }
   });
 
-  return parseResponse<BudgetSummaryResponse>(response);
+  const data = await parseResponse<{ Summary?: Record<string, number>[] }>(response);
+  const summary = data?.Summary ?? [];
+
+  const find = (key: string) =>
+    summary.find((s) => s[key] !== undefined)?.[key] ?? 0;
+
+  return {
+    Appropriated: find('TotalAppropriated'),
+    Released: find('TotalReleased'),
+    Committed: find('TotalCommitted'),
+    Spent: find('TotalPaid'),
+    Available: find('Available')
+  } as BudgetSummaryResponse;
 };
 
 export const fetchBudgetDashboard = async (
@@ -104,7 +122,21 @@ export const fetchBudgetDashboard = async (
     }
   });
 
-  return parseResponse<BudgetDashboardResponse>(response);
+  const data = await parseResponse<Record<string, unknown>>(response);
+
+  return {
+    Appropriated: (data as Record<string, unknown>).TotalAppropriated ?? 0,
+    Released: (data as Record<string, unknown>).TotalReleased ?? 0,
+    Committed: (data as Record<string, unknown>).TotalCommitted ?? 0,
+    Spent: (data as Record<string, unknown>).TotalPaid ?? 0,
+    Available: (data as Record<string, unknown>).Available ?? 0,
+    QueueCount: (data as Record<string, unknown>).QueueCount ?? 0,
+    AwaitingBudgetReviewCount: (data as Record<string, unknown>).AwaitingBudgetReviewCount ?? 0,
+    OnHoldCount: (data as Record<string, unknown>).OnHoldCount ?? 0,
+    ReadyForApprovalCount: (data as Record<string, unknown>).ReadyForApprovalCount ?? 0,
+    AtRiskCount: (data as Record<string, unknown>).AtRiskCount ?? 0,
+    TopRisks: ((data as Record<string, unknown>).TopRisks as BudgetDashboardResponse['TopRisks']) ?? []
+  } as BudgetDashboardResponse;
 };
 
 export const fetchBudgetConfirmations = async (
@@ -144,7 +176,14 @@ export const fetchBudgetConfirmations = async (
     }
   });
 
-  return parseResponse<BudgetConfirmationListResponse>(response);
+  const data = await parseResponse<{ Confirmations?: BudgetConfirmationListResponse['Items']; Page?: number; PageSize?: number; Total?: number }>(response);
+
+  return {
+    Items: data?.Confirmations ?? [],
+    Page: data?.Page ?? 1,
+    PageSize: data?.PageSize ?? 20,
+    Total: data?.Total ?? 0
+  } as BudgetConfirmationListResponse;
 };
 
 export const fetchBudgetRequisitionQueue = async (
@@ -184,7 +223,14 @@ export const fetchBudgetRequisitionQueue = async (
     }
   });
 
-  return parseResponse<BudgetRequisitionListResponse>(response);
+  const data = await parseResponse<{ Requisitions?: BudgetRequisitionListResponse['Items']; Page?: number; PageSize?: number; Total?: number }>(response);
+
+  return {
+    Items: data?.Requisitions ?? [],
+    Page: data?.Page ?? 1,
+    PageSize: data?.PageSize ?? 20,
+    Total: data?.Total ?? 0
+  } as BudgetRequisitionListResponse;
 };
 
 export const fetchBudgetAppropriations = async (
@@ -224,7 +270,14 @@ export const fetchBudgetAppropriations = async (
     }
   });
 
-  return parseResponse<BudgetAppropriationListResponse>(response);
+  const data = await parseResponse<{ Appropriations?: BudgetAppropriationListResponse['Items']; Page?: number; PageSize?: number; Total?: number }>(response);
+
+  return {
+    Items: data?.Appropriations ?? [],
+    Page: data?.Page ?? 1,
+    PageSize: data?.PageSize ?? 20,
+    Total: data?.Total ?? 0
+  } as BudgetAppropriationListResponse;
 };
 
 export const fetchBudgetConfirmationDetail = async (
@@ -336,6 +389,7 @@ export const cancelBudgetCommitment = async (
 export const fetchBudgetCommitments = async (
   token: string,
   params?: {
+    releaseId?: string;
     appropriationId?: string;
     status?: string;
     page?: number;
@@ -343,7 +397,9 @@ export const fetchBudgetCommitments = async (
   }
 ): Promise<BudgetCommitmentListResponse> => {
   const query = new URLSearchParams();
-  if (params?.appropriationId?.trim()) {
+  if (params?.releaseId?.trim()) {
+    query.set('releaseId', params.releaseId.trim());
+  } else if (params?.appropriationId?.trim()) {
     query.set('appropriationId', params.appropriationId.trim());
   }
   if (params?.status?.trim()) {
@@ -362,7 +418,14 @@ export const fetchBudgetCommitments = async (
     }
   });
 
-  return parseResponse<BudgetCommitmentListResponse>(response);
+  const data = await parseResponse<{ Commitments?: BudgetCommitmentListResponse['Items']; Page?: number; PageSize?: number; Total?: number }>(response);
+
+  return {
+    Items: data?.Commitments ?? [],
+    Page: data?.Page ?? 1,
+    PageSize: data?.PageSize ?? 20,
+    Total: data?.Total ?? 0
+  } as BudgetCommitmentListResponse;
 };
 
 export const fetchBudgetReleases = async (
@@ -390,5 +453,12 @@ export const fetchBudgetReleases = async (
     }
   });
 
-  return parseResponse<BudgetReleaseListResponse>(response);
+  const data = await parseResponse<{ Releases?: BudgetReleaseListResponse['Items']; Page?: number; PageSize?: number; Total?: number }>(response);
+
+  return {
+    Items: data?.Releases ?? [],
+    Page: data?.Page ?? 1,
+    PageSize: data?.PageSize ?? 20,
+    Total: data?.Total ?? 0
+  } as BudgetReleaseListResponse;
 };

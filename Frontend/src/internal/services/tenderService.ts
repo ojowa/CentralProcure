@@ -95,7 +95,13 @@ export const fetchTenders = async (token: string, filters?: TenderFilters): Prom
     }
   });
 
-  return parseResponse<TenderListResponse>(response);
+  const data = await parseResponse<Record<string, unknown>>(response);
+  return {
+    Items: (data.Tenders ?? []) as TenderListResponse['Items'],
+    Total: (data.TotalCount ?? data.Total ?? 0) as number,
+    Page: (data.Page ?? 1) as number,
+    PageSize: (data.PageSize ?? 20) as number
+  };
 };
 
 export const fetchTenderDetail = async (token: string, tenderId: string): Promise<TenderDetail> => {

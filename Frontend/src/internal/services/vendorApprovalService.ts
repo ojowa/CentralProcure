@@ -61,7 +61,7 @@ const parseResponse = async <T>(response: Response): Promise<T> => {
 export const fetchVendorApprovals = async (
   token: string,
   filters?: VendorApprovalFilters
-): Promise<VendorApprovalSummary[]> => {
+): Promise<{ items: VendorApprovalSummary[]; total: number }> => {
   const response = await fetch(`${baseUrl}${buildQuery(filters)}`, {
     headers: {
       Authorization: `Bearer ${token}`
@@ -69,7 +69,11 @@ export const fetchVendorApprovals = async (
     credentials: 'include'
   });
 
-  return parseResponse<VendorApprovalSummary[]>(response);
+  const data = await parseResponse<Record<string, unknown>>(response);
+  return {
+    items: (data.Registrations ?? data.Items ?? []) as VendorApprovalSummary[],
+    total: (data.TotalCount ?? data.Total ?? 0) as number
+  };
 };
 
 export const fetchVendorApprovalDetail = async (

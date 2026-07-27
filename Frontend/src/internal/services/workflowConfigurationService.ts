@@ -53,7 +53,22 @@ export const fetchWorkflowConfiguration = async (token: string): Promise<Workflo
     }
   });
 
-  return parseResponse<WorkflowConfiguration>(response, 'Unable to load workflow configuration.');
+  const data = await parseResponse<unknown>(response, 'Unable to load workflow configuration.');
+
+  const stages = Array.isArray(data)
+    ? data
+    : (data as Record<string, unknown>)?.Stages ?? [];
+
+  return {
+    Title: 'Workflow Configuration',
+    Summary: 'System workflow configuration',
+    Stages: stages as WorkflowConfiguration['Stages'],
+    Transitions: ((data as Record<string, unknown>)?.Transitions as WorkflowConfiguration['Transitions']) ?? [],
+    RoleTasks: ((data as Record<string, unknown>)?.RoleTasks as WorkflowConfiguration['RoleTasks']) ?? [],
+    Thresholds: ((data as Record<string, unknown>)?.Thresholds as WorkflowConfiguration['Thresholds']) ?? [],
+    Roles: ((data as Record<string, unknown>)?.Roles as WorkflowConfiguration['Roles']) ?? [],
+    GovernanceBodies: ((data as Record<string, unknown>)?.GovernanceBodies as WorkflowConfiguration['GovernanceBodies']) ?? []
+  } as WorkflowConfiguration;
 };
 
 export const createWorkflowThreshold = async (token: string, request: WorkflowThresholdCreateRequest) => {

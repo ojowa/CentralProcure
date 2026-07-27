@@ -105,17 +105,15 @@ export const BudgetAppropriationForm = ({ token, onSuccess }: Props) => {
     setSuccess(null);
 
     const payload: BudgetAppropriationCreateRequest = {
-      FiscalYear: Number(form.fiscalYear) || Number(currentYear),
-      Department: form.department.trim(),
-      BudgetCode: form.budgetCode.trim(),
-      Amount: amountValue,
-      Status: form.status,
-      Notes: form.notes.trim() || undefined
+      AppropriationCode: form.budgetCode.trim(),
+      Description: form.notes.trim() || `${form.department.trim()} - FY ${form.fiscalYear}`,
+      TotalAmount: amountValue,
+      FiscalYear: Number(form.fiscalYear) || Number(currentYear)
     };
 
     try {
       const response = await createBudgetAppropriation(token, payload);
-      setSuccess(`Appropriation ${response.BudgetCode} added for FY ${response.FiscalYear}.`);
+      setSuccess(`Appropriation ${response.AppropriationCode} added for FY ${response.FiscalYear}.`);
       onSuccess(response);
       setForm((prev) => ({
         ...defaultFormState,

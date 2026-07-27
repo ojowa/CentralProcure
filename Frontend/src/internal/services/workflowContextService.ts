@@ -49,7 +49,24 @@ export const fetchWorkflowActionSnapshot = async (
     }
   );
 
-  return parseResponse<WorkflowActionSnapshotResponse>(response, 'Unable to load workflow action snapshot.');
+  const data = await parseResponse<{
+    EntityType?: string;
+    EntityId?: string;
+    CurrentStageKey?: string;
+    CurrentStageTitle?: string;
+    AvailableTransitions?: WorkflowActionSnapshotResponse['Actions'];
+  }>(response, 'Unable to load workflow action snapshot.');
+
+  return {
+    EntityType: data.EntityType ?? entityType,
+    EntityId: data.EntityId ?? entityId,
+    CurrentStageKey: data.CurrentStageKey ?? '',
+    CurrentStageTitle: data.CurrentStageTitle ?? '',
+    RoleKey: '',
+    Actions: data.AvailableTransitions ?? [],
+    Authority: null,
+    RouteDecision: null
+  } as WorkflowActionSnapshotResponse;
 };
 
 export const fetchWorkflowRuntime = async (

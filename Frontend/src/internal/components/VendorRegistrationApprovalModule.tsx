@@ -108,7 +108,7 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
         status: filters.status || undefined,
         query: filters.query.trim() || undefined
       });
-      setRecords(next);
+      setRecords(next.items);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Unable to load vendor approvals.');
     } finally {

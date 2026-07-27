@@ -67,6 +67,8 @@ export const PaymentTrackingModulePage = ({ module, token, userEmail }: Props) =
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState(0);
   const [paymentNotes, setPaymentNotes] = useState('');
+  const [paymentReference, setPaymentReference] = useState('');
+  const [payeeName, setPayeeName] = useState('');
   const [closeoutSummary, setCloseoutSummary] = useState('');
   const [archiveLocation, setArchiveLocation] = useState('');
 
@@ -114,6 +116,8 @@ export const PaymentTrackingModulePage = ({ module, token, userEmail }: Props) =
     setSelectedRecord(record);
     setPaymentAmount(record.ContractValue);
     setPaymentNotes(`Final payment for ${record.ContractCode} - ${record.TenderTitle}`);
+    setPaymentReference(`PAY-${Date.now()}`);
+    setPayeeName(record.VendorName);
     setIsPaymentModalOpen(true);
     setError('');
   };
@@ -171,7 +175,9 @@ export const PaymentTrackingModulePage = ({ module, token, userEmail }: Props) =
     }
 
     const payload: PaymentRecordRequest = {
-      ContractCode: selectedRecord.ContractCode,
+      ContractId: selectedRecord.ContractId,
+      PaymentReference: paymentReference.trim() || `PAY-${Date.now()}`,
+      PayeeName: payeeName.trim() || selectedRecord.VendorName,
       Amount: paymentAmount,
       Notes: paymentNotes.trim() || undefined
     };
@@ -331,6 +337,8 @@ export const PaymentTrackingModulePage = ({ module, token, userEmail }: Props) =
         isSaving={isSaving}
         paymentAmount={paymentAmount}
         paymentNotes={paymentNotes}
+        paymentReference={paymentReference}
+        payeeName={payeeName}
         closeoutSummary={closeoutSummary}
         archiveLocation={archiveLocation}
         formatCurrency={formatCurrency}
@@ -342,6 +350,8 @@ export const PaymentTrackingModulePage = ({ module, token, userEmail }: Props) =
         onCloseCloseout={() => setSelectedRecord(null)}
         onPaymentAmountChange={setPaymentAmount}
         onPaymentNotesChange={setPaymentNotes}
+        onPaymentReferenceChange={setPaymentReference}
+        onPayeeNameChange={setPayeeName}
         onCloseoutSummaryChange={setCloseoutSummary}
         onArchiveLocationChange={setArchiveLocation}
         onRecordPayment={handleRecordPayment}

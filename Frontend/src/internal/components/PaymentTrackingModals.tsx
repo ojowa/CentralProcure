@@ -14,6 +14,8 @@ type Props = {
   isSaving: boolean;
   paymentAmount: number;
   paymentNotes: string;
+  paymentReference: string;
+  payeeName: string;
   closeoutSummary: string;
   archiveLocation: string;
   formatCurrency: (value: number) => string;
@@ -22,6 +24,8 @@ type Props = {
   onCloseCloseout: () => void;
   onPaymentAmountChange: (value: number) => void;
   onPaymentNotesChange: (value: string) => void;
+  onPaymentReferenceChange: (value: string) => void;
+  onPayeeNameChange: (value: string) => void;
   onCloseoutSummaryChange: (value: string) => void;
   onArchiveLocationChange: (value: string) => void;
   onRecordPayment: () => void;
@@ -53,6 +57,14 @@ export const PaymentTrackingModals = (props: Props) => {
           <WorkflowProgressStepper currentStageKey={selectedRecord.CurrentStageKey || ''} display={display} />
         </div>
         <div className="plan-form-grid">
+          <label className="plan-field plan-field--span">
+            <span>Payment Reference</span>
+            <input className="plan-input" value={props.paymentReference} onChange={(event) => props.onPaymentReferenceChange(event.target.value)} placeholder="e.g. PAY-2026-001" />
+          </label>
+          <label className="plan-field plan-field--span">
+            <span>Payee Name</span>
+            <input className="plan-input" value={props.payeeName} onChange={(event) => props.onPayeeNameChange(event.target.value)} />
+          </label>
           <label className="plan-field plan-field--span">
             <span>Payment Amount (NGN)</span>
             <input type="number" className="plan-input" value={props.paymentAmount} onChange={(event) => props.onPaymentAmountChange(Number(event.target.value))} />

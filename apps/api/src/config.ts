@@ -25,3 +25,14 @@ export const config = {
     allowedOrigins: parseOrigins(process.env.CORS_ALLOWED_ORIGINS)
   }
 };
+
+if (config.nodeEnv === 'production') {
+  if (!config.databaseUrl) {
+    console.error('FATAL: DATABASE_URL is not set.');
+    process.exit(1);
+  }
+  if (!config.jwt.key) {
+    console.error('FATAL: JWT_KEY is not set. Unsigned tokens are not allowed in production.');
+    process.exit(1);
+  }
+}

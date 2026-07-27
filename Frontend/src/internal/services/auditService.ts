@@ -81,7 +81,8 @@ export const fetchAuditCloseouts = async (token: string, status?: string): Promi
     headers: buildHeaders(token)
   });
 
-  return parseResponse<AuditCloseoutItem[]>(response, 'Unable to load closeouts.');
+  const data = await parseResponse<Record<string, unknown>>(response, 'Unable to load closeouts.');
+  return (data.Closeouts ?? data.Items ?? []) as AuditCloseoutItem[];
 };
 
 export const createAuditCloseout = async (
@@ -177,7 +178,13 @@ export const fetchAuditHistoryPage = async (
     headers: buildHeaders(token)
   });
 
-  return parseResponse<AuditHistoryListResponse>(response, 'Unable to load audit history.');
+  const data = await parseResponse<Record<string, unknown>>(response, 'Unable to load audit history.');
+  return {
+    Items: (data.History ?? data.Items ?? []) as AuditHistoryItem[],
+    Page: (data.Page ?? 1) as number,
+    PageSize: (data.PageSize ?? 250) as number,
+    Total: (data.TotalCount ?? data.Total ?? 0) as number
+  };
 };
 
 export const fetchAuditWorkflowDiagnostics = async (
@@ -189,5 +196,13 @@ export const fetchAuditWorkflowDiagnostics = async (
     headers: buildHeaders(token)
   });
 
-  return parseResponse<AuditWorkflowDiagnosticsResponse>(response, 'Unable to load workflow diagnostics.');
+  const data = await parseResponse<Record<string, unknown>>(response, 'Unable to load workflow diagnostics.');
+  return {
+    Runtime: null as unknown as AuditWorkflowDiagnosticsResponse['Runtime'],
+    RouteDecision: null,
+    RoleKey: null,
+    GrantedActions: [],
+    RecentHistory: (data.AuditHistory ?? []) as AuditWorkflowDiagnosticsResponse['RecentHistory'],
+    TransitionChecks: (data.WorkflowTimeline ?? []) as AuditWorkflowDiagnosticsResponse['TransitionChecks']
+  };
 };

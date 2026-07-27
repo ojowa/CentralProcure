@@ -76,7 +76,8 @@ export const fetchInspections = async (token: string, filters?: InspectionFilter
     headers: buildHeaders(token)
   });
 
-  return parseResponse<InspectionItem[]>(response, 'Unable to load inspections.');
+  const data = await parseResponse<Record<string, unknown>>(response, 'Unable to load inspections.');
+  return (data.Inspections ?? data.Items ?? []) as InspectionItem[];
 };
 
 export const fetchInspectionDetail = async (token: string, inspectionId: string): Promise<InspectionItem> => {

@@ -51,7 +51,8 @@ export const fetchPaymentTracking = async (
     }
   });
 
-  return parseResponse<PaymentTrackingItem[]>(response, 'Unable to load payment tracking.');
+  const data = await parseResponse<Record<string, unknown>>(response, 'Unable to load payment tracking.');
+  return (data.Payments ?? data.Items ?? []) as PaymentTrackingItem[];
 };
 
 export const recordPayment = async (token: string, request: PaymentRecordRequest): Promise<PaymentRecordResponse> => {
