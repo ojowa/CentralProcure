@@ -29,7 +29,6 @@ services:
     name: centralprocure-frontend
     runtime: node
     plan: free
-    rootDir: apps/Frontend
     buildCommand: cd apps/Frontend && npm ci && npm run build
     startCommand: cd apps/Frontend && npm run start
     autoDeploy: true
