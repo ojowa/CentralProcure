@@ -30,13 +30,13 @@ services:
     runtime: node
     plan: free
     rootDir: apps/Frontend
-    buildCommand: npm ci && npm run build
-    startCommand: npm run start
+    buildCommand: cd apps/Frontend && npm ci && npm run build
+    startCommand: cd apps/Frontend && npm run start
     autoDeploy: true
     envVars:
       - key: NODE_ENV
         value: production
       - key: NEXT_PUBLIC_API_URL
-        value: https://centralprocure-backend.onrender.com
+        value: https://centralprocure.onrender.com
       - key: NEXT_PUBLIC_APP_BASE_PATH
         sync: false
