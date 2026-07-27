@@ -15,17 +15,17 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 const PUBLIC_PATHS = new Set([
   '/',
   '/health',
-  '/api/Auth/csrf',
-  '/api/Auth/login',
-  '/api/Auth/register',
-  '/api/Auth/internal/login',
-  '/api/Auth/internal/register',
-  '/api/Tender/open',
-  '/api/Vendor/availability',
+  '/api/auth/csrf',
+  '/api/auth/login',
+  '/api/auth/register',
+  '/api/auth/internal/login',
+  '/api/auth/internal/register',
+  '/api/tender/open',
+  '/api/vendor/availability',
 ]);
 
 const PUBLIC_PREFIXES = [
-  '/api/Tender/',
+  '/api/tender/',
 ];
 
 export const authMiddleware = (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
