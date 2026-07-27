@@ -1,15 +1,16 @@
 services:
+  # API - Express.js backend (Docker)
   - type: web
-    name: centralprocure-api
+    name: centralprocure-backend
     runtime: docker
     plan: free
-    dockerfilePath: ./apps/api/Dockerfile
+    rootDir: apps/api
+    dockerfilePath: apps/api/Dockerfile
     healthCheckPath: /health
+    autoDeploy: true
     envVars:
       - key: NODE_ENV
         value: production
-      - key: CORS_ALLOWED_ORIGINS
-        sync: false
       - key: DATABASE_URL
         sync: false
       - key: JWT_KEY
@@ -19,16 +20,23 @@ services:
       - key: JWT_AUDIENCE
         value: nis-eproc-clients
       - key: JWT_DURATION_MINUTES
-        value: 1440
+        value: "1440"
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
 
+  # Frontend - Next.js (Node)
   - type: web
-    name: centralprocure-web
+    name: centralprocure-frontend
     runtime: node
     plan: free
-    buildCommand: npm ci && npm run build:web
-    startCommand: npm run start -w @centralprocure/web
+    rootDir: apps/Frontend
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start
+    autoDeploy: true
     envVars:
-      - key: NEXT_PUBLIC_BACKEND_URL
-        value: https://centralprocure-api.onrender.com
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_URL
+        value: https://centralprocure-backend.onrender.com
       - key: NEXT_PUBLIC_APP_BASE_PATH
         sync: false

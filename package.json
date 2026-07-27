@@ -4,7 +4,6 @@
   "version": "0.0.0",
   "description": "CentralProcure TypeScript monorepo",
   "workspaces": [
-    "packages/*",
     "apps/*"
   ],
   "scripts": {

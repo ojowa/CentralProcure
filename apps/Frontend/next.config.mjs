@@ -1,4 +1,4 @@
-import { dirname, join } from 'path';
+import { dirname } from 'path';
 import util from 'node:util';
 import { fileURLToPath } from 'url';
 
@@ -14,7 +14,6 @@ if (
 }
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const workspaceRoot = join(__dirname, '..');
 const appBasePath = process.env.NEXT_PUBLIC_APP_BASE_PATH ?? '';
 const defaultApiServiceUrl = process.env.NODE_ENV === 'development'
   ? 'http://localhost:5000'
@@ -31,8 +30,6 @@ const normalizedBasePath = normalizeBasePath(appBasePath);
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  outputFileTracingRoot: workspaceRoot,
-  transpilePackages: ['@centralprocure/shared'],
   ...(normalizedBasePath ? { basePath: normalizedBasePath } : {}),
   pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
   allowedDevOrigins: ['10.169.246.197'],
