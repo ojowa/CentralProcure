@@ -32,13 +32,16 @@ inspectionsRouter.get('/api/inspections', async (req, res) => {
 
     const inspections = result.rows.map((i) => ({
       InspectionId: i.inspection_id,
-      ContractId: i.contract_id,
-      ContractTitle: i.contract_title,
-      InspectorId: i.inspector_id,
+      InspectionCode: i.inspection_code,
+      ContractCode: i.contract_code,
+      TenderTitle: i.tender_title,
+      VendorName: i.vendor_name,
       InspectorName: i.inspector_name,
       ScheduledDate: i.scheduled_date,
       CompletedDate: i.completed_date,
       Outcome: i.outcome,
+      Location: i.location,
+      Notes: i.notes,
       Status: i.status,
       CreatedAt: i.created_at,
     }));
@@ -81,14 +84,16 @@ inspectionsRouter.get('/api/inspections/:inspectionId', async (req, res) => {
     const i = result.rows[0];
     res.json({
       InspectionId: i.inspection_id,
-      ContractId: i.contract_id,
-      ContractTitle: i.contract_title,
-      InspectorId: i.inspector_id,
+      InspectionCode: i.inspection_code,
+      ContractCode: i.contract_code,
+      TenderTitle: i.tender_title,
+      VendorName: i.vendor_name,
       InspectorName: i.inspector_name,
       ScheduledDate: i.scheduled_date,
       CompletedDate: i.completed_date,
       Outcome: i.outcome,
-      Findings: i.findings,
+      Location: i.location,
+      Notes: i.notes,
       Status: i.status,
       CreatedAt: i.created_at,
     });
@@ -112,7 +117,7 @@ inspectionsRouter.put('/api/inspections/:inspectionId', async (req, res) => {
 
   try {
     const { inspectionId } = req.params;
-    const { InspectorId, ScheduledDate, CompletedDate, Outcome, Findings, Status } = req.body;
+    const { InspectorName, ScheduledDate, CompletedDate, Outcome, Notes, Status } = req.body;
 
     const validStatuses = ['Scheduled', 'InProgress', 'Completed', 'Cancelled'];
     if (Status && !validStatuses.includes(Status)) {
@@ -133,30 +138,34 @@ inspectionsRouter.put('/api/inspections/:inspectionId', async (req, res) => {
       const result = await client.query(
         `UPDATE post_award.inspections
          SET
-           inspector_id = COALESCE($1, inspector_id),
+           inspector_name = COALESCE($1, inspector_name),
            scheduled_date = COALESCE($2, scheduled_date),
            completed_date = COALESCE($3, completed_date),
            outcome = COALESCE($4, outcome),
-           findings = COALESCE($5, findings),
+           notes = COALESCE($5, notes),
            status = COALESCE($6, status),
            updated_at = NOW()
          WHERE inspection_id = $7
          RETURNING
            inspection_id AS "InspectionId",
-           contract_id AS "ContractId",
-           inspector_id AS "InspectorId",
+           inspection_code AS "InspectionCode",
+           contract_code AS "ContractCode",
+           tender_title AS "TenderTitle",
+           vendor_name AS "VendorName",
+           inspector_name AS "InspectorName",
            scheduled_date AS "ScheduledDate",
            completed_date AS "CompletedDate",
            outcome AS "Outcome",
-           findings AS "Findings",
+           location AS "Location",
+           notes AS "Notes",
            status AS "Status",
            updated_at AS "UpdatedAt"`,
         [
-          InspectorId || null,
+          InspectorName || null,
           ScheduledDate || null,
           CompletedDate || null,
           Outcome || null,
-          Findings || null,
+          Notes || null,
           Status || null,
           inspectionId,
         ]
@@ -177,21 +186,21 @@ inspectionsRouter.put('/api/inspections/:inspectionId', async (req, res) => {
                WHEN $2 = 'Satisfactory' THEN 'Active'
                ELSE status
              END
-           WHERE contract_id = $1
-           RETURNING contract_id AS "ContractId", status AS "Status"`,
-          [result.rows[0].ContractId, Outcome || '']
+           WHERE contract_code = $1
+           RETURNING contract_code AS "ContractCode", status AS "Status"`,
+          [result.rows[0].ContractCode, Outcome || '']
         );
 
         if (contractResult.rows.length > 0) {
           await client.query(
             `INSERT INTO post_award.contract_workflow_log
-              (contract_id, action, performed_by, notes, created_at)
+              (contract_code, action, performed_by, notes, created_at)
              VALUES ($1, $2, $3, $4, NOW())`,
             [
-              result.rows[0].ContractId,
+              result.rows[0].ContractCode,
               `Inspection ${Outcome ? `outcome: ${Outcome}` : 'completed'}`,
               payload.sub,
-              Findings || '',
+              Notes || '',
             ]
           );
         }

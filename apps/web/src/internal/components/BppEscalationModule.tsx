@@ -153,14 +153,14 @@ export const BppEscalationModule = ({ module, token, role, initialData }: Props)
                   setNewEscalation({
                     ...newEscalation,
                     TenderId: e.target.value,
-                    Amount: selectedTender?.Budget ?? 0,
+                    Amount: selectedTender?.EstimatedValue ?? 0,
                     ProcurementType: selectedTender?.Category || newEscalation.ProcurementType
                   });
                 }}
               >
                 <option value="">-- Choose Project --</option>
                 {highValueTenders.map(t => (
-                  <option key={t.TenderId} value={t.TenderId}>{t.Title} ({new Intl.NumberFormat('en-NG').format(t.Budget ?? 0)})</option>
+                  <option key={t.TenderId} value={t.TenderId}>{t.Title} ({new Intl.NumberFormat('en-NG').format(t.EstimatedValue ?? 0)})</option>
                 ))}
               </select>
             </label>

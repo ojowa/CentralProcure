@@ -49,7 +49,7 @@ export const BudgetReleaseLedger = ({ token }: Props) => {
 
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
-      const releaseTime = new Date(item.ReleaseDate).getTime();
+      const releaseTime = new Date(item.CreatedAt).getTime();
       if (Number.isNaN(releaseTime)) {
         return false;
       }
@@ -215,7 +215,7 @@ export const BudgetReleaseLedger = ({ token }: Props) => {
               <option value="">All appropriations</option>
               {appropriations.map((item) => (
                 <option key={item.AppropriationId} value={item.AppropriationId}>
-                  {item.BudgetCode} - {item.Department} - FY {item.FiscalYear}
+                  {item.AppropriationCode} - FY {item.FiscalYear}
                 </option>
               ))}
             </select>
@@ -265,7 +265,7 @@ export const BudgetReleaseLedger = ({ token }: Props) => {
 
         {selectedAppropriation ? (
           <div className="plan-loading" style={{ marginTop: '16px' }}>
-            Viewing releases for {selectedAppropriation.BudgetCode} in {selectedAppropriation.Department}.
+            Viewing releases for {selectedAppropriation.AppropriationCode} - {selectedAppropriation.Description}.
           </div>
         ) : null}
       </div>
@@ -283,11 +283,10 @@ export const BudgetReleaseLedger = ({ token }: Props) => {
               <thead>
                 <tr className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white">
                   <th className="p-4 font-semibold rounded-tl-xl text-left">Release Date</th>
-                  <th className="p-4 font-semibold text-left">Budget Line</th>
-                  <th className="p-4 font-semibold text-left">Department</th>
-                  <th className="p-4 font-semibold text-right">Appropriated</th>
-                  <th className="p-4 font-semibold text-right">Released</th>
-                  <th className="p-4 font-semibold text-left rounded-tr-xl">Reference / Notes</th>
+                  <th className="p-4 font-semibold text-left">Release Code</th>
+                  <th className="p-4 font-semibold text-left">Description</th>
+                  <th className="p-4 font-semibold text-right">Amount</th>
+                  <th className="p-4 font-semibold text-left rounded-tr-xl">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -295,7 +294,6 @@ export const BudgetReleaseLedger = ({ token }: Props) => {
                   <tr key={item.ReleaseId} className="hover:bg-slate-50 border-b border-slate-100 even:bg-slate-50/50">
                     <td className="p-4">
                       <div className="text-sm font-semibold text-slate-800">{formatDateTimeShort(item.CreatedAt)}</div>
-                      <div className="text-xs text-slate-500">{item.ReleaseCode}</div>
                     </td>
                     <td className="p-4">
                       <code className="plan-code bg-emerald-50 text-emerald-800 px-3 py-2 rounded-xl font-semibold">
@@ -304,16 +302,14 @@ export const BudgetReleaseLedger = ({ token }: Props) => {
                     </td>
                     <td className="p-4 font-medium text-slate-700">{item.Description || '—'}</td>
                     <td className="p-4 text-right">
-                      <div className="text-base font-semibold text-slate-700">{formatCurrency(item.Amount)}</div>
-                    </td>
-                    <td className="p-4 text-right">
                       <div className="text-lg font-bold text-emerald-700">{formatCurrency(item.Amount)}</div>
                     </td>
-                    <td className="p-4 text-sm text-slate-600">
-                      <div>{item.Description || 'No description'}</div>
-                      <div className="text-xs text-slate-400" style={{ marginTop: '4px' }}>
-                        Transaction ID: {item.ReleaseId.slice(0, 8)}
-                      </div>
+                    <td className="p-4">
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${
+                        item.Status === 'Cancelled' ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'
+                      }`}>
+                        {item.Status}
+                      </span>
                     </td>
                   </tr>
                 ))}

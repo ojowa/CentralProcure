@@ -71,8 +71,8 @@ export const PostAwardInspectionModulePage = ({ module, token }: Props) => {
     status: 'Scheduled',
     outcome: 'Pending',
     completedDate: '',
-    inspectorId: '',
-    findings: ''
+    inspectorName: '',
+    notes: ''
   });
 
   const grantedActions = useMemo(() => new Set(module.actions ?? []), [module.actions]);
@@ -120,8 +120,8 @@ export const PostAwardInspectionModulePage = ({ module, token }: Props) => {
         status: data.Status || 'Scheduled',
         outcome: data.Outcome || 'Pending',
         completedDate: toInputDateTime(data.CompletedDate),
-        inspectorId: data.InspectorId || '',
-        findings: data.Findings || ''
+        inspectorName: data.InspectorName || '',
+        notes: data.Notes || ''
       });
     } catch (loadError) {
       setDetailError(loadError instanceof Error ? loadError.message : 'Unable to load inspection detail.');
@@ -145,8 +145,8 @@ export const PostAwardInspectionModulePage = ({ module, token }: Props) => {
       Status: updateForm.status,
       Outcome: updateForm.outcome,
       CompletedDate: updateForm.completedDate ? new Date(updateForm.completedDate).toISOString() : undefined,
-      InspectorId: updateForm.inspectorId.trim() || undefined,
-      Findings: updateForm.findings.trim() || undefined
+      InspectorName: updateForm.inspectorName.trim() || undefined,
+      Notes: updateForm.notes.trim() || undefined
     };
 
     setIsSaving(true);
@@ -344,18 +344,18 @@ export const PostAwardInspectionModulePage = ({ module, token }: Props) => {
                         <span>Inspector ID</span>
                         <input
                           className="plan-input"
-                          value={updateForm.inspectorId}
-                          onChange={(event) => setUpdateForm((previous) => ({ ...previous, inspectorId: event.target.value }))}
+                          value={updateForm.inspectorName}
+                          onChange={(event) => setUpdateForm((previous) => ({ ...previous, inspectorName: event.target.value }))}
                           placeholder="UUID of inspector"
                         />
                       </label>
                       <label className="plan-field plan-field--span">
-                        <span>Findings</span>
+                        <span>Notes</span>
                         <textarea
                           className="plan-textarea"
                           rows={4}
-                          value={updateForm.findings}
-                          onChange={(event) => setUpdateForm((previous) => ({ ...previous, findings: event.target.value }))}
+                          value={updateForm.notes}
+                          onChange={(event) => setUpdateForm((previous) => ({ ...previous, notes: event.target.value }))}
                         />
                       </label>
                     </div>

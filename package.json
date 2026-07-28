@@ -2,16 +2,11 @@
   "name": "centralprocure",
   "private": true,
   "version": "0.0.0",
-  "description": "CentralProcure TypeScript monorepo",
-  "scripts": {
-    "build": "npm run build --prefix apps/web",
-    "dev": "npm run dev --prefix apps/web",
-    "lint": "npm run lint --prefix apps/web",
-    "typecheck": "npm run typecheck --prefix apps/web"
-  },
+  "description": "CentralProcure system repository",
   "engines": {
     "node": ">=20.9.0",
     "npm": ">=10.0.0"
   }
 }
+
 

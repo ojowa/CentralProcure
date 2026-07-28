@@ -349,16 +349,21 @@ export interface ProcurementPlanListResponse {
 export interface TenderSummary {
     TenderId: string;
     Title: string;
-    Description?: string;
+    Description?: string | null;
     Category?: string;
     EstimatedValue?: number | null;
     Status: string;
+    Department?: string;
+    BudgetCode?: string;
+    FiscalYear?: number;
     PublishedAt?: string | null;
+    OpeningDate?: string | null;
     ClosingDate?: string | null;
     CreatedAt: string;
 }
 export interface TenderDetail extends TenderSummary {
     Requirements?: string | null;
+    EligibilityCriteria?: string | null;
     EvaluationCriteria?: string | null;
     UpdatedAt?: string;
     CurrentStage?: string | null;
@@ -641,6 +646,7 @@ export interface BudgetReleaseCreateRequest {
 export interface BudgetReleaseResponse {
     ReleaseId: string;
     AppropriationId: string;
+    AppropriationCode?: string;
     ReleaseCode: string;
     Description: string;
     Amount: number;
@@ -667,6 +673,7 @@ export interface BudgetCommitmentCreateRequest {
 export interface BudgetCommitmentResponse {
     CommitmentId: string;
     ReleaseId: string;
+    ReleaseCode?: string;
     CommitmentCode: string;
     Description: string;
     Amount: number;
@@ -1212,25 +1219,26 @@ export interface ContractMilestoneCreateRequest {
 
 export interface InspectionItem {
     InspectionId: string;
-    ContractId: string;
+    InspectionCode: string;
     ContractCode: string;
     TenderTitle: string;
     VendorName: string;
-    InspectorId: string | null;
     InspectorName: string | null;
     ScheduledDate: string;
     CompletedDate?: string | null;
     Outcome?: string | null;
-    Findings?: string | null;
+    Location?: string | null;
+    Notes?: string | null;
     Status: string;
+    CreatedAt: string;
 }
 
 export interface InspectionUpdateRequest {
-    InspectorId?: string | null;
+    InspectorName?: string | null;
     ScheduledDate?: string | null;
     CompletedDate?: string | null;
     Outcome?: string | null;
-    Findings?: string | null;
+    Notes?: string | null;
     Status?: string | null;
 }
 

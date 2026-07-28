@@ -96,14 +96,14 @@ export const BudgetAppropriationLedger = ({ token }: { token?: string | null }) 
   const handleExport = () => {
     if (!items.length) return;
 
-    const headers = ["Fiscal Year", "Department", "Budget Code", "Amount", "Status", "Updated"];
+    const headers = ["Fiscal Year", "Appropriation Code", "Description", "Total Amount", "Status", "Created At"];
     const rows = items.map(item => [
       item.FiscalYear,
-      item.Department,
-      `"${item.BudgetCode}"`,
-      item.Amount,
+      `"${item.AppropriationCode}"`,
+      `"${item.Description}"`,
+      item.TotalAmount,
       item.Status,
-      item.UpdatedAt
+      item.CreatedAt
     ]);
 
     const csvContent = [
@@ -230,11 +230,11 @@ export const BudgetAppropriationLedger = ({ token }: { token?: string | null }) 
               <thead>
                 <tr className="bg-gradient-to-r from-indigo-500 to-blue-600 text-white">
                   <th className="p-4 font-semibold rounded-tl-xl">Fiscal Year</th>
-                  <th className="p-4 font-semibold">Department</th>
-                  <th className="p-4 font-semibold">Budget Code</th>
+                  <th className="p-4 font-semibold">Appropriation Code</th>
+                  <th className="p-4 font-semibold">Description</th>
                   <th className="p-4 font-semibold text-right">Amount</th>
                   <th className="p-4 font-semibold">Status</th>
-                  <th className="p-4 font-semibold">Updated</th>
+                  <th className="p-4 font-semibold">Created At</th>
                   <th className="p-4 font-semibold rounded-tr-xl">Actions</th>
                 </tr>
               </thead>
@@ -242,12 +242,12 @@ export const BudgetAppropriationLedger = ({ token }: { token?: string | null }) 
                 {items.map((item) => (
                   <tr key={item.AppropriationId} className="hover:bg-slate-50 border-b border-slate-100 even:bg-slate-50/50">
                     <td className="p-4 font-mono text-lg">{item.FiscalYear}</td>
-                    <td className="p-4 font-medium">{item.Department}</td>
                     <td className="p-4">
-                      <code className="plan-code bg-indigo-50 text-indigo-800 px-3 py-2 rounded-xl font-semibold">{item.BudgetCode}</code>
+                      <code className="plan-code bg-indigo-50 text-indigo-800 px-3 py-2 rounded-xl font-semibold">{item.AppropriationCode}</code>
                     </td>
+                    <td className="p-4 font-medium">{item.Description}</td>
                     <td className="p-4 text-right">
-                      <div className="text-2xl font-bold text-green-600">{formatCurrency(item.Amount)}</div>
+                      <div className="text-2xl font-bold text-green-600">{formatCurrency(item.TotalAmount)}</div>
                     </td>
                     <td className="p-4">
                       <span className={`px-3 py-1 rounded-full text-xs font-bold ${
@@ -258,7 +258,7 @@ export const BudgetAppropriationLedger = ({ token }: { token?: string | null }) 
                         {item.Status}
                       </span>
                     </td>
-                    <td className="p-4 text-sm text-slate-600">{formatDateTimeShort(item.UpdatedAt)}</td>
+                    <td className="p-4 text-sm text-slate-600">{formatDateTimeShort(item.CreatedAt)}</td>
                     <td className="p-4">
                       {item.Status === 'Active' ? (
                         <button
@@ -266,11 +266,11 @@ export const BudgetAppropriationLedger = ({ token }: { token?: string | null }) 
                           disabled={closingId === item.AppropriationId}
                           onClick={async () => {
                             if (!token) return;
-                            if (!confirm(`Close appropriation for ${item.BudgetCode}?`)) return;
+                            if (!confirm(`Close appropriation for ${item.AppropriationCode}?`)) return;
                             setClosingId(item.AppropriationId);
                             try {
                               await closeBudgetAppropriation(token, item.AppropriationId);
-                              setSuccess(`Successfully closed ${item.BudgetCode}`);
+                              setSuccess(`Successfully closed ${item.AppropriationCode}`);
                               void loadLedger();
                             } catch (e) {
                               setError(e instanceof Error ? e.message : 'Failed to close');

@@ -98,13 +98,13 @@ export const BudgetCommitmentLedger = ({ token }: Props) => {
   const handleExport = () => {
     if (!items.length) return;
 
-    const headers = ["Commit Date", "Budget Code", "Department", "Requisition Title", "Requisition Status", "Amount", "Status"];
+    const headers = ["Commit Date", "Commitment Code", "Release Code", "Description", "Beneficiary", "Amount", "Status"];
     const rows = items.map(item => [
-      formatDateTimeShort(item.CommittedAt),
-      item.BudgetCode,
-      item.Department,
-      item.RequisitionTitle ?? '',
-      item.RequisitionStatus ?? '',
+      formatDateTimeShort(item.CreatedAt),
+      item.CommitmentCode,
+      item.ReleaseCode ?? '',
+      item.Description ?? '',
+      item.Beneficiary ?? '',
       item.Amount,
       item.Status
     ]);
@@ -178,7 +178,7 @@ export const BudgetCommitmentLedger = ({ token }: Props) => {
               <option value="">All appropriations</option>
               {appropriations.map((item) => (
                 <option key={item.AppropriationId} value={item.AppropriationId}>
-                  {item.BudgetCode} - {item.Department} - FY {item.FiscalYear}
+                  {item.AppropriationCode} - FY {item.FiscalYear}
                 </option>
               ))}
             </select>
@@ -225,7 +225,7 @@ export const BudgetCommitmentLedger = ({ token }: Props) => {
 
         {selectedAppropriation ? (
           <div className="plan-loading" style={{ marginTop: '16px' }}>
-            Viewing commitments for {selectedAppropriation.BudgetCode}.
+            Viewing commitments for {selectedAppropriation.AppropriationCode}.
           </div>
         ) : null}
       </div>
