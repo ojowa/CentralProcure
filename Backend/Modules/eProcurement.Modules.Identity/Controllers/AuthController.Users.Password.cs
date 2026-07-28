@@ -119,8 +119,6 @@ public partial class AuthController
 
             await cmd.ExecuteNonQueryAsync(ct);
 
-            await WritePasswordAuditAsync(conn, tx, internalUserId, adminUserId, "admin_reset", null, ct);
-
             await tx.CommitAsync(ct);
 
             Logger.LogInformation("Admin {AdminId} reset password for user {UserId}", adminUserId, internalUserId);

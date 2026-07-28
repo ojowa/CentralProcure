@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { pool } from '../db.js';
 import { signToken, extractPayloadFromRequest, TokenPayload } from '../lib/jwt.js';
-import { hashPassword } from '../lib/password.js';
+import { hashPassword, verifyPassword } from '../lib/password.js';
 import { config } from '../config.js';
 
 export const authRouter = Router();
@@ -68,8 +68,21 @@ authRouter.post('/api/Auth/internal/login', async (req: Request, res: Response) 
   if (!requireDb(res)) return;
 
   try {
-    const passwordHash = await hashPassword(Password);
-    const result = await pool!.query('SELECT * FROM identity.internal_login($1, $2)', [Email, passwordHash]);
+    const userQuery = await pool!.query(
+      'SELECT internal_user_id, email, password_hash, role_name, status FROM identity.internal_users iu JOIN identity.roles r ON r.role_id = iu.role_id WHERE iu.email = $1',
+      [Email]
+    );
+    const dbUser = userQuery.rows[0];
+
+    if (!dbUser) {
+      res.status(401).json({ ErrorMessage: 'Invalid credentials.' });
+      return;
+    }
+
+    const isPasswordValid = await verifyPassword(Password, dbUser.password_hash);
+    const spPasswordHash = isPasswordValid ? dbUser.password_hash : 'INVALID_HASH_TO_TRIGGER_SP_FAILURE';
+
+    const result = await pool!.query('SELECT * FROM identity.internal_login($1, $2)', [Email, spPasswordHash]);
     const user = result.rows[0];
 
     if (!user || user.error_message) {
@@ -236,8 +249,21 @@ authRouter.post('/api/Auth/login', async (req: Request, res: Response) => {
   if (!requireDb(res)) return;
 
   try {
-    const passwordHash = await hashPassword(Password);
-    const result = await pool!.query('SELECT * FROM identity.login_vendor($1, $2)', [Email, passwordHash]);
+    const vendorQuery = await pool!.query(
+      'SELECT vendor_id, email, password_hash, company_name, vendor_status FROM identity.vendors WHERE email = $1',
+      [Email]
+    );
+    const dbVendor = vendorQuery.rows[0];
+
+    if (!dbVendor) {
+      res.status(401).json({ ErrorMessage: 'Invalid credentials.' });
+      return;
+    }
+
+    const isPasswordValid = await verifyPassword(Password, dbVendor.password_hash);
+    const spPasswordHash = isPasswordValid ? dbVendor.password_hash : 'INVALID_HASH_TO_TRIGGER_SP_FAILURE';
+
+    const result = await pool!.query('SELECT * FROM identity.login_vendor($1, $2)', [Email, spPasswordHash]);
     const vendor = result.rows[0];
 
     if (!vendor || vendor.error_message) {
@@ -481,8 +507,14 @@ authRouter.post('/api/Auth/internal/users/:internalUserId/reset-password', async
   if (!auth) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
   if (!requireDb(res)) return;
 
+  const adminRoles = ['IdentityAdministrator', 'Admin', 'SystemAdministrator', 'ict_admin', 'system_administrator'];
+  if (!auth.role || !adminRoles.includes(auth.role)) {
+    res.status(403).json({ ErrorMessage: 'Forbidden: Admin role required.' });
+    return;
+  }
+
   const { internalUserId } = req.params;
-  const { NewPassword } = req.body;
+  const { NewPassword, RequireChange } = req.body;
 
   if (!NewPassword) {
     res.status(400).json({ ErrorMessage: 'NewPassword is required.' });
@@ -493,7 +525,7 @@ authRouter.post('/api/Auth/internal/users/:internalUserId/reset-password', async
     const passwordHash = await hashPassword(NewPassword);
     const result = await pool!.query(
       'SELECT * FROM identity.admin_reset_password($1, $2, $3, $4)',
-      [internalUserId, passwordHash, auth.sub, auth.role]
+      [internalUserId, passwordHash, auth.sub, RequireChange === true]
     );
     res.json(mapRow(result.rows[0]));
   } catch (error: any) {
