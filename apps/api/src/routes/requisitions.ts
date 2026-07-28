@@ -32,7 +32,7 @@ requisitionsRouter.get('/api/requisitions', async (req, res) => {
     const pageSizeNum = Math.min(100, Math.max(1, parseInt(PageSize as string, 10) || 20));
 
     const result = await pool.query(
-      `SELECT * FROM procurement_workflow.get_requisitions_sp($1, $2, $3, $4, $5, $6)`,
+      `SELECT * FROM procurement_workflow.get_requisitions_sp($1, $2, $3, $4, $5, $6, $7)`,
       [Status || '', Department || '', Query || '', SortBy || 'created_at',
        SortOrder || 'DESC', pageNum, pageSizeNum]
     );
