@@ -98,13 +98,13 @@ export const BudgetCommitmentLedger = ({ token }: Props) => {
   const handleExport = () => {
     if (!items.length) return;
 
-    const headers = ["Commit Date", "Commitment Code", "Description", "Beneficiary", "Release ID", "Amount", "Status"];
+    const headers = ["Commit Date", "Budget Code", "Department", "Requisition Title", "Requisition Status", "Amount", "Status"];
     const rows = items.map(item => [
-      formatDateTimeShort(item.CreatedAt),
-      item.CommitmentCode,
-      item.Description,
-      item.Beneficiary ?? '',
-      item.ReleaseId ?? '',
+      formatDateTimeShort(item.CommittedAt),
+      item.BudgetCode,
+      item.Department,
+      item.RequisitionTitle ?? '',
+      item.RequisitionStatus ?? '',
       item.Amount,
       item.Status
     ]);
@@ -178,7 +178,7 @@ export const BudgetCommitmentLedger = ({ token }: Props) => {
               <option value="">All appropriations</option>
               {appropriations.map((item) => (
                 <option key={item.AppropriationId} value={item.AppropriationId}>
-                  {item.AppropriationCode} - {item.Description} - FY {item.FiscalYear}
+                  {item.BudgetCode} - {item.Department} - FY {item.FiscalYear}
                 </option>
               ))}
             </select>
@@ -225,7 +225,7 @@ export const BudgetCommitmentLedger = ({ token }: Props) => {
 
         {selectedAppropriation ? (
           <div className="plan-loading" style={{ marginTop: '16px' }}>
-            Viewing commitments for {selectedAppropriation.AppropriationCode}.
+            Viewing commitments for {selectedAppropriation.BudgetCode}.
           </div>
         ) : null}
       </div>
@@ -244,10 +244,10 @@ export const BudgetCommitmentLedger = ({ token }: Props) => {
               <thead>
                 <tr className="bg-gradient-to-r from-amber-500 to-amber-600 text-white">
                   <th className="p-4 font-semibold text-left">Commit Date</th>
-                  <th className="p-4 font-semibold text-left">Commitment Code</th>
-                  <th className="p-4 font-semibold text-left">Description</th>
-                  <th className="p-4 font-semibold text-left">Beneficiary</th>
-                  <th className="p-4 font-semibold text-left">Release ID</th>
+                  <th className="p-4 font-semibold text-left">Budget Line</th>
+                  <th className="p-4 font-semibold text-left">Department</th>
+                  <th className="p-4 font-semibold text-left">Requisition</th>
+                  <th className="p-4 font-semibold text-left">Requisition Status</th>
                   <th className="p-4 font-semibold text-right">Amount</th>
                   <th className="p-4 font-semibold text-left">Status</th>
                   <th className="p-4 font-semibold text-center">Actions</th>

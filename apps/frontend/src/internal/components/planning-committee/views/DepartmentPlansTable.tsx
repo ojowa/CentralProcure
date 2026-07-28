@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import styles from '../styles/planning-committee.module.css';
 import type { ProcurementPlanSummary } from '../../../types/internal';
+import { usePermission } from '../../../hooks/usePermission';
 import {
   fetchProcurementPlanRecommendationReadiness,
   recommendProcurementPlanForApproval
@@ -29,6 +30,7 @@ export const DepartmentPlansTable: React.FC<DepartmentPlansTableProps> = ({
   formatCurrency,
   isLoading
 }) => {
+  const { hasPermission } = usePermission(token);
   const [selectedPlan, setSelectedPlan] = useState<{ id: string; title: string } | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [recommendPlan, setRecommendPlan] = useState<ProcurementPlanSummary | null>(null);
@@ -38,8 +40,7 @@ export const DepartmentPlansTable: React.FC<DepartmentPlansTableProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [recommendError, setRecommendError] = useState<string | null>(null);
   const [recommendNote, setRecommendNote] = useState('');
-  const normalizedRole = String(role || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
-  const canRequestApproval = normalizedRole === 'procurementsecretary' || normalizedRole === 'admin';
+  const canRequestApproval = hasPermission('procurement_plan.approve');
   React.useEffect(() => {
     if (!token || !canRequestApproval || plans.length === 0) return;
     let disposed = false;

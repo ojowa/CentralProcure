@@ -111,6 +111,7 @@ export default function LoginPage() {
       login({
         email: response.Email ?? identifier,
         role: response.Role,
+        jwtToken: response.Token,
       });
 
       setTimeout(() => {

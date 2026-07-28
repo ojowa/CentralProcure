@@ -4,7 +4,7 @@ type Props = {
   yearlyApps: YearlyAppSummary[];
   filteredYearlyApps: YearlyAppSummary[];
   query: string;
-  role?: string | null;
+  canCreateApp?: boolean;
   statusCounts: Record<string, number>;
   onQueryChange: (value: string) => void;
   onOpenYearlyApp: (yearlyAppId: string) => void;
@@ -17,7 +17,7 @@ export const ProcurementPlanListView = ({
   yearlyApps,
   filteredYearlyApps,
   query,
-  role,
+  canCreateApp,
   statusCounts,
   onQueryChange,
   onOpenYearlyApp,
@@ -56,7 +56,7 @@ export const ProcurementPlanListView = ({
               placeholder="Search by title, status, or fiscal year..."
             />
           </div>
-          {(role === 'comptroller_procurement' || role === 'admin') && (
+          {canCreateApp && (
             <button className="app-btn app-btn--primary" onClick={onCreateYearlyApp}>
               <span className="app-btn__icon">+</span>
               Create Yearly APP

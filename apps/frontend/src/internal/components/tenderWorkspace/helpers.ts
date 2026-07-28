@@ -1,6 +1,5 @@
-export const canEditTenderFromAuthority = (tender: any, role: string | null): boolean => {
-  // Simplified implementation - in reality this would check specific permissions
-  return role === 'procurement_officer' || role === 'admin' || role === 'tender_officer';
+export const canEditTenderFromAuthority = (tender: any, role: string | null, hasPermission?: (key: string) => boolean): boolean => {
+  return hasPermission ? hasPermission('tender.manage') : false;
 };
 
 export const toTitle = (role: string): string => {

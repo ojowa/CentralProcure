@@ -15,6 +15,7 @@ import type {
   VendorApprovalSummary,
   VendorComplianceReviewItem
 } from '../types/internal';
+import { usePermission } from '../hooks/usePermission';
 
 const REVIEW_STATUSES: VendorApprovalStatus[] = ['Pending Approval', 'Active', 'Rejected'];
 
@@ -58,6 +59,7 @@ type Props = {
 };
 
 export const VendorRegistrationApprovalModule = ({ module, token, role, userEmail }: Props) => {
+  const { hasPermission } = usePermission(token);
   const [records, setRecords] = useState<VendorApprovalSummary[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<VendorApprovalDetail | null>(null);
@@ -77,8 +79,7 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
   const grantedActions = useMemo(() => new Set(module.actions ?? []), [module.actions]);
   const canReview = Boolean(token) && (
     grantedActions.has('admin.vendor_approval') ||
-    role === 'admin' ||
-    role === 'ict_admin'
+    hasPermission('admin.vendor_approval')
   );
 
   const summary = useMemo(() => {

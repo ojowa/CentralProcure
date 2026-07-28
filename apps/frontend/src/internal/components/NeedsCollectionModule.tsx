@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import type { InternalModule, RoleKey } from '../types/internal';
+import { usePermission } from '../hooks/usePermission';
 import {
   fetchNeedAssessments,
   fetchNeedAssessmentDetail,
@@ -44,6 +45,7 @@ interface NeedsCollectionModuleProps {
 }
 
 export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ module, token, role }) => {
+  const { hasPermission } = usePermission(token);
   const [assessments, setAssessments] = useState<NeedAssessmentSummary[]>([]);
   const [authorizedUsers, setAuthorizedUsers] = useState<NeedAssessmentAuthorizedUser[]>([]);
   const [analysisResults, setAnalysisResults] = useState<NeedAssessmentAnalysisResult[]>([]);
@@ -197,7 +199,7 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
   const canDecide = () => {
     if (!detail) return false;
     if (detail.Status !== 'Submitted') return false;
-    return role === 'formation_head' || role === 'department_head' || role === 'admin';
+    return hasPermission('needs.endorse');
   };
 
   const handleSave = async () => {

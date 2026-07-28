@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { usePermission } from '../hooks/usePermission';
 import {
   editableRequisitionStatuses,
   requisitionRoleGuidance,
@@ -63,9 +64,10 @@ interface Props {
 }
 
 export const RequisitionTrackingPage = ({ module, token, role, userEmail, availableModuleIds = [], onModuleChange }: Props) => {
+  const { hasPermission } = usePermission(token);
   const mode = 'tracking';
   const pageSize = getPageSize(mode);
-  const isDepartmentHead = role === 'department_head';
+  const isDepartmentHead = hasPermission('requisition.endorse');
 
   const [filters, setFilters] = useState<FiltersState>({
     query: '',
@@ -321,7 +323,7 @@ export const RequisitionTrackingPage = ({ module, token, role, userEmail, availa
       activeStepIndex={activeStepIndex}
       isSelectedEditable={isSelectedEditable}
       isDepartmentHead={isDepartmentHead}
-      isAdmin={role === 'admin'}
+      isAdmin={hasPermission('requisition.view.all')}
       canEditDrafts={canEditDrafts}
       isSaving={isSaving}
       workflowRuntime={workflowRuntime}
@@ -414,7 +416,7 @@ export const RequisitionTrackingPage = ({ module, token, role, userEmail, availa
                 activeStepIndex={activeStepIndex}
                 isSelectedEditable={isSelectedEditable}
       isDepartmentHead={isDepartmentHead}
-      isAdmin={role === 'admin'}
+      isAdmin={hasPermission('requisition.view.all')}
       canEditDrafts={canEditDrafts}
       canOpenSelectedForEdit={canOpenCreateModule}
       isSaving={isSaving}

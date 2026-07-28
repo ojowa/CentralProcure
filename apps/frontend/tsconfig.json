@@ -1,4 +1,5 @@
 {
+  "extends": "../tsconfig.base.json",
   "compilerOptions": {
     "target": "ES2017",
     "lib": [
@@ -14,10 +15,6 @@
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
     "incremental": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "isolatedModules": true,
     "plugins": [
       {
         "name": "next"

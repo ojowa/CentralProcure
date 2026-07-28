@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { InternalModule, ProcurementPlanDetail, ProcurementPlanItemDetail } from '../types/internal';
 import { fetchPlanDetails } from '../services/moduleService';
+import { usePermission } from '../hooks/usePermission';
 import {
   decideProcurementPlanApproval,
   fetchProcurementPlanRecommendationReadiness,
@@ -36,6 +37,7 @@ interface Props {
 }
 
 export const ProcurementPlanModule = ({ module, token, role }: Props) => {
+  const { hasPermission } = usePermission(token);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -59,8 +61,8 @@ export const ProcurementPlanModule = ({ module, token, role }: Props) => {
   const [isModalProcessing, setIsModalProcessing] = useState(false);
   const [editingYearlyApp, setEditingYearlyApp] = useState<YearlyAppDetail | null>(null);
 
-  const canRecommendApp = role === 'procurement_secretary' || role === 'admin';
-  const canTakeApprovalDecision = role === 'comptroller_procurement' || role === 'accounting_officer' || role === 'admin';
+  const canRecommendApp = hasPermission('procurement_plan.approve');
+  const canTakeApprovalDecision = hasPermission('procurement_plan.approve') || hasPermission('cgis.approve');
   const isAwaitingAppApproval = selectedPlan?.CurrentStageKey === 'app_approval';
   const isAwaitingCgisApproval = selectedPlan?.CurrentStageKey === 'accounting_officer_review';
   const isAtProcurementInitiation = selectedPlan?.CurrentStageKey === 'procurement_initiation';
@@ -330,7 +332,7 @@ export const ProcurementPlanModule = ({ module, token, role }: Props) => {
           yearlyApps={yearlyApps}
           filteredYearlyApps={filteredYearlyApps}
           query={query}
-          role={role}
+          canCreateApp={canRecommendApp || canTakeApprovalDecision}
           statusCounts={statusCounts}
           onQueryChange={setQuery}
           onOpenYearlyApp={(yearlyAppId) => void openYearlyApp(yearlyAppId)}

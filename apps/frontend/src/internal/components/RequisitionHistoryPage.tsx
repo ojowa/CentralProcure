@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { usePermission } from '../hooks/usePermission';
 import {
   editableRequisitionStatuses,
   requisitionRoleGuidance,
@@ -62,9 +63,10 @@ interface Props {
 }
 
 export const RequisitionHistoryPage = ({ module, token, role, userEmail, availableModuleIds = [], onModuleChange }: Props) => {
+  const { hasPermission } = usePermission(token);
   const mode = 'history';
   const pageSize = getPageSize(mode);
-  const isDepartmentHead = role === 'department_head';
+  const isDepartmentHead = hasPermission('requisition.endorse');
 
   const [filters, setFilters] = useState<FiltersState>({
     query: '',
@@ -275,7 +277,7 @@ export const RequisitionHistoryPage = ({ module, token, role, userEmail, availab
   };
 
   const handleDeleteRequisition = async () => {
-    if (!token || !selectedDetail || role !== 'admin') {
+    if (!token || !selectedDetail || !hasPermission('requisition.delete')) {
       return;
     }
 

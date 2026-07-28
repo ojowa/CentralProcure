@@ -291,7 +291,7 @@ export const TendersBoardWorkspacePage = ({
                     </article>
                     <article className="portal-module-card">
                       <h3>Publish / Close</h3>
-                      <p>{formatDate(selectedTender?.PublishedAt)} / {formatDate(selectedTender?.ClosingDate)}</p>
+                      <p>{formatDate(selectedTender?.PublishDate)} / {formatDate(selectedTender?.ClosingDate)}</p>
                     </article>
                     <article className="portal-module-card">
                       <h3>Authority Label</h3>
@@ -300,7 +300,8 @@ export const TendersBoardWorkspacePage = ({
                   </div>
                   <div style={{ marginTop: 16 }}>
                     <p><strong>Description:</strong> {selectedTender?.Description || 'No tender description available.'}</p>
-                    <p><strong>Requirements:</strong> {selectedTender?.Requirements || 'No technical specification uploaded.'}</p>
+                    <p><strong>Specifications:</strong> {selectedTender?.Specifications || 'No technical specification uploaded.'}</p>
+                    <p><strong>Eligibility:</strong> {selectedTender?.EligibilityCriteria || 'No eligibility criteria recorded.'}</p>
                     <p><strong>Evaluation Criteria:</strong> {selectedTender?.EvaluationCriteria || 'No evaluation criteria recorded.'}</p>
                   </div>
                 </div>

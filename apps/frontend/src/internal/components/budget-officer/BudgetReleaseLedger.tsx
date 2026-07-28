@@ -49,7 +49,7 @@ export const BudgetReleaseLedger = ({ token }: Props) => {
 
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
-      const releaseTime = new Date(item.CreatedAt).getTime();
+      const releaseTime = new Date(item.ReleaseDate).getTime();
       if (Number.isNaN(releaseTime)) {
         return false;
       }
@@ -215,7 +215,7 @@ export const BudgetReleaseLedger = ({ token }: Props) => {
               <option value="">All appropriations</option>
               {appropriations.map((item) => (
                 <option key={item.AppropriationId} value={item.AppropriationId}>
-                  {item.AppropriationCode} - {item.Description} - FY {item.FiscalYear}
+                  {item.BudgetCode} - {item.Department} - FY {item.FiscalYear}
                 </option>
               ))}
             </select>
@@ -265,7 +265,7 @@ export const BudgetReleaseLedger = ({ token }: Props) => {
 
         {selectedAppropriation ? (
           <div className="plan-loading" style={{ marginTop: '16px' }}>
-            Viewing releases for {selectedAppropriation.AppropriationCode} in {selectedAppropriation.Description}.
+            Viewing releases for {selectedAppropriation.BudgetCode} in {selectedAppropriation.Department}.
           </div>
         ) : null}
       </div>

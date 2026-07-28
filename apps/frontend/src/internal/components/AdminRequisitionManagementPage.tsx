@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { fetchRequisitionDetail, fetchRequisitions, updateRequisition, deleteRequisition } from '../services/requisitionService';
 import { fetchWorkflowRuntime, fetchWorkflowRuntimeHistory } from '../services/workflowContextService';
+import { usePermission } from '../hooks/usePermission';
 import type {
   InternalModule,
   RequisitionDetail,
@@ -33,6 +34,7 @@ type RequisitionAuthority = {
 type RequisitionDetailWithAuthority = RequisitionDetail & { Authority?: RequisitionAuthority | null };
 
 export const AdminRequisitionManagementPage = ({ module, token, role, userEmail, availableModuleIds = [], onModuleChange }: Props) => {
+  const { hasPermission } = usePermission(token);
   const mode = 'history';
   const pageSize = getPageSize(mode);
 
@@ -310,15 +312,15 @@ export const AdminRequisitionManagementPage = ({ module, token, role, userEmail,
       <div className="requisition-header">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded tracking-wider ${role === 'comptroller_procurement' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
-              {role === 'comptroller_procurement' ? 'Comptroller Procurement' : 'Admin Only'}
+            <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded tracking-wider ${hasPermission('requisition.endorse') ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+              {hasPermission('requisition.endorse') ? 'Comptroller Procurement' : 'Admin Only'}
             </span>
             <h2 className="text-2xl font-bold text-slate-900">
-              {role === 'comptroller_procurement' ? 'Comptroller Procurement' : module.title}
+              {hasPermission('requisition.endorse') ? 'Comptroller Procurement' : module.title}
             </h2>
           </div>
           <p className="text-slate-500">
-            {role === 'comptroller_procurement'
+            {hasPermission('requisition.endorse')
               ? 'Review submitted requisitions and clear them for Planning Committee review.'
               : 'Global administrative oversight and management of all agency procurement requisitions.'}
           </p>
@@ -334,7 +336,7 @@ export const AdminRequisitionManagementPage = ({ module, token, role, userEmail,
         <div><span>Active Workflow</span><strong>{summary.active}</strong></div>
         <div><span>Approved</span><strong>{summary.approved}</strong></div>
         <div>
-          <span>{role === 'comptroller_procurement' ? 'Procurement Control' : 'Admin Control'}</span>
+          <span>{hasPermission('requisition.endorse') ? 'Procurement Control' : 'Admin Control'}</span>
           <strong>Active</strong>
         </div>
       </div>
@@ -364,12 +366,12 @@ export const AdminRequisitionManagementPage = ({ module, token, role, userEmail,
             <div className="requisition-card__header">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className={`px-1.5 py-0.5 text-white text-[9px] font-bold uppercase rounded tracking-wider ${role === 'comptroller_procurement' ? 'bg-emerald-600' : 'bg-red-600'}`}>
-                    {role === 'comptroller_procurement' ? 'Procurement Review' : 'Admin Console'}
+                  <span className={`px-1.5 py-0.5 text-white text-[9px] font-bold uppercase rounded tracking-wider ${hasPermission('requisition.endorse') ? 'bg-emerald-600' : 'bg-red-600'}`}>
+                    {hasPermission('requisition.endorse') ? 'Procurement Review' : 'Admin Console'}
                   </span>
                   <h3>Requisition Detail</h3>
                 </div>
-                <p>{role === 'comptroller_procurement' ? 'Validate readiness before Planning Committee review.' : 'Global oversight of request content and routing history.'}</p>
+                <p>{hasPermission('requisition.endorse') ? 'Validate readiness before Planning Committee review.' : 'Global oversight of request content and routing history.'}</p>
               </div>
               <button type="button" className="plan-link" onClick={() => setIsDetailModalOpen(false)}>
                 Close
@@ -383,7 +385,7 @@ export const AdminRequisitionManagementPage = ({ module, token, role, userEmail,
                   activeStepIndex={activeStepIndex}
                   isSelectedEditable={isSelectedEditable}
       isDepartmentHead={false}
-      isAdmin={role === 'admin'}
+      isAdmin={hasPermission('requisition.view.all')}
       canEditDrafts={canEditDrafts}
       canOpenSelectedForEdit={canOpenCreateModule}
       isSaving={isSaving}
@@ -396,7 +398,7 @@ export const AdminRequisitionManagementPage = ({ module, token, role, userEmail,
 
             {modalError ? <div className="portal-alert" style={{ marginTop: '12px' }}>{modalError}</div> : null}
             
-            {role === 'comptroller_procurement' && selectedDetail?.Status === 'Initial' && (
+            {hasPermission('requisition.endorse') && selectedDetail?.Status === 'Initial' && (
               <div className="plan-actions" style={{ marginTop: '16px' }}>
                 <button type="button" className="plan-button" onClick={() => void approveForPlanningCommittee()} disabled={!canRoute || isSaving}>
                   Approve for Planning Committee

@@ -284,8 +284,8 @@ export const PostAwardInspectionModulePage = ({ module, token }: Props) => {
                       <strong>{detail.InspectorName}</strong>
                     </div>
                     <div>
-                      <span>Contract Code</span>
-                      <strong>{detail.ContractCode}</strong>
+                      <span>Location</span>
+                      <strong>{detail.Location}</strong>
                     </div>
                     <div>
                       <span>Outcome</span>

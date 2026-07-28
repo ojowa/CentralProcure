@@ -21,7 +21,7 @@ type AuthContextType = {
   hasSessionAttempted: boolean;
   token: string;
   user: AuthUser | null;
-  login: (payload: { email: string; role: RoleKey }) => void;
+  login: (payload: { email: string; role: RoleKey; jwtToken?: string }) => void;
   logout: () => void;
 };
 
@@ -30,6 +30,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const INTERNAL_IDLE_TIMEOUT_MS = 15 * 60 * 1000;
 const INTERNAL_LAST_ACTIVITY_KEY = '__internal_last_activity__';
 const INTERNAL_LOGOUT_BROADCAST_KEY = '__internal_logout_broadcast__';
+const INTERNAL_JWT_STORAGE_KEY = '__internal_jwt_token__';
 const ACTIVITY_SYNC_EVENTS: Array<keyof WindowEventMap> = ['pointerdown', 'keydown', 'scroll', 'focus'];
 
 const readTimestamp = (key: string): number | null => {
@@ -74,6 +75,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     if (typeof window !== 'undefined') {
       window.localStorage.removeItem(INTERNAL_LAST_ACTIVITY_KEY);
+      window.localStorage.removeItem(INTERNAL_JWT_STORAGE_KEY);
       if (broadcast) {
         window.localStorage.setItem(INTERNAL_LOGOUT_BROADCAST_KEY, Date.now().toString());
       }
@@ -128,10 +130,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       let shouldClearSession = false;
 
       try {
-        // First ensure we have a CSRF token for any state-changing requests later
+        const storedJwt = typeof window !== 'undefined'
+          ? window.localStorage.getItem(INTERNAL_JWT_STORAGE_KEY)
+          : null;
+
         await fetchCsrfToken();
         
-        const profile = await fetchInternalUserProfile();
+        const profile = await fetchInternalUserProfile(storedJwt);
         if (!isMounted) {
           return;
         }
@@ -147,7 +152,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           throw new Error('Internal session expired.');
         }
 
-        setToken(COOKIE_SESSION_TOKEN);
+        setToken(storedJwt || COOKIE_SESSION_TOKEN);
         setUser({
           email: profile.Email,
           role
@@ -171,6 +176,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           void logoutInternalUser().catch(() => undefined);
           if (typeof window !== 'undefined') {
             window.localStorage.removeItem(INTERNAL_LAST_ACTIVITY_KEY);
+            window.localStorage.removeItem(INTERNAL_JWT_STORAGE_KEY);
           }
         }
 
@@ -242,11 +248,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [clearIdleTimeout, markActivity, performLogout, scheduleIdleTimeout, token, user]);
 
-  const login = ({ email, role }: { email: string; role: RoleKey }) => {
-    setToken(COOKIE_SESSION_TOKEN);
+  const login = ({ email, role, jwtToken }: { email: string; role: RoleKey; jwtToken?: string }) => {
+    const resolvedToken = jwtToken || COOKIE_SESSION_TOKEN;
+    setToken(resolvedToken);
     setUser({ email, role });
     setIsReady(true);
     markActivity(true);
+    if (jwtToken && typeof window !== 'undefined') {
+      window.localStorage.setItem(INTERNAL_JWT_STORAGE_KEY, jwtToken);
+    }
   };
 
   const logout = () => {

@@ -265,8 +265,7 @@ export const TenderCreatePage: React.FC<Props> = ({ token, module }) => {
         Description: req ? `Tender for ${req.Title}` : `Tender for ${detail.Title}`,
         Category: detail.ProcurementType || 'Goods',
         Requirements: buildSpecificationsFromLineItems(detail),
-        EvaluationCriteria: buildEvaluationCriteriaByProcurementType(detail.ProcurementType),
-        EstimatedValue: 0
+        EvaluationCriteria: buildEvaluationCriteriaByProcurementType(detail.ProcurementType)
       });
       setStep('draft');
       router.replace(buildWorkspacePath('create'));
@@ -496,6 +495,16 @@ export const TenderCreatePage: React.FC<Props> = ({ token, module }) => {
               value={form.Requirements}
               onChange={e => setForm({ ...form, Requirements: e.target.value })}
               placeholder="Enter technical specifications, scope details, deliverables, standards, or bill of quantities."
+            />
+          </label>
+          <label className="plan-field">
+            <span>Eligibility Criteria</span>
+            <textarea
+              className="plan-input"
+              rows={4}
+              value={form.EligibilityCriteria}
+              onChange={e => setForm({ ...form, EligibilityCriteria: e.target.value })}
+              placeholder="Enter bidder eligibility requirements such as CAC, Tax Clearance, PENCOM, ITF, NSITF, OEM authorization, similar experience, or licenses."
             />
           </label>
           <label className="plan-field">
