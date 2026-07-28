@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { extractPayloadFromRequest } from '../lib/jwt.js';
+import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
 export const bppNoObjectionsRouter = Router();
 
@@ -117,8 +118,8 @@ bppNoObjectionsRouter.get('/api/bpp-no-objections/:id', async (req, res) => {
 // POST /api/bpp-no-objections
 // ─────────────────────────────────────────────
 bppNoObjectionsRouter.post('/api/bpp-no-objections', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'bpp.create');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -139,7 +140,7 @@ bppNoObjectionsRouter.post('/api/bpp-no-objections', async (req, res) => {
         status AS "Status",
         created_at AS "CreatedAt"`,
       [RequisitionId, TenderId || null, Status || 'Pending', Comments || '',
-       Justification || '', payload.sub]
+       Justification || '', auth!.sub]
     );
 
     res.status(201).json(result.rows[0]);
@@ -152,8 +153,8 @@ bppNoObjectionsRouter.post('/api/bpp-no-objections', async (req, res) => {
 // PUT /api/bpp-no-objections/:id
 // ─────────────────────────────────────────────
 bppNoObjectionsRouter.put('/api/bpp-no-objections/:id', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'bpp.update');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {

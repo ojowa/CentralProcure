@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { extractPayloadFromRequest } from '../lib/jwt.js';
+import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
 export const vendorAdminRouter = Router();
 
@@ -131,11 +132,8 @@ vendorAdminRouter.get('/api/admin/vendors/:vendorId', async (req, res) => {
 
 // POST /api/admin/vendors/:vendorId/decision
 vendorAdminRouter.post('/api/admin/vendors/:vendorId/decision', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
-    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
-    return;
-  }
+  const auth = await requirePermission(req, 'admin.vendor_approval');
+  if (denyIfNoPermission(res, auth)) return;
 
   if (!pool) {
     res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
@@ -153,7 +151,7 @@ vendorAdminRouter.post('/api/admin/vendors/:vendorId/decision', async (req, res)
 
     const result = await pool.query(
       'SELECT * FROM identity.approve_vendor_registration($1, $2, $3, $4)',
-      [vendorId, payload.sub, Decision, RejectionReason || '']
+      [vendorId, auth!.sub, Decision, RejectionReason || '']
     );
 
     const doc = result.rows[0];

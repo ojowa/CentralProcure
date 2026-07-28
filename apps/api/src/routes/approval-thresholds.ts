@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { extractPayloadFromRequest } from '../lib/jwt.js';
+import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
 export const approvalThresholdsRouter = Router();
 
@@ -101,11 +102,8 @@ approvalThresholdsRouter.get('/api/approval-thresholds/resolve', async (req, res
 
 // PUT /api/approval-thresholds/:id
 approvalThresholdsRouter.put('/api/approval-thresholds/:id', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
-    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
-    return;
-  }
+  const auth = await requirePermission(req, 'admin.manage_thresholds');
+  if (denyIfNoPermission(res, auth)) return;
 
   if (!pool) {
     res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });

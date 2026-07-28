@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { extractPayloadFromRequest } from '../lib/jwt.js';
+import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
 export const inspectionsRouter = Router();
 
@@ -104,11 +105,8 @@ inspectionsRouter.get('/api/inspections/:inspectionId', async (req, res) => {
 
 // PUT /api/inspections/:inspectionId
 inspectionsRouter.put('/api/inspections/:inspectionId', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
-    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
-    return;
-  }
+  const auth = await requirePermission(req, 'inspection.update');
+  if (denyIfNoPermission(res, auth)) return;
 
   if (!pool) {
     res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
@@ -199,7 +197,7 @@ inspectionsRouter.put('/api/inspections/:inspectionId', async (req, res) => {
             [
               result.rows[0].ContractCode,
               `Inspection ${Outcome ? `outcome: ${Outcome}` : 'completed'}`,
-              payload.sub,
+               auth!.sub,
               Notes || '',
             ]
           );

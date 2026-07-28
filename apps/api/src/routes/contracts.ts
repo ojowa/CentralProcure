@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { extractPayloadFromRequest } from '../lib/jwt.js';
+import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
 export const contractsRouter = Router();
 
@@ -95,11 +96,8 @@ contractsRouter.get('/api/contracts/awards/:awardId', async (req, res) => {
 
 // POST /api/contracts/awards/:awardId/publish
 contractsRouter.post('/api/contracts/awards/:awardId/publish', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
-    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
-    return;
-  }
+  const auth = await requirePermission(req, 'contract_award.publish');
+  if (denyIfNoPermission(res, auth)) return;
 
   if (!pool) {
     res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
@@ -110,7 +108,7 @@ contractsRouter.post('/api/contracts/awards/:awardId/publish', async (req, res) 
     const { awardId } = req.params;
     const result = await pool.query(
       'SELECT * FROM post_award.publish_contract_award_sp($1, $2)',
-      [awardId, payload.sub]
+      [awardId, auth!.sub]
     );
 
     const a = result.rows[0];
@@ -263,11 +261,8 @@ contractsRouter.get('/api/contracts/:contractId/milestones', async (req, res) =>
 
 // POST /api/contracts/:contractId/milestones
 contractsRouter.post('/api/contracts/:contractId/milestones', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
-    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
-    return;
-  }
+  const auth = await requirePermission(req, 'contract_management.manage');
+  if (denyIfNoPermission(res, auth)) return;
 
   if (!pool) {
     res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
@@ -285,7 +280,7 @@ contractsRouter.post('/api/contracts/:contractId/milestones', async (req, res) =
 
     const result = await pool.query(
       'SELECT * FROM post_award.log_contract_milestone_sp($1, $2, $3, $4, $5, $6)',
-      [contractId, MilestoneTitle, Description || '', DueDate || null, Status || 'Pending', payload.sub]
+      [contractId, MilestoneTitle, Description || '', DueDate || null, Status || 'Pending', auth!.sub]
     );
 
     const m = result.rows[0];

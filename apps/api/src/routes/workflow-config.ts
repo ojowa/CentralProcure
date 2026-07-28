@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { extractPayloadFromRequest } from '../lib/jwt.js';
+import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
 export const workflowConfigRouter = Router();
 
@@ -41,8 +42,8 @@ workflowConfigRouter.get('/api/config/workflows/thresholds', async (req, res) =>
 
 // POST /api/config/workflows/thresholds
 workflowConfigRouter.post('/api/config/workflows/thresholds', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'admin.manage_workflow_config');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
   try {
     const {
@@ -88,8 +89,8 @@ workflowConfigRouter.post('/api/config/workflows/thresholds', async (req, res) =
 
 // PUT /api/config/workflows/thresholds/:id
 workflowConfigRouter.put('/api/config/workflows/thresholds/:id', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'admin.manage_workflow_config');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
   try {
     const { id } = req.params;
@@ -149,8 +150,8 @@ workflowConfigRouter.put('/api/config/workflows/thresholds/:id', async (req, res
 
 // DELETE /api/config/workflows/thresholds/:id
 workflowConfigRouter.delete('/api/config/workflows/thresholds/:id', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'admin.manage_workflow_config');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
   try {
     const { id } = req.params;
@@ -165,8 +166,8 @@ workflowConfigRouter.delete('/api/config/workflows/thresholds/:id', async (req, 
 
 // PUT /api/config/workflows/stages/:stageKey
 workflowConfigRouter.put('/api/config/workflows/stages/:stageKey', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'admin.manage_workflow_config');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
   try {
     const { stageKey } = req.params;
@@ -192,8 +193,8 @@ workflowConfigRouter.put('/api/config/workflows/stages/:stageKey', async (req, r
 
 // POST /api/config/workflows/transitions
 workflowConfigRouter.post('/api/config/workflows/transitions', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'admin.manage_workflow_config');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
   try {
     const { FromStageKey, ToStageKey, TransitionCondition, RequiresApproval } = req.body;
@@ -214,8 +215,8 @@ workflowConfigRouter.post('/api/config/workflows/transitions', async (req, res) 
 
 // DELETE /api/config/workflows/transitions/:id — id is "fromStageKey-toStageKey" composite
 workflowConfigRouter.delete('/api/config/workflows/transitions/:id', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'admin.manage_workflow_config');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
   try {
     const { id } = req.params;
@@ -234,8 +235,8 @@ workflowConfigRouter.delete('/api/config/workflows/transitions/:id', async (req,
 
 // POST /api/config/workflows/role-tasks
 workflowConfigRouter.post('/api/config/workflows/role-tasks', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'admin.manage_workflow_config');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
   try {
     const { RoleKey, StageKey, TaskDescription, IsRequired } = req.body;
@@ -257,8 +258,8 @@ workflowConfigRouter.post('/api/config/workflows/role-tasks', async (req, res) =
 
 // DELETE /api/config/workflows/role-tasks/:id
 workflowConfigRouter.delete('/api/config/workflows/role-tasks/:id', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'admin.manage_workflow_config');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
   try {
     const { id } = req.params;

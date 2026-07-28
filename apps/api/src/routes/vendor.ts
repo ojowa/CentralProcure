@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { extractPayloadFromRequest } from '../lib/jwt.js';
+import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
 export const vendorRouter = Router();
 
@@ -94,11 +95,8 @@ vendorRouter.get('/api/Vendor/:vendorId', async (req, res) => {
 
 // PUT /api/Vendor/:vendorId
 vendorRouter.put('/api/Vendor/:vendorId', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
-    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
-    return;
-  }
+  const auth = await requirePermission(req, 'vendor.update');
+  if (denyIfNoPermission(res, auth)) return;
 
   if (!pool) {
     res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
@@ -228,11 +226,8 @@ vendorRouter.get('/api/Vendor/compliance/checklist', (_req, res) => {
 
 // POST /api/Vendor/compliance/upload
 vendorRouter.post('/api/Vendor/compliance/upload', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
-    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
-    return;
-  }
+  const auth = await requirePermission(req, 'vendor.compliance_upload');
+  if (denyIfNoPermission(res, auth)) return;
 
   if (!pool) {
     res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
@@ -249,7 +244,7 @@ vendorRouter.post('/api/Vendor/compliance/upload', async (req, res) => {
 
     const result = await pool.query(
       'SELECT * FROM identity.upload_compliance_document($1, $2, $3, $4)',
-      [payload.sub, DocumentType, FileName, FileContent || '']
+      [auth!.sub, DocumentType, FileName, FileContent || '']
     );
 
     const doc = result.rows[0];

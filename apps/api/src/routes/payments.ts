@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { extractPayloadFromRequest } from '../lib/jwt.js';
+import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
 export const paymentsRouter = Router();
 
@@ -103,11 +104,8 @@ paymentsRouter.get('/api/payments', async (req, res) => {
 
 // POST /api/payments
 paymentsRouter.post('/api/payments', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
-    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
-    return;
-  }
+  const auth = await requirePermission(req, 'payment.record');
+  if (denyIfNoPermission(res, auth)) return;
 
   if (!pool) {
     res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
@@ -149,7 +147,7 @@ paymentsRouter.post('/api/payments', async (req, res) => {
         PaymentMethod || 'BankTransfer',
         CloseoutEligible || false,
         Notes || '',
-        payload.sub,
+        auth!.sub,
       ]
     );
 

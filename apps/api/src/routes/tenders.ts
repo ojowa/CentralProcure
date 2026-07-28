@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { extractPayloadFromRequest } from '../lib/jwt.js';
+import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
 export const tendersRouter = Router();
 
@@ -116,11 +117,8 @@ tendersRouter.get('/api/internal/tenders/:tenderId', async (req, res) => {
 
 // POST /api/internal/tenders
 tendersRouter.post('/api/internal/tenders', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
-    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
-    return;
-  }
+  const auth = await requirePermission(req, 'tender.manage');
+  if (denyIfNoPermission(res, auth)) return;
 
   if (!pool) {
     res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
@@ -146,7 +144,7 @@ tendersRouter.post('/api/internal/tenders', async (req, res) => {
         ClosingDate || null, Requirements || '', EvaluationCriteria || '',
         Category || '', ProcurementType || '', FundingSource || '',
         ApprovalLevel || '', UnitId || null, DepartmentId || null,
-        ProjectId || null, payload.sub,
+        ProjectId || null, auth!.sub,
       ]
     );
 
@@ -166,11 +164,8 @@ tendersRouter.post('/api/internal/tenders', async (req, res) => {
 
 // PUT /api/internal/tenders/:tenderId
 tendersRouter.put('/api/internal/tenders/:tenderId', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
-    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
-    return;
-  }
+  const auth = await requirePermission(req, 'tender.manage');
+  if (denyIfNoPermission(res, auth)) return;
 
   if (!pool) {
     res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
@@ -217,11 +212,8 @@ tendersRouter.put('/api/internal/tenders/:tenderId', async (req, res) => {
 
 // DELETE /api/internal/tenders/:tenderId
 tendersRouter.delete('/api/internal/tenders/:tenderId', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
-    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
-    return;
-  }
+  const auth = await requirePermission(req, 'tender.manage');
+  if (denyIfNoPermission(res, auth)) return;
 
   if (!pool) {
     res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
@@ -248,11 +240,8 @@ tendersRouter.delete('/api/internal/tenders/:tenderId', async (req, res) => {
 
 // POST /api/internal/tenders/:tenderId/publish
 tendersRouter.post('/api/internal/tenders/:tenderId/publish', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
-    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
-    return;
-  }
+  const auth = await requirePermission(req, 'tender.manage');
+  if (denyIfNoPermission(res, auth)) return;
 
   if (!pool) {
     res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
@@ -265,7 +254,7 @@ tendersRouter.post('/api/internal/tenders/:tenderId/publish', async (req, res) =
 
     const result = await pool.query(
       'SELECT * FROM vendor_sourcing.publish_tender($1, $2, $3, $4)',
-      [tenderId, payload.sub, PublishedAt || new Date().toISOString(), ClosingDate || null]
+      [tenderId, auth!.sub, PublishedAt || new Date().toISOString(), ClosingDate || null]
     );
 
     const t = result.rows[0];

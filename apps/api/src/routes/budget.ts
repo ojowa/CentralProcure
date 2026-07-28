@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { extractPayloadFromRequest } from '../lib/jwt.js';
+import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
 export const budgetRouter = Router();
 
@@ -278,11 +279,8 @@ budgetRouter.get('/api/budget/confirmations/:planId', async (req, res) => {
 
 // POST /api/budget/confirmations/:planId/decision
 budgetRouter.post('/api/budget/confirmations/:planId/decision', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
-    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
-    return;
-  }
+  const auth = await requirePermission(req, 'budget.confirm');
+  if (denyIfNoPermission(res, auth)) return;
 
   if (!pool) {
     res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
@@ -316,7 +314,7 @@ budgetRouter.post('/api/budget/confirmations/:planId/decision', async (req, res)
          approved_by AS "ApprovedBy",
          approved_at AS "ApprovedAt",
          rejection_reason AS "RejectionReason"`,
-      [Decision, payload.sub, RejectionReason || null, planId]
+      [Decision, auth!.sub, RejectionReason || null, planId]
     );
 
     if (result.rows.length === 0) {
@@ -471,11 +469,8 @@ budgetRouter.get('/api/budget/appropriations', async (req, res) => {
 
 // POST /api/budget/appropriations
 budgetRouter.post('/api/budget/appropriations', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
-    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
-    return;
-  }
+  const auth = await requirePermission(req, 'budget.appropriate');
+  if (denyIfNoPermission(res, auth)) return;
 
   if (!pool) {
     res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
@@ -503,7 +498,7 @@ budgetRouter.post('/api/budget/appropriations', async (req, res) => {
          status AS "Status",
          created_by AS "CreatedBy",
          created_at AS "CreatedAt"`,
-      [AppropriationCode, Description || '', TotalAmount, FiscalYear, payload.sub]
+       [AppropriationCode, Description || '', TotalAmount, FiscalYear, auth!.sub]
     );
 
     res.status(201).json(result.rows[0]);
@@ -514,11 +509,8 @@ budgetRouter.post('/api/budget/appropriations', async (req, res) => {
 
 // POST /api/budget/appropriations/:id/close
 budgetRouter.post('/api/budget/appropriations/:id/close', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
-    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
-    return;
-  }
+  const auth = await requirePermission(req, 'budget.appropriate');
+  if (denyIfNoPermission(res, auth)) return;
 
   if (!pool) {
     res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
@@ -631,11 +623,8 @@ budgetRouter.get('/api/budget/releases', async (req, res) => {
 
 // POST /api/budget/releases
 budgetRouter.post('/api/budget/releases', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
-    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
-    return;
-  }
+  const auth = await requirePermission(req, 'budget.release');
+  if (denyIfNoPermission(res, auth)) return;
 
   if (!pool) {
     res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
@@ -678,7 +667,7 @@ budgetRouter.post('/api/budget/releases', async (req, res) => {
           created_at AS "CreatedAt"
       )
       SELECT * FROM insert_check`,
-      [AppropriationId, ReleaseCode, Description || '', Amount, payload.sub]
+      [AppropriationId, ReleaseCode, Description || '', Amount, auth!.sub]
     );
 
     if (result.rows.length === 0) {
@@ -771,11 +760,8 @@ budgetRouter.get('/api/budget/commitments', async (req, res) => {
 
 // POST /api/budget/commitments
 budgetRouter.post('/api/budget/commitments', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
-    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
-    return;
-  }
+  const auth = await requirePermission(req, 'budget.commit');
+  if (denyIfNoPermission(res, auth)) return;
 
   if (!pool) {
     res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
@@ -819,7 +805,7 @@ budgetRouter.post('/api/budget/commitments', async (req, res) => {
           created_at AS "CreatedAt"
       )
       SELECT * FROM insert_check`,
-      [ReleaseId, CommitmentCode, Description || '', Amount, Beneficiary || '', payload.sub]
+      [ReleaseId, CommitmentCode, Description || '', Amount, Beneficiary || '', auth!.sub]
     );
 
     if (result.rows.length === 0) {
@@ -835,11 +821,8 @@ budgetRouter.post('/api/budget/commitments', async (req, res) => {
 
 // POST /api/budget/commitments/:id/cancel
 budgetRouter.post('/api/budget/commitments/:id/cancel', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
-    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
-    return;
-  }
+  const auth = await requirePermission(req, 'budget.commit');
+  if (denyIfNoPermission(res, auth)) return;
 
   if (!pool) {
     res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });

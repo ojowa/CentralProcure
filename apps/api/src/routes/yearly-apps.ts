@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { extractPayloadFromRequest } from '../lib/jwt.js';
+import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
 export const yearlyAppsRouter = Router();
 
@@ -129,8 +130,8 @@ yearlyAppsRouter.get('/api/yearly-apps/:yearlyAppId', async (req, res) => {
 // POST /api/yearly-apps
 // ─────────────────────────────────────────────
 yearlyAppsRouter.post('/api/yearly-apps', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'annual_plan.create');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -150,7 +151,7 @@ yearlyAppsRouter.post('/api/yearly-apps', async (req, res) => {
         title AS "Title",
         status AS "Status",
         created_at AS "CreatedAt"`,
-      [Year, Title, Description || '', DepartmentId || null, payload.sub]
+      [Year, Title, Description || '', DepartmentId || null, auth!.sub]
     );
 
     const app = result.rows[0];
@@ -177,8 +178,8 @@ yearlyAppsRouter.post('/api/yearly-apps', async (req, res) => {
 // PUT /api/yearly-apps/:yearlyAppId
 // ─────────────────────────────────────────────
 yearlyAppsRouter.put('/api/yearly-apps/:yearlyAppId', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'annual_plan.update');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -218,8 +219,8 @@ yearlyAppsRouter.put('/api/yearly-apps/:yearlyAppId', async (req, res) => {
 // POST /api/yearly-apps/:yearlyAppId/submit
 // ─────────────────────────────────────────────
 yearlyAppsRouter.post('/api/yearly-apps/:yearlyAppId/submit', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'annual_plan.submit');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -296,8 +297,8 @@ yearlyAppsRouter.get('/api/yearly-apps/:yearlyAppId/recommendation-readiness', a
 // POST /api/yearly-apps/:yearlyAppId/recommend-for-approval
 // ─────────────────────────────────────────────
 yearlyAppsRouter.post('/api/yearly-apps/:yearlyAppId/recommend-for-approval', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'annual_plan.recommend');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -325,7 +326,7 @@ yearlyAppsRouter.post('/api/yearly-apps/:yearlyAppId/recommend-for-approval', as
       `INSERT INTO procurement_workflow.yearly_app_recommendation_history
         (yearly_app_id, recommended_by, comments, recommended_at)
        VALUES ($1, $2, $3, NOW())`,
-      [yearlyAppId, payload.sub, Comments || '']
+      [yearlyAppId, auth!.sub, Comments || '']
     );
 
     res.json(result.rows[0]);

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { extractPayloadFromRequest } from '../lib/jwt.js';
+import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
 export const needsCollectionRouter = Router();
 
@@ -120,8 +121,8 @@ needsCollectionRouter.get('/api/needs-collection/:id', async (req, res) => {
 // POST /api/needs-collection
 // ─────────────────────────────────────────────
 needsCollectionRouter.post('/api/needs-collection', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'needs.create');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -141,7 +142,7 @@ needsCollectionRouter.post('/api/needs-collection', async (req, res) => {
         year AS "Year",
         status AS "Status",
         created_at AS "CreatedAt"`,
-      [Title, Description || '', Year, DepartmentId || null, Justification || '', payload.sub]
+      [Title, Description || '', Year, DepartmentId || null, Justification || '', auth!.sub]
     );
 
     const needs = result.rows[0];
@@ -168,8 +169,8 @@ needsCollectionRouter.post('/api/needs-collection', async (req, res) => {
 // PUT /api/needs-collection/:id
 // ─────────────────────────────────────────────
 needsCollectionRouter.put('/api/needs-collection/:id', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'needs.update');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -211,8 +212,8 @@ needsCollectionRouter.put('/api/needs-collection/:id', async (req, res) => {
 // POST /api/needs-collection/:id/decision
 // ─────────────────────────────────────────────
 needsCollectionRouter.post('/api/needs-collection/:id/decision', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'needs.endorse');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -246,7 +247,7 @@ needsCollectionRouter.post('/api/needs-collection/:id/decision', async (req, res
       `INSERT INTO procurement_workflow.needs_collection_decisions
         (needs_id, decision, comments, decided_by, decided_at)
        VALUES ($1, $2, $3, $4, NOW())`,
-      [id, Decision, Comments || '', payload.sub]
+      [id, Decision, Comments || '', auth!.sub]
     );
 
     res.json(result.rows[0]);

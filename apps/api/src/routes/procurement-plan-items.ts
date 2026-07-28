@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { extractPayloadFromRequest } from '../lib/jwt.js';
+import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
 export const procurementPlanItemsRouter = Router();
 
@@ -31,8 +32,8 @@ procurementPlanItemsRouter.get('/api/procurement-plans/:planId/items', async (re
 // POST /api/procurement-plans/:planId/items
 // ─────────────────────────────────────────────
 procurementPlanItemsRouter.post('/api/procurement-plans/:planId/items', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'procurement_plan.manage');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -46,7 +47,7 @@ procurementPlanItemsRouter.post('/api/procurement-plans/:planId/items', async (r
     const result = await pool.query(
       `SELECT * FROM procurement_workflow.create_procurement_plan_item_sp($1, $2, $3, $4, $5, $6, $7, $8)`,
       [planId, Description, Justification || '', EstimatedCost || 0, ApprovedBudget || 0,
-       FundingSource || '', ItemCategory || '', payload.sub]
+       FundingSource || '', ItemCategory || '', auth!.sub]
     );
 
     if (result.rows.length === 0 || result.rows[0].error_message) {
@@ -103,8 +104,8 @@ procurementPlanItemsRouter.get('/api/procurement-plan-items/:planItemId', async 
 // PUT /api/procurement-plan-items/:planItemId
 // ─────────────────────────────────────────────
 procurementPlanItemsRouter.put('/api/procurement-plan-items/:planItemId', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'procurement_plan.manage');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -114,7 +115,7 @@ procurementPlanItemsRouter.put('/api/procurement-plan-items/:planItemId', async 
     const result = await pool.query(
       `SELECT * FROM procurement_workflow.update_procurement_plan_item_sp($1, $2, $3, $4, $5, $6, $7, $8)`,
       [planItemId, Description || '', Justification || '', EstimatedCost || 0,
-       ApprovedBudget || 0, FundingSource || '', ItemCategory || '', payload.sub]
+       ApprovedBudget || 0, FundingSource || '', ItemCategory || '', auth!.sub]
     );
 
     if (result.rows.length === 0 || result.rows[0].error_message) {
@@ -131,8 +132,8 @@ procurementPlanItemsRouter.put('/api/procurement-plan-items/:planItemId', async 
 // DELETE /api/procurement-plan-items/:planItemId
 // ─────────────────────────────────────────────
 procurementPlanItemsRouter.delete('/api/procurement-plan-items/:planItemId', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'procurement_plan.manage');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {

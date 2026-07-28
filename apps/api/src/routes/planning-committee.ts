@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { extractPayloadFromRequest } from '../lib/jwt.js';
+import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
 export const planningCommitteeRouter = Router();
 
@@ -136,8 +137,8 @@ planningCommitteeRouter.get('/api/planning-committee/workspace/requisitions/:req
 // POST /api/planning-committee/workspace/requisitions/:requisitionId/link
 // ─────────────────────────────────────────────
 planningCommitteeRouter.post('/api/planning-committee/workspace/requisitions/:requisitionId/link', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'planning_committee.manage');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -153,7 +154,7 @@ planningCommitteeRouter.post('/api/planning-committee/workspace/requisitions/:re
        VALUES ($1, $2, $3, NOW())
        ON CONFLICT (plan_id, requisition_id) DO NOTHING
        RETURNING plan_id AS "PlanId", requisition_id AS "RequisitionId", linked_at AS "LinkedAt"`,
-      [PlanId, requisitionId, payload.sub]
+      [PlanId, requisitionId, auth!.sub]
     );
 
     res.status(201).json(result.rows[0] || { PlanId, RequisitionId: requisitionId, Status: 'Already linked' });
@@ -166,8 +167,8 @@ planningCommitteeRouter.post('/api/planning-committee/workspace/requisitions/:re
 // POST /api/planning-committee/workspace/requisitions/:requisitionId/unlink
 // ─────────────────────────────────────────────
 planningCommitteeRouter.post('/api/planning-committee/workspace/requisitions/:requisitionId/unlink', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'planning_committee.manage');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -199,8 +200,8 @@ planningCommitteeRouter.post('/api/planning-committee/workspace/requisitions/:re
 // POST /api/planning-committee/workspace/requisitions/:requisitionId/member-review
 // ─────────────────────────────────────────────
 planningCommitteeRouter.post('/api/planning-committee/workspace/requisitions/:requisitionId/member-review', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'planning_committee.manage');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -224,7 +225,7 @@ planningCommitteeRouter.post('/api/planning-committee/workspace/requisitions/:re
         decision AS "Decision",
         comments AS "Comments",
         reviewed_at AS "ReviewedAt"`,
-      [requisitionId, payload.sub, Decision, Comments || '']
+      [requisitionId, auth!.sub, Decision, Comments || '']
     );
 
     res.status(201).json(result.rows[0]);
@@ -237,8 +238,8 @@ planningCommitteeRouter.post('/api/planning-committee/workspace/requisitions/:re
 // POST /api/planning-committee/workspace/requisitions/:requisitionId/finalize
 // ─────────────────────────────────────────────
 planningCommitteeRouter.post('/api/planning-committee/workspace/requisitions/:requisitionId/finalize', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'planning_committee.manage');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -273,7 +274,7 @@ planningCommitteeRouter.post('/api/planning-committee/workspace/requisitions/:re
       `INSERT INTO procurement_workflow.committee_decisions
         (requisition_id, decision, comments, finalized_by, finalized_at)
        VALUES ($1, $2, $3, $4, NOW())`,
-      [requisitionId, Decision, Comments || '', payload.sub]
+       [requisitionId, Decision, Comments || '', auth!.sub]
     );
 
     res.json(result.rows[0]);
@@ -465,8 +466,8 @@ planningCommitteeRouter.get('/api/planning-committee/plan-links', async (req, re
 // POST /api/planning-committee/requisitions/:requisitionId/link-plan
 // ─────────────────────────────────────────────
 planningCommitteeRouter.post('/api/planning-committee/requisitions/:requisitionId/link-plan', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'planning_committee.manage');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -482,7 +483,7 @@ planningCommitteeRouter.post('/api/planning-committee/requisitions/:requisitionI
        VALUES ($1, $2, $3, NOW())
        ON CONFLICT (plan_id, requisition_id) DO NOTHING
        RETURNING plan_id AS "PlanId", requisition_id AS "RequisitionId", linked_at AS "LinkedAt"`,
-      [PlanId, requisitionId, payload.sub]
+      [PlanId, requisitionId, auth!.sub]
     );
 
     res.status(201).json(result.rows[0] || { PlanId, RequisitionId: requisitionId, Status: 'Already linked' });
@@ -495,8 +496,8 @@ planningCommitteeRouter.post('/api/planning-committee/requisitions/:requisitionI
 // POST /api/planning-committee/requisitions/:requisitionId/unlink-plan
 // ─────────────────────────────────────────────
 planningCommitteeRouter.post('/api/planning-committee/requisitions/:requisitionId/unlink-plan', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'planning_committee.manage');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -528,8 +529,8 @@ planningCommitteeRouter.post('/api/planning-committee/requisitions/:requisitionI
 // POST /api/planning-committee/submit-member-review
 // ─────────────────────────────────────────────
 planningCommitteeRouter.post('/api/planning-committee/submit-member-review', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'planning_committee.manage');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -547,7 +548,7 @@ planningCommitteeRouter.post('/api/planning-committee/submit-member-review', asy
          ON CONFLICT (requisition_id, member_id)
          DO UPDATE SET decision = $3, comments = $4, reviewed_at = NOW()
          RETURNING review_id AS "ReviewId", decision AS "Decision", reviewed_at AS "ReviewedAt"`,
-        [RequisitionId, payload.sub, Decision, Comments || '']
+         [RequisitionId, auth!.sub, Decision, Comments || '']
       );
       res.status(201).json(result.rows[0]);
     } else if (PlanId) {
@@ -558,7 +559,7 @@ planningCommitteeRouter.post('/api/planning-committee/submit-member-review', asy
          ON CONFLICT (plan_id, member_id)
          DO UPDATE SET decision = $3, comments = $4, reviewed_at = NOW()
          RETURNING review_id AS "ReviewId", decision AS "Decision", reviewed_at AS "ReviewedAt"`,
-        [PlanId, payload.sub, Decision, Comments || '']
+         [PlanId, auth!.sub, Decision, Comments || '']
       );
       res.status(201).json(result.rows[0]);
     } else {
@@ -573,8 +574,8 @@ planningCommitteeRouter.post('/api/planning-committee/submit-member-review', asy
 // POST /api/planning-committee/submit-committee-decision
 // ─────────────────────────────────────────────
 planningCommitteeRouter.post('/api/planning-committee/submit-committee-decision', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'planning_committee.manage');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -604,7 +605,7 @@ planningCommitteeRouter.post('/api/planning-committee/submit-committee-decision'
         `INSERT INTO procurement_workflow.committee_decisions
           (requisition_id, decision, comments, finalized_by, finalized_at)
          VALUES ($1, $2, $3, $4, NOW())`,
-        [RequisitionId, Decision, Comments || '', payload.sub]
+         [RequisitionId, Decision, Comments || '', auth!.sub]
       );
 
       res.json(result.rows[0]);
@@ -628,7 +629,7 @@ planningCommitteeRouter.post('/api/planning-committee/submit-committee-decision'
         `INSERT INTO procurement_workflow.plan_committee_decisions
           (plan_id, decision, comments, finalized_by, finalized_at)
          VALUES ($1, $2, $3, $4, NOW())`,
-        [PlanId, Decision, Comments || '', payload.sub]
+         [PlanId, Decision, Comments || '', auth!.sub]
       );
 
       res.json(result.rows[0]);
@@ -672,8 +673,8 @@ planningCommitteeRouter.get('/api/planning-committee/chairman', async (req, res)
 // PUT /api/planning-committee/chairman
 // ─────────────────────────────────────────────
 planningCommitteeRouter.put('/api/planning-committee/chairman', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'planning_committee.manage');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -698,7 +699,7 @@ planningCommitteeRouter.put('/api/planning-committee/chairman', async (req, res)
         member_id AS "MemberId",
         role AS "Role",
         assigned_at AS "AssignedAt"`,
-      [MemberId, payload.sub]
+       [MemberId, auth!.sub]
     );
 
     res.json(result.rows[0]);

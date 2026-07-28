@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { extractPayloadFromRequest } from '../lib/jwt.js';
+import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
 export const cgisApprovalRouter = Router();
 
@@ -32,9 +33,11 @@ cgisApprovalRouter.get('/api/cgis-approval/documents/:entityType/:entityId', asy
 
 // POST /api/cgis-approval/:action
 cgisApprovalRouter.post('/api/cgis-approval/:action', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'cgis.approve');
+  if (denyIfNoPermission(res, auth)) return;
+
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
+
   try {
     const { action } = req.params;
     const { EntityType, EntityId, Notes } = req.body;
@@ -60,7 +63,7 @@ cgisApprovalRouter.post('/api/cgis-approval/:action', async (req, res) => {
         (instance_id, to_stage_key, stage_status, transition_source, transition_reason, actor)
        SELECT instance_id, current_stage_key, $1, 'cgis_approval', $2, $3
        FROM procurement_workflow.workflow_instances WHERE entity_type = $4 AND entity_id = $5`,
-      [newStatus, Notes || `${action} by CGIS`, payload.email || payload.sub, EntityType, EntityId]
+      [newStatus, Notes || `${action} by CGIS`, auth!.email || auth!.sub, EntityType, EntityId]
     );
 
     res.json({

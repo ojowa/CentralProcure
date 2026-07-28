@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { pool } from '../db.js';
 import { extractPayloadFromRequest } from '../lib/jwt.js';
 import { syncAsync } from '../lib/workflow/runtime-tracker.js';
+import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
 export const workflowRouter = Router();
 
@@ -76,11 +77,8 @@ workflowRouter.get('/api/workflow-actions/:entityType/:entityId', async (req, re
 
 // POST /api/workflow-runtime/:entityType/:entityId
 workflowRouter.post('/api/workflow-runtime/:entityType/:entityId', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
-    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
-    return;
-  }
+  const auth = await requirePermission(req, 'workflow.advance');
+  if (denyIfNoPermission(res, auth)) return;
 
   if (!pool) {
     res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
@@ -120,7 +118,7 @@ workflowRouter.post('/api/workflow-runtime/:entityType/:entityId', async (req, r
       procurement_type: ProcurementType ?? null,
       threshold_id: ThresholdId ?? null,
       transition_reason: TransitionReason ?? null,
-      actor: Actor ?? payload.email ?? payload.sub,
+      actor: Actor ?? auth!.email ?? auth!.sub,
       transition_source: TransitionSource ?? 'api_sync'
     });
 

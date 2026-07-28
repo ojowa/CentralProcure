@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { extractPayloadFromRequest } from '../lib/jwt.js';
+import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
 export const evaluationsRouter = Router();
 
@@ -55,11 +56,8 @@ evaluationsRouter.get('/api/evaluations/assigned-tenders/default', async (req, r
 
 // POST /api/evaluations/actions
 evaluationsRouter.post('/api/evaluations/actions', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
-    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
-    return;
-  }
+  const auth = await requirePermission(req, 'evaluation.submit');
+  if (denyIfNoPermission(res, auth)) return;
 
   if (!pool) {
     res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
@@ -87,7 +85,7 @@ evaluationsRouter.post('/api/evaluations/actions', async (req, res) => {
         comments AS "Comments",
         score AS "Score",
         created_at AS "CreatedAt"`,
-      [TenderId, ReportId || null, payload.sub, Action, Comments || '', Score || null]
+      [TenderId, ReportId || null, auth!.sub, Action, Comments || '', Score || null]
     );
 
     res.status(201).json(result.rows[0]);
@@ -165,11 +163,8 @@ evaluationsRouter.get('/api/evaluations/assignments', async (req, res) => {
 
 // PUT /api/evaluations/assignments/:tenderId
 evaluationsRouter.put('/api/evaluations/assignments/:tenderId', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
-    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
-    return;
-  }
+  const auth = await requirePermission(req, 'evaluation.assign');
+  if (denyIfNoPermission(res, auth)) return;
 
   if (!pool) {
     res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });

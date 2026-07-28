@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { extractPayloadFromRequest } from '../lib/jwt.js';
+import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
 export const procurementMethodsRouter = Router();
 
@@ -112,8 +113,8 @@ procurementMethodsRouter.get('/api/procurement-methods/:entityType/:entityId', a
 // POST /api/procurement-methods/determine
 // ─────────────────────────────────────────────
 procurementMethodsRouter.post('/api/procurement-methods/determine', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'method.determine');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -144,7 +145,7 @@ procurementMethodsRouter.post('/api/procurement-methods/determine', async (req, 
         status AS "Status",
         determined_at AS "DeterminedAt"`,
       [EntityType, EntityId, EntityTitle || '', MethodDetermined, EstimatedValue || 0,
-       Justification || '', payload.sub]
+       Justification || '', auth!.sub]
     );
 
     res.status(201).json(result.rows[0]);
@@ -157,8 +158,8 @@ procurementMethodsRouter.post('/api/procurement-methods/determine', async (req, 
 // POST /api/procurement-methods/request-exception
 // ─────────────────────────────────────────────
 procurementMethodsRouter.post('/api/procurement-methods/request-exception', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'method.exception_request');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -179,7 +180,7 @@ procurementMethodsRouter.post('/api/procurement-methods/request-exception', asyn
         requested_method AS "RequestedMethod",
         status AS "Status",
         requested_at AS "RequestedAt"`,
-      [EntityType, EntityId, EntityTitle || '', RequestedMethod, Justification, Reason || '', payload.sub]
+      [EntityType, EntityId, EntityTitle || '', RequestedMethod, Justification, Reason || '', auth!.sub]
     );
 
     res.status(201).json(result.rows[0]);
@@ -252,8 +253,8 @@ procurementMethodsRouter.get('/api/procurement-methods/exceptions/queue', async 
 // POST /api/procurement-methods/exceptions/:action
 // ─────────────────────────────────────────────
 procurementMethodsRouter.post('/api/procurement-methods/exceptions/:action', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'method.exception_approve');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -283,7 +284,7 @@ procurementMethodsRouter.post('/api/procurement-methods/exceptions/:action', asy
         requested_method AS "RequestedMethod",
         status AS "Status",
         decided_at AS "DecidedAt"`,
-      [newStatus, payload.sub, Comments || '', ExceptionId]
+      [newStatus, auth!.sub, Comments || '', ExceptionId]
     );
 
     if (result.rows.length === 0) {
@@ -298,7 +299,7 @@ procurementMethodsRouter.post('/api/procurement-methods/exceptions/:action', asy
          VALUES ($1, $2, $3, $4, 'Determined', $5, NOW(), NOW(), NOW())
          ON CONFLICT (entity_type, entity_id)
          DO UPDATE SET method_determined = $4, status = 'Determined', determined_by = $5, determined_at = NOW(), updated_at = NOW()`,
-        [exc.EntityType, exc.EntityId, exc.EntityTitle || '', exc.RequestedMethod, payload.sub]
+        [exc.EntityType, exc.EntityId, exc.EntityTitle || '', exc.RequestedMethod, auth!.sub]
       );
     }
 

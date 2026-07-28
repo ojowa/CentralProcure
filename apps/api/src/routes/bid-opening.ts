@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { extractPayloadFromRequest } from '../lib/jwt.js';
+import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
 export const bidOpeningRouter = Router();
 
@@ -97,11 +98,8 @@ bidOpeningRouter.get('/api/bid-opening/sessions/:sessionId', async (req, res) =>
 
 // POST /api/bid-opening/sessions
 bidOpeningRouter.post('/api/bid-opening/sessions', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
-    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
-    return;
-  }
+  const auth = await requirePermission(req, 'bid_opening.manage');
+  if (denyIfNoPermission(res, auth)) return;
 
   if (!pool) {
     res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
@@ -122,7 +120,7 @@ bidOpeningRouter.post('/api/bid-opening/sessions', async (req, res) => {
     const result = await pool.query(
       'SELECT * FROM vendor_sourcing.create_bid_opening_session($1, $2, $3, $4, $5, $6, $7, $8)',
       [
-        TenderId, SessionDate, Status || 'Scheduled', payload.sub,
+        TenderId, SessionDate, Status || 'Scheduled', auth!.sub,
         Notes || '', Location || '', Attendees || '', OpeningMethod || 'Public',
       ]
     );
@@ -143,11 +141,8 @@ bidOpeningRouter.post('/api/bid-opening/sessions', async (req, res) => {
 
 // PUT /api/bid-opening/sessions/:sessionId
 bidOpeningRouter.put('/api/bid-opening/sessions/:sessionId', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
-    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
-    return;
-  }
+  const auth = await requirePermission(req, 'bid_opening.manage');
+  if (denyIfNoPermission(res, auth)) return;
 
   if (!pool) {
     res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
@@ -165,7 +160,7 @@ bidOpeningRouter.put('/api/bid-opening/sessions/:sessionId', async (req, res) =>
       'SELECT * FROM vendor_sourcing.update_bid_opening_session($1, $2, $3, $4, $5, $6, $7, $8)',
       [
         sessionId, TenderId || '', SessionDate || '', Status || '',
-        ConductedBy || payload.sub, Notes || '', Location || '', OpeningMethod || '',
+        ConductedBy || auth!.sub, Notes || '', Location || '', OpeningMethod || '',
       ]
     );
 

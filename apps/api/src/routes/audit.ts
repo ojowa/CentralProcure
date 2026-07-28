@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { extractPayloadFromRequest } from '../lib/jwt.js';
+import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
 export const auditRouter = Router();
 
@@ -141,11 +142,8 @@ auditRouter.get('/api/audit/closeouts', async (req, res) => {
 
 // POST /api/audit/closeouts
 auditRouter.post('/api/audit/closeouts', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
-    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
-    return;
-  }
+  const auth = await requirePermission(req, 'audit.closeout');
+  if (denyIfNoPermission(res, auth)) return;
 
   if (!pool) {
     res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
@@ -173,7 +171,7 @@ auditRouter.post('/api/audit/closeouts', async (req, res) => {
          initiated_by AS "InitiatedBy",
          initiated_at AS "InitiatedAt",
          created_at AS "CreatedAt"`,
-      [ContractId, CloseoutCode, Description || '', payload.sub]
+       [ContractId, CloseoutCode, Description || '', auth!.sub]
     );
 
     res.status(201).json(result.rows[0]);

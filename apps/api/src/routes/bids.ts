@@ -1,16 +1,14 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { extractPayloadFromRequest } from '../lib/jwt.js';
+import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
 export const bidsRouter = Router();
 
 // POST /api/bids
 bidsRouter.post('/api/bids', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
-    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
-    return;
-  }
+  const auth = await requirePermission(req, 'bid.submit');
+  if (denyIfNoPermission(res, auth)) return;
 
   if (!pool) {
     res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
@@ -27,7 +25,7 @@ bidsRouter.post('/api/bids', async (req, res) => {
 
     const result = await pool.query(
       'SELECT * FROM vendor_sourcing.submit_bid($1, $2, $3, $4, $5)',
-      [payload.sub, TenderId, BidAmount, Proposal, FileName || '']
+      [auth!.sub, TenderId, BidAmount, Proposal, FileName || '']
     );
 
     const bid = result.rows[0];

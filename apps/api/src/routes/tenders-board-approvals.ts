@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { extractPayloadFromRequest } from '../lib/jwt.js';
+import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
 export const tendersBoardApprovalsRouter = Router();
 
@@ -69,8 +70,8 @@ tendersBoardApprovalsRouter.get('/api/tenders-board-approvals/queue', async (req
 // POST /api/tenders-board-approvals/approve
 // ─────────────────────────────────────────────
 tendersBoardApprovalsRouter.post('/api/tenders-board-approvals/approve', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'approval.decide');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -91,7 +92,7 @@ tendersBoardApprovalsRouter.post('/api/tenders-board-approvals/approve', async (
         entity_title AS "EntityTitle",
         status AS "Status",
         decided_at AS "DecidedAt"`,
-      [payload.sub, Comments || '', ApprovalId]
+      [auth!.sub, Comments || '', ApprovalId]
     );
 
     if (result.rows.length === 0) {
@@ -130,8 +131,8 @@ tendersBoardApprovalsRouter.post('/api/tenders-board-approvals/approve', async (
 // POST /api/tenders-board-approvals/reject
 // ─────────────────────────────────────────────
 tendersBoardApprovalsRouter.post('/api/tenders-board-approvals/reject', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'approval.decide');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -152,7 +153,7 @@ tendersBoardApprovalsRouter.post('/api/tenders-board-approvals/reject', async (r
         entity_title AS "EntityTitle",
         status AS "Status",
         decided_at AS "DecidedAt"`,
-      [payload.sub, Comments || '', ApprovalId]
+      [auth!.sub, Comments || '', ApprovalId]
     );
 
     if (result.rows.length === 0) {
@@ -191,8 +192,8 @@ tendersBoardApprovalsRouter.post('/api/tenders-board-approvals/reject', async (r
 // POST /api/tenders-board-approvals/return
 // ─────────────────────────────────────────────
 tendersBoardApprovalsRouter.post('/api/tenders-board-approvals/return', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'approval.decide');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -213,7 +214,7 @@ tendersBoardApprovalsRouter.post('/api/tenders-board-approvals/return', async (r
         entity_title AS "EntityTitle",
         status AS "Status",
         decided_at AS "DecidedAt"`,
-      [payload.sub, Comments || '', ApprovalId]
+      [auth!.sub, Comments || '', ApprovalId]
     );
 
     if (result.rows.length === 0) {

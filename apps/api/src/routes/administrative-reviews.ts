@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { extractPayloadFromRequest } from '../lib/jwt.js';
+import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
 export const administrativeReviewsRouter = Router();
 
@@ -155,8 +156,8 @@ administrativeReviewsRouter.get('/api/administrative-reviews/:id', async (req, r
 // POST /api/administrative-reviews
 // ─────────────────────────────────────────────
 administrativeReviewsRouter.post('/api/administrative-reviews', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'administrative_review.create');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -178,7 +179,7 @@ administrativeReviewsRouter.post('/api/administrative-reviews', async (req, res)
         status AS "Status",
         created_at AS "CreatedAt"`,
       [EntityType, EntityId, EntityTitle || '', ReviewType,
-       Status || 'Pending', Comments || '', Justification || '', payload.sub]
+       Status || 'Pending', Comments || '', Justification || '', auth!.sub]
     );
 
     res.status(201).json(result.rows[0]);
@@ -191,8 +192,8 @@ administrativeReviewsRouter.post('/api/administrative-reviews', async (req, res)
 // PUT /api/administrative-reviews/:id
 // ─────────────────────────────────────────────
 administrativeReviewsRouter.put('/api/administrative-reviews/:id', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'administrative_review.update');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
