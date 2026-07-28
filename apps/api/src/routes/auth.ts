@@ -1168,3 +1168,191 @@ authRouter.put('/api/Auth/internal/notifications/:notificationId/read', async (r
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred marking notification as read.' });
   }
 });
+
+// ─────────────────────────────────────────────
+// 41. RBAC PERMISSIONS
+// ─────────────────────────────────────────────
+
+authRouter.get('/api/Auth/internal/permissions', async (req: Request, res: Response) => {
+  const auth = requireAuth(req);
+  if (!auth) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  if (!requireDb(res)) return;
+
+  try {
+    const result = await pool!.query(
+      `SELECT permission_key as "PermissionKey", module as "Module", action as "Action", description as "Description"
+       FROM identity.get_role_permissions($1)
+       ORDER BY module, action`,
+      [auth.role]
+    );
+    res.json(result.rows);
+  } catch (err: any) {
+    console.error('Error fetching permissions:', err);
+    res.status(500).json({ ErrorMessage: err.message || 'Internal server error fetching permissions.' });
+  }
+});
+
+authRouter.get('/api/Auth/internal/permissions/check', async (req: Request, res: Response) => {
+  const auth = requireAuth(req);
+  if (!auth) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  if (!requireDb(res)) return;
+
+  const permissionKey = req.query.permissionKey as string;
+  if (!permissionKey) {
+    res.status(400).json({ ErrorMessage: 'permissionKey query parameter is required.' });
+    return;
+  }
+
+  try {
+    const result = await pool!.query(
+      `SELECT identity.role_has_permission($1, $2) as has_permission`,
+      [auth.role, permissionKey]
+    );
+    const hasPermission = result.rows[0]?.has_permission ?? false;
+    res.json({ PermissionKey: permissionKey, HasPermission: hasPermission });
+  } catch (err: any) {
+    console.error('Error checking permission:', err);
+    res.status(500).json({ ErrorMessage: err.message || 'Internal server error checking permission.' });
+  }
+});
+
+authRouter.get('/api/Auth/internal/permissions/all', async (req: Request, res: Response) => {
+  const auth = requireAuth(req);
+  if (!auth) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  if (!requireDb(res)) return;
+
+  const roleLower = auth.role.toLowerCase();
+  const isAdmin = roleLower === 'admin' || roleLower === 'ict_admin' || roleLower === 'system_administrator';
+  if (!isAdmin) {
+    res.status(403).json({ ErrorMessage: 'Forbidden: admin access required.' });
+    return;
+  }
+
+  try {
+    const result = await pool!.query(
+      `SELECT permission_key as "PermissionKey", module as "Module", action as "Action",
+              description as "Description", is_active as "IsActive"
+       FROM identity.permissions
+       ORDER BY module, action`
+    );
+    res.json(result.rows);
+  } catch (err: any) {
+    console.error('Error fetching all permissions:', err);
+    res.status(500).json({ ErrorMessage: err.message || 'Internal server error fetching all permissions.' });
+  }
+});
+
+authRouter.get('/api/Auth/internal/role-permissions', async (req: Request, res: Response) => {
+  const auth = requireAuth(req);
+  if (!auth) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  if (!requireDb(res)) return;
+
+  const roleLower = auth.role.toLowerCase();
+  const isAdmin = roleLower === 'admin' || roleLower === 'ict_admin' || roleLower === 'system_administrator';
+  const roleName = req.query.roleName as string | undefined;
+
+  if (!isAdmin && !roleName) {
+    res.status(403).json({ ErrorMessage: 'Forbidden: admin access required.' });
+    return;
+  }
+
+  try {
+    let query: string;
+    let params: unknown[];
+
+    if (roleName) {
+      query = `SELECT role_name as "RoleName", permission_key as "PermissionKey", module as "Module",
+                      action as "Action", description as "Description", is_enabled as "IsEnabled"
+               FROM identity.v_role_permissions
+               WHERE role_name = $1
+               ORDER BY module, action`;
+      params = [roleName];
+    } else {
+      query = `SELECT role_name as "RoleName", permission_key as "PermissionKey", module as "Module",
+                      action as "Action", description as "Description", is_enabled as "IsEnabled"
+               FROM identity.v_role_permissions
+               ORDER BY role_name, module, action`;
+      params = [];
+    }
+
+    const result = await pool!.query(query, params);
+    res.json(result.rows);
+  } catch (err: any) {
+    console.error('Error fetching role permissions:', err);
+    res.status(500).json({ ErrorMessage: err.message || 'Internal server error fetching role permissions.' });
+  }
+});
+
+authRouter.put('/api/Auth/internal/role-permissions', async (req: Request, res: Response) => {
+  const auth = requireAuth(req);
+  if (!auth) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  if (!requireDb(res)) return;
+
+  const roleLower = auth.role.toLowerCase();
+  const isAdmin = roleLower === 'admin' || roleLower === 'ict_admin' || roleLower === 'system_administrator';
+  if (!isAdmin) {
+    res.status(403).json({ ErrorMessage: 'Forbidden: admin access required.' });
+    return;
+  }
+
+  const { roleName, permissionKey, isEnabled = true } = req.body;
+  if (!roleName || !permissionKey) {
+    res.status(400).json({ ErrorMessage: 'roleName and permissionKey are required.' });
+    return;
+  }
+
+  try {
+    const result = await pool!.query(
+      `INSERT INTO identity.role_permissions (role_id, permission_id, is_enabled)
+       SELECT r.role_id, p.permission_id, $3
+       FROM identity.roles r, identity.permissions p
+       WHERE r.role_name = $1 AND p.permission_key = $2
+       ON CONFLICT (role_id, permission_id) DO UPDATE SET is_enabled = $3`,
+      [roleName, permissionKey, isEnabled]
+    );
+    if (result.rowCount === 0) {
+      res.status(404).json({ ErrorMessage: 'Role or permission not found.' });
+    } else {
+      res.json({ Message: 'Permission updated.' });
+    }
+  } catch (err: any) {
+    console.error('Error upserting role permission:', err);
+    res.status(500).json({ ErrorMessage: err.message || 'Internal server error updating role permission.' });
+  }
+});
+
+authRouter.delete('/api/Auth/internal/role-permissions', async (req: Request, res: Response) => {
+  const auth = requireAuth(req);
+  if (!auth) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  if (!requireDb(res)) return;
+
+  const roleLower = auth.role.toLowerCase();
+  const isAdmin = roleLower === 'admin' || roleLower === 'ict_admin' || roleLower === 'system_administrator';
+  if (!isAdmin) {
+    res.status(403).json({ ErrorMessage: 'Forbidden: admin access required.' });
+    return;
+  }
+
+  const { roleName, permissionKey } = req.body;
+  if (!roleName || !permissionKey) {
+    res.status(400).json({ ErrorMessage: 'roleName and permissionKey are required.' });
+    return;
+  }
+
+  try {
+    const result = await pool!.query(
+      `DELETE FROM identity.role_permissions
+       WHERE role_id = (SELECT role_id FROM identity.roles WHERE role_name = $1)
+         AND permission_id = (SELECT permission_id FROM identity.permissions WHERE permission_key = $2)`,
+      [roleName, permissionKey]
+    );
+    if (result.rowCount === 0) {
+      res.status(404).json({ ErrorMessage: 'Role or permission not found.' });
+    } else {
+      res.json({ Message: 'Permission removed.' });
+    }
+  } catch (err: any) {
+    console.error('Error deleting role permission:', err);
+    res.status(500).json({ ErrorMessage: err.message || 'Internal server error deleting role permission.' });
+  }
+});

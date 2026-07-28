@@ -12,17 +12,18 @@ import { updatePlanningCommitteeChairmanAssignment } from '../services/moduleSer
 import {
   UserList, RoleList, ModuleAccessPanel, EditUserModal, ResetPasswordModal,
   CreateRoleModal, EditRoleModal, OnboardingForm, CommitteeMembersPanel, EvaluationCommitteeAssignmentsPanel,
-  UserRoleHistoryModal, ScheduleRoleModal
+  UserRoleHistoryModal, ScheduleRoleModal, PermissionsPanel
 } from './user-role-management';
 import * as roleService from '../services/roleManagementService';
 
 type Props = { module: InternalModule; token?: string | null; };
-type Tab = 'users' | 'roles' | 'modules' | 'committee' | 'onboarding';
-const TABS: Tab[] = ['users', 'roles', 'modules', 'committee', 'onboarding'];
+type Tab = 'users' | 'roles' | 'modules' | 'permissions' | 'committee' | 'onboarding';
+const TABS: Tab[] = ['users', 'roles', 'modules', 'permissions', 'committee', 'onboarding'];
 const TAB_LABELS: Record<Tab, string> = {
   users: 'Active Directory',
   roles: 'Role Catalog',
   modules: 'Module Access',
+  permissions: 'Permissions',
   committee: 'Committee Members',
   onboarding: 'User Onboarding'
 };
@@ -278,6 +279,10 @@ export const UserRoleManagementModule = ({ module, token }: Props) => {
             onDeleteRoleGrant={deleteRoleGrant} onDeleteUserGrant={deleteUserGrant}
             onBulkUpdateRoleGrants={bulkUpdateRoleGrants} onBulkUpdateUserGrants={bulkUpdateUserGrants}
             onBulkResetRoleGrants={bulkResetRoleGrants} onBulkResetUserGrants={bulkResetUserGrants} />
+        )}
+
+        {activeTab === 'permissions' && (
+          <PermissionsPanel roles={roles} token={token} />
         )}
 
         {activeTab === 'committee' && (

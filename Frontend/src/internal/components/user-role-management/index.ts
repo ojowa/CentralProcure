@@ -10,3 +10,4 @@ export { OnboardingForm } from './OnboardingForm';
 export { AccessAuditPanel, CompactAuditLog } from './AccessAuditPanel';
 export { CommitteeMembersPanel } from './CommitteeMembersPanel';
 export { EvaluationCommitteeAssignmentsPanel } from './EvaluationCommitteeAssignmentsPanel';
+export { PermissionsPanel } from './PermissionsPanel';
