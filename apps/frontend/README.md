@@ -25,7 +25,7 @@ Deploy flow:
 
 1. Create a new Blueprint from the repository root.
 2. Use the Node runtime.
-3. Set `NEXT_PUBLIC_API_URL` to your API base URL, for example `http://localhost:5000` locally or `https://centralprocure-api.onrender.com` in production.
+3. Set `NEXT_PUBLIC_API_URL` to your API base URL, for example `http://localhost:5000` locally or `https://centralprocure.onrender.com` in production.
 4. Set `NEXT_PUBLIC_APP_BASE_PATH` only if you are serving the app from a subpath.
 
 Render notes:

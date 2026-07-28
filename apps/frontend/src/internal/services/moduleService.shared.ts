@@ -10,7 +10,7 @@ const normalizeBasePath = (value: string): string => {
 
 const defaultApiBaseUrl = process.env.NODE_ENV === 'development'
   ? 'http://localhost:5000'
-  : 'https://centralprocure-api.onrender.com';
+  : 'https://centralprocure.onrender.com';
 
 const appBasePath = normalizeBasePath(process.env.NEXT_PUBLIC_APP_BASE_PATH ?? '');
 
