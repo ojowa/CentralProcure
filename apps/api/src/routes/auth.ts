@@ -619,7 +619,7 @@ authRouter.get('/api/Auth/internal/modules', async (req: Request, res: Response)
   if (!requireDb(res)) return;
 
   try {
-    const result = await pool!.query('SELECT * FROM identity.internal_modules WHERE is_active = true ORDER BY module_name');
+    const result = await pool!.query('SELECT * FROM identity.internal_modules WHERE is_active = true ORDER BY title');
     res.json(result.rows.map(mapRow));
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching modules.' });
@@ -635,7 +635,7 @@ authRouter.get('/api/Auth/internal/modules/catalog', async (req: Request, res: R
   if (!requireDb(res)) return;
 
   try {
-    const result = await pool!.query('SELECT * FROM identity.internal_modules WHERE is_active = true ORDER BY module_name');
+    const result = await pool!.query('SELECT * FROM identity.internal_modules WHERE is_active = true ORDER BY title');
     res.json(result.rows.map(mapRow));
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching module catalog.' });
