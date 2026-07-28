@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { extractPayloadFromRequest } from '../lib/jwt.js';
+import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
 export const procurementPlansRouter = Router();
 
@@ -95,8 +96,8 @@ procurementPlansRouter.get('/api/procurement-plans', async (req, res) => {
 // POST /api/procurement-plans
 // ─────────────────────────────────────────────
 procurementPlansRouter.post('/api/procurement-plans', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'procurement_plan.manage');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -107,7 +108,7 @@ procurementPlansRouter.post('/api/procurement-plans', async (req, res) => {
 
     const result = await pool.query(
       `SELECT * FROM procurement_workflow.create_procurement_plan_sp($1, $2, $3, $4, $5, $6)`,
-      [Title, Description || '', FiscalYear, DepartmentId || null, YearlyAppId || null, payload.sub]
+      [Title, Description || '', FiscalYear, DepartmentId || null, YearlyAppId || null, auth!.sub]
     );
 
     const plan = result.rows[0];
@@ -121,7 +122,7 @@ procurementPlansRouter.post('/api/procurement-plans', async (req, res) => {
           `SELECT * FROM procurement_workflow.create_procurement_plan_item_sp($1, $2, $3, $4, $5, $6, $7, $8)`,
           [plan.plan_id, item.Description || '', item.Justification || '',
            item.EstimatedCost || 0, item.ApprovedBudget || 0, item.FundingSource || '',
-           item.ItemCategory || '', payload.sub]
+           item.ItemCategory || '', auth!.sub]
         );
       }
     }

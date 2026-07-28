@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { extractPayloadFromRequest } from '../lib/jwt.js';
+import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
 export const requisitionsRouter = Router();
 
@@ -50,8 +51,8 @@ requisitionsRouter.get('/api/requisitions', async (req, res) => {
 // POST /api/requisitions
 // ─────────────────────────────────────────────
 requisitionsRouter.post('/api/requisitions', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'requisition.create');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -66,7 +67,7 @@ requisitionsRouter.post('/api/requisitions', async (req, res) => {
     const result = await pool.query(
       `SELECT * FROM procurement_workflow.create_requisition($1, $2, $3, $4, $5, $6)`,
       [Title, Description || '', DepartmentId || null, Justification || '',
-       lineItemsJson, payload.sub]
+       lineItemsJson, auth!.sub]
     );
 
     const req_ = result.rows[0];
@@ -144,8 +145,8 @@ requisitionsRouter.put('/api/requisitions/:requisitionId', async (req, res) => {
 // DELETE /api/requisitions/:requisitionId
 // ─────────────────────────────────────────────
 requisitionsRouter.delete('/api/requisitions/:requisitionId', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = await requirePermission(req, 'requisition.delete');
+  if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
