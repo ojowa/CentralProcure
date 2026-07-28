@@ -36,7 +36,9 @@ export const authMiddleware = (req: AuthenticatedRequest, res: Response, next: N
     return;
   }
 
-  const payload = extractPayloadFromRequest(req.headers.authorization);
+  const payload = extractPayloadFromRequest(req.headers.authorization)
+    ?? extractPayloadFromRequest(req.cookies?.internalAuthToken ? `Bearer ${req.cookies.internalAuthToken}` : undefined)
+    ?? extractPayloadFromRequest(req.cookies?.vendorAuthToken ? `Bearer ${req.cookies.vendorAuthToken}` : undefined);
   if (!payload) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
