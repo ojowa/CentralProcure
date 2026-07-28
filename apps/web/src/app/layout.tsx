@@ -5,6 +5,7 @@ import './login.css';
 import './portal.css';
 import { metadataBase } from './seo';
 import { CsrfFetchBootstrap } from './CsrfFetchBootstrap';
+import { KeepAlive } from './KeepAlive';
 
 // Font configurations - pick one or combine
 const inter = Inter({
@@ -41,6 +42,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${poppins.variable} ${outfit.variable} font-sans`} suppressHydrationWarning>
         <CsrfFetchBootstrap />
+        <KeepAlive />
         {children}
       </body>
     </html>
