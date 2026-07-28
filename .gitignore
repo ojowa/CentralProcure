@@ -41,7 +41,6 @@ Backend/appsettings.*.json
 Backups/
 
 # Legacy frontend and backend (replaced by apps/ structure)
-Frontend/
 Backend/
 
 # .NET / MS Build artifacts
