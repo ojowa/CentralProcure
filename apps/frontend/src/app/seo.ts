@@ -10,15 +10,11 @@ const normalizeBasePath = (value: string): string => {
 
 const normalizeSiteUrl = (value: string): string => value.endsWith('/') ? value.slice(0, -1) : value;
 
-const defaultSiteUrl =
-  process.env.NODE_ENV === 'development'
-    ? 'http://localhost:6006'
-    : '';
-
+const rawSiteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? '';
 const normalizedBasePath = normalizeBasePath(process.env.NEXT_PUBLIC_APP_BASE_PATH ?? '');
-const normalizedSiteUrl = normalizeSiteUrl(process.env.NEXT_PUBLIC_SITE_URL ?? defaultSiteUrl);
+const normalizedSiteUrl = rawSiteUrl ? normalizeSiteUrl(rawSiteUrl) : '';
 
-export const metadataBase = new URL(normalizedSiteUrl);
+export const metadataBase = normalizedSiteUrl ? new URL(normalizedSiteUrl) : undefined;
 
 const normalizeRoutePath = (path: string): string => {
   if (!path || path === '/') {

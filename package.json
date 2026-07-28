@@ -3,8 +3,18 @@
   "private": true,
   "version": "0.0.0",
   "description": "CentralProcure TypeScript monorepo",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build --prefix apps/frontend",
+    "dev": "npm run dev --prefix apps/frontend",
+    "lint": "npm run lint --prefix apps/frontend",
+    "typecheck": "npm run typecheck --prefix apps/frontend"
+  },
   "engines": {
     "node": ">=20.9.0",
     "npm": ">=10.0.0"
   }
 }
+

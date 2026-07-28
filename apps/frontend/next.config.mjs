@@ -1,6 +1,4 @@
-import { dirname } from 'path';
 import util from 'node:util';
-import { fileURLToPath } from 'url';
 
 if (
   typeof util._extend === 'function' &&
@@ -13,7 +11,6 @@ if (
   });
 }
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
 const appBasePath = process.env.NEXT_PUBLIC_APP_BASE_PATH ?? '';
 const apiServiceUrl = process.env.NEXT_PUBLIC_API_URL || '';
 const normalizeBasePath = (value) => {
@@ -31,20 +28,27 @@ const nextConfig = {
   pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
   allowedDevOrigins: ['10.169.246.197'],
   async rewrites() {
-    return [
+    const rules = [
       {
         source: '/public/:path*',
         destination: '/:path*'
-      },
-      {
-        source: '/api/health',
-        destination: `${apiServiceUrl}/health`
-      },
-      {
-        source: '/api/:path*',
-        destination: `${apiServiceUrl}/api/:path*`
       }
     ];
+
+    if (apiServiceUrl) {
+      rules.push(
+        {
+          source: '/api/health',
+          destination: `${apiServiceUrl}/health`
+        },
+        {
+          source: '/api/:path*',
+          destination: `${apiServiceUrl}/api/:path*`
+        }
+      );
+    }
+
+    return rules;
   }
 };
 
