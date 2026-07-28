@@ -40,6 +40,10 @@ Backend/appsettings.*.json
 # Backups (may contain sensitive data)
 Backups/
 
+# Legacy frontend and backend (replaced by apps/ structure)
+Frontend/
+Backend/
+
 # .NET / MS Build artifacts
 [Bb]in/
 [Oo]bj/
@@ -91,7 +95,3 @@ GEMINI.md
 SOP.md
 SOP_INSTITUTIONAL.md
 SOP_SUBMISSION.md
-
-# Preserve tracked source folders that match ignored names
-!Frontend/src/public/
-!Frontend/src/public/**
