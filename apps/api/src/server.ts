@@ -8,6 +8,13 @@ const server = app.listen(config.port, () => {
   console.log(`CentralProcure TypeScript API listening on port ${config.port}`);
 });
 
+if (pool) {
+  const db = pool;
+  setInterval(() => {
+    db.query('SELECT 1').catch(() => {});
+  }, 5 * 60 * 1000);
+}
+
 const shutdown = async (signal: string) => {
   console.log(`\n${signal} received. Shutting down gracefully...`);
   server.close(async () => {
