@@ -1,4 +1,4 @@
-import { buildCsrfHeaders } from './internalAuthService';
+import { buildAuthHeaders, buildCsrfHeaders } from './internalAuthService';
 
 const normalizeBasePath = (value: string): string => {
   if (!value || value === '/') {
@@ -90,9 +90,7 @@ export const fetchModuleData = async (moduleId: string, token: string): Promise<
     : url;
 
   const response = await fetch(finalUrl, {
-    headers: {
-      Authorization: `Bearer ${token}`
-    },
+    headers: buildAuthHeaders(token),
     credentials: 'include'
   });
 

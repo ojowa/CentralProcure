@@ -94,13 +94,21 @@ export const buildCsrfHeaders = (): Record<string, string> => {
   return csrfToken ? { 'X-CSRF-Token': csrfToken } : {};
 };
 
-const buildAuthHeaders = (token?: string | null): Record<string, string> => {
-  if (!token || token === COOKIE_SESSION_TOKEN) {
+const JWT_STORAGE_KEY = '__internal_jwt_token__';
+
+const getStoredJwt = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  return window.localStorage.getItem(JWT_STORAGE_KEY);
+};
+
+export const buildAuthHeaders = (token?: string | null): Record<string, string> => {
+  const resolved = token && token !== COOKIE_SESSION_TOKEN ? token : getStoredJwt();
+  if (!resolved) {
     return {};
   }
 
   return {
-    Authorization: `Bearer ${token}`
+    Authorization: `Bearer ${resolved}`
   };
 };
 
@@ -302,6 +310,7 @@ export const registerInternalUser = async (
 export const fetchInternalRoles = async (): Promise<InternalRoleRecord[]> => {
   const response = await fetch(API_ENDPOINTS.INTERNAL_ROLES, {
     method: 'GET',
+    headers: buildAuthHeaders(),
     credentials: 'include'
   });
 
@@ -325,6 +334,7 @@ export const fetchInternalRoles = async (): Promise<InternalRoleRecord[]> => {
 export const fetchInternalUnits = async (): Promise<InternalOrganizationalUnitRecord[]> => {
   const response = await fetch(API_ENDPOINTS.INTERNAL_UNITS, {
     method: 'GET',
+    headers: buildAuthHeaders(),
     credentials: 'include'
   });
 
@@ -780,9 +790,7 @@ export const updateInternalUserProfile = async (
 
 export const fetchInternalUsers = async (token: string): Promise<InternalUserProfile[]> => {
   const response = await fetch(API_ENDPOINTS.INTERNAL_USERS, {
-    headers: {
-      'Authorization': `Bearer ${token}`
-    },
+    headers: buildAuthHeaders(token),
     credentials: 'include'
   });
 
@@ -809,7 +817,7 @@ export const updateInternalUserRole = async (
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
+      ...buildAuthHeaders(token),
       ...buildCsrfHeaders()
     },
     credentials: 'include',
