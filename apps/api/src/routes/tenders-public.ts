@@ -13,7 +13,7 @@ tendersPublicRouter.get('/api/Tender/open', async (_req, res) => {
 
   try {
     const result = await pool.query(
-      "SELECT * FROM vendor_sourcing.get_tenders(p_status := 'Open', p_limit := 100)"
+      "SELECT * FROM vendor_sourcing.get_tenders(p_status := 'Open', p_page_size := 100)"
     );
 
     const tenders = result.rows.map((t) => ({
