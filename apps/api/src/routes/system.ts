@@ -24,7 +24,7 @@ systemRouter.get('/health', async (_request, response) => {
 systemRouter.get('/api/Auth/csrf', (_request, response) => {
   response.cookie('XSRF-TOKEN', randomUUID(), {
     httpOnly: false,
-    sameSite: 'lax',
+    sameSite: config.nodeEnv === 'production' ? 'none' : 'lax',
     secure: config.nodeEnv === 'production'
   });
 
