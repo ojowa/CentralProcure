@@ -12,7 +12,7 @@ if (pool) {
   const db = pool;
   setInterval(() => {
     db.query('SELECT 1').catch(() => {});
-  }, 5 * 60 * 1000);
+  }, 3 * 60 * 1000);
 }
 
 const shutdown = async (signal: string) => {
