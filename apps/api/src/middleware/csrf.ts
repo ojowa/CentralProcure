@@ -7,7 +7,7 @@ const EXEMPT_PATHS = ['/api/Auth/csrf', '/api/Auth/login', '/api/Auth/register',
 export const csrfMiddleware = (req: Request, res: Response, next: NextFunction): void => {
   const path = req.path.toLowerCase();
 
-  if (EXEMPT_PATHS.some(p => path === p || path === p.slice(0, -1))) {
+  if (EXEMPT_PATHS.some(p => path === p.toLowerCase() || path === p.toLowerCase().slice(0, -1))) {
     next();
     return;
   }
