@@ -93,8 +93,8 @@ authRouter.post('/api/Auth/internal/login', async (req: Request, res: Response) 
     const token = signToken({
       sub: user.internal_user_id,
       email: user.email,
-      role: user.role_name,
-      CanonicalRoleKey: user.role_name,
+      role: user.role,
+      CanonicalRoleKey: user.role,
       InternalUserId: user.internal_user_id
     });
 
@@ -103,8 +103,8 @@ authRouter.post('/api/Auth/internal/login', async (req: Request, res: Response) 
       Status: 'Success',
       Email: user.email,
       InternalUserId: user.internal_user_id,
-      RoleName: user.role_name,
-      CanonicalRoleKey: user.role_name,
+      Role: user.role,
+      CanonicalRoleKey: user.role,
       Token: token
     });
   } catch (error: any) {
