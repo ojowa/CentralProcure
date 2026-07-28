@@ -405,7 +405,7 @@ export const fetchInternalModules = async (token?: string | null): Promise<Inter
   return payload
     .filter((module) => {
       return Boolean(module) &&
-        typeof module.Id === 'string' &&
+        typeof module.ModuleId === 'string' &&
         typeof module.Title === 'string' &&
         typeof module.Section === 'string' &&
         typeof module.Description === 'string' &&
@@ -414,7 +414,7 @@ export const fetchInternalModules = async (token?: string | null): Promise<Inter
         Array.isArray(module.Actions);
     })
     .map((module) => ({
-      id: module.Id,
+      id: module.ModuleId,
       title: module.Title,
       section: module.Section,
       description: module.Description,
@@ -449,7 +449,7 @@ export const fetchInternalModulesCatalog = async (token?: string | null): Promis
   return payload
     .filter((module) => {
       return Boolean(module) &&
-        typeof module.Id === 'string' &&
+        typeof module.ModuleId === 'string' &&
         typeof module.Title === 'string' &&
         typeof module.Section === 'string' &&
         typeof module.Description === 'string' &&
@@ -457,7 +457,7 @@ export const fetchInternalModulesCatalog = async (token?: string | null): Promis
         typeof module.ControlPurpose === 'string';
     })
     .map((module) => ({
-      id: module.Id,
+      id: module.ModuleId,
       title: module.Title,
       section: module.Section,
       description: module.Description,
