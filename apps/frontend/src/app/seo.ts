@@ -13,7 +13,7 @@ const normalizeSiteUrl = (value: string): string => value.endsWith('/') ? value.
 const defaultSiteUrl =
   process.env.NODE_ENV === 'development'
     ? 'http://localhost:6006'
-    : 'https://centralprocure-frontend.onrender.com';
+    : '';
 
 const normalizedBasePath = normalizeBasePath(process.env.NEXT_PUBLIC_APP_BASE_PATH ?? '');
 const normalizedSiteUrl = normalizeSiteUrl(process.env.NEXT_PUBLIC_SITE_URL ?? defaultSiteUrl);
