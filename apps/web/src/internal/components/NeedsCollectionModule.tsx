@@ -11,6 +11,13 @@ import {
   submitCollection,
   deleteCollection,
   fetchNeedsAnalysis,
+  fetchCategoryBreakdown,
+  fetchUnitStats,
+  fetchWeightedAnalysis,
+  fetchSimilarNeeds,
+  fetchPlanGap,
+  fetchThresholdFlags,
+  fetchNonSubmissions,
   fetchAssessments,
   fetchAssessmentDetail,
   createAssessmentFromAnalysis,
@@ -19,6 +26,13 @@ import {
   type NeedsCollectionDetail,
   type NeedsCollectionItem,
   type NeedsAnalysisResult,
+  type NeedsCategoryBreakdown,
+  type NeedsUnitStats,
+  type NeedsWeightedResult,
+  type NeedsSimilarGroup,
+  type NeedsPlanGap,
+  type NeedsThresholdFlag,
+  type NeedsNonSubmission,
   type NeedsAssessmentSummary,
   type NeedsAssessmentDetail,
   type NeedsAssessmentItem,
@@ -27,7 +41,8 @@ import { formatDateTimeShort } from '../utils/procureUtils';
 import {
   FileText, Plus, ArrowLeft, Save, Send, CheckCircle, XCircle,
   Search, Building2, Package, Trash2, Loader2, BarChart3, Filter,
-  ClipboardList, RotateCcw
+  ClipboardList, RotateCcw, PieChart, Users, TrendingUp, Copy,
+  GitCompare, AlertTriangle, UserX
 } from 'lucide-react';
 
 interface NeedsCollectionModuleProps {
@@ -38,30 +53,36 @@ interface NeedsCollectionModuleProps {
 
 type Tab = 'collections' | 'analysis' | 'assessments';
 type View = 'list' | 'collection-detail' | 'assessment-detail';
+type AnalysisView = 'overview' | 'category' | 'units' | 'weighted' | 'similar' | 'plan-gap' | 'thresholds' | 'non-submissions';
 
 export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ module, token, role }) => {
   const { hasPermission } = usePermission(token);
 
-  // Tab / navigation
   const [activeTab, setActiveTab] = useState<Tab>('collections');
   const [view, setView] = useState<View>('list');
+  const [analysisView, setAnalysisView] = useState<AnalysisView>('overview');
 
-  // Data
   const [collections, setCollections] = useState<NeedsCollectionSummary[]>([]);
   const [analysis, setAnalysis] = useState<NeedsAnalysisResult[]>([]);
+  const [categoryData, setCategoryData] = useState<NeedsCategoryBreakdown[]>([]);
+  const [unitData, setUnitData] = useState<NeedsUnitStats[]>([]);
+  const [weightedData, setWeightedData] = useState<NeedsWeightedResult[]>([]);
+  const [similarData, setSimilarData] = useState<NeedsSimilarGroup[]>([]);
+  const [planGapData, setPlanGapData] = useState<NeedsPlanGap[]>([]);
+  const [thresholdData, setThresholdData] = useState<NeedsThresholdFlag[]>([]);
+  const [nonSubData, setNonSubData] = useState<NeedsNonSubmission[]>([]);
   const [assessments, setAssessments] = useState<NeedsAssessmentSummary[]>([]);
   const [selectedCollection, setSelectedCollection] = useState<NeedsCollectionDetail | null>(null);
   const [selectedAssessment, setSelectedAssessment] = useState<NeedsAssessmentDetail | null>(null);
 
-  // UI state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [analysisYear, setAnalysisYear] = useState(new Date().getFullYear());
   const [isCreating, setIsCreating] = useState(false);
+  const [thresholdUnitPrice, setThresholdUnitPrice] = useState<number>(0);
 
-  // Collection form
   const [formTitle, setFormTitle] = useState('');
   const [formFiscalYear, setFormFiscalYear] = useState(new Date().getFullYear());
   const [formRemarks, setFormRemarks] = useState('');
@@ -88,6 +109,69 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
     finally { setLoading(false); }
   }, [token, analysisYear, clearMessages]);
 
+  const loadCategory = useCallback(async () => {
+    setLoading(true); clearMessages();
+    try {
+      const data = await fetchCategoryBreakdown(token, analysisYear);
+      setCategoryData(data);
+    } catch (err: any) { setError(err.message); }
+    finally { setLoading(false); }
+  }, [token, analysisYear, clearMessages]);
+
+  const loadUnitStats = useCallback(async () => {
+    setLoading(true); clearMessages();
+    try {
+      const data = await fetchUnitStats(token, analysisYear);
+      setUnitData(data);
+    } catch (err: any) { setError(err.message); }
+    finally { setLoading(false); }
+  }, [token, analysisYear, clearMessages]);
+
+  const loadWeighted = useCallback(async () => {
+    setLoading(true); clearMessages();
+    try {
+      const data = await fetchWeightedAnalysis(token, analysisYear);
+      setWeightedData(data);
+    } catch (err: any) { setError(err.message); }
+    finally { setLoading(false); }
+  }, [token, analysisYear, clearMessages]);
+
+  const loadSimilar = useCallback(async () => {
+    setLoading(true); clearMessages();
+    try {
+      const data = await fetchSimilarNeeds(token, analysisYear);
+      setSimilarData(data);
+    } catch (err: any) { setError(err.message); }
+    finally { setLoading(false); }
+  }, [token, analysisYear, clearMessages]);
+
+  const loadPlanGap = useCallback(async () => {
+    setLoading(true); clearMessages();
+    try {
+      const data = await fetchPlanGap(token, analysisYear);
+      setPlanGapData(data);
+    } catch (err: any) { setError(err.message); }
+    finally { setLoading(false); }
+  }, [token, analysisYear, clearMessages]);
+
+  const loadThresholds = useCallback(async () => {
+    setLoading(true); clearMessages();
+    try {
+      const data = await fetchThresholdFlags(token, analysisYear, thresholdUnitPrice);
+      setThresholdData(data);
+    } catch (err: any) { setError(err.message); }
+    finally { setLoading(false); }
+  }, [token, analysisYear, thresholdUnitPrice, clearMessages]);
+
+  const loadNonSubmissions = useCallback(async () => {
+    setLoading(true); clearMessages();
+    try {
+      const data = await fetchNonSubmissions(token, analysisYear);
+      setNonSubData(data);
+    } catch (err: any) { setError(err.message); }
+    finally { setLoading(false); }
+  }, [token, analysisYear, clearMessages]);
+
   const loadAssessments = useCallback(async () => {
     setLoading(true); clearMessages();
     try {
@@ -99,9 +183,21 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
 
   useEffect(() => {
     if (activeTab === 'collections' && view === 'list') loadCollections();
-    if (activeTab === 'analysis' && view === 'list') loadAnalysis();
     if (activeTab === 'assessments' && view === 'list') loadAssessments();
-  }, [activeTab, view, loadCollections, loadAnalysis, loadAssessments]);
+  }, [activeTab, view, loadCollections, loadAssessments]);
+
+  useEffect(() => {
+    if (activeTab === 'analysis' && view === 'list') {
+      if (analysisView === 'overview') loadAnalysis();
+      else if (analysisView === 'category') loadCategory();
+      else if (analysisView === 'units') loadUnitStats();
+      else if (analysisView === 'weighted') loadWeighted();
+      else if (analysisView === 'similar') loadSimilar();
+      else if (analysisView === 'plan-gap') loadPlanGap();
+      else if (analysisView === 'thresholds') loadThresholds();
+      else if (analysisView === 'non-submissions') loadNonSubmissions();
+    }
+  }, [activeTab, view, analysisView, loadAnalysis, loadCategory, loadUnitStats, loadWeighted, loadSimilar, loadPlanGap, loadThresholds, loadNonSubmissions]);
 
   useEffect(() => { if (success) { const t = setTimeout(() => setSuccess(null), 3000); return () => clearTimeout(t); } }, [success]);
 
@@ -386,6 +482,17 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
     submitted: collections.filter(c => c.Status === 'Submitted').length,
   }), [collections]);
 
+  const analysisSubTabs: { key: AnalysisView; label: string; icon: React.ReactNode }[] = [
+    { key: 'overview', label: 'Overview', icon: <BarChart3 size={14} /> },
+    { key: 'category', label: 'Category', icon: <PieChart size={14} /> },
+    { key: 'units', label: 'By Unit', icon: <Users size={14} /> },
+    { key: 'weighted', label: 'Weighted', icon: <TrendingUp size={14} /> },
+    { key: 'similar', label: 'Duplicates', icon: <Copy size={14} /> },
+    { key: 'plan-gap', label: 'Plan Gap', icon: <GitCompare size={14} /> },
+    { key: 'thresholds', label: 'Thresholds', icon: <AlertTriangle size={14} /> },
+    { key: 'non-submissions', label: 'Non-Submit', icon: <UserX size={14} /> },
+  ];
+
   return (
     <section className="app-module">
       <header className="app-module__header">
@@ -416,12 +523,12 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
         </div>
       )}
 
-      {/* Tabs */}
+      {/* Main Tabs */}
       <div className="app-tabs" style={{ marginTop: '1.5rem' }}>
         <button className={`app-tab ${activeTab === 'collections' ? 'app-tab--active' : ''}`} onClick={() => { setActiveTab('collections'); setView('list'); setSearchQuery(''); }}>
           <FileText className="app-tab__icon" /> Collections
         </button>
-        <button className={`app-tab ${activeTab === 'analysis' ? 'app-tab--active' : ''}`} onClick={() => { setActiveTab('analysis'); setView('list'); setSearchQuery(''); }}>
+        <button className={`app-tab ${activeTab === 'analysis' ? 'app-tab--active' : ''}`} onClick={() => { setActiveTab('analysis'); setView('list'); setAnalysisView('overview'); setSearchQuery(''); }}>
           <BarChart3 className="app-tab__icon" /> Analysis
         </button>
         <button className={`app-tab ${activeTab === 'assessments' ? 'app-tab--active' : ''}`} onClick={() => { setActiveTab('assessments'); setView('list'); setSearchQuery(''); }}>
@@ -445,6 +552,19 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
           </div>
         )}
       </div>
+
+      {/* Analysis sub-tabs */}
+      {activeTab === 'analysis' && (
+        <div className="flex gap-1 mt-3 flex-wrap">
+          {analysisSubTabs.map(st => (
+            <button key={st.key}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${analysisView === st.key ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+              onClick={() => { setAnalysisView(st.key); setSearchQuery(''); }}>
+              {st.icon} {st.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Content */}
       {loading ? (
@@ -477,39 +597,22 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
           </div>
         </div>
       ) : activeTab === 'analysis' ? (
-        <>
-          <div className="app-stats-row" style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
-            <div className="app-stat-card"><div className="app-stat-card__value">{analysis.length}</div><div className="app-stat-card__label">Unique Items</div></div>
-            <div className="app-stat-card app-stat-card--info"><div className="app-stat-card__value">{analysisYear}</div><div className="app-stat-card__label">Fiscal Year</div></div>
-            <div className="app-stat-card"><div className="app-stat-card__value">{analysis.reduce((s, r) => s + r.occurrence_count, 0)}</div><div className="app-stat-card__label">Total Sources</div></div>
-          </div>
-          <div className="app-card" style={{ marginTop: '1rem' }}>
-            <div className="app-table-wrapper">
-              <table className="app-table">
-                <thead><tr><th>Description</th><th>Type</th><th>Unit</th><th className="app-table__cell--numeric">Total Qty</th><th>Priority</th><th>Sources</th></tr></thead>
-                <tbody>
-                  {analysis.filter(r => !searchQuery.trim() || r.item_description.toLowerCase().includes(searchQuery.toLowerCase())).map((r, idx) => (
-                    <tr key={idx}>
-                      <td className="font-medium text-slate-800">{r.item_description}</td>
-                      <td><span className="app-badge">{r.procurement_type}</span></td>
-                      <td className="text-slate-600 text-xs">{r.unit}</td>
-                      <td className="app-table__cell--numeric font-semibold text-emerald-700">{r.total_quantity}</td>
-                      <td>
-                        <div className="flex flex-wrap gap-1">
-                          {r.priority_summary.split(', ').map((p: string) => (
-                            <span key={p} className={`text-[10px] px-1.5 rounded-full ${p === 'Urgent' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'}`}>{p}</span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="text-xs text-slate-500"><Building2 size={12} className="inline mr-1" />{r.occurrence_count} unit(s)</td>
-                    </tr>
-                  ))}
-                  {!analysis.length && <tr><td colSpan={6} className="py-12 text-center text-slate-400">No analysis data for {analysisYear}.</td></tr>}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </>
+        <AnalysisContent
+          view={analysisView}
+          analysis={analysis}
+          categoryData={categoryData}
+          unitData={unitData}
+          weightedData={weightedData}
+          similarData={similarData}
+          planGapData={planGapData}
+          thresholdData={thresholdData}
+          nonSubData={nonSubData}
+          analysisYear={analysisYear}
+          searchQuery={searchQuery}
+          thresholdUnitPrice={thresholdUnitPrice}
+          onSetThresholdPrice={setThresholdUnitPrice}
+          onReloadThresholds={loadThresholds}
+        />
       ) : (
         <div className="app-card" style={{ marginTop: '1rem' }}>
           <div className="app-table-wrapper">
@@ -534,4 +637,298 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
       )}
     </section>
   );
+};
+
+// ── Analysis Content Sub-Component ─────────────
+interface AnalysisContentProps {
+  view: AnalysisView;
+  analysis: NeedsAnalysisResult[];
+  categoryData: NeedsCategoryBreakdown[];
+  unitData: NeedsUnitStats[];
+  weightedData: NeedsWeightedResult[];
+  similarData: NeedsSimilarGroup[];
+  planGapData: NeedsPlanGap[];
+  thresholdData: NeedsThresholdFlag[];
+  nonSubData: NeedsNonSubmission[];
+  analysisYear: number;
+  searchQuery: string;
+  thresholdUnitPrice: number;
+  onSetThresholdPrice: (v: number) => void;
+  onReloadThresholds: () => void;
+}
+
+const AnalysisContent: React.FC<AnalysisContentProps> = ({
+  view, analysis, categoryData, unitData, weightedData, similarData,
+  planGapData, thresholdData, nonSubData, analysisYear, searchQuery,
+  thresholdUnitPrice, onSetThresholdPrice, onReloadThresholds,
+}) => {
+  const fmt = (n: number) => n.toLocaleString('en-NG');
+  const fmtCurrency = (n: number) => n.toLocaleString('en-NG', { style: 'currency', currency: 'NGN' });
+
+  if (view === 'overview') {
+    return (
+      <>
+        <div className="app-stats-row" style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+          <div className="app-stat-card"><div className="app-stat-card__value">{analysis.length}</div><div className="app-stat-card__label">Unique Items</div></div>
+          <div className="app-stat-card app-stat-card--info"><div className="app-stat-card__value">{analysisYear}</div><div className="app-stat-card__label">Fiscal Year</div></div>
+          <div className="app-stat-card"><div className="app-stat-card__value">{analysis.reduce((s, r) => s + r.occurrence_count, 0)}</div><div className="app-stat-card__label">Total Sources</div></div>
+        </div>
+        <div className="app-card" style={{ marginTop: '1rem' }}>
+          <div className="app-table-wrapper">
+            <table className="app-table">
+              <thead><tr><th>Description</th><th>Type</th><th>Unit</th><th className="app-table__cell--numeric">Total Qty</th><th>Priority</th><th>Sources</th></tr></thead>
+              <tbody>
+                {analysis.filter(r => !searchQuery.trim() || r.item_description.toLowerCase().includes(searchQuery.toLowerCase())).map((r, idx) => (
+                  <tr key={idx}>
+                    <td className="font-medium text-slate-800">{r.item_description}</td>
+                    <td><span className="app-badge">{r.procurement_type}</span></td>
+                    <td className="text-slate-600 text-xs">{r.unit}</td>
+                    <td className="app-table__cell--numeric font-semibold text-emerald-700">{fmt(r.total_quantity)}</td>
+                    <td><div className="flex flex-wrap gap-1">{r.priority_summary.split(', ').map((p: string) => (<span key={p} className={`text-[10px] px-1.5 rounded-full ${p === 'Urgent' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'}`}>{p}</span>))}</div></td>
+                    <td className="text-xs text-slate-500"><Building2 size={12} className="inline mr-1" />{r.occurrence_count} unit(s)</td>
+                  </tr>
+                ))}
+                {!analysis.length && <tr><td colSpan={6} className="py-12 text-center text-slate-400">No analysis data for {analysisYear}.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (view === 'category') {
+    return (
+      <>
+        <div className="app-stats-row" style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: `repeat(${Math.min(categoryData.length, 4)}, 1fr)`, gap: '1rem' }}>
+          {categoryData.map(c => (
+            <div key={c.procurement_type} className="app-stat-card">
+              <div className="app-stat-card__value">{fmt(c.total_quantity)}</div>
+              <div className="app-stat-card__label">{c.procurement_type}</div>
+            </div>
+          ))}
+        </div>
+        <div className="app-card" style={{ marginTop: '1rem' }}>
+          <div className="app-card__header"><h3 className="app-card__title">Category Breakdown — FY {analysisYear}</h3></div>
+          <div className="app-table-wrapper">
+            <table className="app-table">
+              <thead><tr><th>Procurement Type</th><th className="app-table__cell--numeric">Items</th><th className="app-table__cell--numeric">Total Qty</th><th className="app-table__cell--numeric">Collections</th><th className="app-table__cell--numeric">Units</th></tr></thead>
+              <tbody>
+                {categoryData.map(c => (
+                  <tr key={c.procurement_type}>
+                    <td className="font-medium"><span className="app-badge">{c.procurement_type}</span></td>
+                    <td className="app-table__cell--numeric">{c.item_count}</td>
+                    <td className="app-table__cell--numeric font-semibold text-emerald-700">{fmt(c.total_quantity)}</td>
+                    <td className="app-table__cell--numeric">{c.total_collections}</td>
+                    <td className="app-table__cell--numeric">{c.unique_units}</td>
+                  </tr>
+                ))}
+                {!categoryData.length && <tr><td colSpan={5} className="py-8 text-center text-slate-400">No data.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (view === 'units') {
+    return (
+      <div className="app-card" style={{ marginTop: '1rem' }}>
+        <div className="app-card__header"><h3 className="app-card__title">Unit Submission Status — FY {analysisYear}</h3></div>
+        <div className="app-table-wrapper">
+          <table className="app-table">
+            <thead><tr><th>Unit</th><th className="app-table__cell--numeric">Items</th><th className="app-table__cell--numeric">Total Qty</th><th>Status</th><th>Submitted</th></tr></thead>
+            <tbody>
+              {unitData.filter(u => !searchQuery.trim() || u.unit_name.toLowerCase().includes(searchQuery.toLowerCase())).map(u => (
+                <tr key={u.unit_id}>
+                  <td className="font-medium text-slate-800">{u.unit_name}</td>
+                  <td className="app-table__cell--numeric">{u.item_count}</td>
+                  <td className="app-table__cell--numeric font-semibold text-emerald-700">{fmt(u.total_quantity)}</td>
+                  <td>
+                    <span className={`app-badge ${u.collection_status === 'Submitted' ? 'bg-blue-100 text-blue-700' : u.collection_status === 'Draft' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>
+                      {u.collection_status || 'Not Started'}
+                    </span>
+                  </td>
+                  <td className="text-xs text-slate-500">{u.submitted_at ? formatDateTimeShort(u.submitted_at) : '—'}</td>
+                </tr>
+              ))}
+              {!unitData.length && <tr><td colSpan={5} className="py-8 text-center text-slate-400">No unit data.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === 'weighted') {
+    return (
+      <>
+        <div className="app-stats-row" style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+          <div className="app-stat-card"><div className="app-stat-card__value">{weightedData.length}</div><div className="app-stat-card__label">Unique Items</div></div>
+          <div className="app-stat-card app-stat-card--info"><div className="app-stat-card__value">{weightedData[0]?.weighted_score ? fmt(weightedData[0].weighted_score) : '0'}</div><div className="app-stat-card__label">Top Score</div></div>
+          <div className="app-stat-card"><div className="app-stat-card__value">{weightedData.reduce((s, r) => s + r.occurrence_count, 0)}</div><div className="app-stat-card__label">Total Sources</div></div>
+        </div>
+        <div className="app-card" style={{ marginTop: '1rem' }}>
+          <div className="app-card__header"><h3 className="app-card__title">Priority-Weighted Ranking (Urgent=3x, Strategic=2.5x, Normal=2x, Low=1x)</h3></div>
+          <div className="app-table-wrapper">
+            <table className="app-table">
+              <thead><tr><th>#</th><th>Description</th><th>Type</th><th className="app-table__cell--numeric">Qty</th><th className="app-table__cell--numeric">Weighted Score</th><th>Priority</th><th>Sources</th></tr></thead>
+              <tbody>
+                {weightedData.filter(r => !searchQuery.trim() || r.item_description.toLowerCase().includes(searchQuery.toLowerCase())).map((r, idx) => (
+                  <tr key={idx}>
+                    <td className="text-slate-400 text-xs">{idx + 1}</td>
+                    <td className="font-medium text-slate-800">{r.item_description}</td>
+                    <td><span className="app-badge">{r.procurement_type}</span></td>
+                    <td className="app-table__cell--numeric">{fmt(r.total_quantity)}</td>
+                    <td className="app-table__cell--numeric font-bold text-emerald-700">{fmt(r.weighted_score)}</td>
+                    <td><div className="flex flex-wrap gap-1">{r.priority_summary.split(', ').map((p: string) => (<span key={p} className={`text-[10px] px-1.5 rounded-full ${p === 'Urgent' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'}`}>{p}</span>))}</div></td>
+                    <td className="text-xs text-slate-500">{r.occurrence_count} unit(s)</td>
+                  </tr>
+                ))}
+                {!weightedData.length && <tr><td colSpan={7} className="py-8 text-center text-slate-400">No weighted data.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (view === 'similar') {
+    return (
+      <div className="app-card" style={{ marginTop: '1rem' }}>
+        <div className="app-card__header"><h3 className="app-card__title">Potential Duplicate Items — FY {analysisYear}</h3></div>
+        <div className="app-table-wrapper">
+          <table className="app-table">
+            <thead><tr><th>Group</th><th>Descriptions</th><th>Type</th><th className="app-table__cell--numeric">Combined Qty</th><th className="app-table__cell--numeric">Sources</th><th>Suggestion</th></tr></thead>
+            <tbody>
+              {similarData.filter(g => !searchQuery.trim() || g.descriptions.some(d => d.toLowerCase().includes(searchQuery.toLowerCase()))).map(g => (
+                <tr key={g.group_id}>
+                  <td className="text-slate-400 text-xs">{g.group_id}</td>
+                  <td className="text-xs">{g.descriptions.map((d, i) => <div key={i} className="font-medium text-slate-800">{d}</div>)}</td>
+                  <td><span className="app-badge">{g.procurement_type}</span></td>
+                  <td className="app-table__cell--numeric font-semibold text-emerald-700">{fmt(g.combined_quantity)}</td>
+                  <td className="app-table__cell--numeric">{g.occurrence_count}</td>
+                  <td className="text-xs text-amber-700">{g.suggestion}</td>
+                </tr>
+              ))}
+              {!similarData.length && <tr><td colSpan={6} className="py-8 text-center text-slate-400">No similar items detected.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === 'plan-gap') {
+    const inPlan = planGapData.filter(p => p.in_plan);
+    const notInPlan = planGapData.filter(p => !p.in_plan);
+    return (
+      <>
+        <div className="app-stats-row" style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+          <div className="app-stat-card"><div className="app-stat-card__value">{planGapData.length}</div><div className="app-stat-card__label">Total Items</div></div>
+          <div className="app-stat-card"><div className="app-stat-card__value text-emerald-700">{inPlan.length}</div><div className="app-stat-card__label">In Plan</div></div>
+          <div className="app-stat-card app-stat-card--info"><div className="app-stat-card__value text-amber-700">{notInPlan.length}</div><div className="app-stat-card__label">Not In Plan</div></div>
+        </div>
+        <div className="app-card" style={{ marginTop: '1rem' }}>
+          <div className="app-card__header"><h3 className="app-card__title">Procurement Plan Gap Analysis — FY {analysisYear}</h3></div>
+          <div className="app-table-wrapper">
+            <table className="app-table">
+              <thead><tr><th>Item</th><th>Type</th><th className="app-table__cell--numeric">Qty</th><th>In Plan?</th><th>Plan Description</th><th className="app-table__cell--numeric">Est. Amount</th></tr></thead>
+              <tbody>
+                {planGapData.filter(r => !searchQuery.trim() || r.item_description.toLowerCase().includes(searchQuery.toLowerCase())).map((r, idx) => (
+                  <tr key={idx}>
+                    <td className="font-medium text-slate-800">{r.item_description}</td>
+                    <td><span className="app-badge">{r.procurement_type}</span></td>
+                    <td className="app-table__cell--numeric">{fmt(r.total_quantity)}</td>
+                    <td>{r.in_plan ? <span className="app-badge bg-emerald-100 text-emerald-700">Yes</span> : <span className="app-badge bg-amber-100 text-amber-700">No</span>}</td>
+                    <td className="text-xs text-slate-600">{r.plan_description || '—'}</td>
+                    <td className="app-table__cell--numeric text-xs">{r.plan_estimated_amount ? fmtCurrency(r.plan_estimated_amount) : '—'}</td>
+                  </tr>
+                ))}
+                {!planGapData.length && <tr><td colSpan={6} className="py-8 text-center text-slate-400">No plan gap data.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (view === 'thresholds') {
+    return (
+      <>
+        <div className="app-card" style={{ marginTop: '1rem' }}>
+          <div className="app-card__header">
+            <h3 className="app-card__title">Threshold Analysis — FY {analysisYear}</h3>
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-slate-500">Est. Unit Price (₦):</label>
+              <input type="number" className="app-form__input app-form__input--sm" style={{ width: 120 }} value={thresholdUnitPrice || ''} onChange={e => onSetThresholdPrice(Number(e.target.value))} placeholder="0" />
+              <button className="app-btn app-btn--secondary app-btn--sm" onClick={onReloadThresholds}>Refresh</button>
+            </div>
+          </div>
+          <div className="app-table-wrapper">
+            <table className="app-table">
+              <thead><tr><th>Item</th><th>Type</th><th className="app-table__cell--numeric">Qty</th><th className="app-table__cell--numeric">Est. Value</th><th>Route</th><th>Board</th><th>BPP</th></tr></thead>
+              <tbody>
+                {thresholdData.filter(r => !searchQuery.trim() || r.item_description.toLowerCase().includes(searchQuery.toLowerCase())).map((r, idx) => (
+                  <tr key={idx}>
+                    <td className="font-medium text-slate-800">{r.item_description}</td>
+                    <td><span className="app-badge">{r.procurement_type}</span></td>
+                    <td className="app-table__cell--numeric">{fmt(r.total_quantity)}</td>
+                    <td className="app-table__cell--numeric font-semibold text-emerald-700">{fmtCurrency(r.estimated_total_value)}</td>
+                    <td className="text-xs text-slate-600">{r.threshold_route || '—'}</td>
+                    <td>{r.requires_board ? <CheckCircle size={14} className="text-amber-600" /> : '—'}</td>
+                    <td>{r.requires_bpp ? <CheckCircle size={14} className="text-blue-600" /> : '—'}</td>
+                  </tr>
+                ))}
+                {!thresholdData.length && <tr><td colSpan={7} className="py-8 text-center text-slate-400">No threshold data. Enter an estimated unit price to calculate.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (view === 'non-submissions') {
+    const submitted = nonSubData.filter(n => n.has_submission);
+    const drafts = nonSubData.filter(n => n.has_draft && !n.has_submission);
+    const notStarted = nonSubData.filter(n => !n.has_draft && !n.has_submission);
+    return (
+      <>
+        <div className="app-stats-row" style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+          <div className="app-stat-card"><div className="app-stat-card__value">{submitted.length}</div><div className="app-stat-card__label">Submitted</div></div>
+          <div className="app-stat-card app-stat-card--info"><div className="app-stat-card__value">{drafts.length}</div><div className="app-stat-card__label">Draft Only</div></div>
+          <div className="app-stat-card"><div className="app-stat-card__value text-red-600">{notStarted.length}</div><div className="app-stat-card__label">Not Started</div></div>
+        </div>
+        <div className="app-card" style={{ marginTop: '1rem' }}>
+          <div className="app-card__header"><h3 className="app-card__title">Non-Submission Tracker — FY {analysisYear}</h3></div>
+          <div className="app-table-wrapper">
+            <table className="app-table">
+              <thead><tr><th>Unit</th><th>Code</th><th>Status</th><th>Last Updated</th></tr></thead>
+              <tbody>
+                {nonSubData.filter(n => !searchQuery.trim() || n.unit_name.toLowerCase().includes(searchQuery.toLowerCase())).map(n => (
+                  <tr key={n.unit_id}>
+                    <td className="font-medium text-slate-800">{n.unit_name}</td>
+                    <td className="text-xs text-slate-500">{n.unit_code}</td>
+                    <td>
+                      <span className={`app-badge ${n.submission_status === 'Submitted' ? 'bg-emerald-100 text-emerald-700' : n.submission_status === 'Draft' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
+                        {n.submission_status}
+                      </span>
+                    </td>
+                    <td className="text-xs text-slate-500">{n.last_updated ? formatDateTimeShort(n.last_updated) : '—'}</td>
+                  </tr>
+                ))}
+                {!nonSubData.length && <tr><td colSpan={4} className="py-8 text-center text-slate-400">No units found.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  return null;
 };

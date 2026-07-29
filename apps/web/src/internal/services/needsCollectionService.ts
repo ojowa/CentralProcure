@@ -43,6 +43,69 @@ export interface NeedsAnalysisResult {
   source_units: Array<{ unitId: string; unitName: string }>;
 }
 
+export interface NeedsCategoryBreakdown {
+  procurement_type: string;
+  item_count: number;
+  total_quantity: number;
+  total_collections: number;
+  unique_units: number;
+}
+
+export interface NeedsUnitStats {
+  unit_id: string;
+  unit_name: string;
+  item_count: number;
+  total_quantity: number;
+  submitted_at: string | null;
+  collection_status: string;
+}
+
+export interface NeedsWeightedResult extends NeedsAnalysisResult {
+  weighted_score: number;
+}
+
+export interface NeedsSimilarGroup {
+  group_id: number;
+  descriptions: string[];
+  procurement_type: string;
+  combined_quantity: number;
+  occurrence_count: number;
+  suggestion: string;
+}
+
+export interface NeedsPlanGap {
+  item_description: string;
+  procurement_type: string;
+  total_quantity: number;
+  source_units: Array<{ unitId: string; unitName: string }>;
+  in_plan: boolean;
+  plan_item_id: string | null;
+  plan_description: string | null;
+  plan_estimated_amount: number | null;
+}
+
+export interface NeedsThresholdFlag {
+  item_description: string;
+  procurement_type: string;
+  total_quantity: number;
+  estimated_total_value: number;
+  threshold_route: string | null;
+  requires_board: boolean;
+  requires_bpp: boolean;
+  threshold_min: number | null;
+  threshold_max: number | null;
+}
+
+export interface NeedsNonSubmission {
+  unit_id: string;
+  unit_name: string;
+  unit_code: string;
+  has_draft: boolean;
+  has_submission: boolean;
+  submission_status: string;
+  last_updated: string | null;
+}
+
 // ── Assessment Types ──────────────────────────
 export interface NeedsAssessmentSummary {
   AssessmentId: string;
@@ -97,6 +160,27 @@ export const deleteCollection = (id: string, token: string) =>
 // ── Analysis API ──────────────────────────────
 export const fetchNeedsAnalysis = (token: string, fiscalYear: number) =>
   send<NeedsAnalysisResult[]>(baseUrl, `/analysis?FiscalYear=${fiscalYear}`, token, { method: 'GET' });
+
+export const fetchCategoryBreakdown = (token: string, fiscalYear: number) =>
+  send<NeedsCategoryBreakdown[]>(baseUrl, `/analysis/category?FiscalYear=${fiscalYear}`, token, { method: 'GET' });
+
+export const fetchUnitStats = (token: string, fiscalYear: number) =>
+  send<NeedsUnitStats[]>(baseUrl, `/analysis/unit?FiscalYear=${fiscalYear}`, token, { method: 'GET' });
+
+export const fetchWeightedAnalysis = (token: string, fiscalYear: number) =>
+  send<NeedsWeightedResult[]>(baseUrl, `/analysis/weighted?FiscalYear=${fiscalYear}`, token, { method: 'GET' });
+
+export const fetchSimilarNeeds = (token: string, fiscalYear: number) =>
+  send<NeedsSimilarGroup[]>(baseUrl, `/analysis/similar?FiscalYear=${fiscalYear}`, token, { method: 'GET' });
+
+export const fetchPlanGap = (token: string, fiscalYear: number) =>
+  send<NeedsPlanGap[]>(baseUrl, `/analysis/plan-gap?FiscalYear=${fiscalYear}`, token, { method: 'GET' });
+
+export const fetchThresholdFlags = (token: string, fiscalYear: number, unitPrice?: number) =>
+  send<NeedsThresholdFlag[]>(baseUrl, `/analysis/thresholds?FiscalYear=${fiscalYear}${unitPrice ? `&UnitPrice=${unitPrice}` : ''}`, token, { method: 'GET' });
+
+export const fetchNonSubmissions = (token: string, fiscalYear: number) =>
+  send<NeedsNonSubmission[]>(baseUrl, `/analysis/non-submissions?FiscalYear=${fiscalYear}`, token, { method: 'GET' });
 
 // ── Assessment API ────────────────────────────
 export const fetchAssessments = (token: string, params?: { FiscalYear?: number; Status?: string }) => {

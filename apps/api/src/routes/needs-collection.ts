@@ -62,6 +62,258 @@ needsCollectionRouter.get('/api/needs-collection', async (req, res) => {
   }
 });
 
+// POST /api/needs-collection — create collection
+needsCollectionRouter.post('/api/needs-collection', async (req, res) => {
+  const auth = await requirePermission(req, 'needs.create');
+  if (denyIfNoPermission(res, auth)) return;
+  if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
+
+  try {
+    const { Title, FiscalYear, UnitId, Remarks, Items } = req.body;
+    if (!Title || !FiscalYear) {
+      res.status(400).json({ ErrorMessage: 'Title and FiscalYear are required.' }); return;
+    }
+
+    const result = await pool.query(
+      `INSERT INTO procurement_workflow.needs_collection
+        (title, fiscal_year, unit_id, remarks, status, created_by, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, 'Draft', $5, NOW(), NOW())
+       RETURNING
+        collection_id AS "CollectionId",
+        title AS "Title",
+        fiscal_year AS "FiscalYear",
+        status AS "Status",
+        created_at AS "CreatedAt"`,
+      [Title, FiscalYear, UnitId || null, Remarks || '', auth!.sub]
+    );
+
+    const collection = result.rows[0];
+
+    if (Array.isArray(Items) && Items.length > 0) {
+      for (const item of Items) {
+        await pool.query(
+          `INSERT INTO procurement_workflow.needs_collection_items
+            (collection_id, description, quantity, unit, priority, procurement_type)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [collection.CollectionId, item.Description || '', item.Quantity || 1,
+           item.Unit || 'Unit', item.Priority || 'Normal', item.ProcurementType || 'Goods']
+        );
+      }
+    }
+
+    res.status(201).json(collection);
+  } catch (error: any) {
+    res.status(500).json({ ErrorMessage: error.message || 'Error creating collection.' });
+  }
+});
+
+// ─────────────────────────────────────────────
+// ANALYSIS — aggregated view across collections
+// ─────────────────────────────────────────────
+
+// GET /api/needs-collection/analysis — basic aggregation
+needsCollectionRouter.get('/api/needs-collection/analysis', async (req, res) => {
+  const auth = await requirePermission(req, 'needs.view');
+  if (denyIfNoPermission(res, auth)) return;
+  if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
+
+  try {
+    const { FiscalYear } = req.query;
+    if (!FiscalYear) { res.status(400).json({ ErrorMessage: 'FiscalYear is required.' }); return; }
+    const result = await pool.query(`SELECT * FROM procurement_workflow.analyze_needs($1)`, [FiscalYear]);
+    res.json(result.rows);
+  } catch (error: any) {
+    res.status(500).json({ ErrorMessage: error.message || 'Error fetching analysis.' });
+  }
+});
+
+// GET /api/needs-collection/analysis/category — breakdown by procurement type
+needsCollectionRouter.get('/api/needs-collection/analysis/category', async (req, res) => {
+  const auth = await requirePermission(req, 'needs.view');
+  if (denyIfNoPermission(res, auth)) return;
+  if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
+
+  try {
+    const { FiscalYear } = req.query;
+    if (!FiscalYear) { res.status(400).json({ ErrorMessage: 'FiscalYear is required.' }); return; }
+    const result = await pool.query(`SELECT * FROM procurement_workflow.analyze_needs_by_category($1)`, [FiscalYear]);
+    res.json(result.rows);
+  } catch (error: any) {
+    res.status(500).json({ ErrorMessage: error.message || 'Error fetching category analysis.' });
+  }
+});
+
+// GET /api/needs-collection/analysis/unit — per-unit submission breakdown
+needsCollectionRouter.get('/api/needs-collection/analysis/unit', async (req, res) => {
+  const auth = await requirePermission(req, 'needs.view');
+  if (denyIfNoPermission(res, auth)) return;
+  if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
+
+  try {
+    const { FiscalYear } = req.query;
+    if (!FiscalYear) { res.status(400).json({ ErrorMessage: 'FiscalYear is required.' }); return; }
+    const result = await pool.query(`SELECT * FROM procurement_workflow.analyze_needs_by_unit($1)`, [FiscalYear]);
+    res.json(result.rows);
+  } catch (error: any) {
+    res.status(500).json({ ErrorMessage: error.message || 'Error fetching unit analysis.' });
+  }
+});
+
+// GET /api/needs-collection/analysis/weighted — priority-weighted scoring
+needsCollectionRouter.get('/api/needs-collection/analysis/weighted', async (req, res) => {
+  const auth = await requirePermission(req, 'needs.view');
+  if (denyIfNoPermission(res, auth)) return;
+  if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
+
+  try {
+    const { FiscalYear } = req.query;
+    if (!FiscalYear) { res.status(400).json({ ErrorMessage: 'FiscalYear is required.' }); return; }
+    const result = await pool.query(`SELECT * FROM procurement_workflow.analyze_needs_weighted($1)`, [FiscalYear]);
+    res.json(result.rows);
+  } catch (error: any) {
+    res.status(500).json({ ErrorMessage: error.message || 'Error fetching weighted analysis.' });
+  }
+});
+
+// GET /api/needs-collection/analysis/similar — duplicate/similar detection
+needsCollectionRouter.get('/api/needs-collection/analysis/similar', async (req, res) => {
+  const auth = await requirePermission(req, 'needs.view');
+  if (denyIfNoPermission(res, auth)) return;
+  if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
+
+  try {
+    const { FiscalYear } = req.query;
+    if (!FiscalYear) { res.status(400).json({ ErrorMessage: 'FiscalYear is required.' }); return; }
+    const result = await pool.query(`SELECT * FROM procurement_workflow.detect_similar_needs($1)`, [FiscalYear]);
+    res.json(result.rows);
+  } catch (error: any) {
+    res.status(500).json({ ErrorMessage: error.message || 'Error detecting similar needs.' });
+  }
+});
+
+// GET /api/needs-collection/analysis/plan-gap — compare needs vs procurement plan
+needsCollectionRouter.get('/api/needs-collection/analysis/plan-gap', async (req, res) => {
+  const auth = await requirePermission(req, 'needs.view');
+  if (denyIfNoPermission(res, auth)) return;
+  if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
+
+  try {
+    const { FiscalYear } = req.query;
+    if (!FiscalYear) { res.status(400).json({ ErrorMessage: 'FiscalYear is required.' }); return; }
+    const result = await pool.query(`SELECT * FROM procurement_workflow.analyze_needs_plan_gap($1)`, [FiscalYear]);
+    res.json(result.rows);
+  } catch (error: any) {
+    res.status(500).json({ ErrorMessage: error.message || 'Error analyzing plan gap.' });
+  }
+});
+
+// GET /api/needs-collection/analysis/thresholds — threshold flags
+needsCollectionRouter.get('/api/needs-collection/analysis/thresholds', async (req, res) => {
+  const auth = await requirePermission(req, 'needs.view');
+  if (denyIfNoPermission(res, auth)) return;
+  if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
+
+  try {
+    const { FiscalYear, UnitPrice } = req.query;
+    if (!FiscalYear) { res.status(400).json({ ErrorMessage: 'FiscalYear is required.' }); return; }
+    const unitPrice = parseFloat(UnitPrice as string) || 0;
+    const result = await pool.query(`SELECT * FROM procurement_workflow.analyze_needs_thresholds($1, $2)`, [FiscalYear, unitPrice]);
+    res.json(result.rows);
+  } catch (error: any) {
+    res.status(500).json({ ErrorMessage: error.message || 'Error analyzing thresholds.' });
+  }
+});
+
+// GET /api/needs-collection/analysis/non-submissions — units that haven't submitted
+needsCollectionRouter.get('/api/needs-collection/analysis/non-submissions', async (req, res) => {
+  const auth = await requirePermission(req, 'needs.view');
+  if (denyIfNoPermission(res, auth)) return;
+  if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
+
+  try {
+    const { FiscalYear } = req.query;
+    if (!FiscalYear) { res.status(400).json({ ErrorMessage: 'FiscalYear is required.' }); return; }
+    const result = await pool.query(`SELECT * FROM procurement_workflow.get_non_submissions($1)`, [FiscalYear]);
+    res.json(result.rows);
+  } catch (error: any) {
+    res.status(500).json({ ErrorMessage: error.message || 'Error fetching non-submissions.' });
+  }
+});
+
+// ─────────────────────────────────────────────
+// Phase 2: ASSESSMENT — procurement endorses
+// ─────────────────────────────────────────────
+
+// GET /api/needs-collection/assessments — list assessments
+needsCollectionRouter.get('/api/needs-collection/assessments', async (req, res) => {
+  const auth = await requirePermission(req, 'needs.view');
+  if (denyIfNoPermission(res, auth)) return;
+  if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
+
+  try {
+    const { FiscalYear, Status } = req.query;
+    const conditions: string[] = [];
+    const values: unknown[] = [];
+    let idx = 1;
+
+    if (FiscalYear) { conditions.push(`na.fiscal_year = $${idx}`); values.push(FiscalYear); idx++; }
+    if (Status) { conditions.push(`na.status = $${idx}`); values.push(Status); idx++; }
+
+    const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const result = await pool.query(
+      `SELECT
+        na.assessment_id AS "AssessmentId",
+        na.fiscal_year AS "FiscalYear",
+        na.status AS "Status",
+        na.remarks AS "Remarks",
+        na.assessed_by AS "AssessedBy",
+        na.assessed_at AS "AssessedAt",
+        na.created_at AS "CreatedAt",
+        (SELECT COUNT(*) FROM procurement_workflow.needs_assessment_items nai WHERE nai.assessment_id = na.assessment_id)::INT AS "ItemCount"
+       FROM procurement_workflow.needs_assessment na
+       ${whereClause}
+       ORDER BY na.created_at DESC`,
+      values
+    );
+
+    res.json(result.rows);
+  } catch (error: any) {
+    res.status(500).json({ ErrorMessage: error.message || 'Error fetching assessments.' });
+  }
+});
+
+// POST /api/needs-collection/assessments — create from analysis
+needsCollectionRouter.post('/api/needs-collection/assessments', async (req, res) => {
+  const auth = await requirePermission(req, 'needs.consolidate');
+  if (denyIfNoPermission(res, auth)) return;
+  if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
+
+  try {
+    const { FiscalYear } = req.body;
+    if (!FiscalYear) { res.status(400).json({ ErrorMessage: 'FiscalYear is required.' }); return; }
+
+    const result = await pool.query(
+      `SELECT procurement_workflow.create_assessment_from_analysis($1, $2) AS "AssessmentId"`,
+      [FiscalYear, auth!.sub]
+    );
+
+    const assessmentId = result.rows[0].AssessmentId;
+    const detail = await pool.query(
+      `SELECT assessment_id AS "AssessmentId", fiscal_year AS "FiscalYear", status AS "Status", created_at AS "CreatedAt"
+       FROM procurement_workflow.needs_assessment WHERE assessment_id = $1`, [assessmentId]
+    );
+
+    res.status(201).json(detail.rows[0]);
+  } catch (error: any) {
+    res.status(500).json({ ErrorMessage: error.message || 'Error creating assessment.' });
+  }
+});
+
+// ─────────────────────────────────────────────
+// COLLECTION — :id routes (after specific routes)
+// ─────────────────────────────────────────────
+
 // GET /api/needs-collection/:id — detail with items
 needsCollectionRouter.get('/api/needs-collection/:id', async (req, res) => {
   const auth = await requirePermission(req, 'needs.view');
@@ -108,51 +360,6 @@ needsCollectionRouter.get('/api/needs-collection/:id', async (req, res) => {
     res.json({ ...result.rows[0], Items: itemsResult.rows });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'Error fetching collection detail.' });
-  }
-});
-
-// POST /api/needs-collection — create collection
-needsCollectionRouter.post('/api/needs-collection', async (req, res) => {
-  const auth = await requirePermission(req, 'needs.create');
-  if (denyIfNoPermission(res, auth)) return;
-  if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
-
-  try {
-    const { Title, FiscalYear, UnitId, Remarks, Items } = req.body;
-    if (!Title || !FiscalYear) {
-      res.status(400).json({ ErrorMessage: 'Title and FiscalYear are required.' }); return;
-    }
-
-    const result = await pool.query(
-      `INSERT INTO procurement_workflow.needs_collection
-        (title, fiscal_year, unit_id, remarks, status, created_by, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, 'Draft', $5, NOW(), NOW())
-       RETURNING
-        collection_id AS "CollectionId",
-        title AS "Title",
-        fiscal_year AS "FiscalYear",
-        status AS "Status",
-        created_at AS "CreatedAt"`,
-      [Title, FiscalYear, UnitId || null, Remarks || '', auth!.sub]
-    );
-
-    const collection = result.rows[0];
-
-    if (Array.isArray(Items) && Items.length > 0) {
-      for (const item of Items) {
-        await pool.query(
-          `INSERT INTO procurement_workflow.needs_collection_items
-            (collection_id, description, quantity, unit, priority, procurement_type)
-           VALUES ($1, $2, $3, $4, $5, $6)`,
-          [collection.CollectionId, item.Description || '', item.Quantity || 1,
-           item.Unit || 'Unit', item.Priority || 'Normal', item.ProcurementType || 'Goods']
-        );
-      }
-    }
-
-    res.status(201).json(collection);
-  } catch (error: any) {
-    res.status(500).json({ ErrorMessage: error.message || 'Error creating collection.' });
   }
 });
 
@@ -255,73 +462,8 @@ needsCollectionRouter.delete('/api/needs-collection/:id', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────
-// ANALYSIS — aggregated view across collections
+// ASSESSMENT :id routes
 // ─────────────────────────────────────────────
-
-// GET /api/needs-collection/analysis
-needsCollectionRouter.get('/api/needs-collection/analysis', async (req, res) => {
-  const auth = await requirePermission(req, 'needs.view');
-  if (denyIfNoPermission(res, auth)) return;
-  if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
-
-  try {
-    const { FiscalYear } = req.query;
-    if (!FiscalYear) {
-      res.status(400).json({ ErrorMessage: 'FiscalYear is required.' }); return;
-    }
-
-    const result = await pool.query(
-      `SELECT * FROM procurement_workflow.analyze_needs($1)`, [FiscalYear]
-    );
-
-    res.json(result.rows);
-  } catch (error: any) {
-    res.status(500).json({ ErrorMessage: error.message || 'Error fetching analysis.' });
-  }
-});
-
-// ─────────────────────────────────────────────
-// Phase 2: ASSESSMENT — procurement endorses
-// ─────────────────────────────────────────────
-
-// GET /api/needs-collection/assessments — list assessments
-needsCollectionRouter.get('/api/needs-collection/assessments', async (req, res) => {
-  const auth = await requirePermission(req, 'needs.view');
-  if (denyIfNoPermission(res, auth)) return;
-  if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
-
-  try {
-    const { FiscalYear, Status } = req.query;
-    const conditions: string[] = [];
-    const values: unknown[] = [];
-    let idx = 1;
-
-    if (FiscalYear) { conditions.push(`na.fiscal_year = $${idx}`); values.push(FiscalYear); idx++; }
-    if (Status) { conditions.push(`na.status = $${idx}`); values.push(Status); idx++; }
-
-    const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-
-    const result = await pool.query(
-      `SELECT
-        na.assessment_id AS "AssessmentId",
-        na.fiscal_year AS "FiscalYear",
-        na.status AS "Status",
-        na.remarks AS "Remarks",
-        na.assessed_by AS "AssessedBy",
-        na.assessed_at AS "AssessedAt",
-        na.created_at AS "CreatedAt",
-        (SELECT COUNT(*) FROM procurement_workflow.needs_assessment_items nai WHERE nai.assessment_id = na.assessment_id)::INT AS "ItemCount"
-       FROM procurement_workflow.needs_assessment na
-       ${whereClause}
-       ORDER BY na.created_at DESC`,
-      values
-    );
-
-    res.json(result.rows);
-  } catch (error: any) {
-    res.status(500).json({ ErrorMessage: error.message || 'Error fetching assessments.' });
-  }
-});
 
 // GET /api/needs-collection/assessments/:id — detail with items
 needsCollectionRouter.get('/api/needs-collection/assessments/:id', async (req, res) => {
@@ -366,35 +508,6 @@ needsCollectionRouter.get('/api/needs-collection/assessments/:id', async (req, r
     res.json({ ...result.rows[0], Items: itemsResult.rows });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'Error fetching assessment detail.' });
-  }
-});
-
-// POST /api/needs-collection/assessments — create from analysis
-needsCollectionRouter.post('/api/needs-collection/assessments', async (req, res) => {
-  const auth = await requirePermission(req, 'needs.consolidate');
-  if (denyIfNoPermission(res, auth)) return;
-  if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
-
-  try {
-    const { FiscalYear } = req.body;
-    if (!FiscalYear) {
-      res.status(400).json({ ErrorMessage: 'FiscalYear is required.' }); return;
-    }
-
-    const result = await pool.query(
-      `SELECT procurement_workflow.create_assessment_from_analysis($1, $2) AS "AssessmentId"`,
-      [FiscalYear, auth!.sub]
-    );
-
-    const assessmentId = result.rows[0].AssessmentId;
-    const detail = await pool.query(
-      `SELECT assessment_id AS "AssessmentId", fiscal_year AS "FiscalYear", status AS "Status", created_at AS "CreatedAt"
-       FROM procurement_workflow.needs_assessment WHERE assessment_id = $1`, [assessmentId]
-    );
-
-    res.status(201).json(detail.rows[0]);
-  } catch (error: any) {
-    res.status(500).json({ ErrorMessage: error.message || 'Error creating assessment.' });
   }
 });
 
