@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
+import { syncAsync } from '../lib/workflow/runtime-tracker.js';
 
 export const needsCollectionRouter = Router();
 
@@ -328,6 +329,27 @@ needsCollectionRouter.post('/api/needs-collection/assessments', async (req, res)
       `SELECT assessment_id AS "AssessmentId", fiscal_year AS "FiscalYear", status AS "Status", created_at AS "CreatedAt"
        FROM procurement_workflow.needs_assessment WHERE assessment_id = $1`, [assessmentId]
     );
+
+    // Advance workflow: needs_assessment → budget_allocation_and_confirmation
+    try {
+      await syncAsync({
+        entity_type: 'needs_assessment',
+        entity_id: assessmentId,
+        stage_key: 'budget_allocation_and_confirmation',
+        status: 'Active',
+        record_title: `Needs Assessment FY${FiscalYear}`,
+        parent_entity_type: null,
+        parent_entity_id: null,
+        amount: null,
+        procurement_type: null,
+        threshold_id: null,
+        actor: auth!.sub,
+        transition_source: 'assessment_created',
+        transition_reason: 'Needs assessment created successfully — proceeding to budget allocation.',
+      });
+    } catch (wfErr: any) {
+      console.error('Workflow sync failed for needs assessment:', wfErr.message);
+    }
 
     res.status(201).json(detail.rows[0]);
   } catch (error: any) {
