@@ -7,7 +7,6 @@ import { AuditTrailWorkspace } from './AuditTrailWorkspace';
 import { ComplianceReportsWorkspace } from './ComplianceReportsWorkspace';
 import { PaymentTrackingModulePage } from './PaymentTrackingModulePage';
 import { PostAwardInspectionModulePage } from './PostAwardInspectionModulePage';
-import { WorkflowBlueprintPage } from './WorkflowBlueprintPage';
 import { CreateRequisitionPage } from './CreateRequisitionPage';
 import { RequisitionHistoryPage } from './RequisitionHistoryPage';
 import { RequisitionTrackingPage } from './RequisitionTrackingPage';
@@ -102,7 +101,6 @@ export const moduleRenderers: Partial<Record<string, (props: InternalModuleRende
     'contract-award': (props) => <ContractAwardModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} onModuleChange={props.onModuleChange} />,
     'bpp-escalation': (props) => <BppEscalationModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
     'administrative-review': (props) => <AdministrativeReviewModulePage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} />,
-    'workflow-blueprint': (props) => <WorkflowBlueprintPage module={props.module} token={props.token} />,
     'annual-procurement-plan': (props) => <ProcurementPlanModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
     'procurement-method-determination': (props) => <ProcurementMethodDeterminationModule module={props.module} token={props.token} />,
     'procurement-planning-committee': (props) => <PlanningCommitteeReviewModule module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} initialData={props.moduleData} />,

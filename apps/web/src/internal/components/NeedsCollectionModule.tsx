@@ -407,8 +407,11 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
     const next = [...formItems]; (next[i] as any)[field] = value; setFormItems(next);
   };
 
-  const canEdit = () => isCreating || selectedCollection?.Status === 'Draft' || selectedCollection?.Status === 'Returned';
-  const canSubmit = () => selectedCollection && (selectedCollection.Status === 'Draft' || selectedCollection.Status === 'Returned');
+  const canEdit = () => hasPermission('needs.create') && (isCreating || selectedCollection?.Status === 'Draft' || selectedCollection?.Status === 'Returned');
+  const canSubmit = () => hasPermission('needs.submit') && selectedCollection && (selectedCollection.Status === 'Draft' || selectedCollection.Status === 'Returned');
+  const canDelete = () => hasPermission('needs.delete');
+  const canCarryForward = () => hasPermission('needs.carry_forward');
+  const canViewItem = () => hasPermission('needs.view') || hasPermission('needs.view.all');
 
   const statusBadge = (s: string) => {
     const map: Record<string, string> = {
@@ -548,7 +551,7 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
         </div>
 
         {/* Carry Forward Section */}
-        {isDraft && (
+        {isDraft && canCarryForward() && (
           <div className="app-card mb-4">
             <div className="app-card__header"><h3 className="app-card__title">Carry Forward Needs</h3></div>
             <div className="p-4 flex items-center gap-3">
@@ -660,7 +663,7 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
         </div>
         {activeTab === 'collections' && (
           <div className="app-module__actions">
-            <button className="app-btn app-btn--primary" onClick={handleCreateCollection}><Plus size={18} className="mr-2" /> New Collection</button>
+            <button className="app-btn app-btn--primary" onClick={handleCreateCollection} disabled={!canEdit()}><Plus size={18} className="mr-2" /> New Collection</button>
           </div>
         )}
         {activeTab === 'assessments' && hasPermission('needs.consolidate') && (
@@ -744,7 +747,7 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
                     <td>
                       <div className="flex gap-1">
                         <button className="app-btn app-btn--secondary app-btn--sm" onClick={() => handleSelectCollection(c.CollectionId)}>View</button>
-                        {c.Status === 'Draft' && <button className="app-btn app-btn--danger app-btn--sm" onClick={() => handleDeleteCollection(c.CollectionId)}><Trash2 size={12} /></button>}
+                        {c.Status === 'Draft' && canDelete() && <button className="app-btn app-btn--danger app-btn--sm" onClick={() => handleDeleteCollection(c.CollectionId)}><Trash2 size={12} /></button>}
                       </div>
                     </td>
                   </tr>

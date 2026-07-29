@@ -129,7 +129,7 @@ needsCollectionRouter.get('/api/needs-collection/analysis', async (req, res) => 
 
 // GET /api/needs-collection/analysis/category — breakdown by procurement type
 needsCollectionRouter.get('/api/needs-collection/analysis/category', async (req, res) => {
-  const auth = await requirePermission(req, 'needs.view');
+  const auth = await requirePermission(req, 'needs.analysis');
   if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
@@ -145,7 +145,7 @@ needsCollectionRouter.get('/api/needs-collection/analysis/category', async (req,
 
 // GET /api/needs-collection/analysis/unit — per-unit submission breakdown
 needsCollectionRouter.get('/api/needs-collection/analysis/unit', async (req, res) => {
-  const auth = await requirePermission(req, 'needs.view');
+  const auth = await requirePermission(req, 'needs.analysis');
   if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
@@ -161,7 +161,7 @@ needsCollectionRouter.get('/api/needs-collection/analysis/unit', async (req, res
 
 // GET /api/needs-collection/analysis/weighted — priority-weighted scoring
 needsCollectionRouter.get('/api/needs-collection/analysis/weighted', async (req, res) => {
-  const auth = await requirePermission(req, 'needs.view');
+  const auth = await requirePermission(req, 'needs.analysis');
   if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
@@ -177,7 +177,7 @@ needsCollectionRouter.get('/api/needs-collection/analysis/weighted', async (req,
 
 // GET /api/needs-collection/analysis/similar — duplicate/similar detection
 needsCollectionRouter.get('/api/needs-collection/analysis/similar', async (req, res) => {
-  const auth = await requirePermission(req, 'needs.view');
+  const auth = await requirePermission(req, 'needs.analysis');
   if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
@@ -193,7 +193,7 @@ needsCollectionRouter.get('/api/needs-collection/analysis/similar', async (req, 
 
 // GET /api/needs-collection/analysis/plan-gap — compare needs vs procurement plan
 needsCollectionRouter.get('/api/needs-collection/analysis/plan-gap', async (req, res) => {
-  const auth = await requirePermission(req, 'needs.view');
+  const auth = await requirePermission(req, 'needs.analysis');
   if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
@@ -209,7 +209,7 @@ needsCollectionRouter.get('/api/needs-collection/analysis/plan-gap', async (req,
 
 // GET /api/needs-collection/analysis/thresholds — threshold flags
 needsCollectionRouter.get('/api/needs-collection/analysis/thresholds', async (req, res) => {
-  const auth = await requirePermission(req, 'needs.view');
+  const auth = await requirePermission(req, 'needs.analysis');
   if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
@@ -226,7 +226,7 @@ needsCollectionRouter.get('/api/needs-collection/analysis/thresholds', async (re
 
 // GET /api/needs-collection/analysis/non-submissions — units that haven't submitted
 needsCollectionRouter.get('/api/needs-collection/analysis/non-submissions', async (req, res) => {
-  const auth = await requirePermission(req, 'needs.view');
+  const auth = await requirePermission(req, 'needs.analysis');
   if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
@@ -440,7 +440,7 @@ needsCollectionRouter.put('/api/needs-collection/:id', async (req, res) => {
 
 // POST /api/needs-collection/:id/submit — submit for review
 needsCollectionRouter.post('/api/needs-collection/:id/submit', async (req, res) => {
-  const auth = await requirePermission(req, 'needs.create');
+  const auth = await requirePermission(req, 'needs.submit');
   if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
@@ -465,7 +465,7 @@ needsCollectionRouter.post('/api/needs-collection/:id/submit', async (req, res) 
 
 // DELETE /api/needs-collection/:id
 needsCollectionRouter.delete('/api/needs-collection/:id', async (req, res) => {
-  const auth = await requirePermission(req, 'needs.create');
+  const auth = await requirePermission(req, 'needs.delete');
   if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
@@ -695,7 +695,7 @@ needsCollectionRouter.delete('/api/needs-collection/assessments/:id/items/:itemI
 
 // POST /api/needs-collection/assessments/:id/carry-forward — carry needs from another year
 needsCollectionRouter.post('/api/needs-collection/assessments/:id/carry-forward', async (req, res) => {
-  const auth = await requirePermission(req, 'needs.consolidate');
+  const auth = await requirePermission(req, 'needs.carry_forward');
   if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
