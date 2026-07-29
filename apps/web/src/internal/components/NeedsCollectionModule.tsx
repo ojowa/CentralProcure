@@ -21,6 +21,11 @@ import {
   fetchAssessments,
   fetchAssessmentDetail,
   createAssessmentFromAnalysis,
+  createManualAssessment,
+  addAssessmentItem,
+  updateAssessmentItem,
+  deleteAssessmentItem,
+  carryForwardNeeds,
   submitAssessmentDecision,
   type NeedsCollectionSummary,
   type NeedsCollectionDetail,
@@ -87,6 +92,17 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
   const [formFiscalYear, setFormFiscalYear] = useState(new Date().getFullYear());
   const [formRemarks, setFormRemarks] = useState('');
   const [formItems, setFormItems] = useState<NeedsCollectionItem[]>([]);
+
+  // Create assessment dialog
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [createMode, setCreateMode] = useState<'analysis' | 'manual' | 'carry-forward'>('analysis');
+  const [createYear, setCreateYear] = useState(new Date().getFullYear());
+  const [carryForwardYear, setCarryForwardYear] = useState(new Date().getFullYear() - 1);
+
+  // Item editor
+  const [editingItem, setEditingItem] = useState<NeedsAssessmentItem | null>(null);
+  const [itemForm, setItemForm] = useState({ Description: '', Quantity: 1, Unit: 'Unit', Priority: 'Normal', ProcurementType: 'Goods' });
+  const [showItemForm, setShowItemForm] = useState(false);
 
   const clearMessages = useCallback(() => { setError(null); setSuccess(null); }, []);
 
@@ -283,12 +299,92 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
     finally { setLoading(false); }
   };
 
-  const handleCreateAssessment = async () => {
+  // ── Assessment creation handlers ─────────────
+  const handleOpenCreateDialog = () => {
+    setCreateMode('analysis');
+    setCreateYear(analysisYear);
+    setCarryForwardYear(new Date().getFullYear() - 1);
+    setShowCreateDialog(true);
+  };
+
+  const handleConfirmCreate = async () => {
     setLoading(true); clearMessages();
     try {
-      await createAssessmentFromAnalysis(token, analysisYear);
-      setSuccess('Assessment created from analysis.');
+      if (createMode === 'analysis') {
+        await createAssessmentFromAnalysis(token, createYear);
+        setSuccess(`Assessment created from FY ${createYear} analysis.`);
+      } else if (createMode === 'manual') {
+        await createManualAssessment(token, createYear, []);
+        setSuccess(`Blank assessment created for FY ${createYear}.`);
+      } else {
+        // Carry forward: create blank for target year, then carry forward source year items
+        const newAssessment = await createManualAssessment(token, createYear, []);
+        await carryForwardNeeds(newAssessment.AssessmentId, token, carryForwardYear);
+        setSuccess(`Assessment created for FY ${createYear} with needs carried forward from FY ${carryForwardYear}.`);
+      }
+      setShowCreateDialog(false);
       setActiveTab('assessments');
+    } catch (err: any) { setError(err.message); }
+    finally { setLoading(false); }
+  };
+
+  // ── Item editor handlers ─────────────────────
+  const handleAddItem = async () => {
+    if (!selectedAssessment) return;
+    setLoading(true); clearMessages();
+    try {
+      await addAssessmentItem(selectedAssessment.AssessmentId, token, itemForm);
+      setSuccess('Item added.');
+      setShowItemForm(false);
+      setItemForm({ Description: '', Quantity: 1, Unit: 'Unit', Priority: 'Normal', ProcurementType: 'Goods' });
+      // Reload assessment detail
+      const data = await fetchAssessmentDetail(selectedAssessment.AssessmentId, token);
+      setSelectedAssessment(data);
+    } catch (err: any) { setError(err.message); }
+    finally { setLoading(false); }
+  };
+
+  const handleUpdateItem = async () => {
+    if (!selectedAssessment || !editingItem) return;
+    setLoading(true); clearMessages();
+    try {
+      await updateAssessmentItem(selectedAssessment.AssessmentId, editingItem.ItemId, token, itemForm);
+      setSuccess('Item updated.');
+      setShowItemForm(false);
+      setEditingItem(null);
+      setItemForm({ Description: '', Quantity: 1, Unit: 'Unit', Priority: 'Normal', ProcurementType: 'Goods' });
+      const data = await fetchAssessmentDetail(selectedAssessment.AssessmentId, token);
+      setSelectedAssessment(data);
+    } catch (err: any) { setError(err.message); }
+    finally { setLoading(false); }
+  };
+
+  const handleDeleteItem = async (itemId: string) => {
+    if (!selectedAssessment || !confirm('Delete this item?')) return;
+    setLoading(true); clearMessages();
+    try {
+      await deleteAssessmentItem(selectedAssessment.AssessmentId, itemId, token);
+      setSuccess('Item deleted.');
+      const data = await fetchAssessmentDetail(selectedAssessment.AssessmentId, token);
+      setSelectedAssessment(data);
+    } catch (err: any) { setError(err.message); }
+    finally { setLoading(false); }
+  };
+
+  const handleEditItem = (item: NeedsAssessmentItem) => {
+    setEditingItem(item);
+    setItemForm({ Description: item.Description, Quantity: item.Quantity, Unit: item.Unit, Priority: item.Priority, ProcurementType: item.ProcurementType });
+    setShowItemForm(true);
+  };
+
+  const handleCarryForward = async () => {
+    if (!selectedAssessment) return;
+    setLoading(true); clearMessages();
+    try {
+      const result = await carryForwardNeeds(selectedAssessment.AssessmentId, token, carryForwardYear);
+      setSuccess(result.Message);
+      const data = await fetchAssessmentDetail(selectedAssessment.AssessmentId, token);
+      setSelectedAssessment(data);
     } catch (err: any) { setError(err.message); }
     finally { setLoading(false); }
   };
@@ -423,11 +519,12 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
   }
 
   if (view === 'assessment-detail' && selectedAssessment) {
+    const isDraft = selectedAssessment.Status === 'Draft';
     return (
       <section className="app-module">
         <header className="app-module__header">
           <div className="app-module__title-group">
-            <button className="app-btn app-btn--secondary app-btn--sm mb-4" onClick={() => { setView('list'); setSelectedAssessment(null); clearMessages(); }}>
+            <button className="app-btn app-btn--secondary app-btn--sm mb-4" onClick={() => { setView('list'); setSelectedAssessment(null); setShowItemForm(false); setEditingItem(null); clearMessages(); }}>
               <ArrowLeft size={16} className="mr-2" /> Back
             </button>
             <h2 className="app-module__title">Assessment: FY {selectedAssessment.FiscalYear}</h2>
@@ -442,19 +539,71 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
             {selectedAssessment.AssessedBy && <div className="app-info-item"><span className="app-info-item__label">Assessed By</span><span className="app-info-item__value">{selectedAssessment.AssessedBy}</span></div>}
             {selectedAssessment.AssessedAt && <div className="app-info-item"><span className="app-info-item__label">Assessed At</span><span className="app-info-item__value">{formatDateTimeShort(selectedAssessment.AssessedAt)}</span></div>}
           </div>
-          {selectedAssessment.Status === 'Draft' && hasPermission('needs.endorse') && (
+          {isDraft && hasPermission('needs.endorse') && (
             <div className="app-card__footer" style={{ flexDirection: 'row', gap: '0.75rem' }}>
               <button className="app-btn app-btn--success" onClick={() => handleAssessmentDecision('Endorsed')} disabled={loading}><CheckCircle className="app-btn__icon" /> Endorse</button>
               <button className="app-btn app-btn--danger" onClick={() => handleAssessmentDecision('Rejected')} disabled={loading}><XCircle className="app-btn__icon" /> Reject</button>
             </div>
           )}
         </div>
+
+        {/* Carry Forward Section */}
+        {isDraft && (
+          <div className="app-card mb-4">
+            <div className="app-card__header"><h3 className="app-card__title">Carry Forward Needs</h3></div>
+            <div className="p-4 flex items-center gap-3">
+              <span className="text-sm text-slate-600">Import submitted needs from:</span>
+              <select className="app-form__select app-form__select--sm" value={carryForwardYear} onChange={e => setCarryForwardYear(Number(e.target.value))}>
+                {[...Array(5)].map((_, i) => { const y = new Date().getFullYear() - 1 - i; return <option key={y} value={y}>{y}</option>; })}
+              </select>
+              <button className="app-btn app-btn--secondary app-btn--sm" onClick={handleCarryForward} disabled={loading}>
+                <RotateCcw size={14} className="mr-1" /> Carry Forward
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Items Section */}
         <div className="app-card">
-          <div className="app-card__header"><h3 className="app-card__title">Consolidated Items ({selectedAssessment.Items.length})</h3></div>
+          <div className="app-card__header">
+            <h3 className="app-card__title">Items ({selectedAssessment.Items.length})</h3>
+            {isDraft && (
+              <div className="flex gap-2">
+                <button className="app-btn app-btn--primary app-btn--sm" onClick={() => { setEditingItem(null); setItemForm({ Description: '', Quantity: 1, Unit: 'Unit', Priority: 'Normal', ProcurementType: 'Goods' }); setShowItemForm(true); }}>
+                  <Plus size={14} className="mr-1" /> Add Item
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Item Form */}
+          {showItemForm && (
+            <div className="p-4 bg-slate-50 border-b border-slate-200">
+              <h4 className="font-medium text-sm text-slate-700 mb-3">{editingItem ? 'Edit Item' : 'Add New Item'}</h4>
+              <div className="grid grid-cols-5 gap-3">
+                <input className="app-form__input app-form__input--sm col-span-2" placeholder="Description" value={itemForm.Description} onChange={e => setItemForm({ ...itemForm, Description: e.target.value })} />
+                <input type="number" className="app-form__input app-form__input--sm" placeholder="Qty" value={itemForm.Quantity} onChange={e => setItemForm({ ...itemForm, Quantity: Number(e.target.value) })} />
+                <input className="app-form__input app-form__input--sm" placeholder="Unit" value={itemForm.Unit} onChange={e => setItemForm({ ...itemForm, Unit: e.target.value })} />
+                <select className="app-form__select app-form__select--sm" value={itemForm.Priority} onChange={e => setItemForm({ ...itemForm, Priority: e.target.value })}>
+                  <option value="Normal">Normal</option><option value="Urgent">Urgent</option><option value="Strategic">Strategic</option>
+                </select>
+                <select className="app-form__select app-form__select--sm" value={itemForm.ProcurementType} onChange={e => setItemForm({ ...itemForm, ProcurementType: e.target.value })}>
+                  <option value="Goods">Goods</option><option value="Works">Works</option><option value="Services">Services</option>
+                </select>
+              </div>
+              <div className="flex gap-2 mt-3">
+                <button className="app-btn app-btn--primary app-btn--sm" onClick={editingItem ? handleUpdateItem : handleAddItem} disabled={loading || !itemForm.Description.trim()}>
+                  {loading ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />} {editingItem ? 'Update' : 'Add'}
+                </button>
+                <button className="app-btn app-btn--secondary app-btn--sm" onClick={() => { setShowItemForm(false); setEditingItem(null); }}>Cancel</button>
+              </div>
+            </div>
+          )}
+
           <div className="app-table-wrapper">
             <table className="app-table">
               <thead>
-                <tr><th>Description</th><th>Type</th><th>Unit</th><th className="app-table__cell--numeric">Total Qty</th><th>Priority</th><th>Source Units</th></tr>
+                <tr><th>Description</th><th>Type</th><th>Unit</th><th className="app-table__cell--numeric">Qty</th><th>Priority</th><th>Source Units</th>{isDraft && <th style={{ width: '80px' }}>Actions</th>}</tr>
               </thead>
               <tbody>
                 {selectedAssessment.Items.map((item: NeedsAssessmentItem) => (
@@ -465,8 +614,17 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
                     <td className="app-table__cell--numeric font-semibold text-emerald-700">{item.Quantity}</td>
                     <td><span className={`text-[10px] px-1.5 rounded-full ${item.Priority?.includes('Urgent') ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'}`}>{item.Priority}</span></td>
                     <td className="text-xs text-slate-500">{item.SourceUnits?.map((s: { unitId: string; unitName: string }) => s.unitName).join(', ') || '—'}</td>
+                    {isDraft && (
+                      <td>
+                        <div className="flex gap-1">
+                          <button className="text-blue-500 hover:text-blue-700" onClick={() => handleEditItem(item)}><FileText size={14} /></button>
+                          <button className="text-red-400 hover:text-red-600" onClick={() => handleDeleteItem(item.ItemId)}><Trash2 size={14} /></button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
+                {!selectedAssessment.Items.length && <tr><td colSpan={isDraft ? 7 : 6} className="py-8 text-center text-slate-400 italic">No items yet. Add items manually or carry forward from a previous year.</td></tr>}
               </tbody>
             </table>
           </div>
@@ -507,7 +665,7 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
         )}
         {activeTab === 'assessments' && hasPermission('needs.consolidate') && (
           <div className="app-module__actions">
-            <button className="app-btn app-btn--primary" onClick={handleCreateAssessment} disabled={loading}><ClipboardList size={18} className="mr-2" /> Create Assessment from Analysis</button>
+            <button className="app-btn app-btn--primary" onClick={handleOpenCreateDialog} disabled={loading}><ClipboardList size={18} className="mr-2" /> Create Assessment</button>
           </div>
         )}
       </header>
@@ -632,6 +790,53 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
                 {!filteredAssessments.length && <tr><td colSpan={6} className="py-8 text-center text-slate-400">No assessments found.</td></tr>}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Create Assessment Dialog */}
+      {showCreateDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowCreateDialog(false)}>
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+            <div className="p-6">
+              <h3 className="text-lg font-bold text-slate-800 mb-4">Create Assessment</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="app-form-label">Creation Method</label>
+                  <div className="flex gap-2">
+                    <button className={`flex-1 px-3 py-2 rounded text-sm font-medium border ${createMode === 'analysis' ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`} onClick={() => setCreateMode('analysis')}>From Analysis</button>
+                    <button className={`flex-1 px-3 py-2 rounded text-sm font-medium border ${createMode === 'manual' ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`} onClick={() => setCreateMode('manual')}>Blank (Manual)</button>
+                    <button className={`flex-1 px-3 py-2 rounded text-sm font-medium border ${createMode === 'carry-forward' ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`} onClick={() => setCreateMode('carry-forward')}>Carry Forward</button>
+                  </div>
+                </div>
+                <div>
+                  <label className="app-form-label">Target Fiscal Year</label>
+                  <select className="app-form__select" value={createYear} onChange={e => setCreateYear(Number(e.target.value))}>
+                    {[...Array(6)].map((_, i) => { const y = new Date().getFullYear() + i; return <option key={y} value={y}>{y}</option>; })}
+                  </select>
+                </div>
+                {createMode === 'carry-forward' && (
+                  <div>
+                    <label className="app-form-label">Carry Forward From Year</label>
+                    <select className="app-form__select" value={carryForwardYear} onChange={e => setCarryForwardYear(Number(e.target.value))}>
+                      {[...Array(5)].map((_, i) => { const y = new Date().getFullYear() - 1 - i; return <option key={y} value={y}>{y}</option>; })}
+                    </select>
+                  </div>
+                )}
+                <div className="bg-slate-50 rounded p-3 text-sm text-slate-600">
+                  {createMode === 'analysis' && <p>Consolidates all submitted needs for FY {createYear} into a single assessment.</p>}
+                  {createMode === 'manual' && <p>Creates an empty assessment for FY {createYear}. You can add items manually afterwards.</p>}
+                  {createMode === 'carry-forward' && <p>Creates an assessment for FY {createYear} and imports submitted needs from FY {carryForwardYear}.</p>}
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 p-4 border-t border-slate-200">
+              <button className="app-btn app-btn--secondary" onClick={() => setShowCreateDialog(false)}>Cancel</button>
+              <button className="app-btn app-btn--primary" onClick={handleConfirmCreate} disabled={loading}>
+                {loading ? <Loader2 className="animate-spin mr-2" size={16} /> : <ClipboardList size={16} className="mr-2" />}
+                Create
+              </button>
+            </div>
           </div>
         </div>
       )}

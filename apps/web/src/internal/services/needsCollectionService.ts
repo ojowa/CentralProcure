@@ -197,8 +197,24 @@ export const fetchAssessmentDetail = (id: string, token: string) =>
 export const createAssessmentFromAnalysis = (token: string, fiscalYear: number) =>
   send<NeedsAssessmentSummary>(`${baseUrl}/assessments`, '', token, { method: 'POST' }, { FiscalYear: fiscalYear });
 
+export const createManualAssessment = (token: string, fiscalYear: number, items: NeedsAssessmentItem[]) =>
+  send<NeedsAssessmentSummary>(`${baseUrl}/assessments`, '', token, { method: 'POST' }, { FiscalYear: fiscalYear, Items: items });
+
 export const updateAssessment = (id: string, token: string, payload: { Remarks?: string }) =>
   send<NeedsAssessmentSummary>(`${baseUrl}/assessments`, `/${id}`, token, { method: 'PUT' }, payload);
 
 export const submitAssessmentDecision = (id: string, token: string, decision: 'Endorsed' | 'Rejected', remarks?: string) =>
   send<NeedsAssessmentSummary>(`${baseUrl}/assessments`, `/${id}/decision`, token, { method: 'POST' }, { Decision: decision, Remarks: remarks });
+
+// ── Assessment Items API ──────────────────────
+export const addAssessmentItem = (id: string, token: string, item: { Description: string; Quantity: number; Unit: string; Priority: string; ProcurementType: string; SourceUnits?: Array<{ unitId: string; unitName: string }> }) =>
+  send<NeedsAssessmentItem>(`${baseUrl}/assessments`, `/${id}/items`, token, { method: 'POST' }, item);
+
+export const updateAssessmentItem = (id: string, itemId: string, token: string, item: { Description?: string; Quantity?: number; Unit?: string; Priority?: string; ProcurementType?: string; SourceUnits?: Array<{ unitId: string; unitName: string }> }) =>
+  send<NeedsAssessmentItem>(`${baseUrl}/assessments`, `/${id}/items/${itemId}`, token, { method: 'PUT' }, item);
+
+export const deleteAssessmentItem = (id: string, itemId: string, token: string) =>
+  send<{ Message: string }>(`${baseUrl}/assessments`, `/${id}/items/${itemId}`, token, { method: 'DELETE' });
+
+export const carryForwardNeeds = (id: string, token: string, sourceFiscalYear: number) =>
+  send<{ Message: string; Count: number }>(`${baseUrl}/assessments`, `/${id}/carry-forward`, token, { method: 'POST' }, { SourceFiscalYear: sourceFiscalYear });

@@ -283,22 +283,47 @@ needsCollectionRouter.get('/api/needs-collection/assessments', async (req, res) 
   }
 });
 
-// POST /api/needs-collection/assessments — create from analysis
+// POST /api/needs-collection/assessments — create (from analysis or manual)
 needsCollectionRouter.post('/api/needs-collection/assessments', async (req, res) => {
   const auth = await requirePermission(req, 'needs.consolidate');
   if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
-    const { FiscalYear } = req.body;
+    const { FiscalYear, Items } = req.body;
     if (!FiscalYear) { res.status(400).json({ ErrorMessage: 'FiscalYear is required.' }); return; }
 
-    const result = await pool.query(
-      `SELECT procurement_workflow.create_assessment_from_analysis($1, $2) AS "AssessmentId"`,
-      [FiscalYear, auth!.sub]
-    );
+    let assessmentId: string;
 
-    const assessmentId = result.rows[0].AssessmentId;
+    if (Array.isArray(Items) && Items.length > 0) {
+      // Manual creation with provided items
+      const result = await pool.query(
+        `INSERT INTO procurement_workflow.needs_assessment (fiscal_year, status, created_by)
+         VALUES ($1, 'Draft', $2)
+         RETURNING assessment_id AS "AssessmentId"`,
+        [FiscalYear, auth!.sub]
+      );
+      assessmentId = result.rows[0].AssessmentId;
+
+      for (const item of Items) {
+        await pool.query(
+          `INSERT INTO procurement_workflow.needs_assessment_items
+            (assessment_id, description, quantity, unit, priority, procurement_type, source_units)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [assessmentId, item.Description || '', item.Quantity || 1,
+           item.Unit || 'Unit', item.Priority || 'Normal', item.ProcurementType || 'Goods',
+           JSON.stringify(item.SourceUnits || [])]
+        );
+      }
+    } else {
+      // Create from analysis
+      const result = await pool.query(
+        `SELECT procurement_workflow.create_assessment_from_analysis($1, $2) AS "AssessmentId"`,
+        [FiscalYear, auth!.sub]
+      );
+      assessmentId = result.rows[0].AssessmentId;
+    }
+
     const detail = await pool.query(
       `SELECT assessment_id AS "AssessmentId", fiscal_year AS "FiscalYear", status AS "Status", created_at AS "CreatedAt"
        FROM procurement_workflow.needs_assessment WHERE assessment_id = $1`, [assessmentId]
@@ -567,5 +592,147 @@ needsCollectionRouter.put('/api/needs-collection/assessments/:id', async (req, r
     res.json(result.rows[0]);
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'Error updating assessment.' });
+  }
+});
+
+// ─────────────────────────────────────────────
+// ASSESSMENT ITEMS — add / update / delete
+// ─────────────────────────────────────────────
+
+// POST /api/needs-collection/assessments/:id/items — add item
+needsCollectionRouter.post('/api/needs-collection/assessments/:id/items', async (req, res) => {
+  const auth = await requirePermission(req, 'needs.consolidate');
+  if (denyIfNoPermission(res, auth)) return;
+  if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
+
+  try {
+    const { id } = req.params;
+    const { Description, Quantity, Unit, Priority, ProcurementType, SourceUnits } = req.body;
+
+    // Verify assessment exists and is editable
+    const check = await pool.query(`SELECT status FROM procurement_workflow.needs_assessment WHERE assessment_id = $1`, [id]);
+    if (check.rows.length === 0) { res.status(404).json({ ErrorMessage: 'Assessment not found.' }); return; }
+    if (check.rows[0].status !== 'Draft') { res.status(400).json({ ErrorMessage: 'Assessment is not editable.' }); return; }
+
+    const result = await pool.query(
+      `INSERT INTO procurement_workflow.needs_assessment_items
+        (assessment_id, description, quantity, unit, priority, procurement_type, source_units)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING item_id AS "ItemId", description AS "Description", quantity AS "Quantity",
+                 unit AS "Unit", priority AS "Priority", procurement_type AS "ProcurementType", source_units AS "SourceUnits"`,
+      [id, Description || '', Quantity || 1, Unit || 'Unit', Priority || 'Normal',
+       ProcurementType || 'Goods', JSON.stringify(SourceUnits || [])]
+    );
+
+    res.status(201).json(result.rows[0]);
+  } catch (error: any) {
+    res.status(500).json({ ErrorMessage: error.message || 'Error adding item.' });
+  }
+});
+
+// PUT /api/needs-collection/assessments/:id/items/:itemId — update item
+needsCollectionRouter.put('/api/needs-collection/assessments/:id/items/:itemId', async (req, res) => {
+  const auth = await requirePermission(req, 'needs.consolidate');
+  if (denyIfNoPermission(res, auth)) return;
+  if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
+
+  try {
+    const { id, itemId } = req.params;
+    const { Description, Quantity, Unit, Priority, ProcurementType, SourceUnits } = req.body;
+
+    const check = await pool.query(`SELECT status FROM procurement_workflow.needs_assessment WHERE assessment_id = $1`, [id]);
+    if (check.rows.length === 0) { res.status(404).json({ ErrorMessage: 'Assessment not found.' }); return; }
+    if (check.rows[0].status !== 'Draft') { res.status(400).json({ ErrorMessage: 'Assessment is not editable.' }); return; }
+
+    const result = await pool.query(
+      `UPDATE procurement_workflow.needs_assessment_items
+       SET description = COALESCE(NULLIF($1, ''), description),
+           quantity = COALESCE(NULLIF($2, '')::decimal, quantity),
+           unit = COALESCE(NULLIF($3, ''), unit),
+           priority = COALESCE(NULLIF($4, ''), priority),
+           procurement_type = COALESCE(NULLIF($5, ''), procurement_type),
+           source_units = COALESCE($6, source_units)
+       WHERE item_id = $7 AND assessment_id = $8
+       RETURNING item_id AS "ItemId", description AS "Description", quantity AS "Quantity",
+                 unit AS "Unit", priority AS "Priority", procurement_type AS "ProcurementType", source_units AS "SourceUnits"`,
+      [Description || '', Quantity || '', Unit || '', Priority || '', ProcurementType || '',
+       SourceUnits ? JSON.stringify(SourceUnits) : null, itemId, id]
+    );
+
+    if (result.rows.length === 0) { res.status(404).json({ ErrorMessage: 'Item not found.' }); return; }
+    res.json(result.rows[0]);
+  } catch (error: any) {
+    res.status(500).json({ ErrorMessage: error.message || 'Error updating item.' });
+  }
+});
+
+// DELETE /api/needs-collection/assessments/:id/items/:itemId — delete item
+needsCollectionRouter.delete('/api/needs-collection/assessments/:id/items/:itemId', async (req, res) => {
+  const auth = await requirePermission(req, 'needs.consolidate');
+  if (denyIfNoPermission(res, auth)) return;
+  if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
+
+  try {
+    const { id, itemId } = req.params;
+
+    const check = await pool.query(`SELECT status FROM procurement_workflow.needs_assessment WHERE assessment_id = $1`, [id]);
+    if (check.rows.length === 0) { res.status(404).json({ ErrorMessage: 'Assessment not found.' }); return; }
+    if (check.rows[0].status !== 'Draft') { res.status(400).json({ ErrorMessage: 'Assessment is not editable.' }); return; }
+
+    const result = await pool.query(
+      `DELETE FROM procurement_workflow.needs_assessment_items
+       WHERE item_id = $1 AND assessment_id = $2
+       RETURNING item_id AS "ItemId"`,
+      [itemId, id]
+    );
+
+    if (result.rows.length === 0) { res.status(404).json({ ErrorMessage: 'Item not found.' }); return; }
+    res.json({ Message: 'Item deleted.' });
+  } catch (error: any) {
+    res.status(500).json({ ErrorMessage: error.message || 'Error deleting item.' });
+  }
+});
+
+// POST /api/needs-collection/assessments/:id/carry-forward — carry needs from another year
+needsCollectionRouter.post('/api/needs-collection/assessments/:id/carry-forward', async (req, res) => {
+  const auth = await requirePermission(req, 'needs.consolidate');
+  if (denyIfNoPermission(res, auth)) return;
+  if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
+
+  try {
+    const { id } = req.params;
+    const { SourceFiscalYear } = req.body;
+
+    if (!SourceFiscalYear) { res.status(400).json({ ErrorMessage: 'SourceFiscalYear is required.' }); return; }
+
+    // Verify assessment exists and is editable
+    const check = await pool.query(`SELECT status, fiscal_year FROM procurement_workflow.needs_assessment WHERE assessment_id = $1`, [id]);
+    if (check.rows.length === 0) { res.status(404).json({ ErrorMessage: 'Assessment not found.' }); return; }
+    if (check.rows[0].status !== 'Draft') { res.status(400).json({ ErrorMessage: 'Assessment is not editable.' }); return; }
+
+    // Get items from source year's submitted collections
+    const sourceItems = await pool.query(
+      `SELECT * FROM procurement_workflow.analyze_needs($1)`, [SourceFiscalYear]
+    );
+
+    if (sourceItems.rows.length === 0) {
+      res.status(404).json({ ErrorMessage: `No submitted needs found for FY ${SourceFiscalYear}.` }); return;
+    }
+
+    let addedCount = 0;
+    for (const item of sourceItems.rows) {
+      await pool.query(
+        `INSERT INTO procurement_workflow.needs_assessment_items
+          (assessment_id, description, quantity, unit, priority, procurement_type, source_units)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [id, item.item_description, item.total_quantity, item.unit,
+         item.priority_summary, item.procurement_type, item.source_units]
+      );
+      addedCount++;
+    }
+
+    res.json({ Message: `Carried forward ${addedCount} items from FY ${SourceFiscalYear}.`, Count: addedCount });
+  } catch (error: any) {
+    res.status(500).json({ ErrorMessage: error.message || 'Error carrying forward needs.' });
   }
 });
