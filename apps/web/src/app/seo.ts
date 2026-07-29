@@ -24,7 +24,7 @@ const normalizeRoutePath = (path: string): string => {
   return path.startsWith('/') ? path : `/${path}`;
 };
 
-export const getCanonicalPath = (path: string): string => {
+const getCanonicalPath = (path: string): string => {
   const normalizedPath = normalizeRoutePath(path);
   if (!normalizedBasePath) {
     return normalizedPath;

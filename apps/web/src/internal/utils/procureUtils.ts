@@ -80,13 +80,6 @@ export const getVarianceColor = (variance: number): string => {
   return 'variance-negative';
 };
 
-export const formatVariance = (variance: number, available: number, requested: number): string => {
-  const absVariance = Math.abs(variance);
-  if (absVariance === 0) return 'On budget';
-  const percentage = ((absVariance / available) * 100).toFixed(1);
-  return variance >= 0 ? `+${formatCurrency(absVariance)} (${percentage}%)` : `-${formatCurrency(absVariance)} (${percentage}%)`;
-};
-
 
 export const resolveThresholdRouting = (amount: number, thresholdBands: ThresholdBand[]): ThresholdBand => {
   const safeAmount = Number.isFinite(amount) ? Math.max(amount, 0) : 0;
