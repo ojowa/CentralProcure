@@ -15,6 +15,9 @@ const PHASES: PhaseDef[] = [
 ];
 
 const StagePhaseMap: Record<string, string> = {
+  needs_collection: 'app_planning',
+  needs_analysis: 'app_planning',
+  needs_assessment: 'app_planning',
   department_need_capture: 'app_planning',
   department_head_endorsement: 'app_planning',
   budget_allocation_and_confirmation: 'app_planning',

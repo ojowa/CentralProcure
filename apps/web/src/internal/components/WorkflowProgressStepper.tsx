@@ -17,6 +17,9 @@ const PHASES: PhaseConfig[] = [
     id: 'Planning',
     label: 'Planning',
     states: [
+      'needs_collection',
+      'needs_analysis',
+      'needs_assessment',
       'department_need_capture',
       'department_head_endorsement',
       'budget_allocation_and_confirmation',
