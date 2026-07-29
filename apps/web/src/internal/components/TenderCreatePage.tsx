@@ -39,6 +39,7 @@ export const TenderCreatePage: React.FC<Props> = ({ token, module }) => {
     Category: 'Goods',
     Requirements: '',
     EvaluationCriteria: '',
+    EligibilityCriteria: '',
     EstimatedValue: 0
   });
 
@@ -265,7 +266,9 @@ export const TenderCreatePage: React.FC<Props> = ({ token, module }) => {
         Description: req ? `Tender for ${req.Title}` : `Tender for ${detail.Title}`,
         Category: detail.ProcurementType || 'Goods',
         Requirements: buildSpecificationsFromLineItems(detail),
-        EvaluationCriteria: buildEvaluationCriteriaByProcurementType(detail.ProcurementType)
+        EvaluationCriteria: buildEvaluationCriteriaByProcurementType(detail.ProcurementType),
+        EligibilityCriteria: '',
+        EstimatedValue: 0
       });
       setStep('draft');
       router.replace(buildWorkspacePath('create'));

@@ -61,7 +61,7 @@ export const BppEscalationModule = ({ module, token, role, initialData }: Props)
           Category: item.ApprovalRoute || 'Not Stated',
           Status: item.Status || 'Under Review',
           Budget: item.Amount,
-          Department: item.Department,
+          Department: item.Department ?? undefined,
           CreatedAt: item.CreatedAt
         }));
 
