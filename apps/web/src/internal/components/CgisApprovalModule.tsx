@@ -81,8 +81,8 @@ export const CgisApprovalModule = ({ module, token, userEmail }: CgisApprovalMod
   const loadExceptionQueue = async () => {
     if (!token) return;
     try {
-      const data = await fetchMethodChangeExceptionQueue(token) as MethodExceptionQueueItem[];
-      setExceptionQueue(data || []);
+      const result = await fetchMethodChangeExceptionQueue(token) as { Exceptions: MethodExceptionQueueItem[] };
+      setExceptionQueue(result?.Exceptions || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load method-change exception queue.');
     }

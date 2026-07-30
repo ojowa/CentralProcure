@@ -105,15 +105,25 @@ procurementMethodsRouter.get('/api/procurement-methods/exceptions/queue', async 
         me.exception_id AS "ExceptionId",
         me.entity_type AS "EntityType",
         me.entity_id AS "EntityId",
-        me.entity_title AS "EntityTitle",
+        me.entity_title AS "RecordTitle",
         me.requested_method AS "RequestedMethod",
-        me.justification AS "Justification",
+        me.justification AS "RequestReason",
         me.reason AS "Reason",
         me.status AS "Status",
         me.requested_by AS "RequestedBy",
         me.requested_at AS "RequestedAt",
-        me.decided_at AS "DecidedAt"
+        me.decided_at AS "DecidedAt",
+        wi.current_stage_key AS "CurrentStageKey",
+        wsc.stage_title AS "CurrentStageTitle",
+        wi.amount AS "Amount",
+        pm.method_determined AS "CurrentMethod"
        FROM procurement_workflow.method_exceptions me
+       LEFT JOIN procurement_workflow.workflow_instances wi
+         ON wi.entity_type = me.entity_type AND wi.entity_id = me.entity_id
+       LEFT JOIN procurement_workflow.workflow_stage_catalog wsc
+         ON wsc.stage_key = wi.current_stage_key
+       LEFT JOIN procurement_workflow.procurement_methods pm
+         ON pm.entity_type = me.entity_type AND pm.entity_id = me.entity_id
        ${whereClause}
        ORDER BY me.requested_at DESC
        LIMIT $${idx} OFFSET $${idx + 1}`,
@@ -261,7 +271,7 @@ procurementMethodsRouter.post('/api/procurement-methods/exceptions/:action', asy
 
   try {
     const { action } = req.params;
-    const { ExceptionId, Comments } = req.body;
+    const { ExceptionId, Note } = req.body;
 
     if (!ExceptionId) {
       res.status(400).json({ ErrorMessage: 'ExceptionId is required.' }); return;
@@ -286,7 +296,7 @@ procurementMethodsRouter.post('/api/procurement-methods/exceptions/:action', asy
         requested_method AS "RequestedMethod",
         status AS "Status",
         decided_at AS "DecidedAt"`,
-      [newStatus, auth!.sub, Comments || '', ExceptionId]
+      [newStatus, auth!.sub, Note || '', ExceptionId]
     );
 
     if (result.rows.length === 0) {
