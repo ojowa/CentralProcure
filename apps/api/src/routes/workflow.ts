@@ -6,6 +6,128 @@ import { requirePermission, denyIfNoPermission } from '../middleware/permission.
 
 export const workflowRouter = Router();
 
+// ─────────────────────────────────────────────
+// LITERAL ROUTES (must come before :param routes)
+// ─────────────────────────────────────────────
+
+// GET /api/workflow-runtime/cgis-queue
+workflowRouter.get('/api/workflow-runtime/cgis-queue', async (req, res) => {
+  const payload = extractPayloadFromRequest(req.headers.authorization);
+  if (!payload || !payload.sub) {
+    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
+    return;
+  }
+
+  if (!pool) {
+    res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
+    return;
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT
+        wi.instance_id AS "InstanceId",
+        wi.entity_type AS "EntityType",
+        wi.entity_id AS "EntityId",
+        wi.record_title AS "RecordTitle",
+        wi.amount AS "Amount",
+        wi.threshold_id AS "ThresholdId",
+        at.approval_route AS "ApprovalRoute",
+        at.approval_authority_label AS "ApprovalAuthorityLabel",
+        wi.current_status AS "Status",
+        wi.created_at AS "CreatedAt",
+        EXTRACT(DAY FROM NOW() - wi.created_at)::int AS "DaysPending"
+      FROM procurement_workflow.workflow_instances wi
+      LEFT JOIN post_award.approval_thresholds at ON at.threshold_id = wi.threshold_id
+      WHERE wi.current_stage_key IN ('cgis_approval', 'bg_management_approval')
+        AND wi.current_status != 'Completed'
+      ORDER BY wi.amount DESC, wi.created_at ASC`
+    );
+
+    res.json(result.rows);
+  } catch (error: any) {
+    res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching CGIS queue.' });
+  }
+});
+
+// GET /api/workflow-blueprint
+workflowRouter.get('/api/workflow-blueprint', async (_req, res) => {
+  try {
+    if (!pool) {
+      res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
+      return;
+    }
+
+    const phasesResult = await pool.query(
+      `SELECT phase_key AS "PhaseKey", phase_title AS "PhaseTitle", color AS "Color"
+       FROM procurement_workflow.workflow_phases
+       ORDER BY sort_order`
+    );
+
+    const statesResult = await pool.query(
+      `SELECT
+        stage_key AS "StageKey",
+        stage_title AS "StageTitle",
+        phase_key AS "PhaseKey",
+        module AS "Module",
+        is_initial AS "IsInitial",
+        is_terminal AS "IsTerminal",
+        sort_order AS "SortOrder"
+      FROM procurement_workflow.workflow_stage_catalog
+      ORDER BY sort_order`
+    );
+
+    const transitionsResult = await pool.query(
+      `SELECT
+        from_stage_key AS "FromStageKey",
+        to_stage_key AS "ToStageKey",
+        transition_condition AS "TransitionCondition",
+        requires_approval AS "RequiresApproval"
+      FROM procurement_workflow.workflow_stage_transitions
+      ORDER BY from_stage_key, to_stage_key`
+    );
+
+    res.json({
+      Phases: phasesResult.rows,
+      States: statesResult.rows,
+      Transitions: transitionsResult.rows,
+    });
+  } catch (error: any) {
+    res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching workflow blueprint.' });
+  }
+});
+
+// GET /api/config/workflows
+workflowRouter.get('/api/config/workflows', async (_req, res) => {
+  try {
+    if (!pool) {
+      res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
+      return;
+    }
+
+    const result = await pool.query(
+      `SELECT
+        stage_key AS "StageKey",
+        stage_title AS "StageTitle",
+        phase_key AS "PhaseKey",
+        module AS "Module",
+        is_initial AS "IsInitial",
+        is_terminal AS "IsTerminal",
+        sort_order AS "SortOrder"
+      FROM procurement_workflow.workflow_stage_catalog
+      ORDER BY sort_order`
+    );
+
+    res.json(result.rows);
+  } catch (error: any) {
+    res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching workflow config.' });
+  }
+});
+
+// ─────────────────────────────────────────────
+// PARAMETERIZED ROUTES (after literal routes)
+// ─────────────────────────────────────────────
+
 // GET /api/workflow-actions/:entityType/:entityId
 workflowRouter.get('/api/workflow-actions/:entityType/:entityId', async (req, res) => {
   const payload = extractPayloadFromRequest(req.headers.authorization);
@@ -245,119 +367,5 @@ workflowRouter.get('/api/workflow-runtime/:entityType/:entityId/history', async 
     res.json(result.rows);
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching workflow history.' });
-  }
-});
-
-// GET /api/workflow-runtime/cgis-queue
-workflowRouter.get('/api/workflow-runtime/cgis-queue', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
-    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
-    return;
-  }
-
-  if (!pool) {
-    res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
-    return;
-  }
-
-  try {
-    const result = await pool.query(
-      `SELECT
-        wi.instance_id AS "InstanceId",
-        wi.entity_type AS "EntityType",
-        wi.entity_id AS "EntityId",
-        wi.record_title AS "RecordTitle",
-        wi.amount AS "Amount",
-        wi.threshold_id AS "ThresholdId",
-        at.approval_route AS "ApprovalRoute",
-        at.approval_authority_label AS "ApprovalAuthorityLabel",
-        wi.current_status AS "Status",
-        wi.created_at AS "CreatedAt",
-        EXTRACT(DAY FROM NOW() - wi.created_at)::int AS "DaysPending"
-      FROM procurement_workflow.workflow_instances wi
-      LEFT JOIN post_award.approval_thresholds at ON at.threshold_id = wi.threshold_id
-      WHERE wi.current_stage_key IN ('cgis_approval', 'bg_management_approval')
-        AND wi.current_status != 'Completed'
-      ORDER BY wi.amount DESC, wi.created_at ASC`
-    );
-
-    res.json(result.rows);
-  } catch (error: any) {
-    res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching CGIS queue.' });
-  }
-});
-
-// GET /api/workflow-blueprint
-workflowRouter.get('/api/workflow-blueprint', async (_req, res) => {
-  try {
-    if (!pool) {
-      res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
-      return;
-    }
-
-    const phasesResult = await pool.query(
-      `SELECT phase_key AS "PhaseKey", phase_title AS "PhaseTitle", color AS "Color"
-       FROM procurement_workflow.workflow_phases
-       ORDER BY sort_order`
-    );
-
-    const statesResult = await pool.query(
-      `SELECT
-        stage_key AS "StageKey",
-        stage_title AS "StageTitle",
-        phase_key AS "PhaseKey",
-        module AS "Module",
-        is_initial AS "IsInitial",
-        is_terminal AS "IsTerminal",
-        sort_order AS "SortOrder"
-      FROM procurement_workflow.workflow_stage_catalog
-      ORDER BY sort_order`
-    );
-
-    const transitionsResult = await pool.query(
-      `SELECT
-        from_stage_key AS "FromStageKey",
-        to_stage_key AS "ToStageKey",
-        transition_condition AS "TransitionCondition",
-        requires_approval AS "RequiresApproval"
-      FROM procurement_workflow.workflow_stage_transitions
-      ORDER BY from_stage_key, to_stage_key`
-    );
-
-    res.json({
-      Phases: phasesResult.rows,
-      States: statesResult.rows,
-      Transitions: transitionsResult.rows,
-    });
-  } catch (error: any) {
-    res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching workflow blueprint.' });
-  }
-});
-
-// GET /api/config/workflows
-workflowRouter.get('/api/config/workflows', async (_req, res) => {
-  try {
-    if (!pool) {
-      res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
-      return;
-    }
-
-    const result = await pool.query(
-      `SELECT
-        stage_key AS "StageKey",
-        stage_title AS "StageTitle",
-        phase_key AS "PhaseKey",
-        module AS "Module",
-        is_initial AS "IsInitial",
-        is_terminal AS "IsTerminal",
-        sort_order AS "SortOrder"
-      FROM procurement_workflow.workflow_stage_catalog
-      ORDER BY sort_order`
-    );
-
-    res.json(result.rows);
-  } catch (error: any) {
-    res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching workflow config.' });
   }
 });
