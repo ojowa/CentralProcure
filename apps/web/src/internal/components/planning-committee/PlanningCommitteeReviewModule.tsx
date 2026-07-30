@@ -16,7 +16,7 @@ interface Props {
   token: string | null;
   role: string | null;
   userEmail?: string | null;
-  initialData?: any;
+  initialData?: unknown;
 }
 
 type ViewState = 'requisitions' | 'linked' | 'app-items' | 'workspace';
@@ -336,7 +336,6 @@ export const PlanningCommitteeReviewModule: React.FC<Props> = ({
           token={token}
           role={role}
           plans={state.plans}
-          appItems={state.appItems}
           selectedPlanId={selectedPlanForAppItems}
           onPlanChange={setSelectedPlanForAppItems}
           onLoadItems={loadAppItems}

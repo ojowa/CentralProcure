@@ -6,7 +6,6 @@ interface AppItemsBrowserProps {
   token: string | null;
   role?: string | null;
   plans: ProcurementPlanSummary[];
-  appItems?: any[];
   selectedPlanId?: string;
   onPlanChange?: (planId: string) => void;
   onLoadItems?: (planId: string) => void;

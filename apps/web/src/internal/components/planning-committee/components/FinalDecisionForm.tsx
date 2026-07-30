@@ -27,12 +27,12 @@ export const FinalDecisionForm: React.FC<FinalDecisionFormProps> = ({
     if (!file) return;
 
     setIsUploading(true);
-    // In a real implementation, this would call a file upload service
-    // For now, we simulate a successful upload to a temporary path
+    // TODO: wire to real file upload endpoint (e.g. POST /api/uploads)
+    // For now, store the filename locally so the form can submit
     setTimeout(() => {
-      setMinuteUrl(`https://storage.centralprocure.gov.ng/minutes/${Date.now()}_${file.name}`);
+      setMinuteUrl(file.name);
       setIsUploading(false);
-    }, 1500);
+    }, 800);
   };
 
   return (
