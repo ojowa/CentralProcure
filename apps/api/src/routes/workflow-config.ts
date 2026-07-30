@@ -171,18 +171,20 @@ workflowConfigRouter.put('/api/config/workflows/stages/:stageKey', async (req, r
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
   try {
     const { stageKey } = req.params;
-    const { StageTitle } = req.body;
+    const { StageTitle, Module } = req.body;
     const result = await pool.query(
       `UPDATE procurement_workflow.workflow_stage_catalog SET
-        stage_title = COALESCE($1, stage_title)
-       WHERE stage_key = $2
+        stage_title = COALESCE($1, stage_title),
+        module = COALESCE($2, module)
+       WHERE stage_key = $3
        RETURNING stage_key AS "StageKey",
                  stage_title AS "StageTitle",
                  phase_key AS "PhaseKey",
-                 is_start AS "IsInitial",
+                 module AS "Module",
+                 is_initial AS "IsInitial",
                  is_terminal AS "IsTerminal",
-                 sequence_no AS "SortOrder"`,
-      [StageTitle || null, stageKey]
+                 sort_order AS "SortOrder"`,
+      [StageTitle || null, Module || null, stageKey]
     );
     if (result.rows.length === 0) { res.status(404).json({ ErrorMessage: 'Stage not found.' }); return; }
     res.json(result.rows[0]);
