@@ -22,30 +22,43 @@ evaluationsRouter.get('/api/evaluations/assigned-tenders/default', async (req, r
     const result = await pool.query(
       `SELECT
         er.report_id AS "ReportId",
+        er.report_code AS "ReportCode",
         er.tender_id AS "TenderId",
-        t.title AS "TenderTitle",
-        er.evaluator_id AS "EvaluatorId",
-        er.status AS "Status",
+        er.tender_title AS "TenderTitle",
+        er.committee_lead AS "CommitteeLead",
+        er.recommendation AS "Recommendation",
+        er.score_summary AS "ScoreSummary",
+        er.status AS "EvaluationStatus",
         er.submitted_at AS "SubmittedAt",
-        tea.assignment_date AS "AssignmentDate",
-        tea.role AS "AssignmentRole"
+        er.created_by AS "AssignmentRole",
+        er.created_at AS "AssignmentDate",
+        t.category AS "ProcurementCategory",
+        t.status AS "TenderStatus",
+        t.closing_date AS "SubmissionDeadline",
+        t.opening_date AS "OpeningDate"
       FROM procurement_workflow.evaluation_reports er
       LEFT JOIN vendor_sourcing.tenders t ON er.tender_id = t.tender_id
-      LEFT JOIN procurement_workflow.tender_evaluation_assignments tea ON er.tender_id = tea.tender_id AND er.evaluator_id = tea.evaluator_id
-      WHERE er.evaluator_id = $1
+      WHERE er.created_by = $1
       ORDER BY er.submitted_at DESC`,
       [payload.sub]
     );
 
     const assigned = result.rows.map((r) => ({
       ReportId: r.ReportId,
+      ReportCode: r.ReportCode,
       TenderId: r.TenderId,
       TenderTitle: r.TenderTitle,
-      EvaluatorId: r.EvaluatorId,
-      Status: r.Status,
+      CommitteeLead: r.CommitteeLead,
+      Recommendation: r.Recommendation,
+      ScoreSummary: r.ScoreSummary,
+      EvaluationStatus: r.EvaluationStatus,
       SubmittedAt: r.SubmittedAt,
-      AssignmentDate: r.AssignmentDate,
       AssignmentRole: r.AssignmentRole,
+      AssignmentDate: r.AssignmentDate,
+      ProcurementCategory: r.ProcurementCategory,
+      TenderStatus: r.TenderStatus,
+      SubmissionDeadline: r.SubmissionDeadline,
+      OpeningDate: r.OpeningDate,
     }));
 
     res.json(assigned);
