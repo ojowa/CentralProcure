@@ -52,7 +52,7 @@ auditRouter.get('/api/audit/summary', async (req, res) => {
   }
 
   try {
-    const result = await pool.query(
+    const statsResult = await pool.query(
       `SELECT
         (SELECT COUNT(*) FROM post_award.contracts) AS "TotalContracts",
         (SELECT COUNT(*) FROM post_award.contracts WHERE status = 'Active') AS "ActiveContracts",
@@ -65,7 +65,29 @@ auditRouter.get('/api/audit/summary', async (req, res) => {
         (SELECT COUNT(*) FROM post_award.closeouts WHERE status = 'Pending') AS "PendingCloseouts"`
     );
 
-    res.json(result.rows[0]);
+    const eventsResult = await pool.query(
+      `SELECT
+        wh.history_id AS "HistoryId",
+        wi.entity_type AS "EntityType",
+        wi.entity_id AS "EntityId",
+        wh.from_stage_key AS "FromStageKey",
+        wh.to_stage_key AS "ToStageKey",
+        COALESCE(wsc_to.stage_title, wh.to_stage_key) AS "ToStageTitle",
+        wh.stage_status AS "StageStatus",
+        wh.transition_source AS "TransitionSource",
+        wh.actor AS "Actor",
+        wh.created_at AS "CreatedAt"
+      FROM procurement_workflow.workflow_instance_history wh
+      JOIN procurement_workflow.workflow_instances wi ON wi.instance_id = wh.instance_id
+      LEFT JOIN procurement_workflow.workflow_stage_catalog wsc_to ON wsc_to.stage_key = wh.to_stage_key
+      ORDER BY wh.created_at DESC
+      LIMIT 10`
+    );
+
+    res.json({
+      ...statsResult.rows[0],
+      RecentEvents: eventsResult.rows,
+    });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching audit summary.' });
   }
@@ -112,17 +134,22 @@ auditRouter.get('/api/audit/closeouts', async (req, res) => {
     const result = await pool.query(
       `SELECT
         co.closeout_id AS "CloseoutId",
-        co.contract_id AS "ContractId",
-        c.contract_title AS "ContractTitle",
+        co.contract_code AS "ContractCode",
+        c.tender_title AS "ContractTitle",
         co.closeout_code AS "CloseoutCode",
         co.description AS "Description",
         co.status AS "Status",
         co.initiated_by AS "InitiatedBy",
         co.initiated_at AS "InitiatedAt",
         co.completed_at AS "CompletedAt",
+        co.archive_location AS "ArchiveLocation",
+        co.final_acceptance_completed AS "FinalAcceptanceCompleted",
+        co.final_payment_completed AS "FinalPaymentCompleted",
+        co.archived_by AS "ArchivedBy",
+        co.archived_at AS "ArchivedAt",
         co.created_at AS "CreatedAt"
       FROM post_award.closeouts co
-      LEFT JOIN post_award.contracts c ON co.contract_id = c.contract_id
+      LEFT JOIN post_award.contracts c ON co.contract_code = c.contract_code
       ${whereClause}
       ORDER BY co.created_at DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
@@ -151,27 +178,34 @@ auditRouter.post('/api/audit/closeouts', async (req, res) => {
   }
 
   try {
-    const { ContractId, CloseoutCode, Description } = req.body;
+    const { ContractCode, CloseoutCode, Description, ArchiveLocation, FinalAcceptanceCompleted, FinalPaymentCompleted, ArchivedBy } = req.body;
 
-    if (!ContractId || !CloseoutCode) {
-      res.status(400).json({ ErrorMessage: 'ContractId and CloseoutCode are required.' });
+    if (!ContractCode || !CloseoutCode) {
+      res.status(400).json({ ErrorMessage: 'ContractCode and CloseoutCode are required.' });
       return;
     }
 
     const result = await pool.query(
       `INSERT INTO post_award.closeouts
-        (contract_id, closeout_code, description, status, initiated_by, initiated_at, created_at)
-       VALUES ($1, $2, $3, 'Pending', $4, NOW(), NOW())
+        (contract_code, closeout_code, description, status, initiated_by, initiated_at,
+         archive_location, final_acceptance_completed, final_payment_completed, archived_by, archived_at, created_at)
+       VALUES ($1, $2, $3, 'Pending', $4, NOW(), $5, $6, $7, $8, CASE WHEN $8 IS NOT NULL THEN NOW() ELSE NULL END, NOW())
        RETURNING
          closeout_id AS "CloseoutId",
-         contract_id AS "ContractId",
+         contract_code AS "ContractCode",
          closeout_code AS "CloseoutCode",
          description AS "Description",
          status AS "Status",
          initiated_by AS "InitiatedBy",
          initiated_at AS "InitiatedAt",
+         archive_location AS "ArchiveLocation",
+         final_acceptance_completed AS "FinalAcceptanceCompleted",
+         final_payment_completed AS "FinalPaymentCompleted",
+         archived_by AS "ArchivedBy",
+         archived_at AS "ArchivedAt",
          created_at AS "CreatedAt"`,
-       [ContractId, CloseoutCode, Description || '', auth!.sub]
+       [ContractCode, CloseoutCode, Description || '', auth!.sub,
+        ArchiveLocation || null, FinalAcceptanceCompleted ?? false, FinalPaymentCompleted ?? false, ArchivedBy || null]
     );
 
     res.status(201).json(result.rows[0]);

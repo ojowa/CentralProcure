@@ -69,8 +69,10 @@ export const AuditTrailWorkspace = ({ module, token }: Props) => {
   const [total, setTotal] = useState(0);
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
-  const [selectedEvent, setSelectedEvent] = useState<AuditHistoryItem | null>(null);
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<AuditHistoryItem | null>(null);
+  const [diagnostics, setDiagnostics] = useState<AuditWorkflowDiagnosticsResponse | null>(null);
+  const [isDiagnosticsLoading, setIsDiagnosticsLoading] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
     entityType: '',
@@ -82,8 +84,6 @@ export const AuditTrailWorkspace = ({ module, token }: Props) => {
   const [events, setEvents] = useState<AuditHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [diagnostics, setDiagnostics] = useState<AuditWorkflowDiagnosticsResponse | null>(null);
-  const [isDiagnosticsLoading, setIsDiagnosticsLoading] = useState(false);
 
   const load = async () => {
     if (!token) {
@@ -128,8 +128,8 @@ export const AuditTrailWorkspace = ({ module, token }: Props) => {
   };
 
   const handleExport = () => {
-    const headers = ['Timestamp', 'Entity Type', 'Entity ID', 'From Stage', 'To Stage', 'Status', 'Actor', 'Reason'];
-    const rows = events.map((e) => [formatDateTimeShort(e.CreatedAt), e.EntityType, e.EntityId, e.FromStageTitle || e.FromStageKey || '', e.ToStageTitle, e.StageStatus || '', e.Actor || 'System', e.TransitionReason || '']);
+    const headers = ['Timestamp', 'Entity Type', 'Entity ID', 'Action', 'Performed By', 'Notes'];
+    const rows = events.map((e) => [formatDateTimeShort(e.CreatedAt), e.EntityType, e.EntityId, e.Action, e.PerformedBy || '', e.Notes || '']);
     const csv = [headers, ...rows].map((line) => line.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -158,7 +158,7 @@ export const AuditTrailWorkspace = ({ module, token }: Props) => {
   const toggleEventExpand = (id: string) => { setExpandedEvent((prev) => prev === id ? null : id); };
 
   const uniqueEntities = useMemo(() => new Set(events.map((e) => `${e.EntityType}:${e.EntityId}`)).size, [events]);
-  const escalatedCount = useMemo(() => events.filter((e) => { const s = (e.StageStatus || '').toLowerCase(); return s.includes('escalat') || e.ToStageKey === 'administrative_review' || e.ToStageKey === 'bpp_no_objection'; }).length, [events]);
+  const escalatedCount = useMemo(() => events.filter((e) => { const s = (e.Action || '').toLowerCase(); return s.includes('escalat') || s.includes('reject'); }).length, [events]);
   const pageStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const pageEnd = total === 0 ? 0 : Math.min(page * pageSize, total);
 
@@ -293,19 +293,18 @@ export const AuditTrailWorkspace = ({ module, token }: Props) => {
                 </div>
                 <div className="audit-timeline__events">
                   {dayEvents.map((event) => {
-                    const isExpanded = expandedEvent === event.HistoryId;
-                    const fromStage = event.FromStageTitle || event.FromStageKey || 'Start';
+                    const isExpanded = expandedEvent === event.AuditId;
                     return (
-                      <div key={event.HistoryId} className={`audit-event-card ${isExpanded ? 'audit-event-card--expanded' : ''}`}>
-                        <div className="audit-event-card__header" onClick={() => toggleEventExpand(event.HistoryId)}>
+                      <div key={event.AuditId} className={`audit-event-card ${isExpanded ? 'audit-event-card--expanded' : ''}`}>
+                        <div className="audit-event-card__header" onClick={() => toggleEventExpand(event.AuditId)}>
                           <div className="audit-event-card__time">{formatTimeOnly(event.CreatedAt)}</div>
                           <div className="audit-event-card__info">
-                            <span className="audit-event-card__title">{event.RecordTitle || `${toTitle(event.EntityType)} ${event.EntityId.slice(0, 6)}`}</span>
-                            <span className="audit-event-card__subtitle">{fromStage} → {event.ToStageTitle}</span>
+                            <span className="audit-event-card__title">{toTitle(event.EntityType)} · {event.EntityId.slice(0, 6)}</span>
+                            <span className="audit-event-card__subtitle">{event.Action}</span>
                           </div>
                           <div className="audit-event-card__meta">
-                            <StatusBadge status={event.StageStatus} />
-                            <span className="audit-event-card__actor">{event.Actor || 'System'}</span>
+                            <StatusBadge status={event.Action} />
+                            <span className="audit-event-card__actor">{event.PerformedBy || 'System'}</span>
                           </div>
                           <button className="audit-event-card__chevron" aria-label={isExpanded ? 'Collapse' : 'Expand'}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: isExpanded ? 'rotate(180deg)' : '' }}><polyline points="6 9 12 15 18 9" /></svg>
@@ -316,11 +315,11 @@ export const AuditTrailWorkspace = ({ module, token }: Props) => {
                             <div className="audit-event-card__details">
                               <div><span>Entity:</span> {toTitle(event.EntityType)}</div>
                               <div><span>ID:</span> {event.EntityId}</div>
-                              <div><span>Actor:</span> {event.Actor || 'System'}</div>
-                              <div><span>Status:</span> {event.StageStatus || 'N/A'}</div>
+                              <div><span>Action:</span> {event.Action}</div>
+                              <div><span>By:</span> {event.PerformedBy || 'System'}</div>
                             </div>
-                            {event.TransitionReason && (
-                              <div className="audit-event-card__reason">{event.TransitionReason}</div>
+                            {event.Notes && (
+                              <div className="audit-event-card__reason">{event.Notes}</div>
                             )}
                             <button className="app-btn app-btn--sm" onClick={() => openDiagnostics(event)}>View Details</button>
                           </div>
@@ -339,33 +338,25 @@ export const AuditTrailWorkspace = ({ module, token }: Props) => {
               <thead>
                 <tr>
                   <th onClick={() => { setSortBy('createdAt'); setSortDir(sortDir === 'asc' ? 'desc' : 'asc'); }}>Time {sortBy === 'createdAt' && (sortDir === 'asc' ? '↑' : '↓')}</th>
-                  <th>Record</th>
-                  <th>Transition</th>
-                  <th>Status</th>
-                  <th>Actor</th>
-                  <th></th>
+                  <th>Entity</th>
+                  <th>Action</th>
+                  <th>Performed By</th>
+                  <th>Notes</th>
                 </tr>
               </thead>
               <tbody>
                 {events.map((event) => (
-                  <tr key={event.HistoryId}>
+                  <tr key={event.AuditId}>
                     <td className="app-table__cell--nowrap">{formatDateTimeShort(event.CreatedAt)}</td>
                     <td>
                       <div className="app-case-info">
-                        <span className="app-case-info__title">{event.RecordTitle || 'Untitled'}</span>
-                        <span className="app-case-info__id">{toTitle(event.EntityType)} · {event.EntityId.slice(0, 8)}</span>
+                        <span className="app-case-info__title">{toTitle(event.EntityType)}</span>
+                        <span className="app-case-info__id">{event.EntityId.slice(0, 8)}</span>
                       </div>
                     </td>
-                    <td>
-                      <span className="audit-trail__transition">
-                        {event.FromStageTitle || event.FromStageKey || 'Start'} → {event.ToStageTitle}
-                      </span>
-                    </td>
-                    <td><StatusBadge status={event.StageStatus} /></td>
-                    <td>{event.Actor || 'System'}</td>
-                    <td>
-                      <button className="app-btn app-btn--sm" onClick={() => openDiagnostics(event)}>Details</button>
-                    </td>
+                    <td><StatusBadge status={event.Action} /></td>
+                    <td>{event.PerformedBy || 'System'}</td>
+                    <td>{event.Notes || '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -388,7 +379,6 @@ export const AuditTrailWorkspace = ({ module, token }: Props) => {
         </div>
       </div>
 
-      {/* Simple Diagnostics Modal */}
       {(selectedEvent || isDiagnosticsLoading) && (
         <div className="app-modal" role="dialog" aria-modal="true">
           <div className="app-modal__backdrop" onClick={closeDiagnostics} />
@@ -402,7 +392,6 @@ export const AuditTrailWorkspace = ({ module, token }: Props) => {
                 <div className="app-loading">Loading...</div>
               ) : diagnostics ? (
                 <div className="audit-trail__details">
-                  {/* Info Grid */}
                   <div className="audit-trail__info-grid">
                     <div className="audit-trail__info-item">
                       <span>Current Stage</span>
@@ -422,7 +411,6 @@ export const AuditTrailWorkspace = ({ module, token }: Props) => {
                     </div>
                   </div>
 
-                  {/* Transition Checks */}
                   {diagnostics.TransitionChecks.length > 0 && (
                     <div className="audit-trail__section">
                       <h4>Available Transitions</h4>
@@ -439,7 +427,6 @@ export const AuditTrailWorkspace = ({ module, token }: Props) => {
                     </div>
                   )}
 
-                  {/* Recent History */}
                   {diagnostics.RecentHistory.length > 0 && (
                     <div className="audit-trail__section">
                       <h4>Recent History</h4>

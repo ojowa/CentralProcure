@@ -141,9 +141,9 @@ export const PaymentTrackingModulePage = ({ module, token, userEmail }: Props) =
     }
 
     const payload: AuditCloseoutCreateRequest = {
-      EntityType: 'contract',
-      EntityId: selectedRecord.ContractId,
-      Summary: closeoutSummary.trim(),
+      ContractCode: selectedRecord.ContractCode || selectedRecord.ContractId,
+      CloseoutCode: `CL-${Date.now()}`,
+      Description: closeoutSummary.trim(),
       ArchiveLocation: archiveLocation.trim() || undefined,
       FinalAcceptanceCompleted: true,
       FinalPaymentCompleted: true,

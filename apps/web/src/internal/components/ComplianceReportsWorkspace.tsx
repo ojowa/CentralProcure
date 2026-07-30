@@ -24,13 +24,12 @@ const formatDateTimeShort = (value?: string | null) => {
 };
 
 const isFlagged = (event: AuditHistoryItem) => {
-  const status = (event.StageStatus || '').toLowerCase();
+  const action = (event.Action || '').toLowerCase();
   return (
-    status.includes('reject') ||
-    status.includes('escalat') ||
-    status.includes('hold') ||
-    status.includes('terminat') ||
-    event.ToStageKey === 'administrative_review'
+    action.includes('reject') ||
+    action.includes('escalat') ||
+    action.includes('delete') ||
+    action.includes('cancel')
   );
 };
 
@@ -73,13 +72,13 @@ export const ComplianceReportsWorkspace = ({ module, token }: Props) => {
   }, [token]);
 
   const flagged = useMemo(() => history.filter(isFlagged).slice(0, 20), [history]);
-  const complaintBranches = useMemo(() => history.filter((event) => event.ToStageKey === 'administrative_review').length, [history]);
-  const closeoutMoves = useMemo(() => history.filter((event) => event.ToStageKey === 'closeout_and_audit').length, [history]);
-  const escalations = useMemo(
+  const createCount = useMemo(() => history.filter((event) => (event.Action || '').toLowerCase() === 'create').length, [history]);
+  const updateCount = useMemo(() => history.filter((event) => (event.Action || '').toLowerCase() === 'update').length, [history]);
+  const deleteCount = useMemo(
     () =>
       history.filter((event) => {
-        const status = (event.StageStatus || '').toLowerCase();
-        return status.includes('escalat') || event.ToStageKey === 'bpp_no_objection';
+        const action = (event.Action || '').toLowerCase();
+        return action.includes('reject') || action.includes('delete');
       }).length,
     [history]
   );
@@ -93,54 +92,52 @@ export const ComplianceReportsWorkspace = ({ module, token }: Props) => {
 
       <div className="portal-module-grid" style={{ marginTop: '16px' }}>
         <article className="portal-module-card">
-          <h3>Recent Transitions</h3>
-          <p>{summary?.RecentTransitions ?? 0}</p>
+          <h3>Total Audit Events</h3>
+          <p>{history.length}</p>
         </article>
         <article className="portal-module-card">
-          <h3>Complaint Branches</h3>
-          <p>{complaintBranches}</p>
+          <h3>Create Actions</h3>
+          <p>{createCount}</p>
         </article>
         <article className="portal-module-card">
-          <h3>Escalations / BPP</h3>
-          <p>{escalations}</p>
+          <h3>Rejections / Deletes</h3>
+          <p>{deleteCount}</p>
         </article>
         <article className="portal-module-card">
-          <h3>Closeout Movements</h3>
-          <p>{closeoutMoves}</p>
+          <h3>Updates</h3>
+          <p>{updateCount}</p>
         </article>
       </div>
 
       {isLoading ? <p>Loading compliance signals...</p> : null}
 
       <div className="admin-card admin-card--full" style={{ marginTop: '16px' }}>
-        <h3>Flagged Workflow Events</h3>
+        <h3>Flagged Audit Events</h3>
         <table className="plan-table">
           <thead>
             <tr>
               <th>Date</th>
               <th>Entity</th>
-              <th>To Stage</th>
-              <th>Status</th>
-              <th>Source</th>
-              <th>Reason</th>
+              <th>Action</th>
+              <th>Performed By</th>
+              <th>Notes</th>
             </tr>
           </thead>
           <tbody>
             {flagged.length ? (
               flagged.map((event) => (
-                <tr key={event.HistoryId}>
+                <tr key={event.AuditId}>
                   <td>{formatDateTimeShort(event.CreatedAt)}</td>
-                  <td>{event.RecordTitle || `${event.EntityType} · ${event.EntityId}`}</td>
-                  <td>{event.ToStageTitle}</td>
-                  <td>{event.StageStatus || 'No status'}</td>
-                  <td>{event.TransitionSource}</td>
-                  <td>{event.TransitionReason || 'No reason recorded'}</td>
+                  <td>{event.EntityType} · {event.EntityId.slice(0, 8)}</td>
+                  <td>{event.Action}</td>
+                  <td>{event.PerformedBy || 'System'}</td>
+                  <td>{event.Notes || '—'}</td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={6} className="plan-empty">
-                  No flagged workflow events in the current dataset.
+                <td colSpan={5} className="plan-empty">
+                  No flagged audit events in the current dataset.
                 </td>
               </tr>
             )}

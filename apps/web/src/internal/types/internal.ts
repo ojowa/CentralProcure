@@ -1306,28 +1306,27 @@ export interface AuditEventItem {
 }
 
 export interface AuditSummaryResponse {
-    ActiveWorkflowItems: number;
-    AdministrativeReviewsOpen: number;
-    CloseoutsArchived: number;
-    RecentTransitions: number;
-    RecentEvents: AuditEventItem[];
+    TotalContracts: number;
+    ActiveContracts: number;
+    CompletedContracts: number;
+    TotalInspections: number;
+    CompletedInspections: number;
+    TotalPayments: number;
+    TotalPaid: number;
+    TotalCloseouts: number;
+    PendingCloseouts: number;
+    RecentEvents?: AuditEventItem[];
 }
 
 export interface AuditHistoryItem {
-    HistoryId: string;
+    AuditId: string;
     EntityType: string;
     EntityId: string;
-    RecordTitle?: string | null;
-    CurrentStageKey?: string | null;
-    CurrentStageTitle?: string | null;
-    FromStageKey?: string | null;
-    FromStageTitle?: string | null;
-    ToStageKey: string;
-    ToStageTitle: string;
-    StageStatus?: string | null;
-    TransitionSource: string;
-    TransitionReason?: string | null;
-    Actor?: string | null;
+    Action: string;
+    PerformedBy?: string | null;
+    OldValues?: any;
+    NewValues?: any;
+    Notes?: string | null;
     CreatedAt: string;
 }
 
@@ -1452,27 +1451,29 @@ export interface AuditWorkflowDiagnosticsResponse {
 
 export interface AuditCloseoutItem {
     CloseoutId: string;
-    CloseoutReference: string;
-    EntityType: string;
-    EntityId: string;
+    ContractCode: string;
+    ContractTitle?: string | null;
+    CloseoutCode: string;
+    Description: string;
     Status: string;
-    RecordTitle?: string | null;
-    Summary: string;
+    InitiatedBy?: string | null;
+    InitiatedAt: string;
+    CompletedAt?: string | null;
     ArchiveLocation?: string | null;
-    FinalAcceptanceCompleted: boolean;
-    FinalPaymentCompleted: boolean;
+    FinalAcceptanceCompleted?: boolean;
+    FinalPaymentCompleted?: boolean;
     ArchivedBy?: string | null;
     ArchivedAt?: string | null;
     CreatedAt: string;
 }
 
 export interface AuditCloseoutCreateRequest {
-    EntityType: string;
-    EntityId: string;
-    Summary: string;
+    ContractCode: string;
+    CloseoutCode: string;
+    Description?: string;
     ArchiveLocation?: string | null;
-    FinalAcceptanceCompleted: boolean;
-    FinalPaymentCompleted: boolean;
+    FinalAcceptanceCompleted?: boolean;
+    FinalPaymentCompleted?: boolean;
     ArchivedBy?: string | null;
 }
 

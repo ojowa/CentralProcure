@@ -52,9 +52,10 @@ export const AuditCloseoutRegister = ({
               onChange={(e) => onStatusFilterChange(e.target.value)}
             >
               <option value="">All Closeouts</option>
-              <option value="Submitted">Submitted</option>
-              <option value="Archived">Archived</option>
-              <option value="Reopened">Reopened</option>
+              <option value="Pending">Pending</option>
+              <option value="InProgress">In Progress</option>
+              <option value="Completed">Completed</option>
+              <option value="Rejected">Rejected</option>
             </select>
           </label>
           <div className="plan-actions">
@@ -74,38 +75,45 @@ export const AuditCloseoutRegister = ({
         <table className="plan-table">
           <thead>
             <tr>
-              <th>Reference</th>
-              <th>Record Description</th>
+              <th>Closeout Code</th>
+              <th>Contract</th>
+              <th>Description</th>
               <th>Status</th>
-              <th>Archive Trail</th>
-              <th>Archived At</th>
+              <th>Acceptance</th>
+              <th>Payment</th>
+              <th>Archive</th>
+              <th>Archived By</th>
+              <th>Date</th>
             </tr>
           </thead>
           <tbody>
             {closeouts.map((closeout) => (
               <tr key={closeout.CloseoutId}>
                 <td>
-                  <code className="plan-code">{closeout.CloseoutReference}</code>
+                  <code className="plan-code">{closeout.CloseoutCode}</code>
                 </td>
                 <td>
-                  <div style={{ fontWeight: 600 }}>{closeout.RecordTitle || `${toTitle(closeout.EntityType)} · ${closeout.EntityId}`}</div>
-                  <div className="plan-muted" style={{ fontSize: '0.75rem' }}>{closeout.Summary}</div>
+                  <div style={{ fontWeight: 600 }}>{closeout.ContractCode}</div>
+                  <div className="plan-muted" style={{ fontSize: '0.75rem' }}>{closeout.ContractTitle || '—'}</div>
                 </td>
                 <td>
-                  <span className={`admin-status ${closeout.Status === 'Archived' ? 'admin-status--good' : 'admin-status--warn'}`}>
+                  <div>{closeout.Description || '—'}</div>
+                </td>
+                <td>
+                  <span className={`admin-status ${closeout.Status === 'Completed' ? 'admin-status--good' : 'admin-status--warn'}`}>
                     {closeout.Status}
                   </span>
                 </td>
-                <td>
-                  <div style={{ fontSize: '0.8125rem' }}>{closeout.ArchiveLocation || 'Cloud Storage'}</div>
-                  <div className="plan-muted" style={{ fontSize: '0.7rem' }}>By: {closeout.ArchivedBy || 'System'}</div>
-                </td>
-                <td>{formatDateTimeShort(closeout.ArchivedAt || closeout.CreatedAt)}</td>
+                <td>{closeout.FinalAcceptanceCompleted ? '✓' : '—'}</td>
+                <td>{closeout.FinalPaymentCompleted ? '✓' : '—'}</td>
+                <td>{closeout.ArchiveLocation || '—'}</td>
+                <td>{closeout.ArchivedBy || '—'}</td>
+                <td>{formatDateTimeShort(closeout.ArchivedAt || closeout.CompletedAt || closeout.CreatedAt)}</td>
               </tr>
             ))}
             {!closeouts.length && (
               <tr>
-                <td colSpan={5} className="plan-empty">No closeout records matched the criteria.</td>
+                <td colSpan={9} className="plan-empty">No closeout records matched the criteria.</td>
               </tr>
             )}
           </tbody>
