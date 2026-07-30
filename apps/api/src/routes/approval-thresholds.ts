@@ -30,7 +30,7 @@ approvalThresholdsRouter.get('/api/approval-thresholds', async (req, res) => {
         at.is_active AS "IsActive",
         at.created_at AS "CreatedAt",
         at.updated_at AS "UpdatedAt"
-      FROM post_award.approval_thresholds at
+      FROM procurement_workflow.approval_thresholds at
       WHERE at.is_active = true
       ORDER BY at.min_amount ASC`
     );
@@ -79,7 +79,7 @@ approvalThresholdsRouter.get('/api/approval-thresholds/resolve', async (req, res
         max_amount AS "MaxAmount",
         required_approvers AS "RequiredApprovers",
         required_approval_level AS "RequiredApprovalLevel"
-      FROM post_award.approval_thresholds
+      FROM procurement_workflow.approval_thresholds
       WHERE is_active = true
         AND min_amount <= $1
         AND (max_amount IS NULL OR max_amount >= $1)
@@ -115,7 +115,7 @@ approvalThresholdsRouter.put('/api/approval-thresholds/:id', async (req, res) =>
     const { ThresholdName, MinAmount, MaxAmount, RequiredApprovers, RequiredApprovalLevel, IsActive } = req.body;
 
     const result = await pool.query(
-      `UPDATE post_award.approval_thresholds
+      `UPDATE procurement_workflow.approval_thresholds
        SET
          threshold_name = COALESCE($1, threshold_name),
          min_amount = COALESCE($2, min_amount),

@@ -38,7 +38,7 @@ workflowRouter.get('/api/workflow-runtime/cgis-queue', async (req, res) => {
         wi.created_at AS "CreatedAt",
         EXTRACT(DAY FROM NOW() - wi.created_at)::int AS "DaysPending"
       FROM procurement_workflow.workflow_instances wi
-      LEFT JOIN post_award.approval_thresholds at ON at.threshold_id = wi.threshold_id
+      LEFT JOIN procurement_workflow.approval_thresholds at ON at.threshold_id = wi.threshold_id
       WHERE wi.current_stage_key IN ('cgis_approval', 'bg_management_approval')
         AND wi.current_status != 'Completed'
       ORDER BY wi.amount DESC, wi.created_at ASC`

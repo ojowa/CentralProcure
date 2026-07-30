@@ -33,7 +33,7 @@ workflowConfigRouter.get('/api/config/workflows/thresholds', async (req, res) =>
               notes AS "Notes",
               created_at AS "CreatedAt",
               updated_at AS "UpdatedAt"
-       FROM post_award.approval_thresholds
+       FROM procurement_workflow.approval_thresholds
        ORDER BY min_amount ASC`
     );
     res.json({ Thresholds: result.rows });
@@ -53,7 +53,7 @@ workflowConfigRouter.post('/api/config/workflows/thresholds', async (req, res) =
       Status, Notes
     } = req.body;
     const result = await pool.query(
-      `INSERT INTO post_award.approval_thresholds
+      `INSERT INTO procurement_workflow.approval_thresholds
         (threshold_name, procurement_type, min_amount, max_amount, approval_route,
          approval_authority_code, approval_authority_label, requires_cgis_approval,
          requires_board, requires_bpp, governance_body_id, governance_body_name,
@@ -101,7 +101,7 @@ workflowConfigRouter.put('/api/config/workflows/thresholds/:id', async (req, res
       Status, Notes
     } = req.body;
     const result = await pool.query(
-      `UPDATE post_award.approval_thresholds SET
+      `UPDATE procurement_workflow.approval_thresholds SET
         threshold_name = COALESCE($1, threshold_name),
         procurement_type = COALESCE($2, procurement_type),
         min_amount = COALESCE($3, min_amount),
@@ -156,7 +156,7 @@ workflowConfigRouter.delete('/api/config/workflows/thresholds/:id', async (req, 
   try {
     const { id } = req.params;
     const result = await pool.query(
-      'DELETE FROM post_award.approval_thresholds WHERE threshold_id = $1 RETURNING threshold_id AS "ThresholdId"',
+      'DELETE FROM procurement_workflow.approval_thresholds WHERE threshold_id = $1 RETURNING threshold_id AS "ThresholdId"',
       [id]
     );
     if (result.rows.length === 0) { res.status(404).json({ ErrorMessage: 'Threshold not found.' }); return; }
