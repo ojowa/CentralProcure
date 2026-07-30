@@ -44,7 +44,7 @@ bppNoObjectionsRouter.get('/api/bpp-no-objections', async (req, res) => {
       `SELECT
         bno.no_objection_id AS "NoObjectionId",
         bno.requisition_id AS "RequisitionId",
-        r.requisition_number AS "RequisitionNumber",
+        r.title AS "RequisitionTitle",
         bno.tender_id AS "TenderId",
         t.title AS "TenderTitle",
         bno.amount AS "Amount",
@@ -93,7 +93,6 @@ bppNoObjectionsRouter.get('/api/bpp-no-objections/:id', async (req, res) => {
       `SELECT
         bno.no_objection_id AS "NoObjectionId",
         bno.requisition_id AS "RequisitionId",
-        r.requisition_number AS "RequisitionNumber",
         r.title AS "RequisitionTitle",
         bno.tender_id AS "TenderId",
         t.title AS "TenderTitle",
