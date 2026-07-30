@@ -174,7 +174,7 @@ export const AuditTrailWorkspace = ({ module, token }: Props) => {
   };
 
   return (
-    <section className="app-workspace audit-trail-workspace">
+    <section className="portal-module audit-trail-workspace">
       {/* Simple Header */}
       <header className="app-workspace__hero">
         <div className="app-workspace__title-group">

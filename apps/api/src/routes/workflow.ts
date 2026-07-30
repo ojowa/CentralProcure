@@ -105,20 +105,97 @@ workflowRouter.get('/api/config/workflows', async (_req, res) => {
       return;
     }
 
-    const result = await pool.query(
-      `SELECT
-        stage_key AS "StageKey",
-        stage_title AS "StageTitle",
-        phase_key AS "PhaseKey",
-        module AS "Module",
-        is_initial AS "IsInitial",
-        is_terminal AS "IsTerminal",
-        sort_order AS "SortOrder"
-      FROM procurement_workflow.workflow_stage_catalog
-      ORDER BY sort_order`
-    );
+    const [stagesResult, transitionsResult, roleTasksResult, thresholdsResult, rolesResult, governanceResult] = await Promise.all([
+      pool.query(
+        `SELECT
+          stage_key AS "StageKey",
+          phase_key AS "PhaseKey",
+          stage_title AS "StageTitle",
+          stage_description AS "StageDescription",
+          sequence_no AS "SequenceNo",
+          is_decision_gate AS "IsDecisionGate",
+          is_start AS "IsStart",
+          is_terminal AS "IsTerminal",
+          primary_owner_role AS "PrimaryOwnerRole",
+          ppa_reference AS "PpaReference",
+          updated_at AS "UpdatedAt"
+        FROM procurement_workflow.workflow_stage_catalog
+        ORDER BY sequence_no`
+      ),
+      pool.query(
+        `SELECT
+          transition_id AS "TransitionId",
+          from_stage_key AS "FromStageKey",
+          to_stage_key AS "ToStageKey",
+          transition_condition AS "TransitionCondition",
+          created_at AS "CreatedAt"
+        FROM procurement_workflow.workflow_stage_transitions
+        ORDER BY from_stage_key, to_stage_key`
+      ),
+      pool.query(
+        `SELECT
+          role_task_id AS "RoleTaskId",
+          role_key AS "RoleKey",
+          display_name AS "DisplayName",
+          stage_key AS "StageKey",
+          task_description AS "TaskDescription",
+          expected_outcome AS "ExpectedOutcome",
+          created_at AS "CreatedAt"
+        FROM procurement_workflow.workflow_role_tasks
+        ORDER BY role_key, stage_key`
+      ),
+      pool.query(
+        `SELECT
+          threshold_id AS "ThresholdId",
+          threshold_name AS "ThresholdName",
+          procurement_type AS "ProcurementType",
+          min_amount AS "MinAmount",
+          max_amount AS "MaxAmount",
+          approval_route AS "ApprovalRoute",
+          approval_authority_code AS "ApprovalAuthorityCode",
+          approval_authority_label AS "ApprovalAuthorityLabel",
+          requires_cgis_approval AS "RequiresCgisApproval",
+          requires_board AS "RequiresBoard",
+          requires_bpp AS "RequiresBpp",
+          governance_body_id AS "GovernanceBodyId",
+          governance_body_name AS "GovernanceBodyName",
+          status AS "Status",
+          notes AS "Notes",
+          created_at AS "CreatedAt",
+          updated_at AS "UpdatedAt"
+        FROM procurement_workflow.approval_thresholds
+        ORDER BY min_amount ASC`
+      ),
+      pool.query(
+        `SELECT
+          role_name AS "RoleName",
+          description AS "Description",
+          is_active AS "IsActive"
+        FROM identity.roles
+        ORDER BY role_name`
+      ),
+      pool.query(
+        `SELECT
+          body_id::text AS "BodyId",
+          body_code AS "BodyCode",
+          body_name AS "BodyName",
+          body_type AS "BodyType",
+          is_active AS "IsActive"
+        FROM procurement_workflow.governance_bodies
+        ORDER BY body_name`
+      )
+    ]);
 
-    res.json(result.rows);
+    res.json({
+      Title: 'Workflow Configuration',
+      Summary: 'System workflow configuration',
+      Stages: stagesResult.rows,
+      Transitions: transitionsResult.rows,
+      RoleTasks: roleTasksResult.rows,
+      Thresholds: thresholdsResult.rows,
+      Roles: rolesResult.rows,
+      GovernanceBodies: governanceResult.rows
+    });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching workflow config.' });
   }
