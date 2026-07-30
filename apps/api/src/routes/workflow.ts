@@ -69,12 +69,11 @@ workflowRouter.get('/api/workflow-blueprint', async (_req, res) => {
         stage_key AS "StageKey",
         stage_title AS "StageTitle",
         phase_key AS "PhaseKey",
-        module AS "Module",
-        is_initial AS "IsInitial",
+        is_start AS "IsInitial",
         is_terminal AS "IsTerminal",
-        sort_order AS "SortOrder"
+        sequence_no AS "SortOrder"
       FROM procurement_workflow.workflow_stage_catalog
-      ORDER BY sort_order`
+      ORDER BY sequence_no`
     );
 
     const transitionsResult = await pool.query(
@@ -110,12 +109,11 @@ workflowRouter.get('/api/config/workflows', async (_req, res) => {
         stage_key AS "StageKey",
         stage_title AS "StageTitle",
         phase_key AS "PhaseKey",
-        module AS "Module",
-        is_initial AS "IsInitial",
+        is_start AS "IsInitial",
         is_terminal AS "IsTerminal",
-        sort_order AS "SortOrder"
+        sequence_no AS "SortOrder"
       FROM procurement_workflow.workflow_stage_catalog
-      ORDER BY sort_order`
+      ORDER BY sequence_no`
     );
 
     res.json(result.rows);

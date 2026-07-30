@@ -92,7 +92,7 @@ paymentsRouter.get('/api/payments', async (req, res) => {
       FROM post_award.payments p
       LEFT JOIN post_award.contracts c ON p.contract_code = c.contract_code
       LEFT JOIN procurement_workflow.workflow_instances wi
-        ON wi.entity_type = 'contract' AND wi.entity_id = c.contract_code
+        ON wi.entity_type = 'contract' AND wi.entity_id::text = c.contract_code
       LEFT JOIN procurement_workflow.workflow_stage_catalog wsc
         ON wsc.stage_key = wi.current_stage_key
       LEFT JOIN post_award.inspections ins
