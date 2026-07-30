@@ -7,7 +7,8 @@ export const fetchBppNoObjections = async (token: string) => {
     credentials: 'include'
   });
   if (!response.ok) throw new Error('Failed to fetch BPP no-objections');
-  return response.json();
+  const data = await response.json();
+  return data.NoObjections || [];
 };
 
 export const createBppNoObjection = async (data: any, token: string) => {

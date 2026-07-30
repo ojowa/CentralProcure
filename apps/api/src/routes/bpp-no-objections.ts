@@ -47,11 +47,17 @@ bppNoObjectionsRouter.get('/api/bpp-no-objections', async (req, res) => {
         r.requisition_number AS "RequisitionNumber",
         bno.tender_id AS "TenderId",
         t.title AS "TenderTitle",
+        bno.amount AS "Amount",
+        bno.procurement_type AS "ProcurementType",
         bno.status AS "Status",
-        bno.comments AS "Comments",
-        bno.decided_by AS "DecidedBy",
-        bno.decided_at AS "DecidedAt",
-        bno.created_at AS "CreatedAt"
+        bno.requested_by AS "RequestedBy",
+        bno.requested_at AS "RequestedAt",
+        bno.decision_by AS "DecisionBy",
+        bno.decision_at AS "DecisionAt",
+        bno.decision_notes AS "DecisionNotes",
+        bno.reference_code AS "ReferenceCode",
+        bno.created_at AS "CreatedAt",
+        bno.updated_at AS "UpdatedAt"
        FROM procurement_workflow.bpp_no_objections bno
        LEFT JOIN procurement_workflow.requisitions r ON bno.requisition_id = r.requisition_id
        LEFT JOIN vendor_sourcing.tenders t ON bno.tender_id = t.tender_id
@@ -91,11 +97,15 @@ bppNoObjectionsRouter.get('/api/bpp-no-objections/:id', async (req, res) => {
         r.title AS "RequisitionTitle",
         bno.tender_id AS "TenderId",
         t.title AS "TenderTitle",
+        bno.amount AS "Amount",
+        bno.procurement_type AS "ProcurementType",
         bno.status AS "Status",
-        bno.comments AS "Comments",
-        bno.justification AS "Justification",
-        bno.decided_by AS "DecidedBy",
-        bno.decided_at AS "DecidedAt",
+        bno.requested_by AS "RequestedBy",
+        bno.requested_at AS "RequestedAt",
+        bno.decision_by AS "DecisionBy",
+        bno.decision_at AS "DecisionAt",
+        bno.decision_notes AS "DecisionNotes",
+        bno.reference_code AS "ReferenceCode",
         bno.created_at AS "CreatedAt",
         bno.updated_at AS "UpdatedAt"
        FROM procurement_workflow.bpp_no_objections bno
@@ -123,7 +133,7 @@ bppNoObjectionsRouter.post('/api/bpp-no-objections', async (req, res) => {
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
-    const { RequisitionId, TenderId, Status, Comments, Justification } = req.body;
+    const { RequisitionId, TenderId, Amount, ProcurementType, Status, DecisionNotes, Justification } = req.body;
 
     if (!RequisitionId) {
       res.status(400).json({ ErrorMessage: 'RequisitionId is required.' }); return;
@@ -131,16 +141,21 @@ bppNoObjectionsRouter.post('/api/bpp-no-objections', async (req, res) => {
 
     const result = await pool.query(
       `INSERT INTO procurement_workflow.bpp_no_objections
-        (requisition_id, tender_id, status, comments, justification, created_by, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+        (requisition_id, tender_id, amount, procurement_type, status, requested_by, requested_at, decision_notes, reference_code, created_by, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7, $8, $9, NOW(), NOW())
        RETURNING
         no_objection_id AS "NoObjectionId",
         requisition_id AS "RequisitionId",
         tender_id AS "TenderId",
+        amount AS "Amount",
+        procurement_type AS "ProcurementType",
         status AS "Status",
+        requested_by AS "RequestedBy",
+        requested_at AS "RequestedAt",
         created_at AS "CreatedAt"`,
-      [RequisitionId, TenderId || null, Status || 'Pending', Comments || '',
-       Justification || '', auth!.sub]
+      [RequisitionId, TenderId || null, Amount || 0, ProcurementType || null,
+       Status || 'Draft', auth!.sub, DecisionNotes || '',
+       `BNO-${Date.now().toString(36).toUpperCase()}`, auth!.sub]
     );
 
     res.status(201).json(result.rows[0]);
@@ -159,23 +174,27 @@ bppNoObjectionsRouter.put('/api/bpp-no-objections/:id', async (req, res) => {
 
   try {
     const { id } = req.params;
-    const { Status, Comments, Justification } = req.body;
+    const { Status, DecisionNotes, DecisionBy, DecisionAt } = req.body;
 
     const result = await pool.query(
       `UPDATE procurement_workflow.bpp_no_objections
        SET
         status = COALESCE(NULLIF($1, ''), status),
-        comments = COALESCE(NULLIF($2, ''), comments),
-        justification = COALESCE(NULLIF($3, ''), justification),
+        decision_notes = COALESCE(NULLIF($2, ''), decision_notes),
+        decision_by = COALESCE(NULLIF($3, ''), decision_by),
+        decision_at = COALESCE(NULLIF($4, '')::timestamp, decision_at),
         updated_at = NOW()
-       WHERE no_objection_id = $4
+       WHERE no_objection_id = $5
        RETURNING
         no_objection_id AS "NoObjectionId",
         requisition_id AS "RequisitionId",
         tender_id AS "TenderId",
         status AS "Status",
+        decision_by AS "DecisionBy",
+        decision_at AS "DecisionAt",
+        decision_notes AS "DecisionNotes",
         updated_at AS "UpdatedAt"`,
-      [Status || '', Comments || '', Justification || '', id]
+      [Status || '', DecisionNotes || '', DecisionBy || '', DecisionAt || '', id]
     );
 
     if (result.rows.length === 0) {
