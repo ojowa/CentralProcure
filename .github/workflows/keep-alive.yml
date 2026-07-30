@@ -9,7 +9,7 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping API health
+      - name: Ping API (open tenders)
         run: |
-          curl -sf https://centralprocure.onrender.com/health || exit 1
+          curl -sf https://centralprocure.onrender.com/api/Tender/open || exit 1
           echo "API ping successful at $(date -u)"
