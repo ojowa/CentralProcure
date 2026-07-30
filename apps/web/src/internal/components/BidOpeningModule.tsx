@@ -266,7 +266,7 @@ export const BidOpeningModule = ({ module, token, role, initialData }: Props) =>
               <div className="portal-alert portal-alert--success" style={{ width: '100%' }}>
                 <h3>Session Completed</h3>
                 <p>All bids for this tender have been officially opened and timestamped. The Bid Opening Record is now available for public display and evaluation.</p>
-                <button className="plan-button plan-button--secondary" style={{ marginTop: '16px' }}>Download Bid Opening Record (PDF)</button>
+                <button className="plan-button plan-button--secondary" style={{ marginTop: '16px' }} disabled title="Coming soon">Download Bid Opening Record (PDF)</button>
               </div>
             )}
           </div>

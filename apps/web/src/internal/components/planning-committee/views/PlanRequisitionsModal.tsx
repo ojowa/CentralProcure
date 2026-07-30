@@ -56,7 +56,7 @@ export const PlanRequisitionsModal: React.FC<PlanRequisitionsModalProps> = ({
             <h3>Requisitions for {planTitle}</h3>
             <p className="plan-muted">All requisitions linked to this procurement plan</p>
           </div>
-          <button className={styles.closeButton} onClick={onClose}>×</button>
+          <button className={styles.closeButton} onClick={onClose} aria-label="Close">×</button>
         </div>
 
         {loading && (

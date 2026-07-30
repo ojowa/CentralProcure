@@ -26,35 +26,37 @@ export const WorkflowConfigurationRoutingTab = ({
   <div className="admin-grid">
     <article className="admin-card admin-card--wide">
       <h3>Routing Rules</h3>
-      <table className="plan-table">
-        <thead>
-          <tr>
-            <th>From</th>
-            <th>To</th>
-            <th>Condition</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {transitions.map((transition) => (
-            <tr key={transition.TransitionId}>
-              <td>{stageLookup.get(transition.FromStageKey)?.StageTitle ?? transition.FromStageKey}</td>
-              <td>{stageLookup.get(transition.ToStageKey)?.StageTitle ?? transition.ToStageKey}</td>
-              <td>{transition.TransitionCondition}</td>
-              <td>
-                <button
-                  type="button"
-                  className="plan-link plan-link--danger"
-                  onClick={() => void onDelete(transition.TransitionId)}
-                  disabled={isSaving}
-                >
-                  Remove
-                </button>
-              </td>
+      <div style={{ overflowX: 'auto' }}>
+        <table className="plan-table">
+          <thead>
+            <tr>
+              <th>From</th>
+              <th>To</th>
+              <th>Condition</th>
+              <th />
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {transitions.map((transition) => (
+              <tr key={transition.TransitionId}>
+                <td>{stageLookup.get(transition.FromStageKey)?.StageTitle ?? transition.FromStageKey}</td>
+                <td>{stageLookup.get(transition.ToStageKey)?.StageTitle ?? transition.ToStageKey}</td>
+                <td>{transition.TransitionCondition}</td>
+                <td>
+                  <button
+                    type="button"
+                    className="plan-link plan-link--danger"
+                    onClick={() => void onDelete(transition.TransitionId)}
+                    disabled={isSaving}
+                  >
+                    Remove
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </article>
     <article className="admin-card admin-card--mid">
       <h3>Add Transition</h3>

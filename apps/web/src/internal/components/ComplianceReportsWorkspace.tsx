@@ -113,6 +113,7 @@ export const ComplianceReportsWorkspace = ({ module, token }: Props) => {
 
       <div className="admin-card admin-card--full" style={{ marginTop: '16px' }}>
         <h3>Flagged Audit Events</h3>
+        <div className="portal-table-container">
         <table className="plan-table">
           <thead>
             <tr>
@@ -143,6 +144,7 @@ export const ComplianceReportsWorkspace = ({ module, token }: Props) => {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </section>
   );

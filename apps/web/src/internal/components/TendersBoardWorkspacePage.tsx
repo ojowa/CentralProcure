@@ -463,7 +463,7 @@ export const TendersBoardWorkspacePage = ({
           </div>
 
           <div className="app-card">
-            <div className="app-card__body" style={{ display: 'grid', gap: 12, gridTemplateColumns: '2fr 1fr' }}>
+            <div className="app-card__body grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-3">
               <input
                 className="plan-input"
                 placeholder="Search tender, vendor, report code, department, or recommendation"

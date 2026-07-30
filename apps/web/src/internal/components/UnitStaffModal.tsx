@@ -45,7 +45,7 @@ export const UnitStaffModal: React.FC<UnitStaffModalProps> = ({ unit, isOpen, to
             <h3>Unit Staff List</h3>
             <p className="text-sm text-slate-500">{unit?.UnitName} ({unit?.UnitCode})</p>
           </div>
-          <button type="button" className="portal-modal-close" onClick={onClose}>&times;</button>
+          <button type="button" className="portal-modal-close" onClick={onClose} aria-label="Close">&times;</button>
         </header>
 
         <div className="portal-modal-body p-0">

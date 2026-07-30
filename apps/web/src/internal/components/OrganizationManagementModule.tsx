@@ -346,6 +346,7 @@ export const OrganizationManagementModule: React.FC<OrganizationManagementModule
           {activeUnitTab === 'personnel' && selectedUnit && (
             <div className="app-card">
               <div className="p-0">
+                <div className="portal-table-container">
                 <table className="app-table">
                   <thead className="bg-slate-50">
                     <tr>
@@ -375,6 +376,7 @@ export const OrganizationManagementModule: React.FC<OrganizationManagementModule
                     )}
                   </tbody>
                 </table>
+                </div>
               </div>
             </div>
           )}
@@ -382,6 +384,7 @@ export const OrganizationManagementModule: React.FC<OrganizationManagementModule
           {activeUnitTab === 'subunits' && selectedUnit && (
             <div className="app-card">
               <div className="p-0">
+                <div className="portal-table-container">
                 <table className="app-table">
                   <thead className="bg-slate-50">
                     <tr>
@@ -416,6 +419,7 @@ export const OrganizationManagementModule: React.FC<OrganizationManagementModule
                     )}
                   </tbody>
                 </table>
+                </div>
               </div>
             </div>
           )}

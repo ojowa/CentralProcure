@@ -75,6 +75,7 @@ const renderStageLoad = (items: MonitoringStageLoadItem[]) => {
   }
 
   return (
+    <div className="portal-table-container">
     <table className="plan-table" style={{ marginTop: '16px' }}>
       <thead>
         <tr>
@@ -93,6 +94,7 @@ const renderStageLoad = (items: MonitoringStageLoadItem[]) => {
         ))}
       </tbody>
     </table>
+    </div>
   );
 };
 

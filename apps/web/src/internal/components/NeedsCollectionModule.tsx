@@ -488,7 +488,7 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
                               <option value="Normal">Normal</option><option value="Urgent">Urgent</option><option value="Strategic">Strategic</option>
                             </select>
                           </td>
-                          {canEdit() && <td><button className="text-red-400 hover:text-red-600" onClick={() => removeItem(idx)}><Trash2 size={14} /></button></td>}
+                          {canEdit() && <td><button className="text-red-400 hover:text-red-600" onClick={() => removeItem(idx)} aria-label="Remove item"><Trash2 size={14} /></button></td>}
                         </tr>
                       ))}
                       {!formItems.length && <tr><td colSpan={canEdit() ? 6 : 5} className="py-8 text-center text-slate-400 italic">No items yet.</td></tr>}
@@ -620,8 +620,8 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
                     {isDraft && (
                       <td>
                         <div className="flex gap-1">
-                          <button className="text-blue-500 hover:text-blue-700" onClick={() => handleEditItem(item)}><FileText size={14} /></button>
-                          <button className="text-red-400 hover:text-red-600" onClick={() => handleDeleteItem(item.ItemId)}><Trash2 size={14} /></button>
+                          <button className="text-blue-500 hover:text-blue-700" onClick={() => handleEditItem(item)} aria-label="Edit item"><FileText size={14} /></button>
+                          <button className="text-red-400 hover:text-red-600" onClick={() => handleDeleteItem(item.ItemId)} aria-label="Delete item"><Trash2 size={14} /></button>
                         </div>
                       </td>
                     )}
@@ -747,7 +747,7 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
                     <td>
                       <div className="flex gap-1">
                         <button className="app-btn app-btn--secondary app-btn--sm" onClick={() => handleSelectCollection(c.CollectionId)}>View</button>
-                        {c.Status === 'Draft' && canDelete() && <button className="app-btn app-btn--danger app-btn--sm" onClick={() => handleDeleteCollection(c.CollectionId)}><Trash2 size={12} /></button>}
+                        {c.Status === 'Draft' && canDelete() && <button className="app-btn app-btn--danger app-btn--sm" onClick={() => handleDeleteCollection(c.CollectionId)} aria-label="Delete collection"><Trash2 size={12} /></button>}
                       </div>
                     </td>
                   </tr>

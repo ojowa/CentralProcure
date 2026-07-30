@@ -42,7 +42,7 @@ export const RequisitionDetailModal: React.FC<RequisitionDetailModalProps> = ({
             <h3>{requisition.Title}</h3>
             <p className="plan-muted">Requisition Details</p>
           </div>
-          <button className={styles.closeButton} onClick={onClose}>&times;</button>
+          <button className={styles.closeButton} onClick={onClose} aria-label="Close">&times;</button>
         </div>
 
         <div className="plan-form-grid">

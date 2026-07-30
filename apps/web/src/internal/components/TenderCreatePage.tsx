@@ -308,17 +308,8 @@ export const TenderCreatePage: React.FC<Props> = ({ token, module }) => {
     if (!token || !tenderId) return;
 
     const timelineValid = validateTimeline();
-    console.log('[Authorize Publication] submit', {
-      tenderId,
-      publishForm,
-      timelineValid
-    });
 
     if (!timelineValid) {
-      console.warn('[Authorize Publication] timeline validation failed', {
-        tenderId,
-        publishForm
-      });
       if (!confirm('Advertising period is less than mandatory 42 days (6 weeks). Proceed anyway?')) return;
     }
 
@@ -328,18 +319,9 @@ export const TenderCreatePage: React.FC<Props> = ({ token, module }) => {
         PublishedAt: publishForm.PublishDate,
         ClosingDate: publishForm.ClosingDate
       }, token);
-      console.log('[Authorize Publication] publish succeeded', {
-        tenderId,
-        result
-      });
       await refreshDraftTenders();
       router.push(backPath);
     } catch (err: any) {
-      console.error('[Authorize Publication] publish failed', {
-        tenderId,
-        publishForm,
-        error: err
-      });
       setError(err.message);
     } finally {
       setLoading(false);

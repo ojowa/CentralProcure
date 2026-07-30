@@ -64,42 +64,44 @@ export const WorkflowConfigurationRoleTasksTab = ({
           </label>
         </div>
       </div>
-      <table className="plan-table">
-        <thead>
-          <tr>
-            <th>Stage</th>
-            <th>Task</th>
-            <th>Outcome</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {filteredRoleTasks.map((task) => (
-            <tr key={task.RoleTaskId}>
-              <td>{stageLookup.get(task.StageKey)?.StageTitle ?? task.StageKey}</td>
-              <td>{task.TaskDescription}</td>
-              <td>{task.ExpectedOutcome}</td>
-              <td>
-                <button
-                  type="button"
-                  className="plan-link plan-link--danger"
-                  onClick={() => void onDelete(task.RoleTaskId)}
-                  disabled={isSaving}
-                >
-                  Remove
-                </button>
-              </td>
-            </tr>
-          ))}
-          {!filteredRoleTasks.length ? (
+      <div style={{ overflowX: 'auto' }}>
+        <table className="plan-table">
+          <thead>
             <tr>
-              <td colSpan={4} className="plan-empty">
-                No role tasks found for the selected role.
-              </td>
+              <th>Stage</th>
+              <th>Task</th>
+              <th>Outcome</th>
+              <th />
             </tr>
-          ) : null}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {filteredRoleTasks.map((task) => (
+              <tr key={task.RoleTaskId}>
+                <td>{stageLookup.get(task.StageKey)?.StageTitle ?? task.StageKey}</td>
+                <td>{task.TaskDescription}</td>
+                <td>{task.ExpectedOutcome}</td>
+                <td>
+                  <button
+                    type="button"
+                    className="plan-link plan-link--danger"
+                    onClick={() => void onDelete(task.RoleTaskId)}
+                    disabled={isSaving}
+                  >
+                    Remove
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {!filteredRoleTasks.length ? (
+              <tr>
+                <td colSpan={4} className="plan-empty">
+                  No role tasks found for the selected role.
+                </td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+      </div>
     </article>
     <article className="admin-card admin-card--mid">
       <h3>Add Role Task</h3>

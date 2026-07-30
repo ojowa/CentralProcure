@@ -30,30 +30,32 @@ export const WorkflowConfigurationStagesTab = ({
   <div className="admin-grid">
     <article className="admin-card admin-card--wide">
       <h3>Stage Catalog</h3>
-      <table className="plan-table">
-        <thead>
-          <tr>
-            <th>Stage</th>
-            <th>Phase</th>
-            <th>Owner</th>
-            <th>Sequence</th>
-          </tr>
-        </thead>
-        <tbody>
-          {stages.map((stage) => (
-            <tr
-              key={stage.StageKey}
-              className={selectedStageKey === stage.StageKey ? 'plan-row--selected' : undefined}
-              onClick={() => setSelectedStageKey(stage.StageKey)}
-            >
-              <td>{stage.StageTitle}</td>
-              <td>{toTitle(stage.PhaseKey)}</td>
-              <td>{toTitle(stage.PrimaryOwnerRole)}</td>
-              <td>{stage.SequenceNo}</td>
+      <div style={{ overflowX: 'auto' }}>
+        <table className="plan-table">
+          <thead>
+            <tr>
+              <th>Stage</th>
+              <th>Phase</th>
+              <th>Owner</th>
+              <th>Sequence</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {stages.map((stage) => (
+              <tr
+                key={stage.StageKey}
+                className={selectedStageKey === stage.StageKey ? 'plan-row--selected' : undefined}
+                onClick={() => setSelectedStageKey(stage.StageKey)}
+              >
+                <td>{stage.StageTitle}</td>
+                <td>{toTitle(stage.PhaseKey)}</td>
+                <td>{toTitle(stage.PrimaryOwnerRole)}</td>
+                <td>{stage.SequenceNo}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </article>
     <article className="admin-card admin-card--mid">
       <h3>Edit Stage</h3>

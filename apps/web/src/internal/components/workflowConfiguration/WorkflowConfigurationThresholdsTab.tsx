@@ -127,42 +127,44 @@ export const WorkflowConfigurationThresholdsTab = ({
           <span className="admin-tag">{bppRouteCount} BPP routes</span>
         </div>
 
-        <table className="plan-table" style={{ marginTop: '16px' }}>
-          <thead>
-            <tr>
-              <th>Type</th>
-              <th>Band</th>
-              <th>Authority</th>
-              <th>Route</th>
-              <th>Body</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredThresholds.map((threshold) => (
-              <tr
-                key={threshold.ThresholdId}
-                className={selectedThresholdId === threshold.ThresholdId ? 'plan-row--selected' : undefined}
-                onClick={() => handleSelectThreshold(threshold)}
-              >
-                <td>{threshold.ProcurementType || 'All'}</td>
-                <td>
-                  {formatCurrency(threshold.MinAmount)} -{' '}
-                  {threshold.MaxAmount == null ? 'and above' : formatCurrency(threshold.MaxAmount)}
-                </td>
-                <td>{threshold.ApprovalAuthorityLabel}</td>
-                <td>{threshold.ApprovalRoute}</td>
-                <td>{threshold.GovernanceBodyName || 'Direct executive route'}</td>
-                <td>{threshold.Status}</td>
-              </tr>
-            ))}
-            {!filteredThresholds.length ? (
+        <div style={{ overflowX: 'auto', marginTop: '16px' }}>
+          <table className="plan-table">
+            <thead>
               <tr>
-                <td colSpan={6} className="plan-empty">No threshold bands found for {activeFilter}.</td>
+                <th>Type</th>
+                <th>Band</th>
+                <th>Authority</th>
+                <th>Route</th>
+                <th>Body</th>
+                <th>Status</th>
               </tr>
-            ) : null}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredThresholds.map((threshold) => (
+                <tr
+                  key={threshold.ThresholdId}
+                  className={selectedThresholdId === threshold.ThresholdId ? 'plan-row--selected' : undefined}
+                  onClick={() => handleSelectThreshold(threshold)}
+                >
+                  <td>{threshold.ProcurementType || 'All'}</td>
+                  <td>
+                    {formatCurrency(threshold.MinAmount)} -{' '}
+                    {threshold.MaxAmount == null ? 'and above' : formatCurrency(threshold.MaxAmount)}
+                  </td>
+                  <td>{threshold.ApprovalAuthorityLabel}</td>
+                  <td>{threshold.ApprovalRoute}</td>
+                  <td>{threshold.GovernanceBodyName || 'Direct executive route'}</td>
+                  <td>{threshold.Status}</td>
+                </tr>
+              ))}
+              {!filteredThresholds.length ? (
+                <tr>
+                  <td colSpan={6} className="plan-empty">No threshold bands found for {activeFilter}.</td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
       </article>
 
       <article className="admin-card admin-card--mid">

@@ -287,6 +287,7 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
       <div className="admin-grid">
         <article className="admin-card admin-card--wide">
           <h3>Vendor Approval Queue</h3>
+          <div className="portal-table-container">
           <table className="plan-table">
             <thead>
               <tr>
@@ -331,6 +332,7 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
               ) : null}
             </tbody>
           </table>
+          </div>
         </article>
 
         <article className="admin-card admin-card--mid">
@@ -412,6 +414,7 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
 
                 <div className="requisition-detail-note">
                   <h4>Compliance Documents</h4>
+                  <div className="portal-table-container">
                   <table className="plan-table">
                     <thead>
                       <tr>
@@ -452,6 +455,7 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
                       ) : null}
                     </tbody>
                   </table>
+                  </div>
                 </div>
 
                 <div className="plan-form plan-form--edit">

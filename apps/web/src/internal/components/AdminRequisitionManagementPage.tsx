@@ -412,6 +412,7 @@ export const AdminRequisitionManagementPage = ({ module, token, role, userEmail,
             {workflowHistory.length > 0 && (
               <div className="mt-8 pt-6 border-t border-slate-100">
                 <h4 className="text-sm font-bold uppercase text-slate-400 tracking-widest mb-4">Audit / Workflow History</h4>
+                <div className="portal-table-container">
                 <table className="plan-table">
                   <thead>
                     <tr>
@@ -432,6 +433,7 @@ export const AdminRequisitionManagementPage = ({ module, token, role, userEmail,
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
             )}
           </div>

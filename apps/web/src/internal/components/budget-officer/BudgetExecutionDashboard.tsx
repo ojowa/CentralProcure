@@ -68,7 +68,7 @@ export const BudgetExecutionDashboard = ({ dashboard, onSelectPlan }: Props) => 
         </div>
       </div>
 
-      <div className="budget-execution-dashboard__kpis">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         {stages.map((stage) => (
           <article key={stage.label} className={`budget-stage-card budget-stage-card--${stage.tone}`}>
             <span>{stage.label}</span>
@@ -220,13 +220,12 @@ export const BudgetExecutionDashboard = ({ dashboard, onSelectPlan }: Props) => 
           color: #991b1b;
         }
 
-        .budget-execution-dashboard__kpis {
-          display: grid;
-          grid-template-columns: repeat(5, minmax(0, 1fr));
-          gap: 14px;
-        }
+        @media (max-width: 1200px) {
+          .budget-execution-dashboard__health-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
 
-        .budget-stage-card {
+          .budget-waterfall-row {
           padding: 18px;
           border-radius: 18px;
           border: 1px solid var(--portal-border);
@@ -384,7 +383,6 @@ export const BudgetExecutionDashboard = ({ dashboard, onSelectPlan }: Props) => 
         }
 
         @media (max-width: 1200px) {
-          .budget-execution-dashboard__kpis,
           .budget-execution-dashboard__health-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
@@ -405,7 +403,6 @@ export const BudgetExecutionDashboard = ({ dashboard, onSelectPlan }: Props) => 
             min-width: 0;
           }
 
-          .budget-execution-dashboard__kpis,
           .budget-execution-dashboard__health-grid {
             grid-template-columns: 1fr;
           }

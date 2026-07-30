@@ -140,7 +140,7 @@ export const ContractManagementModule = ({ module, token, role, initialData }: P
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '24px', marginTop: '24px' }}>
+          <div className="grid grid-cols-1 md:grid-cols-[1.5fr_1fr] gap-6 mt-6">
             <div className="milestone-history">
               <h3>Execution Milestones</h3>
               <div className="portal-table-container">

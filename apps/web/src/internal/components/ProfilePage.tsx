@@ -159,7 +159,7 @@ export const ProfilePage = ({ module, token }: ProfilePageProps) => {
                       <span>Username</span>
                       <input className="plan-input" value={formData.Username} onChange={(e) => handleChange('Username', e.target.value)} required />
                     </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <label className="plan-field">
                         <span>First Name</span>
                         <input className="plan-input" value={formData.FirstName} onChange={(e) => handleChange('FirstName', e.target.value)} required />
@@ -190,7 +190,7 @@ export const ProfilePage = ({ module, token }: ProfilePageProps) => {
                   </div>
                 </form>
               ) : (
-                <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-4">
                   <div style={{ gridColumn: 'span 2' }}>
                     <span style={{ fontSize: '10px', textTransform: 'uppercase', color: 'var(--portal-slate)', display: 'block', marginBottom: '4px', letterSpacing: '0.05em' }}>Legal Name</span>
                     <strong style={{ fontSize: '15px', color: 'var(--portal-ink)' }}>{`${profile.FirstName} ${profile.MiddleName ? profile.MiddleName + ' ' : ''}${profile.Surname}`}</strong>

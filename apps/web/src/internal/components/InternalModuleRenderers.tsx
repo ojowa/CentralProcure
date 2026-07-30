@@ -78,7 +78,7 @@ export const renderGenericModuleWorkspace = ({
       </div>
 
       {moduleData ? (
-        <pre className="admin-response">{JSON.stringify(moduleData, null, 2)}</pre>
+        <pre style={{ overflowX: 'auto', maxHeight: 400, fontSize: 12, padding: 12, background: '#f8fafc', borderRadius: 12 }}>{JSON.stringify(moduleData, null, 2)}</pre>
       ) : (
         <div className="plan-empty">No live dataset was returned for this module.</div>
       )}

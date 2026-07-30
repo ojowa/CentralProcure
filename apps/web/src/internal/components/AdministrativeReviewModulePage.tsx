@@ -351,6 +351,7 @@ export const AdministrativeReviewModulePage = ({ module, token, role, userEmail 
         <article className="admin-card admin-card--wide">
           <h3>Administrative Review Queue</h3>
           {!token ? <div className="portal-alert">Authentication token is missing.</div> : null}
+          <div className="portal-table-container">
           <table className="plan-table">
             <thead>
               <tr>
@@ -392,6 +393,7 @@ export const AdministrativeReviewModulePage = ({ module, token, role, userEmail 
               ) : null}
             </tbody>
           </table>
+          </div>
         </article>
 
         {canCreate ? (

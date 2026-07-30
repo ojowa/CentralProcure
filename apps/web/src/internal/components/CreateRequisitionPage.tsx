@@ -761,7 +761,7 @@ export const CreateRequisitionPage = ({ module, token, role, userEmail, availabl
                   workflowRuntime={workflowRuntime}
                   onOpenSelectedForEdit={openSelectedForEdit}
                   onSubmitSelectedDraft={() => void submitSelectedDraft()}
-                  onDeleteRequisition={() => {}}
+                  onDeleteRequisition={() => window.alert('Delete not yet implemented.')}
                   departmentHeadPanel={
                   isDepartmentHead ? (
                     <DepartmentHeadPanel

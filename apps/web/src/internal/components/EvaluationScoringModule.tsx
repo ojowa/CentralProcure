@@ -16,6 +16,7 @@ export const EvaluationScoringModule = ({ module, token, role, initialData }: Pr
   const [bids, setBids] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   // Action Form State
   const [actionForm, setActionForm] = useState({
@@ -100,7 +101,7 @@ export const EvaluationScoringModule = ({ module, token, role, initialData }: Pr
         ReportCode: selectedTender.ReportCode
       }, token);
       setError(null);
-      alert('Action logged successfully');
+      setSuccess('Action logged successfully');
       loadTenders();
       setView('list');
     } catch (err: any) {
@@ -123,6 +124,7 @@ export const EvaluationScoringModule = ({ module, token, role, initialData }: Pr
       </header>
 
       {error && <div className="portal-alert">{error}</div>}
+      {success && <div className="plan-success">{success}</div>}
 
       {view === 'list' && (
         <div className="portal-table-container">
@@ -171,7 +173,7 @@ export const EvaluationScoringModule = ({ module, token, role, initialData }: Pr
             </div>
           </div>
 
-          <div className="evaluation-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginTop: '24px' }}>
+          <div className="evaluation-grid grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
             <div className="evaluation-bids-section">
               <h3>Submitted Bids</h3>
               <div className="portal-table-container">

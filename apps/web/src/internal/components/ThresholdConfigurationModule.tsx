@@ -254,6 +254,7 @@ export const ThresholdConfigurationModule: React.FC<Props> = ({ module, token })
       <div className="admin-grid" style={{ marginTop: '24px' }}>
         <article className="admin-card admin-card--wide">
           <h3>Threshold Bands</h3>
+          <div className="portal-table-container">
           <table className="plan-table">
             <thead>
               <tr>
@@ -285,6 +286,7 @@ export const ThresholdConfigurationModule: React.FC<Props> = ({ module, token })
               ) : null}
             </tbody>
           </table>
+          </div>
         </article>
 
         <article className="admin-card admin-card--mid">
