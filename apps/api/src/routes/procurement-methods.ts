@@ -18,52 +18,37 @@ procurementMethodsRouter.get('/api/procurement-methods/queue', async (req, res) 
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
-    const { Status, EntityType, Page, PageSize } = req.query;
-    const pageNum = Math.max(1, parseInt(Page as string, 10) || 1);
-    const pageSizeNum = Math.min(100, Math.max(1, parseInt(PageSize as string, 10) || 20));
-    const offset = (pageNum - 1) * pageSizeNum;
-
-    const conditions: string[] = [];
-    const values: unknown[] = [];
-    let idx = 1;
-
-    if (Status) { conditions.push(`pm.status = $${idx}`); values.push(Status); idx++; }
-    if (EntityType) { conditions.push(`pm.entity_type = $${idx}`); values.push(EntityType); idx++; }
-
-    const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-
-    const countResult = await pool.query(
-      `SELECT COUNT(*) AS total
-       FROM procurement_workflow.procurement_methods pm
-       ${whereClause}`, values
-    );
-    const totalCount = parseInt(countResult.rows[0]?.total || '0', 10);
-
     const result = await pool.query(
       `SELECT
-        pm.method_id AS "MethodId",
-        pm.entity_type AS "EntityType",
-        pm.entity_id AS "EntityId",
-        pm.entity_title AS "EntityTitle",
-        pm.method_determined AS "MethodDetermined",
-        pm.estimated_value AS "EstimatedValue",
-        pm.status AS "Status",
-        pm.determined_by AS "DeterminedBy",
-        pm.determined_at AS "DeterminedAt",
-        pm.created_at AS "CreatedAt"
-       FROM procurement_workflow.procurement_methods pm
-       ${whereClause}
-       ORDER BY pm.created_at DESC
-       LIMIT $${idx} OFFSET $${idx + 1}`,
-      [...values, pageSizeNum, offset]
+        wi.entity_type AS "EntityType",
+        wi.entity_id AS "EntityId",
+        wi.record_title AS "RecordTitle",
+        wi.current_stage_key AS "CurrentStageKey",
+        wsc.stage_title AS "CurrentStageTitle",
+        wi.amount AS "Amount",
+        at.procurement_type AS "ProcurementType",
+        at.approval_route AS "ApprovalRoute",
+        at.approval_authority_label AS "ApprovalAuthorityLabel",
+        pm.method_determined AS "SelectedMethod",
+        pm.determined_at AS "LastDeterminedAt",
+        me.status AS "ActiveExceptionStatus"
+       FROM procurement_workflow.workflow_instances wi
+       LEFT JOIN procurement_workflow.workflow_stage_catalog wsc
+         ON wsc.stage_key = wi.current_stage_key
+       LEFT JOIN procurement_workflow.approval_thresholds at
+         ON at.procurement_type = wi.entity_type
+         AND wi.amount >= at.min_amount
+         AND (at.max_amount IS NULL OR wi.amount <= at.max_amount)
+         AND at.status = 'Active'
+       LEFT JOIN procurement_workflow.procurement_methods pm
+         ON pm.entity_type = wi.entity_type AND pm.entity_id = wi.entity_id
+       LEFT JOIN procurement_workflow.method_exceptions me
+         ON me.entity_type = wi.entity_type AND me.entity_id = wi.entity_id AND me.status = 'Pending'
+       WHERE pm.method_id IS NULL
+       ORDER BY wi.amount DESC NULLS LAST`
     );
 
-    res.json({
-      Methods: result.rows,
-      TotalCount: totalCount,
-      Page: pageNum,
-      PageSize: pageSizeNum,
-    });
+    res.json(result.rows);
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching procurement methods queue.' });
   }
@@ -154,30 +139,87 @@ procurementMethodsRouter.get('/api/procurement-methods/:entityType/:entityId', a
   try {
     const { entityType, entityId } = req.params;
 
-    const result = await pool.query(
+    const instResult = await pool.query(
       `SELECT
-        pm.method_id AS "MethodId",
-        pm.entity_type AS "EntityType",
-        pm.entity_id AS "EntityId",
-        pm.entity_title AS "EntityTitle",
-        pm.method_determined AS "MethodDetermined",
-        pm.estimated_value AS "EstimatedValue",
-        pm.justification AS "Justification",
-        pm.status AS "Status",
-        pm.determined_by AS "DeterminedBy",
-        pm.determined_at AS "DeterminedAt",
-        pm.created_at AS "CreatedAt",
-        pm.updated_at AS "UpdatedAt"
-       FROM procurement_workflow.procurement_methods pm
-       WHERE pm.entity_type = $1 AND pm.entity_id = $2`,
+        wi.entity_type AS "EntityType",
+        wi.entity_id AS "EntityId",
+        wi.record_title AS "RecordTitle",
+        wi.current_stage_key AS "CurrentStageKey",
+        wsc.stage_title AS "CurrentStageTitle",
+        wi.amount AS "Amount"
+       FROM procurement_workflow.workflow_instances wi
+       LEFT JOIN procurement_workflow.workflow_stage_catalog wsc
+         ON wsc.stage_key = wi.current_stage_key
+       WHERE wi.entity_type = $1 AND wi.entity_id = $2`,
       [entityType, entityId]
     );
 
-    if (result.rows.length === 0) {
-      res.status(404).json({ ErrorMessage: 'Procurement method not found.' }); return;
+    if (instResult.rows.length === 0) {
+      res.status(404).json({ ErrorMessage: 'Entity not found.' }); return;
     }
 
-    res.json(result.rows[0]);
+    const inst = instResult.rows[0];
+
+    const thresholdResult = await pool.query(
+      `SELECT
+        procurement_type AS "ProcurementType",
+        approval_route AS "ApprovalRoute",
+        approval_authority_label AS "ApprovalAuthorityLabel",
+        requires_cgis_approval AS "RequiresCgisApproval",
+        requires_board AS "RequiresBoard",
+        requires_bpp AS "RequiresBpp"
+       FROM procurement_workflow.approval_thresholds
+       WHERE procurement_type = $1
+         AND $2 >= min_amount
+         AND (max_amount IS NULL OR $2 <= max_amount)
+         AND status = 'Active'
+       ORDER BY min_amount DESC LIMIT 1`,
+      [entityType, inst.Amount]
+    );
+
+    const threshold = thresholdResult.rows[0] || {};
+
+    const methodResult = await pool.query(
+      `SELECT
+        method_determined AS "SelectedMethod",
+        justification AS "DecisionReason",
+        determined_by AS "DeterminedBy",
+        determined_at AS "DeterminedAt",
+        CASE WHEN status = 'Overridden' THEN true ELSE false END AS "IsExceptionDecision"
+       FROM procurement_workflow.procurement_methods
+       WHERE entity_type = $1 AND entity_id = $2`,
+      [entityType, entityId]
+    );
+
+    const exceptionResult = await pool.query(
+      `SELECT
+        exception_id AS "ExceptionId",
+        (SELECT method_determined FROM procurement_workflow.procurement_methods WHERE entity_type = $1 AND entity_id = $2) AS "CurrentMethod",
+        requested_method AS "RequestedMethod",
+        justification AS "RequestReason",
+        status AS "Status"
+       FROM procurement_workflow.method_exceptions
+       WHERE entity_type = $1 AND entity_id = $2 AND status = 'Pending'
+       ORDER BY requested_at DESC LIMIT 1`,
+      [entityType, entityId]
+    );
+
+    res.json({
+      EntityType: inst.EntityType,
+      EntityId: inst.EntityId,
+      RecordTitle: inst.RecordTitle,
+      CurrentStageKey: inst.CurrentStageKey,
+      CurrentStageTitle: inst.CurrentStageTitle,
+      Amount: inst.Amount,
+      ProcurementType: threshold.ProcurementType || null,
+      ApprovalRoute: threshold.ApprovalRoute || null,
+      ApprovalAuthorityLabel: threshold.ApprovalAuthorityLabel || null,
+      RequiresCgisApproval: threshold.RequiresCgisApproval || false,
+      RequiresBoard: threshold.RequiresBoard || false,
+      RequiresBpp: threshold.RequiresBpp || false,
+      CurrentDecision: methodResult.rows[0] || null,
+      ActiveException: exceptionResult.rows[0] || null,
+    });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching the procurement method.' });
   }
