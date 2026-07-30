@@ -18,10 +18,7 @@ administrativeReviewsRouter.get('/api/administrative-reviews', async (req, res) 
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
-    const { EntityType, EntityId, Status, Page, PageSize } = req.query;
-    const pageNum = Math.max(1, parseInt(Page as string, 10) || 1);
-    const pageSizeNum = Math.min(100, Math.max(1, parseInt(PageSize as string, 10) || 20));
-    const offset = (pageNum - 1) * pageSizeNum;
+    const { EntityType, EntityId, Status } = req.query;
 
     const conditions: string[] = [];
     const values: unknown[] = [];
@@ -33,38 +30,31 @@ administrativeReviewsRouter.get('/api/administrative-reviews', async (req, res) 
 
     const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    const countResult = await pool.query(
-      `SELECT COUNT(*) AS total
-       FROM procurement_workflow.administrative_reviews ar
-       ${whereClause}`, values
-    );
-    const totalCount = parseInt(countResult.rows[0]?.total || '0', 10);
-
     const result = await pool.query(
       `SELECT
-        ar.review_id AS "ReviewId",
+        ar.complaint_id AS "ComplaintId",
+        ar.complaint_reference AS "ComplaintReference",
         ar.entity_type AS "EntityType",
         ar.entity_id AS "EntityId",
-        ar.entity_title AS "EntityTitle",
-        ar.review_type AS "ReviewType",
+        ar.subject AS "Subject",
+        ar.stage_key_at_filing AS "StageKeyAtFiling",
         ar.status AS "Status",
-        ar.comments AS "Comments",
-        ar.reviewed_by AS "ReviewedBy",
-        ar.reviewed_at AS "ReviewedAt",
-        ar.created_at AS "CreatedAt"
+        ar.filed_by AS "FiledBy",
+        ar.filed_at AS "FiledAt",
+        ar.assigned_to AS "AssignedTo",
+        ar.resolution_outcome AS "ResolutionOutcome",
+        ar.resolved_at AS "ResolvedAt",
+        ar.parent_record_title AS "ParentRecordTitle",
+        ar.parent_current_stage_key AS "ParentCurrentStageKey",
+        ar.parent_current_stage_title AS "ParentCurrentStageTitle",
+        ar.parent_current_status AS "ParentCurrentStatus"
        FROM procurement_workflow.administrative_reviews ar
        ${whereClause}
-       ORDER BY ar.created_at DESC
-       LIMIT $${idx} OFFSET $${idx + 1}`,
-      [...values, pageSizeNum, offset]
+       ORDER BY ar.filed_at DESC`,
+      values
     );
 
-    res.json({
-      Reviews: result.rows,
-      TotalCount: totalCount,
-      Page: pageNum,
-      PageSize: pageSizeNum,
-    });
+    res.json({ Reviews: result.rows, TotalCount: result.rows.length });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching administrative reviews.' });
   }
@@ -87,21 +77,16 @@ administrativeReviewsRouter.get('/api/administrative-reviews/filing-context', as
 
     const result = await pool.query(
       `SELECT
-        ar.review_id AS "ReviewId",
+        ar.complaint_id AS "ComplaintId",
+        ar.complaint_reference AS "ComplaintReference",
         ar.entity_type AS "EntityType",
         ar.entity_id AS "EntityId",
-        ar.entity_title AS "EntityTitle",
-        ar.review_type AS "ReviewType",
+        ar.subject AS "Subject",
         ar.status AS "Status",
-        ar.comments AS "Comments",
-        ar.reviewed_by AS "ReviewedBy",
-        ar.reviewed_at AS "ReviewedAt",
-        ar.created_at AS "CreatedAt",
-        ar.filing_number AS "FilingNumber",
-        ar.filing_date AS "FilingDate"
+        ar.filed_at AS "FiledAt"
        FROM procurement_workflow.administrative_reviews ar
        WHERE ar.entity_type = $1 AND ar.entity_id = $2
-       ORDER BY ar.created_at DESC
+       ORDER BY ar.filed_at DESC
        LIMIT 10`, [EntityType, EntityId]
     );
 
@@ -124,22 +109,34 @@ administrativeReviewsRouter.get('/api/administrative-reviews/:id', async (req, r
 
     const result = await pool.query(
       `SELECT
-        ar.review_id AS "ReviewId",
+        ar.complaint_id AS "ComplaintId",
+        ar.complaint_reference AS "ComplaintReference",
         ar.entity_type AS "EntityType",
         ar.entity_id AS "EntityId",
-        ar.entity_title AS "EntityTitle",
-        ar.review_type AS "ReviewType",
+        ar.subject AS "Subject",
+        ar.summary AS "Summary",
+        ar.details AS "Details",
+        ar.complaint_channel AS "ComplaintChannel",
+        ar.requested_remedy AS "RequestedRemedy",
+        ar.stage_key_at_filing AS "StageKeyAtFiling",
         ar.status AS "Status",
-        ar.comments AS "Comments",
-        ar.justification AS "Justification",
+        ar.filed_by AS "FiledBy",
+        ar.filed_at AS "FiledAt",
+        ar.assigned_to AS "AssignedTo",
         ar.reviewed_by AS "ReviewedBy",
         ar.reviewed_at AS "ReviewedAt",
+        ar.resolution_outcome AS "ResolutionOutcome",
+        ar.resolution_stage_key AS "ResolutionStageKey",
+        ar.resolution_notes AS "ResolutionNotes",
+        ar.resolved_at AS "ResolvedAt",
+        ar.parent_record_title AS "ParentRecordTitle",
+        ar.parent_current_stage_key AS "ParentCurrentStageKey",
+        ar.parent_current_stage_title AS "ParentCurrentStageTitle",
+        ar.parent_current_status AS "ParentCurrentStatus",
         ar.created_at AS "CreatedAt",
-        ar.updated_at AS "UpdatedAt",
-        ar.filing_number AS "FilingNumber",
-        ar.filing_date AS "FilingDate"
+        ar.updated_at AS "UpdatedAt"
        FROM procurement_workflow.administrative_reviews ar
-       WHERE ar.review_id = $1`, [id]
+       WHERE ar.complaint_id = $1`, [id]
     );
 
     if (result.rows.length === 0) {
@@ -161,25 +158,41 @@ administrativeReviewsRouter.post('/api/administrative-reviews', async (req, res)
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
-    const { EntityType, EntityId, EntityTitle, ReviewType, Status, Comments, Justification } = req.body;
+    const {
+      EntityType, EntityId, Subject, Summary, Details,
+      ComplaintChannel, RequestedRemedy, FiledBy, AssignedTo
+    } = req.body;
 
-    if (!EntityType || !EntityId || !ReviewType) {
-      res.status(400).json({ ErrorMessage: 'EntityType, EntityId, and ReviewType are required.' }); return;
+    if (!EntityType || !EntityId) {
+      res.status(400).json({ ErrorMessage: 'EntityType and EntityId are required.' }); return;
     }
+
+    const refResult = await pool.query(`SELECT nextval('procurement_workflow.complaint_ref_seq') AS seq`);
+    let seq = refResult.rows[0]?.seq;
+    if (!seq) {
+      await pool.query(`CREATE SEQUENCE IF NOT EXISTS procurement_workflow.complaint_ref_seq START 1001`);
+      const retry = await pool.query(`SELECT nextval('procurement_workflow.complaint_ref_seq') AS seq`);
+      seq = retry.rows[0]?.seq;
+    }
+    const complaintRef = `COMP-${seq}`;
 
     const result = await pool.query(
       `INSERT INTO procurement_workflow.administrative_reviews
-        (entity_type, entity_id, entity_title, review_type, status, comments, justification, reviewed_by, reviewed_at, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW(), NOW())
+        (complaint_reference, entity_type, entity_id, subject, summary, details,
+         complaint_channel, requested_remedy, stage_key_at_filing, status, filed_by,
+         assigned_to, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, '', 'Filed', $9, $10, NOW(), NOW())
        RETURNING
-        review_id AS "ReviewId",
+        complaint_id AS "ComplaintId",
+        complaint_reference AS "ComplaintReference",
         entity_type AS "EntityType",
         entity_id AS "EntityId",
-        review_type AS "ReviewType",
+        subject AS "Subject",
         status AS "Status",
-        created_at AS "CreatedAt"`,
-      [EntityType, EntityId, EntityTitle || '', ReviewType,
-       Status || 'Pending', Comments || '', Justification || '', auth!.sub]
+        filed_by AS "FiledBy",
+        filed_at AS "FiledAt"`,
+      [complaintRef, EntityType, EntityId, Subject || '', Summary || '', Details || '',
+       ComplaintChannel || 'Portal', RequestedRemedy || '', FiledBy || auth!.sub, AssignedTo || null]
     );
 
     res.status(201).json(result.rows[0]);
@@ -198,25 +211,51 @@ administrativeReviewsRouter.put('/api/administrative-reviews/:id', async (req, r
 
   try {
     const { id } = req.params;
-    const { Status, Comments, Justification, ReviewType } = req.body;
+    const { Status, AssignedTo, ReviewedBy, ResolutionOutcome, ResolutionStageKey, ResolutionNotes } = req.body;
+
+    const isTerminal = ['Resolved', 'Rejected', 'Closed'].includes(Status || '');
 
     const result = await pool.query(
       `UPDATE procurement_workflow.administrative_reviews
        SET
         status = COALESCE(NULLIF($1, ''), status),
-        comments = COALESCE(NULLIF($2, ''), comments),
-        justification = COALESCE(NULLIF($3, ''), justification),
-        review_type = COALESCE(NULLIF($4, ''), review_type),
+        assigned_to = COALESCE(NULLIF($2, ''), assigned_to),
+        reviewed_by = COALESCE(NULLIF($3, ''), reviewed_by),
+        resolution_outcome = COALESCE(NULLIF($4, ''), resolution_outcome),
+        resolution_stage_key = COALESCE(NULLIF($5, ''), resolution_stage_key),
+        resolution_notes = COALESCE(NULLIF($6, ''), resolution_notes),
+        resolved_at = CASE WHEN $7 THEN NOW() ELSE resolved_at END,
         updated_at = NOW()
-       WHERE review_id = $5
+       WHERE complaint_id = $8
        RETURNING
-        review_id AS "ReviewId",
+        complaint_id AS "ComplaintId",
+        complaint_reference AS "ComplaintReference",
         entity_type AS "EntityType",
         entity_id AS "EntityId",
-        review_type AS "ReviewType",
+        subject AS "Subject",
+        summary AS "Summary",
+        details AS "Details",
+        complaint_channel AS "ComplaintChannel",
+        requested_remedy AS "RequestedRemedy",
+        stage_key_at_filing AS "StageKeyAtFiling",
         status AS "Status",
+        filed_by AS "FiledBy",
+        filed_at AS "FiledAt",
+        assigned_to AS "AssignedTo",
+        reviewed_by AS "ReviewedBy",
+        reviewed_at AS "ReviewedAt",
+        resolution_outcome AS "ResolutionOutcome",
+        resolution_stage_key AS "ResolutionStageKey",
+        resolution_notes AS "ResolutionNotes",
+        resolved_at AS "ResolvedAt",
+        parent_record_title AS "ParentRecordTitle",
+        parent_current_stage_key AS "ParentCurrentStageKey",
+        parent_current_stage_title AS "ParentCurrentStageTitle",
+        parent_current_status AS "ParentCurrentStatus",
+        created_at AS "CreatedAt",
         updated_at AS "UpdatedAt"`,
-      [Status || '', Comments || '', Justification || '', ReviewType || '', id]
+      [Status || '', AssignedTo || '', ReviewedBy || '', ResolutionOutcome || '',
+       ResolutionStageKey || '', ResolutionNotes || '', isTerminal, id]
     );
 
     if (result.rows.length === 0) {
@@ -225,6 +264,6 @@ administrativeReviewsRouter.put('/api/administrative-reviews/:id', async (req, r
 
     res.json(result.rows[0]);
   } catch (error: any) {
-    res.status(500).json({ ErrorMessage: error.message || 'An error occurred updating the administrative review.' });
+    res.status(500).json({ ErrorMessage: error.message || 'An error occurred updating administrative review.' });
   }
 });

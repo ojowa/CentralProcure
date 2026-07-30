@@ -65,7 +65,8 @@ export const fetchAdministrativeReviews = async (
     headers: { Authorization: `Bearer ${token}` },
     credentials: 'include'
   });
-  return parse<AdministrativeReviewSummary[]>(response);
+  const data = await parse<{ Reviews: AdministrativeReviewSummary[] }>(response);
+  return Array.isArray(data) ? data : (data?.Reviews ?? []);
 };
 
 export const fetchAdministrativeReviewDetail = async (
