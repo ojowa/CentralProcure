@@ -33,7 +33,7 @@ evaluationReportsRouter.get('/api/evaluation-reports', async (req, res) => {
       paramIndex++;
     }
     if (Query) {
-      conditions.push(`(t.title ILIKE $${paramIndex} OR er.comments ILIKE $${paramIndex})`);
+      conditions.push(`(er.tender_title ILIKE $${paramIndex} OR er.report_code ILIKE $${paramIndex} OR er.recommendation ILIKE $${paramIndex})`);
       values.push(`%${Query}%`);
       paramIndex++;
     }
@@ -43,7 +43,6 @@ evaluationReportsRouter.get('/api/evaluation-reports', async (req, res) => {
     const countResult = await pool.query(
       `SELECT COUNT(*) AS total
        FROM procurement_workflow.evaluation_reports er
-       LEFT JOIN vendor_sourcing.tenders t ON er.tender_id = t.tender_id
        ${whereClause}`,
       values
     );
@@ -51,41 +50,24 @@ evaluationReportsRouter.get('/api/evaluation-reports', async (req, res) => {
     const result = await pool.query(
       `SELECT
         er.report_id AS "ReportId",
+        er.report_code AS "ReportCode",
         er.tender_id AS "TenderId",
-        t.title AS "TenderTitle",
-        er.evaluator_id AS "EvaluatorId",
-        iu.first_name || ' ' || iu.surname AS "EvaluatorName",
-        er.score AS "Score",
+        er.tender_title AS "TenderTitle",
+        er.committee_lead AS "CommitteeLead",
         er.recommendation AS "Recommendation",
-        er.comments AS "Comments",
+        er.score_summary AS "ScoreSummary",
         er.status AS "Status",
         er.submitted_at AS "SubmittedAt",
-        er.reviewed_at AS "ReviewedAt"
+        er.notes AS "Notes"
       FROM procurement_workflow.evaluation_reports er
-      LEFT JOIN vendor_sourcing.tenders t ON er.tender_id = t.tender_id
-      LEFT JOIN identity.internal_users iu ON er.evaluator_id = iu.internal_user_id
       ${whereClause}
       ORDER BY er.submitted_at DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
       [...values, pageSizeNum, offset]
     );
 
-    const reports = result.rows.map((r) => ({
-      ReportId: r.ReportId,
-      TenderId: r.TenderId,
-      TenderTitle: r.TenderTitle,
-      EvaluatorId: r.EvaluatorId,
-      EvaluatorName: r.EvaluatorName,
-      Score: r.Score,
-      Recommendation: r.Recommendation,
-      Comments: r.Comments,
-      Status: r.Status,
-      SubmittedAt: r.SubmittedAt,
-      ReviewedAt: r.ReviewedAt,
-    }));
-
     res.json({
-      Reports: reports,
+      Reports: result.rows,
       TotalCount: parseInt(countResult.rows[0].total, 10),
       Page: pageNum,
       PageSize: pageSizeNum,
@@ -113,19 +95,16 @@ evaluationReportsRouter.get('/api/evaluation-reports/:reportId', async (req, res
     const result = await pool.query(
       `SELECT
         er.report_id AS "ReportId",
+        er.report_code AS "ReportCode",
         er.tender_id AS "TenderId",
-        t.title AS "TenderTitle",
-        er.evaluator_id AS "EvaluatorId",
-        iu.first_name || ' ' || iu.surname AS "EvaluatorName",
-        er.score AS "Score",
+        er.tender_title AS "TenderTitle",
+        er.committee_lead AS "CommitteeLead",
         er.recommendation AS "Recommendation",
-        er.comments AS "Comments",
+        er.score_summary AS "ScoreSummary",
         er.status AS "Status",
         er.submitted_at AS "SubmittedAt",
-        er.reviewed_at AS "ReviewedAt"
+        er.notes AS "Notes"
       FROM procurement_workflow.evaluation_reports er
-      LEFT JOIN vendor_sourcing.tenders t ON er.tender_id = t.tender_id
-      LEFT JOIN identity.internal_users iu ON er.evaluator_id = iu.internal_user_id
       WHERE er.report_id = $1`,
       [reportId]
     );

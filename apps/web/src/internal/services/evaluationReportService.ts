@@ -69,8 +69,9 @@ export const fetchEvaluationReports = async (
     credentials: 'include'
   });
 
-  const payload = await parseResponse<any[]>(response, 'Unable to load evaluation reports.');
-  return Array.isArray(payload) ? payload.map(mapReport) : [];
+  const payload = await parseResponse<any>(response, 'Unable to load evaluation reports.');
+  const items = Array.isArray(payload) ? payload : (payload?.Reports ?? []);
+  return items.map(mapReport);
 };
 
 export const fetchEvaluationReportDetail = async (

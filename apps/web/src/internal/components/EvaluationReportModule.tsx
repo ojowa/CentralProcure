@@ -14,7 +14,7 @@ const statusTone = (value: string) => {
   const normalized = value.toLowerCase();
   if (normalized.includes('approved') || normalized.includes('accepted')) return 'admin-status--good';
   if (normalized.includes('pending') || normalized.includes('submitted')) return 'admin-status--warn';
-  if (normalized.includes('rejected') || normalized.includes('returned')) return 'admin-status--bad';
+  if (normalized.includes('rejected') || normalized.includes('returned')) return 'admin-status--alert';
   return '';
 };
 
@@ -101,30 +101,32 @@ export const EvaluationReportModule = ({ module, token }: Props) => {
       <div className="admin-grid" style={{ marginTop: '24px' }}>
         <article className="admin-card admin-card--wide">
           <div className="plan-toolbar" style={{ marginBottom: '16px' }}>
-            <label className="plan-field">
-              <span>Status</span>
-              <select className="plan-input" value={status} onChange={(event) => setStatus(event.target.value)} disabled={loading}>
-                <option value="">All statuses</option>
-                <option value="Submitted">Submitted</option>
-                <option value="Approved">Approved</option>
-                <option value="Pending">Pending</option>
-                <option value="Rejected">Rejected</option>
-              </select>
-            </label>
-            <label className="plan-field">
-              <span>Search</span>
-              <input
-                className="plan-input"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search tender, report code, recommendation"
-                disabled={loading}
-              />
-            </label>
+            <div className="plan-filters">
+              <label className="plan-field">
+                <span>Status</span>
+                <select className="plan-input" value={status} onChange={(event) => setStatus(event.target.value)} disabled={loading}>
+                  <option value="">All statuses</option>
+                  <option value="Submitted">Submitted</option>
+                  <option value="Approved">Approved</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Rejected">Rejected</option>
+                </select>
+              </label>
+              <label className="plan-field">
+                <span>Search</span>
+                <input
+                  className="plan-input"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Search tender, report code, recommendation"
+                  disabled={loading}
+                />
+              </label>
+            </div>
           </div>
 
-          <div className="portal-table-container">
-            <table className="portal-table">
+          <div style={{ overflowX: 'auto' }}>
+            <table className="plan-table">
               <thead>
                 <tr>
                   <th>Report Code</th>
