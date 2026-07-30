@@ -197,17 +197,17 @@ workflowConfigRouter.post('/api/config/workflows/transitions', async (req, res) 
   if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
   try {
-    const { FromStageKey, ToStageKey, TransitionCondition, RequiresApproval } = req.body;
+    const { FromStageKey, ToStageKey, TransitionCondition } = req.body;
     if (!FromStageKey || !ToStageKey) { res.status(400).json({ ErrorMessage: 'FromStageKey and ToStageKey are required.' }); return; }
     const result = await pool.query(
       `INSERT INTO procurement_workflow.workflow_stage_transitions
-        (from_stage_key, to_stage_key, transition_condition, requires_approval)
-       VALUES ($1, $2, $3, $4)
+        (from_stage_key, to_stage_key, transition_condition)
+       VALUES ($1, $2, $3)
        RETURNING from_stage_key AS "FromStageKey",
                  to_stage_key AS "ToStageKey",
                  transition_condition AS "TransitionCondition",
-                 requires_approval AS "RequiresApproval"`,
-      [FromStageKey, ToStageKey, TransitionCondition || '', RequiresApproval || false]
+                 created_at AS "CreatedAt"`,
+      [FromStageKey, ToStageKey, TransitionCondition || '']
     );
     res.status(201).json(result.rows[0]);
   } catch (error: any) { res.status(500).json({ ErrorMessage: error.message }); }
