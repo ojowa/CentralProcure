@@ -70,8 +70,72 @@ procurementMethodsRouter.get('/api/procurement-methods/queue', async (req, res) 
 });
 
 // ─────────────────────────────────────────────
-// GET /api/procurement-methods/:entityType/:entityId
+// LITERAL ROUTES (must come before :param routes)
 // ─────────────────────────────────────────────
+
+// GET /api/procurement-methods/exceptions/queue
+procurementMethodsRouter.get('/api/procurement-methods/exceptions/queue', async (req, res) => {
+  const payload = requireAuth(req);
+  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
+
+  try {
+    const { Status, Page, PageSize } = req.query;
+    const pageNum = Math.max(1, parseInt(Page as string, 10) || 1);
+    const pageSizeNum = Math.min(100, Math.max(1, parseInt(PageSize as string, 10) || 20));
+    const offset = (pageNum - 1) * pageSizeNum;
+
+    const conditions: string[] = [];
+    const values: unknown[] = [];
+    let idx = 1;
+
+    if (Status) { conditions.push(`me.status = $${idx}`); values.push(Status); idx++; }
+
+    const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const countResult = await pool.query(
+      `SELECT COUNT(*) AS total
+       FROM procurement_workflow.method_exceptions me
+       ${whereClause}`, values
+    );
+    const totalCount = parseInt(countResult.rows[0]?.total || '0', 10);
+
+    const result = await pool.query(
+      `SELECT
+        me.exception_id AS "ExceptionId",
+        me.entity_type AS "EntityType",
+        me.entity_id AS "EntityId",
+        me.entity_title AS "EntityTitle",
+        me.requested_method AS "RequestedMethod",
+        me.justification AS "Justification",
+        me.reason AS "Reason",
+        me.status AS "Status",
+        me.requested_by AS "RequestedBy",
+        me.requested_at AS "RequestedAt",
+        me.decided_at AS "DecidedAt"
+       FROM procurement_workflow.method_exceptions me
+       ${whereClause}
+       ORDER BY me.requested_at DESC
+       LIMIT $${idx} OFFSET $${idx + 1}`,
+      [...values, pageSizeNum, offset]
+    );
+
+    res.json({
+      Exceptions: result.rows,
+      TotalCount: totalCount,
+      Page: pageNum,
+      PageSize: pageSizeNum,
+    });
+  } catch (error: any) {
+    res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching exception queue.' });
+  }
+});
+
+// ─────────────────────────────────────────────
+// PARAMETERIZED ROUTES (after literal routes)
+// ─────────────────────────────────────────────
+
+// GET /api/procurement-methods/:entityType/:entityId
 procurementMethodsRouter.get('/api/procurement-methods/:entityType/:entityId', async (req, res) => {
   const payload = requireAuth(req);
   if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
@@ -189,69 +253,7 @@ procurementMethodsRouter.post('/api/procurement-methods/request-exception', asyn
   }
 });
 
-// ─────────────────────────────────────────────
-// GET /api/procurement-methods/exceptions/queue
-// ─────────────────────────────────────────────
-procurementMethodsRouter.get('/api/procurement-methods/exceptions/queue', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
-  if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
-
-  try {
-    const { Status, Page, PageSize } = req.query;
-    const pageNum = Math.max(1, parseInt(Page as string, 10) || 1);
-    const pageSizeNum = Math.min(100, Math.max(1, parseInt(PageSize as string, 10) || 20));
-    const offset = (pageNum - 1) * pageSizeNum;
-
-    const conditions: string[] = [];
-    const values: unknown[] = [];
-    let idx = 1;
-
-    if (Status) { conditions.push(`me.status = $${idx}`); values.push(Status); idx++; }
-
-    const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-
-    const countResult = await pool.query(
-      `SELECT COUNT(*) AS total
-       FROM procurement_workflow.method_exceptions me
-       ${whereClause}`, values
-    );
-    const totalCount = parseInt(countResult.rows[0]?.total || '0', 10);
-
-    const result = await pool.query(
-      `SELECT
-        me.exception_id AS "ExceptionId",
-        me.entity_type AS "EntityType",
-        me.entity_id AS "EntityId",
-        me.entity_title AS "EntityTitle",
-        me.requested_method AS "RequestedMethod",
-        me.justification AS "Justification",
-        me.reason AS "Reason",
-        me.status AS "Status",
-        me.requested_by AS "RequestedBy",
-        me.requested_at AS "RequestedAt",
-        me.decided_at AS "DecidedAt"
-       FROM procurement_workflow.method_exceptions me
-       ${whereClause}
-       ORDER BY me.requested_at DESC
-       LIMIT $${idx} OFFSET $${idx + 1}`,
-      [...values, pageSizeNum, offset]
-    );
-
-    res.json({
-      Exceptions: result.rows,
-      TotalCount: totalCount,
-      Page: pageNum,
-      PageSize: pageSizeNum,
-    });
-  } catch (error: any) {
-    res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching exception queue.' });
-  }
-});
-
-// ─────────────────────────────────────────────
 // POST /api/procurement-methods/exceptions/:action
-// ─────────────────────────────────────────────
 procurementMethodsRouter.post('/api/procurement-methods/exceptions/:action', async (req, res) => {
   const auth = await requirePermission(req, 'method.exception_approve');
   if (denyIfNoPermission(res, auth)) return;

@@ -30,43 +30,6 @@ tendersPublicRouter.get('/api/Tender/open', async (_req, res) => {
   }
 });
 
-// GET /api/Tender/:tenderId
-tendersPublicRouter.get('/api/Tender/:tenderId', async (req, res) => {
-  if (!pool) {
-    res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
-    return;
-  }
-
-  try {
-    const { tenderId } = req.params;
-    const result = await pool.query('SELECT * FROM vendor_sourcing.get_tender_details($1)', [tenderId]);
-
-    if (result.rows.length === 0) {
-      res.status(404).json({ ErrorMessage: 'Tender not found.' });
-      return;
-    }
-
-    const t = result.rows[0];
-    res.json({
-      Id: t.tender_id,
-      Title: t.title,
-      ProcurementCategory: t.category,
-      Status: t.status,
-      SubmissionDeadline: t.closing_date,
-      OpeningDate: t.opening_date,
-      ClosingDate: t.closing_date,
-      Description: t.description,
-      Specifications: t.specifications,
-      Budget: t.budget,
-      EligibilityCriteria: t.eligibility_criteria,
-      EvaluationCriteria: t.evaluation_criteria,
-      Documents: [],
-    });
-  } catch (error: any) {
-    res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching tender details.' });
-  }
-});
-
 // POST /api/Tender/bid
 tendersPublicRouter.post('/api/Tender/bid', async (req, res) => {
   const payload = extractPayloadFromRequest(req.headers.authorization);
@@ -141,5 +104,42 @@ tendersPublicRouter.get('/api/Tender/submitted-bids', async (req, res) => {
     res.json(bids);
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching submitted bids.' });
+  }
+});
+
+// GET /api/Tender/:tenderId
+tendersPublicRouter.get('/api/Tender/:tenderId', async (req, res) => {
+  if (!pool) {
+    res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
+    return;
+  }
+
+  try {
+    const { tenderId } = req.params;
+    const result = await pool.query('SELECT * FROM vendor_sourcing.get_tender_details($1)', [tenderId]);
+
+    if (result.rows.length === 0) {
+      res.status(404).json({ ErrorMessage: 'Tender not found.' });
+      return;
+    }
+
+    const t = result.rows[0];
+    res.json({
+      Id: t.tender_id,
+      Title: t.title,
+      ProcurementCategory: t.category,
+      Status: t.status,
+      SubmissionDeadline: t.closing_date,
+      OpeningDate: t.opening_date,
+      ClosingDate: t.closing_date,
+      Description: t.description,
+      Specifications: t.specifications,
+      Budget: t.budget,
+      EligibilityCriteria: t.eligibility_criteria,
+      EvaluationCriteria: t.evaluation_criteria,
+      Documents: [],
+    });
+  } catch (error: any) {
+    res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching tender details.' });
   }
 });
