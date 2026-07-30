@@ -21,7 +21,12 @@ paymentsRouter.get('/api/payments', async (req, res) => {
   try {
     const Status = (req.query.Status ?? req.query.status) as string | undefined;
     const Query = (req.query.Query ?? req.query.query) as string | undefined;
+    const Page = (req.query.Page ?? req.query.page) as string | undefined;
+    const PageSize = (req.query.PageSize ?? req.query.pageSize) as string | undefined;
     const CloseoutEligible = (req.query.CloseoutEligible ?? req.query.closeoutEligible) as string | undefined;
+    const pageNum = Math.max(1, parseInt(Page as string, 10) || 1);
+    const pageSizeNum = Math.min(100, Math.max(1, parseInt(PageSize as string, 10) || 20));
+    const offset = (pageNum - 1) * pageSizeNum;
 
     const conditions: string[] = [];
     const values: unknown[] = [];
@@ -33,26 +38,44 @@ paymentsRouter.get('/api/payments', async (req, res) => {
       paramIndex++;
     }
     if (Query) {
-      conditions.push(`(c.contract_code ILIKE $${paramIndex} OR c.tender_title ILIKE $${paramIndex} OR c.vendor_name ILIKE $${paramIndex})`);
+      conditions.push(`(p.payment_reference ILIKE $${paramIndex} OR p.payee_name ILIKE $${paramIndex} OR c.contract_title ILIKE $${paramIndex})`);
       values.push(`%${Query}%`);
       paramIndex++;
     }
     if (CloseoutEligible === 'true') {
-      conditions.push(`c.is_paid = false`);
+      conditions.push(`p.closeout_eligible = true`);
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
+    const countResult = await pool.query(
+      `SELECT COUNT(*) AS total
+       FROM post_award.payments p
+       LEFT JOIN post_award.contracts c ON p.contract_code = c.contract_code
+       ${whereClause}`,
+      values
+    );
+
     const result = await pool.query(
       `SELECT
-        c.contract_id AS "ContractId",
-        c.contract_code AS "ContractCode",
-        c.tender_title AS "TenderTitle",
+        p.payment_id AS "PaymentId",
+        p.contract_code AS "ContractCode",
+        c.contract_title AS "ContractTitle",
         c.vendor_name AS "VendorName",
         c.contract_value AS "ContractValue",
         c.status AS "ContractStatus",
         c.progress AS "ContractProgress",
         c.is_paid AS "IsPaid",
+        p.payment_reference AS "PaymentReference",
+        p.payee_name AS "PayeeName",
+        p.amount AS "Amount",
+        p.payment_date AS "PaymentDate",
+        p.payment_method AS "PaymentMethod",
+        p.closeout_eligible AS "CloseoutEligible",
+        p.notes AS "Notes",
+        p.status AS "Status",
+        p.created_by AS "RecordedBy",
+        p.created_at AS "CreatedAt",
         wi.current_stage_key AS "CurrentStageKey",
         wsc.stage_title AS "CurrentStageTitle",
         wi.current_status AS "WorkflowStatus",
@@ -66,7 +89,8 @@ paymentsRouter.get('/api/payments', async (req, res) => {
         co.final_acceptance_completed AS "FinalAcceptanceCompleted",
         co.final_payment_completed AS "FinalPaymentRecorded",
         co.archived_at AS "ArchivedAt"
-      FROM post_award.contracts c
+      FROM post_award.payments p
+      LEFT JOIN post_award.contracts c ON p.contract_code = c.contract_code
       LEFT JOIN procurement_workflow.workflow_instances wi
         ON wi.entity_type = 'contract' AND wi.entity_id = c.contract_code
       LEFT JOIN procurement_workflow.workflow_stage_catalog wsc
@@ -76,7 +100,9 @@ paymentsRouter.get('/api/payments', async (req, res) => {
       LEFT JOIN post_award.closeouts co
         ON co.contract_code = c.contract_code
       ${whereClause}
-      ORDER BY c.created_at DESC`
+      ORDER BY p.created_at DESC
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+      [...values, pageSizeNum, offset]
     );
 
     const payments = result.rows.map((r) => {
@@ -94,13 +120,24 @@ paymentsRouter.get('/api/payments', async (req, res) => {
       else if (inspectionDone && isPaid) paymentStage = 'Ready for Closeout';
 
       return {
-        ContractId: r.ContractId,
+        PaymentId: r.PaymentId,
         ContractCode: r.ContractCode,
-        TenderTitle: r.TenderTitle,
+        ContractTitle: r.ContractTitle,
         VendorName: r.VendorName,
         ContractValue: r.ContractValue,
         ContractStatus: r.ContractStatus,
         ContractProgress: r.ContractProgress,
+        IsPaid: r.IsPaid,
+        PaymentReference: r.PaymentReference,
+        PayeeName: r.PayeeName,
+        Amount: r.Amount,
+        PaymentDate: r.PaymentDate,
+        PaymentMethod: r.PaymentMethod,
+        CloseoutEligible: r.CloseoutEligible,
+        Notes: r.Notes,
+        Status: r.Status,
+        RecordedBy: r.RecordedBy,
+        CreatedAt: r.CreatedAt,
         CurrentStageKey: r.CurrentStageKey,
         CurrentStageTitle: r.CurrentStageTitle,
         WorkflowStatus: r.WorkflowStatus,
@@ -110,8 +147,6 @@ paymentsRouter.get('/api/payments', async (req, res) => {
         InspectionCompletedDate: r.InspectionCompletedDate,
         FinalAcceptanceCompleted: r.FinalAcceptanceCompleted || false,
         FinalPaymentRecorded: finalPaymentRecorded,
-        IsPaid: isPaid,
-        CloseoutEligible: isPaid && inspectionDone && !closeoutExists,
         PaymentStage: paymentStage,
         CloseoutId: r.CloseoutId,
         CloseoutReference: r.CloseoutReference,
@@ -120,7 +155,12 @@ paymentsRouter.get('/api/payments', async (req, res) => {
       };
     });
 
-    res.json({ Payments: payments });
+    res.json({
+      Payments: payments,
+      TotalCount: parseInt(countResult.rows[0].total, 10),
+      Page: pageNum,
+      PageSize: pageSizeNum,
+    });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching payments.' });
   }
@@ -138,36 +178,40 @@ paymentsRouter.post('/api/payments', async (req, res) => {
 
   try {
     const {
-      ContractCode, ContractId, PaymentReference, Amount,
-      PaymentDate, Notes,
+      ContractCode, ContractId, PaymentReference, PayeeName, Amount,
+      PaymentDate, PaymentMethod, CloseoutEligible, Notes,
     } = req.body;
 
     const contractCode = ContractCode || ContractId;
 
-    if (!contractCode || !PaymentReference || !Amount) {
-      res.status(400).json({ ErrorMessage: 'ContractCode, PaymentReference, and Amount are required.' });
+    if (!contractCode || !PaymentReference || !PayeeName || !Amount) {
+      res.status(400).json({ ErrorMessage: 'ContractCode, PaymentReference, PayeeName, and Amount are required.' });
       return;
     }
 
     const result = await pool.query(
       `INSERT INTO post_award.payments
-        (contract_code, payment_reference, amount, payment_date, notes, status, recorded_by, created_at)
-       VALUES ($1, $2, $3, $4, $5, 'Pending', $6, NOW())
+        (contract_code, payment_reference, payee_name, amount, payment_date, payment_method, closeout_eligible, notes, status, created_by, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'Pending', $9, NOW())
        RETURNING
          payment_id AS "PaymentId",
          contract_code AS "ContractCode",
          payment_reference AS "PaymentReference",
+         payee_name AS "PayeeName",
          amount AS "Amount",
          payment_date AS "PaymentDate",
-         notes AS "Notes",
+         payment_method AS "PaymentMethod",
+         closeout_eligible AS "CloseoutEligible",
          status AS "Status",
-         recorded_by AS "RecordedBy",
          created_at AS "CreatedAt"`,
       [
         contractCode,
         PaymentReference,
+        PayeeName,
         Amount,
         PaymentDate || new Date().toISOString(),
+        PaymentMethod || 'BankTransfer',
+        CloseoutEligible || false,
         Notes || '',
         auth!.sub,
       ]
