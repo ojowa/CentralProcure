@@ -24,21 +24,24 @@ evaluationsRouter.get('/api/evaluations/assigned-tenders/default', async (req, r
         er.report_id AS "ReportId",
         er.report_code AS "ReportCode",
         er.tender_id AS "TenderId",
-        er.tender_title AS "TenderTitle",
+        t.title AS "TenderTitle",
         er.committee_lead AS "CommitteeLead",
         er.recommendation AS "Recommendation",
         er.score_summary AS "ScoreSummary",
         er.status AS "EvaluationStatus",
         er.submitted_at AS "SubmittedAt",
-        er.created_by AS "AssignmentRole",
-        er.created_at AS "AssignmentDate",
+        er.evaluator_id AS "EvaluatorId",
+        tea.role AS "AssignmentRole",
+        tea.assignment_date AS "AssignmentDate",
         t.category AS "ProcurementCategory",
         t.status AS "TenderStatus",
         t.closing_date AS "SubmissionDeadline",
         t.opening_date AS "OpeningDate"
       FROM procurement_workflow.evaluation_reports er
       LEFT JOIN vendor_sourcing.tenders t ON er.tender_id = t.tender_id
-      WHERE er.created_by = $1
+      LEFT JOIN procurement_workflow.tender_evaluation_assignments tea
+        ON er.tender_id = tea.tender_id AND er.evaluator_id = tea.evaluator_id
+      WHERE er.evaluator_id = $1
       ORDER BY er.submitted_at DESC`,
       [payload.sub]
     );
@@ -53,6 +56,7 @@ evaluationsRouter.get('/api/evaluations/assigned-tenders/default', async (req, r
       ScoreSummary: r.ScoreSummary,
       EvaluationStatus: r.EvaluationStatus,
       SubmittedAt: r.SubmittedAt,
+      EvaluatorId: r.EvaluatorId,
       AssignmentRole: r.AssignmentRole,
       AssignmentDate: r.AssignmentDate,
       ProcurementCategory: r.ProcurementCategory,
