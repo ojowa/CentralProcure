@@ -7,7 +7,8 @@ export const fetchContracts = async (token: string) => {
     credentials: 'include'
   });
   if (!response.ok) throw new Error('Failed to fetch contracts');
-  return response.json();
+  const data = await response.json();
+  return data.Contracts || [];
 };
 
 export const fetchContractMilestones = async (contractId: string, token: string) => {
@@ -17,7 +18,8 @@ export const fetchContractMilestones = async (contractId: string, token: string)
     credentials: 'include'
   });
   if (!response.ok) throw new Error('Failed to fetch milestones');
-  return response.json();
+  const data = await response.json();
+  return data.Milestones || [];
 };
 
 export const logContractMilestone = async (contractId: string, data: any, token: string) => {

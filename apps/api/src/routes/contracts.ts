@@ -153,14 +153,15 @@ contractsRouter.get('/api/contracts', async (req, res) => {
 
     const contracts = result.rows.map((c) => ({
       ContractId: c.contract_id,
-      AwardId: c.award_id,
-      VendorId: c.vendor_id,
+      ContractCode: c.contract_code,
+      TenderTitle: c.tender_title,
       VendorName: c.vendor_name,
-      ContractTitle: c.contract_title,
-      ContractAmount: c.contract_amount,
+      ContractValue: c.contract_value,
+      Progress: c.progress,
+      Status: c.status,
       StartDate: c.start_date,
       EndDate: c.end_date,
-      Status: c.status,
+      ContractManager: c.contract_manager,
       CreatedAt: c.created_at,
     }));
 
@@ -202,16 +203,16 @@ contractsRouter.get('/api/contracts/:contractId', async (req, res) => {
     const c = result.rows[0];
     res.json({
       ContractId: c.contract_id,
-      AwardId: c.award_id,
-      TenderId: c.tender_id,
-      VendorId: c.vendor_id,
+      ContractCode: c.contract_code,
+      TenderTitle: c.tender_title,
       VendorName: c.vendor_name,
-      ContractTitle: c.contract_title,
-      ContractAmount: c.contract_amount,
+      ContractValue: c.contract_value,
+      Progress: c.progress,
+      Status: c.status,
       StartDate: c.start_date,
       EndDate: c.end_date,
-      Status: c.status,
-      Terms: c.terms,
+      ContractManager: c.contract_manager,
+      Notes: c.notes,
       CreatedAt: c.created_at,
     });
   } catch (error: any) {
@@ -241,13 +242,14 @@ contractsRouter.get('/api/contracts/:contractId/milestones', async (req, res) =>
 
     const milestones = result.rows.map((m) => ({
       MilestoneId: m.milestone_id,
-      ContractId: m.contract_id,
+      ContractCode: m.contract_code,
       MilestoneTitle: m.milestone_title,
-      Description: m.description,
-      DueDate: m.due_date,
-      CompletedAt: m.completed_at,
-      Status: m.status,
-      CreatedAt: m.created_at,
+      ProgressAfter: m.progress_after,
+      StatusAfter: m.status_after,
+      Notes: m.notes,
+      ContractManager: m.contract_manager,
+      RecordedBy: m.recorded_by,
+      RecordedAt: m.recorded_at,
     }));
 
     res.json({
