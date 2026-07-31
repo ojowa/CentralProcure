@@ -41,7 +41,7 @@ export const AssignedTendersModule = ({ module, token, role, initialData, onModu
     setLoading(true);
     setError(null);
     fetchAssignedTenders(token)
-      .then((data) => setItems(Array.isArray(data) ? data : []))
+      .then((data) => setItems(Array.isArray(data) ? data : data?.Items ?? []))
       .catch((err: unknown) => {
         setError(err instanceof Error ? err.message : 'Failed to fetch assigned tenders.');
       })
