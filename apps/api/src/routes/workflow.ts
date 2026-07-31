@@ -36,9 +36,13 @@ workflowRouter.get('/api/workflow-runtime/cgis-queue', async (req, res) => {
         at.approval_authority_label AS "ApprovalAuthorityLabel",
         wi.current_status AS "Status",
         wi.created_at AS "CreatedAt",
-        EXTRACT(DAY FROM NOW() - wi.created_at)::int AS "DaysPending"
+        EXTRACT(DAY FROM NOW() - wi.created_at)::int AS "DaysPending",
+        COALESCE(pp.department, r.department) AS "Department",
+        NULL::text AS "VendorName"
       FROM procurement_workflow.workflow_instances wi
       LEFT JOIN procurement_workflow.approval_thresholds at ON at.threshold_id = wi.threshold_id
+      LEFT JOIN procurement_workflow.procurement_plans pp ON wi.entity_type = 'procurement_plan' AND wi.entity_id = pp.plan_id
+      LEFT JOIN procurement_workflow.requisitions r ON wi.entity_type = 'requisition' AND wi.entity_id = r.requisition_id
       WHERE wi.current_stage_key IN ('cgis_approval', 'bg_management_approval')
         AND wi.current_status != 'Completed'
       ORDER BY wi.amount DESC, wi.created_at ASC`

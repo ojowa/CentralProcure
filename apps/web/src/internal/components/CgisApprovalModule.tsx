@@ -65,8 +65,8 @@ export const CgisApprovalModule = ({ module, token, userEmail }: CgisApprovalMod
     setIsLoading(true);
     setError(null);
     try {
-      const data = await fetchCgisQueue(token) as CgisQueueItem[];
-      setQueue(data || []);
+      const data = await fetchCgisQueue(token) as { Items: CgisQueueItem[] };
+      setQueue(data?.Items || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load CGIS queue.');
     } finally {
@@ -81,8 +81,8 @@ export const CgisApprovalModule = ({ module, token, userEmail }: CgisApprovalMod
   const loadExceptionQueue = async () => {
     if (!token) return;
     try {
-      const result = await fetchMethodChangeExceptionQueue(token) as { Exceptions: MethodExceptionQueueItem[] };
-      setExceptionQueue(result?.Exceptions || []);
+      const result = await fetchMethodChangeExceptionQueue(token) as { Items: MethodExceptionQueueItem[] };
+      setExceptionQueue(result?.Items || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load method-change exception queue.');
     }
