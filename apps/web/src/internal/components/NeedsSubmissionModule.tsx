@@ -13,6 +13,8 @@ import {
   type NeedsCollectionDetail,
   type NeedsCollectionItem,
 } from '../services/needsCollectionService';
+import { send } from '../services/moduleService.shared';
+import { serviceBaseUrls } from '../services/moduleService';
 import { formatDateTimeShort } from '../utils/procureUtils';
 import {
   Plus, ArrowLeft, Save, Send, Trash2,
@@ -32,6 +34,7 @@ export const NeedsSubmissionModule: React.FC<NeedsSubmissionModuleProps> = ({ mo
   const [collections, setCollections] = useState<NeedsCollectionSummary[]>([]);
   const [selected, setSelected] = useState<NeedsCollectionDetail | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [unitId, setUnitId] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,6 +59,13 @@ export const NeedsSubmissionModule: React.FC<NeedsSubmissionModuleProps> = ({ mo
 
   useEffect(() => { if (view === 'list') loadCollections(); }, [view, loadCollections]);
   useEffect(() => { if (success) { const t = setTimeout(() => setSuccess(null), 3000); return () => clearTimeout(t); } }, [success]);
+
+  useEffect(() => {
+    if (!token) return;
+    send<{ UnitId?: string }>(serviceBaseUrls.identity, '/api/Auth/internal/profile', token, { method: 'GET' })
+      .then((profile) => { if (profile.UnitId) setUnitId(profile.UnitId); })
+      .catch(() => {});
+  }, [token]);
 
   const filtered = useMemo(() => {
     if (!searchQuery.trim()) return collections;
@@ -94,7 +104,7 @@ export const NeedsSubmissionModule: React.FC<NeedsSubmissionModuleProps> = ({ mo
     if (!formTitle.trim()) { setError('Title is required.'); return; }
     setLoading(true); clearMessages();
     try {
-      const payload = { Title: formTitle, FiscalYear: formFiscalYear, Remarks: formRemarks, Items: [...formItems] };
+      const payload = { Title: formTitle, FiscalYear: formFiscalYear, Remarks: formRemarks, Items: [...formItems], UnitId: unitId || undefined };
       if (selected) {
         await updateCollection(selected.CollectionId, token, payload);
         setSuccess('Collection updated.');
