@@ -189,6 +189,15 @@
   color: var(--portal-ink);
 }
 
+.portal-sidebar-subsection {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--portal-slate);
+  padding: 6px 12px 2px;
+  font-weight: 600;
+}
+
 .portal-sidebar button,
 .portal-sidebar a {
   border: 1px solid transparent;

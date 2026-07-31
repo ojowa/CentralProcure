@@ -164,7 +164,16 @@ authRouter.get('/api/Auth/internal/profile', async (req: Request, res: Response)
   if (!requireDb(res)) return;
 
   try {
-    const result = await pool!.query('SELECT * FROM identity.get_internal_user_profile($1)', [auth.sub]);
+    const result = await pool!.query(
+      `SELECT iu.internal_user_id, iu.email, iu.username, iu.first_name, iu.middle_name, iu.surname,
+              iu.service_number, iu.unit_id, ou.unit_name, r.role_name, r."group" AS "Group",
+              iu.status, iu.last_login, iu.created_at
+       FROM identity.internal_users iu
+       JOIN identity.roles r ON r.role_id = iu.role_id
+       LEFT JOIN identity.organizational_units ou ON ou.unit_id = iu.unit_id
+       WHERE iu.internal_user_id = $1`,
+      [auth.sub]
+    );
     const profile = result.rows[0];
     if (!profile) { res.status(404).json({ ErrorMessage: 'Profile not found.' }); return; }
 
@@ -180,6 +189,7 @@ authRouter.get('/api/Auth/internal/profile', async (req: Request, res: Response)
       UnitName: profile.unit_name,
       RoleName: profile.role_name,
       CanonicalRoleKey: profile.role_name,
+      Group: profile.Group,
       IsActive: profile.status === 'Active'
     });
   } catch (error: any) {
@@ -619,7 +629,10 @@ authRouter.get('/api/Auth/internal/modules', async (req: Request, res: Response)
   if (!requireDb(res)) return;
 
   try {
-    const result = await pool!.query('SELECT * FROM identity.get_role_modules($1)', [auth.role]);
+    const result = await pool!.query(
+      'SELECT grm.*, im."group" AS "Group", im.sub_section AS "SubSection" FROM identity.get_role_modules($1) grm JOIN identity.internal_modules im ON im.module_id = grm.module_id',
+      [auth.role]
+    );
     res.json(result.rows.map(mapRow));
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching modules.' });
@@ -635,7 +648,7 @@ authRouter.get('/api/Auth/internal/modules/catalog', async (req: Request, res: R
   if (!requireDb(res)) return;
 
   try {
-    const result = await pool!.query('SELECT * FROM identity.internal_modules WHERE is_active = true ORDER BY title');
+    const result = await pool!.query('SELECT *, "group" AS "Group", sub_section AS "SubSection" FROM identity.internal_modules WHERE is_active = true ORDER BY title');
     res.json(result.rows.map(mapRow));
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching module catalog.' });
@@ -651,7 +664,7 @@ authRouter.get('/api/Auth/roles', async (req: Request, res: Response) => {
   if (!requireDb(res)) return;
 
   try {
-    const result = await pool!.query('SELECT * FROM identity.get_roles()');
+    const result = await pool!.query('SELECT *, "group" AS "Group" FROM identity.roles WHERE is_active = true ORDER BY role_name');
     res.json(result.rows.map(mapRow));
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching roles.' });
@@ -669,7 +682,7 @@ authRouter.get('/api/Auth/roles/:roleId', async (req: Request, res: Response) =>
   const { roleId } = req.params;
 
   try {
-    const result = await pool!.query('SELECT * FROM identity.get_roles() WHERE role_id = $1', [roleId]);
+    const result = await pool!.query('SELECT *, "group" AS "Group" FROM identity.roles WHERE role_id = $1', [roleId]);
     if (!result.rows[0]) {
       res.status(404).json({ ErrorMessage: 'Role not found.' });
       return;
@@ -688,14 +701,17 @@ authRouter.post('/api/Auth/roles', async (req: Request, res: Response) => {
   if (!auth) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
   if (!requireDb(res)) return;
 
-  const { RoleName, Description } = req.body;
+  const { RoleName, Description, Group } = req.body;
   if (!RoleName) {
     res.status(400).json({ ErrorMessage: 'RoleName is required.' });
     return;
   }
 
   try {
-    const result = await pool!.query('SELECT * FROM identity.create_role($1, $2)', [RoleName, Description || '']);
+    const result = await pool!.query(
+      'INSERT INTO identity.roles (role_name, description, "group") VALUES ($1, $2, $3) RETURNING *, "group" AS "Group"',
+      [RoleName, Description || '', Group || 'procurement_staff']
+    );
     res.json(mapRow(result.rows[0]));
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred creating role.' });
@@ -711,12 +727,12 @@ authRouter.put('/api/Auth/roles/:roleId', async (req: Request, res: Response) =>
   if (!requireDb(res)) return;
 
   const { roleId } = req.params;
-  const { RoleName, Description, IsActive } = req.body;
+  const { RoleName, Description, IsActive, Group } = req.body;
 
   try {
     const result = await pool!.query(
-      'SELECT * FROM identity.update_role($1, $2, $3, $4)',
-      [roleId, RoleName || '', Description || '', IsActive !== undefined ? IsActive : true]
+      'UPDATE identity.roles SET role_name = $1, description = $2, is_active = $3, "group" = $4 WHERE role_id = $5 RETURNING *, "group" AS "Group"',
+      [RoleName || '', Description || '', IsActive !== undefined ? IsActive : true, Group || 'procurement_staff', roleId]
     );
     if (!result.rows[0]) {
       res.status(404).json({ ErrorMessage: 'Role not found or update failed.' });

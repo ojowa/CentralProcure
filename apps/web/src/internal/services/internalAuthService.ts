@@ -440,7 +440,9 @@ export const fetchInternalModules = async (token?: string | null): Promise<Inter
       isVisible: typeof module.IsVisible === 'boolean' ? module.IsVisible : undefined,
       hasRoleOverride: typeof module.HasRoleOverride === 'boolean' ? module.HasRoleOverride : undefined,
       hasUserOverride: typeof module.HasUserOverride === 'boolean' ? module.HasUserOverride : undefined,
-      requiredPermission: typeof module.RequiredPermission === 'string' ? module.RequiredPermission : undefined
+      requiredPermission: typeof module.RequiredPermission === 'string' ? module.RequiredPermission : undefined,
+      group: typeof module.Group === 'string' ? module.Group : undefined,
+      subSection: typeof module.SubSection === 'string' ? module.SubSection : undefined
     }));
 };
 
@@ -484,7 +486,9 @@ export const fetchInternalModulesCatalog = async (token?: string | null): Promis
       isVisible: typeof module.IsVisible === 'boolean' ? module.IsVisible : undefined,
       hasRoleOverride: typeof module.HasRoleOverride === 'boolean' ? module.HasRoleOverride : undefined,
       hasUserOverride: typeof module.HasUserOverride === 'boolean' ? module.HasUserOverride : undefined,
-      requiredPermission: typeof module.RequiredPermission === 'string' ? module.RequiredPermission : undefined
+      requiredPermission: typeof module.RequiredPermission === 'string' ? module.RequiredPermission : undefined,
+      group: typeof module.Group === 'string' ? module.Group : undefined,
+      subSection: typeof module.SubSection === 'string' ? module.SubSection : undefined
     }));
 };
 

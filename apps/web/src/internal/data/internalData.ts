@@ -1,6 +1,6 @@
 'use client';
 
-import type { InternalModule, RoleDefinition, RoleKey } from '../types/internal';
+import type { InternalModule, RoleDefinition, RoleKey, UserGroup } from '../types/internal';
 
 export type ThresholdBand = {
   id: string;
@@ -31,62 +31,74 @@ export const roles: RoleDefinition[] = [
   {
     key: 'requisitioning_officer',
     name: 'Requisitioning Officer',
-    description: 'Originates requisitions and confirms APP and budget alignment.'
+    description: 'Originates requisitions and confirms APP and budget alignment.',
+    group: 'office_formation'
   },
   {
     key: 'formation_officer',
     name: 'Formation Officer',
-    description: 'Captures procurement needs and initiates requests at the formation level.'
+    description: 'Captures procurement needs and initiates requests at the formation level.',
+    group: 'office_formation'
   },
   {
     key: 'formation_head',
     name: 'Formation Head',
-    description: 'Reviews and endorses procurement needs for the formation.'
+    description: 'Reviews and endorses procurement needs for the formation.',
+    group: 'office_formation'
   },
   {
     key: 'department_head',
     name: 'Department Head',
-    description: 'Confirms business need, scope, and readiness.'
+    description: 'Confirms business need, scope, and readiness.',
+    group: 'office_formation'
   },
   {
     key: 'comptroller_procurement',
     name: 'Comptroller Procurement',
-    description: 'Head of the procurement unit who chairs planning committee review and approves the APP.'
+    description: 'Head of the procurement unit who chairs planning committee review and approves the APP.',
+    group: 'procurement_staff'
   },
   {
     key: 'financial_unit_officer',
     name: 'Budget Officer',
-    description: 'Confirms appropriation, releases, and affordability before APP approval.'
+    description: 'Confirms appropriation, releases, and affordability before APP approval.',
+    group: 'procurement_staff'
   },
   {
     key: 'procurement_secretary',
     name: 'Procurement Secretary',
-    description: 'Committee secretary who records decisions and keeps the review log.'
+    description: 'Committee secretary who records decisions and keeps the review log.',
+    group: 'procurement_staff'
   },
   {
     key: 'evaluation_committee',
     name: 'Evaluation Committee',
-    description: 'Runs technical and commercial evaluation steps.'
+    description: 'Runs technical and commercial evaluation steps.',
+    group: 'procurement_staff'
   },
   {
     key: 'tenders_board',
     name: 'Tenders Board',
-    description: 'NIS Tenders Board chaired by CGIS that reviews and decides board-routed submissions.'
+    description: 'NIS Tenders Board chaired by CGIS that reviews and decides board-routed submissions.',
+    group: 'procurement_staff'
   },
   {
     key: 'accounting_officer',
     name: 'CGIS',
-    description: 'Exercises direct low-value approval authority and accountable executive controls.'
+    description: 'Exercises direct low-value approval authority and accountable executive controls.',
+    group: 'procurement_staff'
   },
   {
     key: 'audit_oversight',
     name: 'Audit Oversight',
-    description: 'Monitors compliance, traceability, and exceptions.'
+    description: 'Monitors compliance, traceability, and exceptions.',
+    group: 'procurement_staff'
   },
   {
     key: 'ict_admin',
     name: 'ICT Admin',
-    description: 'Maintains platform access, routing, and technical integrity.'
+    description: 'Maintains platform access, routing, and technical integrity.',
+    group: 'procurement_staff'
   }
 ];
 
@@ -94,7 +106,7 @@ const requisitionDepartmentModules: InternalModule[] = [
   {
     id: 'create-requisition',
     title: 'Create Requisition',
-    section: 'Requisitioning Departments',
+    section: 'Requisitions',
     description: 'Initiate departmental procurement requests with budget and requirement metadata.',
     microservice: 'Requisition Service',
     controlPurpose: 'Controlled initiation of procurement.',
@@ -103,7 +115,7 @@ const requisitionDepartmentModules: InternalModule[] = [
   {
     id: 'requisition-history',
     title: 'Requisition History',
-    section: 'Requisitioning Departments',
+    section: 'Requisitions',
     description: 'View historical department requests and current workflow states.',
     microservice: 'Requisition Service',
     controlPurpose: 'Visibility without unauthorized control.',
@@ -112,7 +124,7 @@ const requisitionDepartmentModules: InternalModule[] = [
   {
     id: 'requisition-tracking',
     title: 'Requisition Tracking',
-    section: 'Requisitioning Departments',
+    section: 'Requisitions',
     description: 'Track routing progress across procurement, evaluation, and approvals.',
     microservice: 'Audit and Compliance Service',
     controlPurpose: 'Read-only timeline for accountable traceability.',
@@ -121,7 +133,7 @@ const requisitionDepartmentModules: InternalModule[] = [
   {
     id: 'department-head-review',
     title: 'Department Head Review',
-    section: 'Requisitioning Departments',
+    section: 'Requisitions',
     description: 'Review, endorse, return, or reject departmental requisitions awaiting approval.',
     microservice: 'Requisition Service',
     controlPurpose: 'Department-level validation before procurement processing.',
@@ -133,7 +145,7 @@ const procurementPlanningModules: InternalModule[] = [
   {
     id: 'annual-procurement-plan',
     title: 'Annual Procurement Plan (APP)',
-    section: 'Procurement Planning',
+    section: 'Planning & Budget',
     description: 'Manage departmental and agency-wide procurement plans and item ledgers.',
     microservice: 'Procurement Workflow Service',
     controlPurpose: 'Mandatory PPA 2007 baseline for all spending.',
@@ -142,7 +154,7 @@ const procurementPlanningModules: InternalModule[] = [
   {
     id: 'procurement-planning-committee',
     title: 'Planning Committee Review',
-    section: 'Procurement Planning Committee',
+    section: 'Planning & Budget',
     description: 'Link requisitions to APP items and record committee review decisions.',
     microservice: 'Procurement Workflow Service',
     controlPurpose: 'Section 21 planning committee visibility and pre-tender discipline.',
@@ -177,7 +189,7 @@ const evaluationModules: InternalModule[] = [
   {
     id: 'technical-evaluation',
     title: 'Technical Evaluation',
-    section: 'Evaluation Committee',
+    section: 'Evaluation',
     description: 'Score vendor technical bids against eligibility and quality criteria.',
     microservice: 'Procurement Workflow Service',
     controlPurpose: 'Ensure technical compliance before financial opening.',
@@ -186,7 +198,7 @@ const evaluationModules: InternalModule[] = [
   {
     id: 'financial-evaluation',
     title: 'Financial Evaluation',
-    section: 'Evaluation Committee',
+    section: 'Evaluation',
     description: 'Review commercial bids and rank by lowest evaluated responsive cost.',
     microservice: 'Procurement Workflow Service',
     controlPurpose: 'Finalize value-for-money recommendations.',
@@ -219,7 +231,7 @@ const postAwardModules: InternalModule[] = [
   {
     id: 'contract-management',
     title: 'Contracts & Milestones',
-    section: 'Post-Award & Execution',
+    section: 'Post-Award',
     description: 'Track project execution, log field milestones, and monitor performance.',
     microservice: 'Post-Award Service',
     controlPurpose: 'Ensure value-for-money through physical progress tracking.',
@@ -249,7 +261,7 @@ const oversightModules: InternalModule[] = [
   {
     id: 'bpp-escalation',
     title: 'BPP No-Objection',
-    section: 'External Oversight',
+    section: 'Oversight',
     description: 'Manage board-endorsed projects that exceed agency thresholds and require BPP prior review.',
     microservice: 'Procurement Workflow Service',
     controlPurpose: 'PPA 2007 mandatory external validation for high-value projects.',
@@ -258,7 +270,7 @@ const oversightModules: InternalModule[] = [
   {
     id: 'administrative-review',
     title: 'Complaint Handling',
-    section: 'Legal & Dispute',
+    section: 'Oversight',
     description: 'Process and resolve formal vendor protests and administrative reviews.',
     microservice: 'Procurement Workflow Service',
     controlPurpose: 'Section 54 compliance for statutory dispute resolution.',
@@ -270,7 +282,7 @@ const sharedModules: InternalModule[] = [
   {
     id: 'user-profile',
     title: 'User Profile',
-    section: 'Account Management',
+    section: 'Account',
     description: 'Manage your personal account details, service identity, and security preferences.',
     microservice: 'Identity Service',
     controlPurpose: 'Self-service account management and identity verification.',

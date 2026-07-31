@@ -29,7 +29,10 @@ export interface RoleDefinition {
   key: RoleKey;
   name: string;
   description: string;
+  group?: UserGroup;
 }
+
+export type UserGroup = 'vendor' | 'office_formation' | 'procurement_staff';
 
 export interface InternalModule {
   id: string;
@@ -45,6 +48,8 @@ export interface InternalModule {
   hasRoleOverride?: boolean;
   hasUserOverride?: boolean;
   requiredPermission?: string;
+  group?: UserGroup;
+  subSection?: string | null;
 }
 
 export interface MonitoringStatusItem {
