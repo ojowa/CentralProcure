@@ -163,7 +163,7 @@ export const NeedsSubmissionModule: React.FC<NeedsSubmissionModuleProps> = ({ mo
         </header>
         {error && <div className="app-alert app-alert--error mb-4">{error}</div>}
         {success && <div className="app-alert app-alert--success mb-4">{success}</div>}
-        <div className="dh-layout">
+        <div className="dh-layout dh-layout--sidebar-narrow">
           <div className="dh-queue-panel">
             <div className="app-card">
               <div className="app-form-grid p-6">
