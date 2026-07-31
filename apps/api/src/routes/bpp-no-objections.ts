@@ -68,7 +68,7 @@ bppNoObjectionsRouter.get('/api/bpp-no-objections', async (req, res) => {
     );
 
     res.json({
-      NoObjections: result.rows,
+      Items: result.rows,
       TotalCount: totalCount,
       Page: pageNum,
       PageSize: pageSizeNum,

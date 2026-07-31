@@ -156,7 +156,7 @@ paymentsRouter.get('/api/payments', async (req, res) => {
     });
 
     res.json({
-      Payments: payments,
+      Items: payments,
       TotalCount: parseInt(countResult.rows[0].total, 10),
       Page: pageNum,
       PageSize: pageSizeNum,

@@ -48,7 +48,7 @@ procurementMethodsRouter.get('/api/procurement-methods/queue', async (req, res) 
        ORDER BY wi.amount DESC NULLS LAST`
     );
 
-    res.json(result.rows);
+    res.json({ Items: result.rows });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching procurement methods queue.' });
   }
@@ -116,7 +116,7 @@ procurementMethodsRouter.get('/api/procurement-methods/exceptions/queue', async 
     );
 
     res.json({
-      Exceptions: result.rows,
+      Items: result.rows,
       TotalCount: totalCount,
       Page: pageNum,
       PageSize: pageSizeNum,

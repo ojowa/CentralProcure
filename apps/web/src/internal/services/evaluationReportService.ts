@@ -70,7 +70,7 @@ export const fetchEvaluationReports = async (
   });
 
   const payload = await parseResponse<any>(response, 'Unable to load evaluation reports.');
-  const items = Array.isArray(payload) ? payload : (payload?.Reports ?? []);
+  const items = Array.isArray(payload) ? payload : (payload?.Items ?? []);
   return items.map(mapReport);
 };
 

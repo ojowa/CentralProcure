@@ -685,6 +685,55 @@
   background: rgba(11, 93, 59, 0.05);
 }
 
+/* ── portal-table-container: scrollable table wrapper ── */
+.portal-table-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── portal-table: generic styled table ── */
+.portal-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.portal-table th,
+.portal-table td {
+  text-align: left;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--portal-border);
+}
+
+.portal-table th {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+  color: var(--portal-slate);
+}
+
+.portal-table tr:hover td {
+  background: rgba(11, 93, 59, 0.03);
+}
+
+/* ── app-card__body: card interior padding ── */
+.app-card__body {
+  padding: 16px;
+}
+
+/* ── app-table--compact: compact table variant ── */
+.app-table--compact th,
+.app-table--compact td {
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+/* ── admin-status--bad: alias for admin-status--alert ── */
+.admin-status--bad {
+  background: rgba(210, 76, 54, 0.18);
+  color: #a12a1b;
+}
+
 .plan-link {
   border: none;
   background: none;

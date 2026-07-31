@@ -48,7 +48,7 @@ inspectionsRouter.get('/api/inspections', async (req, res) => {
     }));
 
     res.json({
-      Inspections: inspections,
+      Items: inspections,
       Page: pageNum,
       PageSize: pageSizeNum,
     });
@@ -188,20 +188,6 @@ inspectionsRouter.put('/api/inspections/:inspectionId', async (req, res) => {
            RETURNING contract_code AS "ContractCode", status AS "Status"`,
           [result.rows[0].ContractCode, Outcome || '']
         );
-
-        if (contractResult.rows.length > 0) {
-          await client.query(
-            `INSERT INTO post_award.contract_workflow_log
-              (contract_code, action, performed_by, notes, created_at)
-             VALUES ($1, $2, $3, $4, NOW())`,
-            [
-              result.rows[0].ContractCode,
-              `Inspection ${Outcome ? `outcome: ${Outcome}` : 'completed'}`,
-               auth!.sub,
-              Notes || '',
-            ]
-          );
-        }
       }
 
       await client.query('COMMIT');

@@ -108,7 +108,7 @@ export const AdminRequisitionManagementPage = ({ module, token, role, userEmail,
         pageSize
       });
       setRequisitions(response.Items);
-      setTotalItems(response.Total);
+      setTotalItems(response.TotalCount);
     } catch (error) {
       setListError(error instanceof Error ? error.message : 'Unable to load requisitions.');
     } finally {

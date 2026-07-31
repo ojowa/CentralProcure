@@ -67,7 +67,7 @@ evaluationReportsRouter.get('/api/evaluation-reports', async (req, res) => {
     );
 
     res.json({
-      Reports: result.rows,
+      Items: result.rows,
       TotalCount: parseInt(countResult.rows[0].total, 10),
       Page: pageNum,
       PageSize: pageSizeNum,

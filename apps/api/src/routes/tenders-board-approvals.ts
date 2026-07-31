@@ -23,40 +23,39 @@ tendersBoardApprovalsRouter.get('/api/tenders-board-approvals/queue', async (req
     const pageSizeNum = Math.min(100, Math.max(1, parseInt(PageSize as string, 10) || 20));
     const offset = (pageNum - 1) * pageSizeNum;
 
-    const conditions: string[] = [];
+    const conditions: string[] = [`wi.current_stage_key = 'tenders_board_review'`];
     const values: unknown[] = [];
     let idx = 1;
 
-    if (Status) { conditions.push(`tba.status = $${idx}`); values.push(Status); idx++; }
+    if (Status) { conditions.push(`wi.current_status = $${idx}`); values.push(Status); idx++; }
 
-    const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    const whereClause = `WHERE ${conditions.join(' AND ')}`;
 
     const countResult = await pool.query(
       `SELECT COUNT(*) AS total
-       FROM procurement_workflow.tenders_board_approvals tba
+       FROM procurement_workflow.workflow_instances wi
        ${whereClause}`, values
     );
     const totalCount = parseInt(countResult.rows[0]?.total || '0', 10);
 
     const result = await pool.query(
       `SELECT
-        tba.approval_id AS "ApprovalId",
-        tba.entity_type AS "EntityType",
-        tba.entity_id AS "EntityId",
-        tba.entity_title AS "EntityTitle",
-        tba.status AS "Status",
-        tba.submitted_by AS "SubmittedBy",
-        tba.submitted_at AS "SubmittedAt",
-        tba.decided_at AS "DecidedAt"
-       FROM procurement_workflow.tenders_board_approvals tba
+        wi.instance_id AS "ApprovalId",
+        wi.entity_type AS "EntityType",
+        wi.entity_id AS "EntityId",
+        wi.record_title AS "EntityTitle",
+        wi.current_status AS "Status",
+        wi.created_at AS "SubmittedAt",
+        wi.updated_at AS "DecidedAt"
+       FROM procurement_workflow.workflow_instances wi
        ${whereClause}
-       ORDER BY tba.submitted_at DESC
+       ORDER BY wi.created_at DESC
        LIMIT $${idx} OFFSET $${idx + 1}`,
       [...values, pageSizeNum, offset]
     );
 
     res.json({
-      Approvals: result.rows,
+      Items: result.rows,
       TotalCount: totalCount,
       Page: pageNum,
       PageSize: pageSizeNum,
@@ -82,22 +81,29 @@ tendersBoardApprovalsRouter.post('/api/tenders-board-approvals/approve', async (
     }
 
     const result = await pool.query(
-      `UPDATE procurement_workflow.tenders_board_approvals
-       SET status = 'Approved', decided_by = $1, decided_at = NOW(), decision_comments = $2
-       WHERE approval_id = $3 AND status = 'Pending'
+      `UPDATE procurement_workflow.workflow_instances
+       SET current_status = 'Board Approved', updated_at = NOW()
+       WHERE instance_id = $1 AND current_stage_key = 'tenders_board_review'
        RETURNING
-        approval_id AS "ApprovalId",
+        instance_id AS "ApprovalId",
         entity_type AS "EntityType",
         entity_id AS "EntityId",
-        entity_title AS "EntityTitle",
-        status AS "Status",
-        decided_at AS "DecidedAt"`,
-      [auth!.sub, Comments || '', ApprovalId]
+        record_title AS "EntityTitle",
+        current_status AS "Status",
+        updated_at AS "DecidedAt"`,
+      [ApprovalId]
     );
 
     if (result.rows.length === 0) {
       res.status(404).json({ ErrorMessage: 'Approval not found or already decided.' }); return;
     }
+
+    await pool.query(
+      `INSERT INTO procurement_workflow.workflow_instance_history
+        (instance_id, to_stage_key, stage_status, transition_source, transition_reason, actor)
+       VALUES ($1, 'tenders_board_review', 'Board Approved', 'board_approval', $2, $3)`,
+      [ApprovalId, Comments || 'Board approval', auth!.email || auth!.sub]
+    );
 
     const approval = result.rows[0];
 
@@ -143,22 +149,29 @@ tendersBoardApprovalsRouter.post('/api/tenders-board-approvals/reject', async (r
     }
 
     const result = await pool.query(
-      `UPDATE procurement_workflow.tenders_board_approvals
-       SET status = 'Rejected', decided_by = $1, decided_at = NOW(), decision_comments = $2
-       WHERE approval_id = $3 AND status = 'Pending'
+      `UPDATE procurement_workflow.workflow_instances
+       SET current_status = 'Board Rejected', updated_at = NOW()
+       WHERE instance_id = $1 AND current_stage_key = 'tenders_board_review'
        RETURNING
-        approval_id AS "ApprovalId",
+        instance_id AS "ApprovalId",
         entity_type AS "EntityType",
         entity_id AS "EntityId",
-        entity_title AS "EntityTitle",
-        status AS "Status",
-        decided_at AS "DecidedAt"`,
-      [auth!.sub, Comments || '', ApprovalId]
+        record_title AS "EntityTitle",
+        current_status AS "Status",
+        updated_at AS "DecidedAt"`,
+      [ApprovalId]
     );
 
     if (result.rows.length === 0) {
       res.status(404).json({ ErrorMessage: 'Approval not found or already decided.' }); return;
     }
+
+    await pool.query(
+      `INSERT INTO procurement_workflow.workflow_instance_history
+        (instance_id, to_stage_key, stage_status, transition_source, transition_reason, actor)
+       VALUES ($1, 'tenders_board_review', 'Board Rejected', 'board_approval', $2, $3)`,
+      [ApprovalId, Comments || 'Board rejection', auth!.email || auth!.sub]
+    );
 
     const approval = result.rows[0];
 
@@ -204,22 +217,29 @@ tendersBoardApprovalsRouter.post('/api/tenders-board-approvals/return', async (r
     }
 
     const result = await pool.query(
-      `UPDATE procurement_workflow.tenders_board_approvals
-       SET status = 'Returned', decided_by = $1, decided_at = NOW(), decision_comments = $2
-       WHERE approval_id = $3 AND status = 'Pending'
+      `UPDATE procurement_workflow.workflow_instances
+       SET current_status = 'Returned', updated_at = NOW()
+       WHERE instance_id = $1 AND current_stage_key = 'tenders_board_review'
        RETURNING
-        approval_id AS "ApprovalId",
+        instance_id AS "ApprovalId",
         entity_type AS "EntityType",
         entity_id AS "EntityId",
-        entity_title AS "EntityTitle",
-        status AS "Status",
-        decided_at AS "DecidedAt"`,
-      [auth!.sub, Comments || '', ApprovalId]
+        record_title AS "EntityTitle",
+        current_status AS "Status",
+        updated_at AS "DecidedAt"`,
+      [ApprovalId]
     );
 
     if (result.rows.length === 0) {
       res.status(404).json({ ErrorMessage: 'Approval not found or already decided.' }); return;
     }
+
+    await pool.query(
+      `INSERT INTO procurement_workflow.workflow_instance_history
+        (instance_id, to_stage_key, stage_status, transition_source, transition_reason, actor)
+       VALUES ($1, 'tenders_board_review', 'Returned', 'board_approval', $2, $3)`,
+      [ApprovalId, Comments || 'Returned to committee', auth!.email || auth!.sub]
+    );
 
     const approval = result.rows[0];
 

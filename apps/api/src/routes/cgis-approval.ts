@@ -13,21 +13,22 @@ cgisApprovalRouter.get('/api/cgis-approval/documents/:entityType/:entityId', asy
   try {
     const { entityType, entityId } = req.params;
     const result = await pool.query(
-      `SELECT document_id AS "DocumentId",
-              entity_type AS "EntityType",
-              entity_id AS "EntityId",
-              document_type AS "DocumentType",
-              file_name AS "FileName",
-              file_url AS "FileUrl",
-              status AS "Status",
-              uploaded_by AS "UploadedBy",
-              created_at AS "CreatedAt"
-       FROM procurement_workflow.workflow_documents
-       WHERE entity_type = $1 AND entity_id = $2
-       ORDER BY created_at DESC`,
+      `SELECT
+        wi.instance_id AS "DocumentId",
+        wi.entity_type AS "EntityType",
+        wi.entity_id AS "EntityId",
+        wi.current_stage_key AS "DocumentType",
+        wi.record_title AS "FileName",
+        NULL AS "FileUrl",
+        wi.current_status AS "Status",
+        NULL AS "UploadedBy",
+        wi.created_at AS "CreatedAt"
+       FROM procurement_workflow.workflow_instances wi
+       WHERE wi.entity_type = $1 AND wi.entity_id = $2
+       ORDER BY wi.created_at DESC`,
       [entityType, entityId]
     );
-    res.json(result.rows);
+    res.json({ Items: result.rows });
   } catch (error: any) { res.status(500).json({ ErrorMessage: error.message }); }
 });
 

@@ -72,7 +72,7 @@ export const fetchContractAwards = async (
   });
 
   const data = await parseResponse<Record<string, unknown>>(response, 'Unable to load contract awards.');
-  return (data.Awards ?? data.Items ?? []) as ContractAwardItem[];
+  return (data.Items ?? []) as ContractAwardItem[];
 };
 
 export const fetchContractAwardDetail = async (

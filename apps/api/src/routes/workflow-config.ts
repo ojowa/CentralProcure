@@ -171,20 +171,18 @@ workflowConfigRouter.put('/api/config/workflows/stages/:stageKey', async (req, r
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
   try {
     const { stageKey } = req.params;
-    const { StageTitle, Module } = req.body;
+    const { StageTitle } = req.body;
     const result = await pool.query(
       `UPDATE procurement_workflow.workflow_stage_catalog SET
-        stage_title = COALESCE($1, stage_title),
-        module = COALESCE($2, module)
-       WHERE stage_key = $3
+        stage_title = COALESCE($1, stage_title)
+       WHERE stage_key = $2
        RETURNING stage_key AS "StageKey",
                  stage_title AS "StageTitle",
                  phase_key AS "PhaseKey",
-                 module AS "Module",
-                 is_initial AS "IsInitial",
+                 is_start AS "IsInitial",
                  is_terminal AS "IsTerminal",
-                 sort_order AS "SortOrder"`,
-      [StageTitle || null, Module || null, stageKey]
+                 sequence_no AS "SortOrder"`,
+      [StageTitle || null, stageKey]
     );
     if (result.rows.length === 0) { res.status(404).json({ ErrorMessage: 'Stage not found.' }); return; }
     res.json(result.rows[0]);
@@ -239,18 +237,19 @@ workflowConfigRouter.post('/api/config/workflows/role-tasks', async (req, res) =
   if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
   try {
-    const { RoleKey, StageKey, TaskDescription, IsRequired } = req.body;
+    const { RoleKey, StageKey, TaskDescription, DisplayName, ExpectedOutcome } = req.body;
     if (!RoleKey || !StageKey) { res.status(400).json({ ErrorMessage: 'RoleKey and StageKey are required.' }); return; }
     const result = await pool.query(
       `INSERT INTO procurement_workflow.workflow_role_tasks
-        (role_key, stage_key, task_description, is_required)
-       VALUES ($1, $2, $3, $4)
+        (role_key, display_name, stage_key, task_description, expected_outcome)
+       VALUES ($1, $2, $3, $4, $5)
        RETURNING role_task_id AS "RoleTaskId",
                  role_key AS "RoleKey",
+                 display_name AS "DisplayName",
                  stage_key AS "StageKey",
                  task_description AS "TaskDescription",
-                 is_required AS "IsRequired"`,
-      [RoleKey, StageKey, TaskDescription || '', IsRequired || false]
+                 expected_outcome AS "ExpectedOutcome"`,
+      [RoleKey, DisplayName || '', StageKey, TaskDescription || '', ExpectedOutcome || '']
     );
     res.status(201).json(result.rows[0]);
   } catch (error: any) { res.status(500).json({ ErrorMessage: error.message }); }

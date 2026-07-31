@@ -54,13 +54,10 @@ budgetRouter.get('/api/budget/availability', async (req, res) => {
         GROUP BY r.appropriation_id
       ) commitments ON a.appropriation_id = commitments.appropriation_id
       LEFT JOIN (
-        SELECT r.appropriation_id, SUM(p.amount) AS paid_total
+        SELECT COALESCE(SUM(p.amount), 0) AS paid_total
         FROM post_award.payments p
-        JOIN post_award.commitments c ON p.commitment_id = c.commitment_id
-        JOIN post_award.releases r ON c.release_id = r.release_id
         WHERE p.status = 'Completed'
-        GROUP BY r.appropriation_id
-      ) payments ON a.appropriation_id = payments.appropriation_id
+      ) payments ON TRUE
       WHERE a.appropriation_id = $1`,
       [AppropriationId]
     );
@@ -119,13 +116,10 @@ budgetRouter.get('/api/budget/summary', async (req, res) => {
         GROUP BY r.appropriation_id
       ) commitments ON a.appropriation_id = commitments.appropriation_id
       LEFT JOIN (
-        SELECT r.appropriation_id, SUM(p.amount) AS paid_total
+        SELECT COALESCE(SUM(p.amount), 0) AS paid_total
         FROM post_award.payments p
-        JOIN post_award.commitments c ON p.commitment_id = c.commitment_id
-        JOIN post_award.releases r ON c.release_id = r.release_id
         WHERE p.status = 'Completed'
-        GROUP BY r.appropriation_id
-      ) payments ON a.appropriation_id = payments.appropriation_id
+      ) payments ON TRUE
       ${FiscalYear ? 'WHERE a.fiscal_year = $1' : ''}
       ORDER BY a.appropriation_code ASC`,
       FiscalYear ? [FiscalYear] : []
@@ -223,7 +217,7 @@ budgetRouter.get('/api/budget/confirmations', async (req, res) => {
     );
 
     res.json({
-      Confirmations: result.rows,
+      Items: result.rows,
       TotalCount: parseInt(countResult.rows[0].total, 10),
       Page: pageNum,
       PageSize: pageSizeNum,
@@ -384,7 +378,7 @@ budgetRouter.get('/api/budget/requisitions', async (req, res) => {
     );
 
     res.json({
-      Requisitions: result.rows,
+      Items: result.rows,
       TotalCount: parseInt(countResult.rows[0].total, 10),
       Page: pageNum,
       PageSize: pageSizeNum,
@@ -457,7 +451,7 @@ budgetRouter.get('/api/budget/appropriations', async (req, res) => {
     );
 
     res.json({
-      Appropriations: result.rows,
+      Items: result.rows,
       TotalCount: parseInt(countResult.rows[0].total, 10),
       Page: pageNum,
       PageSize: pageSizeNum,
@@ -611,7 +605,7 @@ budgetRouter.get('/api/budget/releases', async (req, res) => {
     );
 
     res.json({
-      Releases: result.rows,
+      Items: result.rows,
       TotalCount: parseInt(countResult.rows[0].total, 10),
       Page: pageNum,
       PageSize: pageSizeNum,
@@ -748,7 +742,7 @@ budgetRouter.get('/api/budget/commitments', async (req, res) => {
     );
 
     res.json({
-      Commitments: result.rows,
+      Items: result.rows,
       TotalCount: parseInt(countResult.rows[0].total, 10),
       Page: pageNum,
       PageSize: pageSizeNum,

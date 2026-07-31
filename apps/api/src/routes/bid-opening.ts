@@ -44,7 +44,7 @@ bidOpeningRouter.get('/api/bid-opening/sessions', async (req, res) => {
     }));
 
     res.json({
-      Sessions: sessions,
+      Items: sessions,
       TotalCount: totalCount,
       Page: pageNum,
       PageSize: pageSizeNum,

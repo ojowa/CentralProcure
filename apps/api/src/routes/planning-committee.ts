@@ -51,10 +51,7 @@ planningCommitteeRouter.get('/api/planning-committee/workspace/queue', async (re
        ORDER BY pp.created_at ASC NULLS LAST`
     );
 
-    res.json({
-      Requisitions: result.rows,
-      Plans: planResult.rows,
-    });
+    res.json({ Items: [...result.rows, ...planResult.rows] });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching the queue.' });
   }
@@ -308,7 +305,7 @@ planningCommitteeRouter.get('/api/planning-committee/requisitions/:requisitionId
        ORDER BY pcr.reviewed_at DESC`, [requisitionId]
     );
 
-    res.json(result.rows);
+    res.json({ Items: result.rows });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching reviews.' });
   }
@@ -339,7 +336,7 @@ planningCommitteeRouter.get('/api/planning-committee/plans/:planId/reviews', asy
        ORDER BY pcr.reviewed_at DESC`, [planId]
     );
 
-    res.json(result.rows);
+    res.json({ Items: result.rows });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching plan reviews.' });
   }
@@ -370,7 +367,7 @@ planningCommitteeRouter.get('/api/planning-committee/requisitions/:requisitionId
        ORDER BY pcm.role, iu.surname`, [requisitionId]
     );
 
-    res.json(result.rows);
+    res.json({ Items: result.rows });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching member statuses.' });
   }
@@ -401,7 +398,7 @@ planningCommitteeRouter.get('/api/planning-committee/plans/:planId/member-status
        ORDER BY pcm.role, iu.surname`, [planId]
     );
 
-    res.json(result.rows);
+    res.json({ Items: result.rows });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching plan member statuses.' });
   }
@@ -425,7 +422,7 @@ planningCommitteeRouter.get('/api/planning-committee/committee-roles', async (re
        ORDER BY role_name`
     );
 
-    res.json(result.rows);
+    res.json({ Items: result.rows });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching committee roles.' });
   }
@@ -456,7 +453,7 @@ planningCommitteeRouter.get('/api/planning-committee/plan-links', async (req, re
        ORDER BY pr.linked_at DESC`
     );
 
-    res.json(result.rows);
+    res.json({ Items: result.rows });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching plan links.' });
   }

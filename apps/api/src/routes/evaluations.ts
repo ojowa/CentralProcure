@@ -31,8 +31,8 @@ evaluationsRouter.get('/api/evaluations/assigned-tenders/default', async (req, r
         er.status AS "EvaluationStatus",
         er.submitted_at AS "SubmittedAt",
         er.evaluator_id AS "EvaluatorId",
-        tea.assignment_role AS "AssignmentRole",
-        tea.assigned_at AS "AssignmentDate",
+        tea.role AS "AssignmentRole",
+        tea.assignment_date AS "AssignmentDate",
         t.category AS "ProcurementCategory",
         t.status AS "TenderStatus",
         t.closing_date AS "SubmissionDeadline",
@@ -40,7 +40,7 @@ evaluationsRouter.get('/api/evaluations/assigned-tenders/default', async (req, r
       FROM procurement_workflow.evaluation_reports er
       LEFT JOIN vendor_sourcing.tenders t ON er.tender_id = t.tender_id
       LEFT JOIN procurement_workflow.tender_evaluation_assignments tea
-        ON er.tender_id = tea.tender_id AND er.evaluator_id = tea.internal_user_id
+        ON er.tender_id = tea.tender_id AND er.evaluator_id = tea.evaluator_id
       WHERE er.evaluator_id = $1
       ORDER BY er.submitted_at DESC`,
       [payload.sub]
@@ -65,7 +65,7 @@ evaluationsRouter.get('/api/evaluations/assigned-tenders/default', async (req, r
       OpeningDate: r.OpeningDate,
     }));
 
-    res.json(assigned);
+    res.json({ Items: assigned });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching assigned tenders.' });
   }
@@ -91,16 +91,16 @@ evaluationsRouter.post('/api/evaluations/actions', async (req, res) => {
 
     const result = await pool.query(
       `INSERT INTO procurement_workflow.evaluation_actions
-        (tender_id, report_id, evaluator_id, action, comments, score, created_at)
+        (bid_id, report_id, vendor_name, recommendation, action_notes, score_percentage, created_at)
        VALUES ($1, $2, $3, $4, $5, $6, NOW())
        RETURNING
         action_id AS "ActionId",
-        tender_id AS "TenderId",
+        bid_id AS "TenderId",
         report_id AS "ReportId",
-        evaluator_id AS "EvaluatorId",
-        action AS "Action",
-        comments AS "Comments",
-        score AS "Score",
+        vendor_name AS "EvaluatorId",
+        recommendation AS "Action",
+        action_notes AS "Comments",
+        score_percentage AS "Score",
         created_at AS "CreatedAt"`,
       [TenderId, ReportId || null, auth!.sub, Action, Comments || '', Score || null]
     );
@@ -133,16 +133,16 @@ evaluationsRouter.get('/api/evaluations/assignments', async (req, res) => {
         `SELECT
           tea.tender_id AS "TenderId",
           t.title AS "TenderTitle",
-          tea.internal_user_id AS "EvaluatorId",
+          tea.evaluator_id AS "EvaluatorId",
           iu.first_name || ' ' || iu.surname AS "EvaluatorName",
-          tea.assigned_at AS "AssignmentDate",
-          tea.assignment_role AS "Role",
+          tea.assignment_date AS "AssignmentDate",
+          tea.role AS "Role",
           tea.status AS "Status"
         FROM procurement_workflow.tender_evaluation_assignments tea
         LEFT JOIN vendor_sourcing.tenders t ON tea.tender_id = t.tender_id
-        LEFT JOIN identity.internal_users iu ON tea.internal_user_id = iu.internal_user_id
+        LEFT JOIN identity.internal_users iu ON tea.evaluator_id = iu.internal_user_id
         WHERE tea.tender_id = $1
-        ORDER BY tea.assigned_at DESC`,
+        ORDER BY tea.assignment_date DESC`,
         [TenderId]
       );
     } else {
@@ -150,15 +150,15 @@ evaluationsRouter.get('/api/evaluations/assignments', async (req, res) => {
         `SELECT
           tea.tender_id AS "TenderId",
           t.title AS "TenderTitle",
-          tea.internal_user_id AS "EvaluatorId",
+          tea.evaluator_id AS "EvaluatorId",
           iu.first_name || ' ' || iu.surname AS "EvaluatorName",
-          tea.assigned_at AS "AssignmentDate",
-          tea.assignment_role AS "Role",
+          tea.assignment_date AS "AssignmentDate",
+          tea.role AS "Role",
           tea.status AS "Status"
         FROM procurement_workflow.tender_evaluation_assignments tea
         LEFT JOIN vendor_sourcing.tenders t ON tea.tender_id = t.tender_id
-        LEFT JOIN identity.internal_users iu ON tea.internal_user_id = iu.internal_user_id
-        ORDER BY tea.assigned_at DESC`
+        LEFT JOIN identity.internal_users iu ON tea.evaluator_id = iu.internal_user_id
+        ORDER BY tea.assignment_date DESC`
       );
     }
 
@@ -172,7 +172,7 @@ evaluationsRouter.get('/api/evaluations/assignments', async (req, res) => {
       Status: r.Status,
     }));
 
-    res.json(assignments);
+    res.json({ Items: assignments });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching assignments.' });
   }
@@ -195,16 +195,16 @@ evaluationsRouter.put('/api/evaluations/assignments/:tenderId', async (req, res)
     const result = await pool.query(
       `UPDATE procurement_workflow.tender_evaluation_assignments
        SET
-        internal_user_id = COALESCE($1, internal_user_id),
-        assignment_role = COALESCE($2, assignment_role),
+        evaluator_id = COALESCE($1, evaluator_id),
+        role = COALESCE($2, role),
         status = COALESCE($3, status)
        WHERE tender_id = $4
        RETURNING
         tender_id AS "TenderId",
-        internal_user_id AS "EvaluatorId",
-        assignment_role AS "Role",
+        evaluator_id AS "EvaluatorId",
+        role AS "Role",
         status AS "Status",
-        assigned_at AS "AssignmentDate"`,
+        assignment_date AS "AssignmentDate"`,
       [EvaluatorId || null, Role || null, Status || null, tenderId]
     );
 

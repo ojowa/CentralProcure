@@ -106,7 +106,7 @@ export const AuditTrailWorkspace = ({ module, token }: Props) => {
         sortDir
       });
       setEvents(next.Items);
-      setTotal(next.Total);
+      setTotal(next.TotalCount);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Unable to load audit history.');
     } finally {

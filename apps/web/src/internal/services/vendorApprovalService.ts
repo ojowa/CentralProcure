@@ -71,8 +71,8 @@ export const fetchVendorApprovals = async (
 
   const data = await parseResponse<Record<string, unknown>>(response);
   return {
-    items: (data.Registrations ?? data.Items ?? []) as VendorApprovalSummary[],
-    total: (data.TotalCount ?? data.Total ?? 0) as number
+    items: (data.Items ?? []) as VendorApprovalSummary[],
+    total: (data.TotalCount ?? 0) as number
   };
 };
 

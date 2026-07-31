@@ -22,7 +22,7 @@ procurementPlanItemsRouter.get('/api/procurement-plans/:planId/items', async (re
     const result = await pool.query(
       `SELECT * FROM procurement_workflow.get_procurement_plan_items($1)`, [planId]
     );
-    res.json(result.rows);
+    res.json({ Items: result.rows });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching plan items.' });
   }
@@ -38,7 +38,7 @@ procurementPlanItemsRouter.post('/api/procurement-plans/:planId/items', async (r
 
   try {
     const { planId } = req.params;
-    const { Description, Justification, EstimatedCost, ApprovedBudget, FundingSource, ItemCategory, Quantity, UnitOfMeasure } = req.body;
+    const { Description, Justification, EstimatedCost, BudgetCode, ProcurementType } = req.body;
 
     if (!Description) {
       res.status(400).json({ ErrorMessage: 'Description is required.' }); return;
@@ -46,8 +46,7 @@ procurementPlanItemsRouter.post('/api/procurement-plans/:planId/items', async (r
 
     const result = await pool.query(
       `SELECT * FROM procurement_workflow.create_procurement_plan_item_sp($1, $2, $3, $4, $5, $6, $7, $8)`,
-      [planId, Description, Justification || '', EstimatedCost || 0, ApprovedBudget || 0,
-       FundingSource || '', ItemCategory || '', auth!.sub]
+      [planId, '', Description, BudgetCode || '', ProcurementType || 'Goods', EstimatedCost || 0, 'Active', Justification || '']
     );
 
     if (result.rows.length === 0 || result.rows[0].error_message) {
@@ -75,13 +74,11 @@ procurementPlanItemsRouter.get('/api/procurement-plan-items/:planItemId', async 
         ppi.plan_item_id AS "PlanItemId",
         ppi.plan_id AS "PlanId",
         ppi.description AS "Description",
-        ppi.justification AS "Justification",
-        ppi.estimated_cost AS "EstimatedCost",
-        ppi.approved_budget AS "ApprovedBudget",
-        ppi.funding_source AS "FundingSource",
-        ppi.item_category AS "ItemCategory",
-        ppi.quantity AS "Quantity",
-        ppi.unit_of_measure AS "UnitOfMeasure",
+        ppi.notes AS "Justification",
+        ppi.estimated_amount AS "EstimatedCost",
+        ppi.budget_code AS "BudgetCode",
+        ppi.procurement_type AS "ProcurementType",
+        ppi.status AS "Status",
         ppi.created_by AS "CreatedBy",
         ppi.created_at AS "CreatedAt",
         ppi.updated_at AS "UpdatedAt"
@@ -110,12 +107,12 @@ procurementPlanItemsRouter.put('/api/procurement-plan-items/:planItemId', async 
 
   try {
     const { planItemId } = req.params;
-    const { Description, Justification, EstimatedCost, ApprovedBudget, FundingSource, ItemCategory, Quantity, UnitOfMeasure } = req.body;
+    const { Description, Justification, EstimatedCost, BudgetCode, ProcurementType } = req.body;
 
     const result = await pool.query(
       `SELECT * FROM procurement_workflow.update_procurement_plan_item_sp($1, $2, $3, $4, $5, $6, $7, $8)`,
-      [planItemId, Description || '', Justification || '', EstimatedCost || 0,
-       ApprovedBudget || 0, FundingSource || '', ItemCategory || '', auth!.sub]
+      [planItemId, '', Description || '', BudgetCode || '', ProcurementType || 'Goods',
+       EstimatedCost || 0, 'Active', Justification || '']
     );
 
     if (result.rows.length === 0 || result.rows[0].error_message) {

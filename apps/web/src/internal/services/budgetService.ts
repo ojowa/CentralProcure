@@ -168,13 +168,13 @@ export const fetchBudgetConfirmations = async (
     }
   });
 
-  const data = await parseResponse<{ Confirmations?: BudgetConfirmationListResponse['Items']; Page?: number; PageSize?: number; Total?: number }>(response);
+  const data = await parseResponse<{ Items?: BudgetConfirmationListResponse['Items']; Page?: number; PageSize?: number; TotalCount?: number }>(response);
 
   return {
-    Items: data?.Confirmations ?? [],
+    Items: data?.Items ?? [],
     Page: data?.Page ?? 1,
     PageSize: data?.PageSize ?? 20,
-    Total: data?.Total ?? 0
+    TotalCount: data?.TotalCount ?? 0
   } as BudgetConfirmationListResponse;
 };
 
@@ -215,13 +215,13 @@ export const fetchBudgetRequisitionQueue = async (
     }
   });
 
-  const data = await parseResponse<{ Requisitions?: BudgetRequisitionListResponse['Items']; Page?: number; PageSize?: number; Total?: number }>(response);
+  const data = await parseResponse<{ Items?: BudgetRequisitionListResponse['Items']; Page?: number; PageSize?: number; TotalCount?: number }>(response);
 
   return {
-    Items: data?.Requisitions ?? [],
+    Items: data?.Items ?? [],
     Page: data?.Page ?? 1,
     PageSize: data?.PageSize ?? 20,
-    Total: data?.Total ?? 0
+    TotalCount: data?.TotalCount ?? 0
   } as BudgetRequisitionListResponse;
 };
 
@@ -262,13 +262,13 @@ export const fetchBudgetAppropriations = async (
     }
   });
 
-  const data = await parseResponse<{ Appropriations?: BudgetAppropriationListResponse['Items']; Page?: number; PageSize?: number; Total?: number }>(response);
+  const data = await parseResponse<{ Items?: BudgetAppropriationListResponse['Items']; Page?: number; PageSize?: number; TotalCount?: number }>(response);
 
   return {
-    Items: data?.Appropriations ?? [],
+    Items: data?.Items ?? [],
     Page: data?.Page ?? 1,
     PageSize: data?.PageSize ?? 20,
-    Total: data?.Total ?? 0
+    TotalCount: data?.TotalCount ?? 0
   } as BudgetAppropriationListResponse;
 };
 
@@ -410,13 +410,13 @@ export const fetchBudgetCommitments = async (
     }
   });
 
-  const data = await parseResponse<{ Commitments?: BudgetCommitmentListResponse['Items']; Page?: number; PageSize?: number; Total?: number }>(response);
+  const data = await parseResponse<{ Items?: BudgetCommitmentListResponse['Items']; Page?: number; PageSize?: number; TotalCount?: number }>(response);
 
   return {
-    Items: data?.Commitments ?? [],
+    Items: data?.Items ?? [],
     Page: data?.Page ?? 1,
     PageSize: data?.PageSize ?? 20,
-    Total: data?.Total ?? 0
+    TotalCount: data?.TotalCount ?? 0
   } as BudgetCommitmentListResponse;
 };
 
@@ -445,12 +445,12 @@ export const fetchBudgetReleases = async (
     }
   });
 
-  const data = await parseResponse<{ Releases?: BudgetReleaseListResponse['Items']; Page?: number; PageSize?: number; Total?: number }>(response);
+  const data = await parseResponse<{ Items?: BudgetReleaseListResponse['Items']; Page?: number; PageSize?: number; TotalCount?: number }>(response);
 
   return {
-    Items: data?.Releases ?? [],
+    Items: data?.Items ?? [],
     Page: data?.Page ?? 1,
     PageSize: data?.PageSize ?? 20,
-    Total: data?.Total ?? 0
+    TotalCount: data?.TotalCount ?? 0
   } as BudgetReleaseListResponse;
 };

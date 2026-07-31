@@ -139,7 +139,7 @@ export const fetchCollections = (token: string, params?: { Status?: string; Fisc
   if (params?.Status) query.append('Status', params.Status);
   if (params?.FiscalYear) query.append('FiscalYear', String(params.FiscalYear));
   const qs = query.toString();
-  return send<{ Collections: NeedsCollectionSummary[]; TotalCount: number }>(baseUrl, qs ? `?${qs}` : '', token, { method: 'GET' });
+  return send<{ Items: NeedsCollectionSummary[]; TotalCount: number }>(baseUrl, qs ? `?${qs}` : '', token, { method: 'GET' });
 };
 
 export const fetchCollectionDetail = (id: string, token: string) =>

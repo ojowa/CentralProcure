@@ -25,24 +25,31 @@ bidsRouter.post('/api/bids', async (req, res) => {
 
     const result = await pool.query(
       'SELECT * FROM vendor_sourcing.submit_bid($1, $2, $3, $4, $5)',
-      [auth!.sub, TenderId, BidAmount, Proposal, FileName || '']
+      [TenderId, auth!.sub, BidAmount, Proposal || '', 90]
     );
 
     const bid = result.rows[0];
 
-    if (!bid || bid.error_message) {
-      res.status(400).json({ ErrorMessage: bid?.error_message || 'Bid submission failed.' });
+    if (!bid) {
+      res.status(400).json({ ErrorMessage: 'Bid submission failed.' });
       return;
     }
+
+    const bidDetail = await pool.query(
+      `SELECT bid_id, tender_id, vendor_id, bid_amount, technical_proposal_url AS "Proposal",
+              status, submission_date AS "SubmittedAt"
+       FROM vendor_sourcing.bids WHERE bid_id = $1`,
+      [bid.bid_id]
+    );
 
     res.status(201).json({
       BidId: bid.bid_id,
       TenderId: bid.tender_id,
       VendorId: bid.vendor_id,
-      BidAmount: bid.bid_amount,
-      Proposal: bid.proposal,
-      Status: bid.status,
-      SubmittedAt: bid.submitted_at,
+      BidAmount: bidDetail.rows[0]?.BidAmount ?? null,
+      Proposal: bidDetail.rows[0]?.Proposal ?? null,
+      Status: bidDetail.rows[0]?.Status ?? 'Submitted',
+      SubmittedAt: bidDetail.rows[0]?.SubmittedAt ?? null,
     });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred submitting the bid.' });
@@ -75,7 +82,7 @@ bidsRouter.get('/api/vendors/:vendorId/bids', async (req, res) => {
       SubmittedAt: b.submitted_at,
     }));
 
-    res.json(bids);
+    res.json({ Items: bids });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching bids.' });
   }
@@ -99,8 +106,8 @@ bidsRouter.get('/api/bids/:bidId/proposal-file', async (req, res) => {
     const result = await pool.query(
       `SELECT
         b.bid_id AS "BidId",
-        b.file_name AS "FileName",
-        b.proposal AS "Proposal"
+        b.technical_proposal_url AS "FileName",
+        b.technical_proposal_url AS "Proposal"
       FROM vendor_sourcing.bids b
       WHERE b.bid_id = $1`,
       [bidId]
@@ -146,10 +153,10 @@ bidsRouter.get('/api/bids/:bidId', async (req, res) => {
         b.vendor_id AS "VendorId",
         v.company_name AS "CompanyName",
         b.bid_amount AS "BidAmount",
-        b.proposal AS "Proposal",
-        b.file_name AS "FileName",
+        b.technical_proposal_url AS "Proposal",
+        b.technical_proposal_url AS "FileName",
         b.status AS "Status",
-        b.submitted_at AS "SubmittedAt"
+        b.submission_date AS "SubmittedAt"
       FROM vendor_sourcing.bids b
       LEFT JOIN vendor_sourcing.tenders t ON b.tender_id = t.tender_id
       LEFT JOIN identity.vendors v ON b.vendor_id = v.vendor_id

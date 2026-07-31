@@ -139,7 +139,7 @@ export const RequisitionTrackingPage = ({ module, token, role, userEmail, availa
         pageSize
       });
       setRequisitions(response.Items);
-      setTotalItems(response.Total);
+      setTotalItems(response.TotalCount);
 
       if (response.Items.length === 0) {
         setSelectedId(null);

@@ -82,7 +82,7 @@ export const fetchAuditCloseouts = async (token: string, status?: string): Promi
   });
 
   const data = await parseResponse<Record<string, unknown>>(response, 'Unable to load closeouts.');
-  return (data.Closeouts ?? data.Items ?? []) as AuditCloseoutItem[];
+  return (data.Items ?? []) as AuditCloseoutItem[];
 };
 
 export const createAuditCloseout = async (
@@ -180,10 +180,10 @@ export const fetchAuditHistoryPage = async (
 
   const data = await parseResponse<Record<string, unknown>>(response, 'Unable to load audit history.');
   return {
-    Items: (data.History ?? data.Items ?? []) as AuditHistoryItem[],
+    Items: (data.Items ?? []) as AuditHistoryItem[],
     Page: (data.Page ?? 1) as number,
     PageSize: (data.PageSize ?? 250) as number,
-    Total: (data.TotalCount ?? data.Total ?? 0) as number
+    TotalCount: (data.TotalCount ?? 0) as number
   };
 };
 

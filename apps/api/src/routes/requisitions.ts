@@ -38,7 +38,7 @@ requisitionsRouter.get('/api/requisitions', async (req, res) => {
     );
 
     res.json({
-      Requisitions: result.rows,
+      Items: result.rows,
       Page: pageNum,
       PageSize: pageSizeNum,
     });
@@ -182,7 +182,7 @@ requisitionsRouter.post('/api/requisitions/:requisitionId/unlink-app', async (re
     }
 
     const result = await pool.query(
-      `UPDATE procurement_workflow.requisition_items
+      `UPDATE procurement_workflow.requisition_line_items
        SET yearly_app_item_id = NULL
        WHERE requisition_id = $1 AND item_id = $2
        RETURNING item_id AS "ItemId"`,

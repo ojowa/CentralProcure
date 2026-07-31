@@ -111,7 +111,7 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
     setLoading(true); clearMessages();
     try {
       const data = await fetchCollections(token);
-      setCollections(data.Collections);
+      setCollections(data.Items);
     } catch (err: any) { setError(err.message); }
     finally { setLoading(false); }
   }, [token, clearMessages]);

@@ -343,7 +343,7 @@ export interface ProcurementPlanListResponse {
     Items: ProcurementPlanSummary[];
     Page: number;
     PageSize: number;
-    Total: number;
+    TotalCount: number;
 }
 
 export interface TenderSummary {
@@ -408,7 +408,7 @@ export interface TenderListResponse {
     Items: TenderSummary[];
     Page: number;
     PageSize: number;
-    Total: number;
+    TotalCount: number;
 }
 
 export interface TenderCreateRequest {
@@ -530,7 +530,7 @@ export interface BudgetConfirmationListResponse {
     Items: BudgetConfirmationQueueItem[];
     Page: number;
     PageSize: number;
-    Total: number;
+    TotalCount: number;
 }
 
 export interface BudgetPlanItemSummary {
@@ -633,7 +633,7 @@ export interface BudgetAppropriationListResponse {
     Items: BudgetAppropriationResponse[];
     Page: number;
     PageSize: number;
-    Total: number;
+    TotalCount: number;
 }
 
 export interface BudgetReleaseCreateRequest {
@@ -659,7 +659,7 @@ export interface BudgetReleaseListResponse {
     Items: BudgetReleaseResponse[];
     Page: number;
     PageSize: number;
-    Total: number;
+    TotalCount: number;
 }
 
 export interface BudgetCommitmentCreateRequest {
@@ -687,7 +687,7 @@ export interface BudgetCommitmentListResponse {
     Items: BudgetCommitmentResponse[];
     Page: number;
     PageSize: number;
-    Total: number;
+    TotalCount: number;
 }
 
 export interface BudgetRequisitionQueueItem {
@@ -713,7 +713,7 @@ export interface BudgetRequisitionListResponse {
     Items: BudgetRequisitionQueueItem[];
     Page: number;
     PageSize: number;
-    Total: number;
+    TotalCount: number;
 }
 
 export interface ApprovalThresholdDetail {
@@ -950,7 +950,7 @@ export interface BidOpeningSessionListResponse {
     Items: BidOpeningSessionSummary[];
     Page: number;
     PageSize: number;
-    Total: number;
+    TotalCount: number;
 }
 
 export interface BidOpeningSessionCreateRequest {
@@ -1342,7 +1342,7 @@ export interface AuditHistoryListResponse {
     Items: AuditHistoryItem[];
     Page: number;
     PageSize: number;
-    Total: number;
+    TotalCount: number;
 }
 
 export interface WorkflowGrantedAction {
@@ -1533,7 +1533,7 @@ export interface RequisitionListResponse {
     Items: RequisitionSummary[];
     Page: number;
     PageSize: number;
-    Total: number;
+    TotalCount: number;
 }
 
 // ── RBAC Permissions ──────────────────────────────────────────

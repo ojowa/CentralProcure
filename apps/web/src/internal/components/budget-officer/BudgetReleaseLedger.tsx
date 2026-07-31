@@ -163,7 +163,7 @@ export const BudgetReleaseLedger = ({ token }: Props) => {
       .then((response: BudgetReleaseListResponse) => {
         if (!isMounted) return;
         setItems(response.Items);
-        setTotal(response.Total);
+        setTotal(response.TotalCount);
       })
       .catch((loadError) => {
         if (!isMounted) return;

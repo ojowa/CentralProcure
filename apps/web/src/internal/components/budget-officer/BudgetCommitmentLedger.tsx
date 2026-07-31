@@ -57,7 +57,7 @@ export const BudgetCommitmentLedger = ({ token }: Props) => {
         pageSize
       });
       setItems(response.Items);
-      setTotal(response.Total);
+      setTotal(response.TotalCount);
     } catch (loadError) {
       setItems([]);
       setTotal(0);

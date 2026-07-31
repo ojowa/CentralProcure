@@ -85,7 +85,7 @@ vendorRouter.get('/api/Vendor/:vendorId', async (req, res) => {
       CompanyAddress: v.company_address,
       ContactPerson: v.contact_person,
       PhoneNumber: v.phone_number,
-      Status: v.status,
+      Status: v.vendor_status,
       CreatedAt: v.created_at,
     });
   } catch (error: any) {
@@ -127,7 +127,7 @@ vendorRouter.put('/api/Vendor/:vendorId', async (req, res) => {
       CompanyAddress: v.company_address,
       ContactPerson: v.contact_person,
       PhoneNumber: v.phone_number,
-      Status: v.status,
+      Status: v.vendor_status,
     });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred updating vendor profile.' });
@@ -156,14 +156,14 @@ vendorRouter.get('/api/Vendor/compliance', async (req, res) => {
     const documents = result.rows.map((d) => ({
       DocumentId: d.document_id,
       DocumentType: d.document_type,
-      FileName: d.file_name,
-      Status: d.status,
-      UploadedAt: d.uploaded_at,
-      ReviewedAt: d.reviewed_at,
-      RejectionReason: d.rejection_reason,
+      FileName: d.document_url,
+      Status: d.verification_status,
+      UploadedAt: d.created_at,
+      ReviewedAt: d.verified_at,
+      RejectionReason: null,
     }));
 
-    res.json(documents);
+    res.json({ Items: documents });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching compliance documents.' });
   }
@@ -171,7 +171,7 @@ vendorRouter.get('/api/Vendor/compliance', async (req, res) => {
 
 // GET /api/Vendor/compliance/requirements
 vendorRouter.get('/api/Vendor/compliance/requirements', (_req, res) => {
-  res.json([
+  res.json({ Items: [
     { DocumentType: 'CAC Certificate', Description: 'Certificate of Incorporation from the Corporate Affairs Commission', IsMandatory: true },
     { DocumentType: 'Tax Clearance', Description: 'Tax clearance certificate from the Federal Inland Revenue Service', IsMandatory: true },
     { DocumentType: 'PENCOM', Description: 'Pension clearance certificate from the National Pension Commission', IsMandatory: true },
@@ -179,7 +179,7 @@ vendorRouter.get('/api/Vendor/compliance/requirements', (_req, res) => {
     { DocumentType: 'Company Profile', Description: 'Company profile with details of directors and organizational structure', IsMandatory: true },
     { DocumentType: 'Bank Reference', Description: 'Bank reference letter from the company\'s bank', IsMandatory: true },
     { DocumentType: 'Insurance Certificate', Description: 'Insurance certificate covering the company\'s operations', IsMandatory: true },
-  ]);
+  ] });
 });
 
 // GET /api/Vendor/compliance/history/:documentType
@@ -205,14 +205,14 @@ vendorRouter.get('/api/Vendor/compliance/history/:documentType', async (req, res
     const history = result.rows.map((h) => ({
       DocumentId: h.document_id,
       DocumentType: h.document_type,
-      FileName: h.file_name,
-      Status: h.status,
-      UploadedAt: h.uploaded_at,
-      ReviewedAt: h.reviewed_at,
-      RejectionReason: h.rejection_reason,
+      FileName: h.document_url,
+      Status: h.verification_status,
+      UploadedAt: h.created_at,
+      ReviewedAt: h.verified_at,
+      RejectionReason: null,
     }));
 
-    res.json(history);
+    res.json({ Items: history });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching document history.' });
   }
@@ -257,9 +257,9 @@ vendorRouter.post('/api/Vendor/compliance/upload', async (req, res) => {
     res.json({
       DocumentId: doc.document_id,
       DocumentType: doc.document_type,
-      FileName: doc.file_name,
-      Status: doc.status,
-      UploadedAt: doc.uploaded_at,
+      FileName: doc.document_url,
+      Status: doc.verification_status,
+      UploadedAt: doc.created_at,
     });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred uploading document.' });

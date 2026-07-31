@@ -137,7 +137,7 @@ export const BudgetOfficerWorkspacePage = ({ module, token, role }: Props) => {
 
       setDashboard(nextDashboard);
       setQueue(nextQueue.Items);
-      setTotal(nextQueue.Total);
+      setTotal(nextQueue.TotalCount);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Unable to load budget workspace.');
       setDashboard(null);

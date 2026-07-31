@@ -27,11 +27,11 @@ approvalThresholdsRouter.get('/api/approval-thresholds', async (req, res) => {
         at.max_amount AS "MaxAmount",
         at.required_approvers AS "RequiredApprovers",
         at.required_approval_level AS "RequiredApprovalLevel",
-        at.is_active AS "IsActive",
+        at.status AS "IsActive",
         at.created_at AS "CreatedAt",
         at.updated_at AS "UpdatedAt"
       FROM procurement_workflow.approval_thresholds at
-      WHERE at.is_active = true
+      WHERE at.status = 'Active'
       ORDER BY at.min_amount ASC`
     );
 
@@ -80,7 +80,7 @@ approvalThresholdsRouter.get('/api/approval-thresholds/resolve', async (req, res
         required_approvers AS "RequiredApprovers",
         required_approval_level AS "RequiredApprovalLevel"
       FROM procurement_workflow.approval_thresholds
-      WHERE is_active = true
+      WHERE status = 'Active'
         AND min_amount <= $1
         AND (max_amount IS NULL OR max_amount >= $1)
       ${ProcurementType ? 'AND ($3::text IS NULL OR procurement_type = $3)' : ''}
@@ -122,7 +122,7 @@ approvalThresholdsRouter.put('/api/approval-thresholds/:id', async (req, res) =>
          max_amount = COALESCE($3, max_amount),
          required_approvers = COALESCE($4, required_approvers),
          required_approval_level = COALESCE($5, required_approval_level),
-         is_active = COALESCE($6, is_active),
+         status = COALESCE($6, status),
          updated_at = NOW()
        WHERE threshold_id = $7
        RETURNING
@@ -132,7 +132,7 @@ approvalThresholdsRouter.put('/api/approval-thresholds/:id', async (req, res) =>
          max_amount AS "MaxAmount",
          required_approvers AS "RequiredApprovers",
          required_approval_level AS "RequiredApprovalLevel",
-         is_active AS "IsActive",
+         status AS "IsActive",
          updated_at AS "UpdatedAt"`,
       [
         ThresholdName || null,

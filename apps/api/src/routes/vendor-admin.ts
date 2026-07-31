@@ -32,7 +32,7 @@ vendorAdminRouter.get('/api/admin/vendors/registrations', async (req, res) => {
     let paramIndex = 1;
 
     if (Status) {
-      conditions.push(`v.status = $${paramIndex}`);
+      conditions.push(`v.vendor_status = $${paramIndex}`);
       values.push(Status);
       paramIndex++;
     }
@@ -59,11 +59,11 @@ vendorAdminRouter.get('/api/admin/vendors/registrations', async (req, res) => {
         v.company_address AS "CompanyAddress",
         v.contact_person AS "ContactPerson",
         v.phone_number AS "PhoneNumber",
-        v.status AS "Status",
+        v.vendor_status AS "Status",
         v.created_at AS "CreatedAt",
         (SELECT COUNT(*) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id) AS "TotalDocuments",
-        (SELECT COUNT(*) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id AND cd.status = 'Approved') AS "ApprovedDocuments",
-        (SELECT COUNT(*) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id AND cd.status = 'Pending') AS "PendingDocuments"
+        (SELECT COUNT(*) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id AND cd.verification_status = 'Approved') AS "ApprovedDocuments",
+        (SELECT COUNT(*) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id AND cd.verification_status = 'Pending') AS "PendingDocuments"
       FROM identity.vendors v
       ${whereClause}
       ORDER BY v.created_at DESC
@@ -72,7 +72,7 @@ vendorAdminRouter.get('/api/admin/vendors/registrations', async (req, res) => {
     );
 
     res.json({
-      Registrations: result.rows,
+      Items: result.rows,
       TotalCount: parseInt(countResult.rows[0].total, 10),
       Page: pageNum,
       PageSize: pageSizeNum,
@@ -108,12 +108,12 @@ vendorAdminRouter.get('/api/admin/vendors/:vendorId', async (req, res) => {
         v.company_address AS "CompanyAddress",
         v.contact_person AS "ContactPerson",
         v.phone_number AS "PhoneNumber",
-        v.status AS "Status",
+        v.vendor_status AS "Status",
         v.created_at AS "CreatedAt",
         (SELECT COUNT(*) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id) AS "TotalDocuments",
-        (SELECT COUNT(*) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id AND cd.status = 'Approved') AS "ApprovedDocuments",
-        (SELECT COUNT(*) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id AND cd.status = 'Pending') AS "PendingDocuments",
-        (SELECT COUNT(*) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id AND cd.status = 'Rejected') AS "RejectedDocuments"
+        (SELECT COUNT(*) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id AND cd.verification_status = 'Approved') AS "ApprovedDocuments",
+        (SELECT COUNT(*) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id AND cd.verification_status = 'Pending') AS "PendingDocuments",
+        (SELECT COUNT(*) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id AND cd.verification_status = 'Rejected') AS "RejectedDocuments"
       FROM identity.vendors v
       WHERE v.vendor_id = $1`,
       [vendorId]
@@ -151,21 +151,27 @@ vendorAdminRouter.post('/api/admin/vendors/:vendorId/decision', async (req, res)
 
     const result = await pool.query(
       'SELECT * FROM identity.approve_vendor_registration($1, $2, $3, $4)',
-      [vendorId, auth!.sub, Decision, RejectionReason || '']
+      [vendorId, Decision, auth!.sub, RejectionReason || '']
     );
 
-    const doc = result.rows[0];
+    const updatedVendor = await pool.query(
+      `SELECT vendor_id, company_name, vendor_status, updated_at
+       FROM identity.vendors WHERE vendor_id = $1`,
+      [vendorId]
+    );
 
-    if (!doc || doc.error_message) {
-      res.status(400).json({ ErrorMessage: doc?.error_message || 'Decision processing failed.' });
+    if (updatedVendor.rows.length === 0) {
+      res.status(400).json({ ErrorMessage: 'Decision processing failed.' });
       return;
     }
 
+    const v = updatedVendor.rows[0];
+
     res.json({
-      VendorId: doc.vendor_id,
-      Status: doc.status,
-      Decision: doc.decision,
-      ReviewedAt: doc.reviewed_at,
+      VendorId: v.vendor_id,
+      Status: v.vendor_status,
+      Decision: Decision,
+      ReviewedAt: v.updated_at,
     });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred processing the decision.' });

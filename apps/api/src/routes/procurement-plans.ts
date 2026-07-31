@@ -28,13 +28,13 @@ procurementPlansRouter.get('/api/procurement-plans', async (req, res) => {
     let idx = 1;
 
     if (FiscalYear) { conditions.push(`pp.fiscal_year = $${idx}`); values.push(FiscalYear); idx++; }
-    if (Department) { conditions.push(`pp.department_id = $${idx}`); values.push(Department); idx++; }
+    if (Department) { conditions.push(`pp.department = $${idx}`); values.push(Department); idx++; }
     if (Status) { conditions.push(`pp.status = $${idx}`); values.push(Status); idx++; }
 
     const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
     const validSortColumns: Record<string, string> = {
-      plan_id: 'pp.plan_id', plan_number: 'pp.plan_number', title: 'pp.title',
+      plan_id: 'pp.plan_id', plan_number: 'pp.plan_title', title: 'pp.plan_title',
       fiscal_year: 'pp.fiscal_year', status: 'pp.status', created_at: 'pp.created_at'
     };
     const sortCol = validSortColumns[SortBy as string] || 'pp.created_at';
@@ -50,20 +50,20 @@ procurementPlansRouter.get('/api/procurement-plans', async (req, res) => {
     const result = await pool.query(
       `SELECT
         pp.plan_id AS "PlanId",
-        pp.plan_number AS "PlanNumber",
-        pp.title AS "Title",
-        pp.description AS "Description",
+        pp.plan_title AS "PlanNumber",
+        pp.plan_title AS "Title",
+        pp.notes AS "Description",
         pp.fiscal_year AS "FiscalYear",
-        pp.department_id AS "DepartmentId",
-        d.department_name AS "DepartmentName",
+        pp.department AS "DepartmentId",
+        pp.department AS "DepartmentName",
         pp.status AS "Status",
         pp.created_by AS "CreatedBy",
         pp.created_at AS "CreatedAt",
         pp.updated_at AS "UpdatedAt",
-        wi.status AS "WorkflowStatus",
-        wi.current_stage_id AS "CurrentStageId",
-        wsc.stage_name AS "CurrentStageName",
-        ya.year AS "AppYear",
+        wi.current_status AS "WorkflowStatus",
+        wi.current_stage_key AS "CurrentStageId",
+        wsc.stage_title AS "CurrentStageName",
+        ya.fiscal_year AS "AppYear",
         (SELECT COALESCE(SUM(ppi.estimated_cost), 0)
          FROM procurement_workflow.procurement_plan_items ppi
          WHERE ppi.plan_id = pp.plan_id) AS "TotalEstimatedCost",
@@ -71,9 +71,8 @@ procurementPlansRouter.get('/api/procurement-plans', async (req, res) => {
          FROM procurement_workflow.procurement_plan_items ppi
          WHERE ppi.plan_id = pp.plan_id) AS "TotalApprovedBudget"
        FROM procurement_workflow.procurement_plans pp
-       LEFT JOIN procurement_workflow.workflow_instances wi ON wi.plan_id = pp.plan_id
-       LEFT JOIN procurement_workflow.workflow_stage_catalog wsc ON wi.current_stage_id = wsc.stage_id
-       LEFT JOIN identity.organizational_units d ON pp.department_id = d.unit_id
+       LEFT JOIN procurement_workflow.workflow_instances wi ON wi.entity_id = pp.plan_id
+       LEFT JOIN procurement_workflow.workflow_stage_catalog wsc ON wi.current_stage_key = wsc.stage_key
        LEFT JOIN procurement_workflow.yearly_apps ya ON pp.yearly_app_id = ya.yearly_app_id
        ${whereClause}
        ORDER BY ${sortCol} ${sortDir}
@@ -82,7 +81,7 @@ procurementPlansRouter.get('/api/procurement-plans', async (req, res) => {
     );
 
     res.json({
-      Plans: result.rows,
+      Items: result.rows,
       TotalCount: totalCount,
       Page: pageNum,
       PageSize: pageSizeNum,
@@ -129,8 +128,8 @@ procurementPlansRouter.post('/api/procurement-plans', async (req, res) => {
 
     res.status(201).json({
       PlanId: plan.plan_id,
-      PlanNumber: plan.plan_number,
-      Title: plan.title,
+      PlanNumber: plan.plan_title,
+      Title: plan.plan_title,
       FiscalYear: plan.fiscal_year,
       Status: plan.status,
       CreatedAt: plan.created_at,
@@ -154,24 +153,23 @@ procurementPlansRouter.get('/api/procurement-plans/:planId', async (req, res) =>
     const planResult = await pool.query(
       `SELECT
         pp.plan_id AS "PlanId",
-        pp.plan_number AS "PlanNumber",
-        pp.title AS "Title",
-        pp.description AS "Description",
+        pp.plan_title AS "PlanNumber",
+        pp.plan_title AS "Title",
+        pp.notes AS "Description",
         pp.fiscal_year AS "FiscalYear",
-        pp.department_id AS "DepartmentId",
-        d.department_name AS "DepartmentName",
+        pp.department AS "DepartmentId",
+        pp.department AS "DepartmentName",
         pp.status AS "Status",
         pp.created_by AS "CreatedBy",
         pp.yearly_app_id AS "YearlyAppId",
         pp.created_at AS "CreatedAt",
         pp.updated_at AS "UpdatedAt",
-        wi.status AS "WorkflowStatus",
-        wi.current_stage_id AS "CurrentStageId",
-        wsc.stage_name AS "CurrentStageName"
+        wi.current_status AS "WorkflowStatus",
+        wi.current_stage_key AS "CurrentStageId",
+        wsc.stage_title AS "CurrentStageName"
        FROM procurement_workflow.procurement_plans pp
-       LEFT JOIN procurement_workflow.workflow_instances wi ON wi.plan_id = pp.plan_id
-       LEFT JOIN procurement_workflow.workflow_stage_catalog wsc ON wi.current_stage_id = wsc.stage_id
-       LEFT JOIN identity.organizational_units d ON pp.department_id = d.unit_id
+       LEFT JOIN procurement_workflow.workflow_instances wi ON wi.entity_id = pp.plan_id
+       LEFT JOIN procurement_workflow.workflow_stage_catalog wsc ON wi.current_stage_key = wsc.stage_key
        WHERE pp.plan_id = $1`, [planId]
     );
 
@@ -262,13 +260,13 @@ procurementPlansRouter.post('/api/procurement-plans/:planId/approval-decision', 
     const newStatus = Decision === 'Approved' ? 'Approved' : Decision === 'Returned' ? 'Returned' : 'Rejected';
 
     const result = await pool.query(
-      `UPDATE procurement_workflow.procurement_plans
+       `UPDATE procurement_workflow.procurement_plans
        SET status = $1, updated_at = NOW()
        WHERE plan_id = $2
        RETURNING
         plan_id AS "PlanId",
-        plan_number AS "PlanNumber",
-        title AS "Title",
+        plan_title AS "PlanNumber",
+        plan_title AS "Title",
         status AS "Status",
         updated_at AS "UpdatedAt"`,
       [newStatus, planId]
@@ -280,10 +278,11 @@ procurementPlansRouter.post('/api/procurement-plans/:planId/approval-decision', 
 
     if (Comments) {
       await pool.query(
-        `INSERT INTO procurement_workflow.plan_approval_history
-          (plan_id, decision, comments, decided_by, decided_at)
-         VALUES ($1, $2, $3, $4, NOW())`,
-        [planId, Decision, Comments, payload.sub]
+        `INSERT INTO procurement_workflow.workflow_instances
+          (entity_type, entity_id, record_title, last_transition_reason, updated_at)
+         VALUES ('procurement_plan', $1, $2, $3, NOW())
+         ON CONFLICT DO NOTHING`,
+        [planId, Decision, Comments]
       );
     }
 
@@ -311,8 +310,8 @@ procurementPlansRouter.post('/api/procurement-plans/:planId/recommend-for-approv
        WHERE plan_id = $1 AND status = 'Draft'
        RETURNING
         plan_id AS "PlanId",
-        plan_number AS "PlanNumber",
-        title AS "Title",
+        plan_title AS "PlanNumber",
+        plan_title AS "Title",
         status AS "Status",
         updated_at AS "UpdatedAt"`,
       [planId]
@@ -323,10 +322,11 @@ procurementPlansRouter.post('/api/procurement-plans/:planId/recommend-for-approv
     }
 
     await pool.query(
-      `INSERT INTO procurement_workflow.plan_recommendation_history
-        (plan_id, recommended_by, comments, recommended_at)
-       VALUES ($1, $2, $3, NOW())`,
-      [planId, payload.sub, Comments || '']
+      `INSERT INTO procurement_workflow.workflow_instances
+        (entity_type, entity_id, record_title, last_transition_reason, updated_at)
+       VALUES ('procurement_plan', $1, 'Recommended', $2, NOW())
+       ON CONFLICT DO NOTHING`,
+      [planId, Comments || '']
     );
 
     res.json(result.rows[0]);
@@ -397,14 +397,14 @@ procurementPlansRouter.get('/api/procurement-plans/:planId/requisitions', async 
         r.title AS "Title",
         r.status AS "Status",
         r.created_at AS "CreatedAt",
-        pr.linked_at AS "LinkedAt"
-       FROM procurement_workflow.plan_requisitions pr
-       JOIN procurement_workflow.requisitions r ON pr.requisition_id = r.requisition_id
-       WHERE pr.plan_id = $1
-       ORDER BY pr.linked_at DESC`, [planId]
+        pcl.linked_at AS "LinkedAt"
+       FROM procurement_workflow.planning_committee_plan_links pcl
+       JOIN procurement_workflow.requisitions r ON pcl.requisition_id = r.requisition_id
+       WHERE pcl.plan_id = $1
+       ORDER BY pcl.linked_at DESC`, [planId]
     );
 
-    res.json(result.rows);
+    res.json({ Items: result.rows });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching linked requisitions.' });
   }
@@ -427,8 +427,8 @@ procurementPlansRouter.post('/api/procurement-plans/:planId/initiate-procurement
        WHERE plan_id = $1 AND status = 'Approved'
        RETURNING
         plan_id AS "PlanId",
-        plan_number AS "PlanNumber",
-        title AS "Title",
+        plan_title AS "PlanNumber",
+        plan_title AS "Title",
         status AS "Status",
         updated_at AS "UpdatedAt"`,
       [planId]

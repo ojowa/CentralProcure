@@ -62,7 +62,7 @@ export const BudgetAppropriationLedger = ({ token }: { token?: string | null }) 
       });
 
       setItems(response.Items);
-      setTotal(response.Total);
+      setTotal(response.TotalCount);
     } catch (loadError) {
       setError(
         loadError instanceof Error ? loadError.message : 'Unable to load appropriation ledger.'

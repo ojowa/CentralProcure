@@ -54,7 +54,7 @@ administrativeReviewsRouter.get('/api/administrative-reviews', async (req, res) 
       values
     );
 
-    res.json({ Reviews: result.rows, TotalCount: result.rows.length });
+    res.json({ Items: result.rows, TotalCount: result.rows.length });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching administrative reviews.' });
   }
@@ -90,7 +90,7 @@ administrativeReviewsRouter.get('/api/administrative-reviews/filing-context', as
        LIMIT 10`, [EntityType, EntityId]
     );
 
-    res.json(result.rows);
+    res.json({ Items: result.rows });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching filing context.' });
   }

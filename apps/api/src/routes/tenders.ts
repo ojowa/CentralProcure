@@ -58,7 +58,7 @@ tendersRouter.get('/api/internal/tenders', async (req, res) => {
     }));
 
     res.json({
-      Tenders: tenders,
+      Items: tenders,
       TotalCount: totalCount,
       Page: pageNum,
       PageSize: pageSizeNum,
@@ -305,7 +305,7 @@ tendersRouter.get('/api/tenders/:tenderId/bids', async (req, res) => {
        ORDER BY b.submitted_at DESC`,
       [tenderId]
     );
-    res.json(result.rows);
+    res.json({ Items: result.rows });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching bids.' });
   }
@@ -337,7 +337,7 @@ tendersRouter.get('/api/tenders/:tenderId/workflow-display', async (req, res) =>
       [tenderId]
     );
 
-    res.json(result.rows);
+    res.json({ Items: result.rows });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching workflow display.' });
   }

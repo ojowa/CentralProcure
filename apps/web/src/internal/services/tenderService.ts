@@ -97,8 +97,8 @@ export const fetchTenders = async (token: string, filters?: TenderFilters): Prom
 
   const data = await parseResponse<Record<string, unknown>>(response);
   return {
-    Items: (data.Tenders ?? []) as TenderListResponse['Items'],
-    Total: (data.TotalCount ?? data.Total ?? 0) as number,
+    Items: (data.Items ?? []) as TenderListResponse['Items'],
+    TotalCount: (data.TotalCount ?? 0) as number,
     Page: (data.Page ?? 1) as number,
     PageSize: (data.PageSize ?? 20) as number
   };

@@ -44,7 +44,7 @@ workflowRouter.get('/api/workflow-runtime/cgis-queue', async (req, res) => {
       ORDER BY wi.amount DESC, wi.created_at ASC`
     );
 
-    res.json(result.rows);
+    res.json({ Items: result.rows });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching CGIS queue.' });
   }
@@ -59,9 +59,10 @@ workflowRouter.get('/api/workflow-blueprint', async (_req, res) => {
     }
 
     const phasesResult = await pool.query(
-      `SELECT phase_key AS "PhaseKey", phase_title AS "PhaseTitle", color AS "Color"
-       FROM procurement_workflow.workflow_phases
-       ORDER BY sort_order`
+      `SELECT DISTINCT phase_key AS "PhaseKey", phase_key AS "PhaseTitle", phase_key AS "Color"
+       FROM procurement_workflow.workflow_stage_catalog
+       WHERE phase_key IS NOT NULL
+       ORDER BY phase_key`
     );
 
     const statesResult = await pool.query(
@@ -69,20 +70,18 @@ workflowRouter.get('/api/workflow-blueprint', async (_req, res) => {
         stage_key AS "StageKey",
         stage_title AS "StageTitle",
         phase_key AS "PhaseKey",
-        module AS "Module",
-        is_initial AS "IsInitial",
+        is_start AS "IsInitial",
         is_terminal AS "IsTerminal",
-        sort_order AS "SortOrder"
+        sequence_no AS "SortOrder"
       FROM procurement_workflow.workflow_stage_catalog
-      ORDER BY sort_order`
+      ORDER BY sequence_no`
     );
 
     const transitionsResult = await pool.query(
       `SELECT
         from_stage_key AS "FromStageKey",
         to_stage_key AS "ToStageKey",
-        transition_condition AS "TransitionCondition",
-        requires_approval AS "RequiresApproval"
+        transition_condition AS "TransitionCondition"
       FROM procurement_workflow.workflow_stage_transitions
       ORDER BY from_stage_key, to_stage_key`
     );
@@ -251,7 +250,7 @@ workflowRouter.get('/api/workflow-actions/:entityType/:entityId', async (req, re
       LEFT JOIN procurement_workflow.workflow_stage_catalog wsc
         ON wsc.stage_key = t.to_stage_key
       WHERE t.from_stage_key = $1
-      ORDER BY wsc.sort_order`,
+      ORDER BY wsc.sequence_no`,
       [instance.CurrentStageKey]
     );
 
@@ -384,7 +383,7 @@ workflowRouter.get('/api/workflow-runtime/:entityType/:entityId', async (req, re
       LEFT JOIN procurement_workflow.workflow_stage_catalog wsc
         ON wsc.stage_key = t.to_stage_key
       WHERE t.from_stage_key = $1
-      ORDER BY wsc.sort_order`,
+      ORDER BY wsc.sequence_no`,
       [instance.CurrentStageKey]
     );
 
@@ -441,7 +440,7 @@ workflowRouter.get('/api/workflow-runtime/:entityType/:entityId/history', async 
       [entityType, entityId]
     );
 
-    res.json(result.rows);
+    res.json({ Items: result.rows });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching workflow history.' });
   }

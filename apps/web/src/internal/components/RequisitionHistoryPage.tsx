@@ -142,7 +142,7 @@ export const RequisitionHistoryPage = ({ module, token, role, userEmail, availab
         pageSize
       });
       setRequisitions(response.Items);
-      setTotalItems(response.Total);
+      setTotalItems(response.TotalCount);
     } catch (error) {
       setListError(error instanceof Error ? error.message : 'Unable to load requisitions.');
     } finally {

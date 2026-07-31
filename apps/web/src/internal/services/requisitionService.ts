@@ -109,10 +109,10 @@ export const fetchRequisitions = async (
 
   const data = await parseResponse<Record<string, unknown>>(response);
   return {
-    Items: (data.Requisitions ?? []) as RequisitionListResponse['Items'],
+    Items: (data.Items ?? []) as RequisitionListResponse['Items'],
     Page: (data.Page ?? 1) as number,
     PageSize: (data.PageSize ?? 20) as number,
-    Total: (data.TotalCount ?? data.Total ?? 0) as number
+    TotalCount: (data.TotalCount ?? 0) as number
   };
 };
 

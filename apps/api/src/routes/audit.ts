@@ -28,8 +28,8 @@ auditRouter.get('/api/audit', async (req, res) => {
         (SELECT COUNT(*) FROM post_award.inspections WHERE status = 'Completed') AS "CompletedInspections",
         (SELECT COUNT(*) FROM post_award.payments) AS "TotalPayments",
         (SELECT COALESCE(SUM(amount), 0) FROM post_award.payments WHERE status = 'Completed') AS "TotalPaid",
-        (SELECT COUNT(*) FROM post_award.closeouts) AS "TotalCloseouts",
-        (SELECT COUNT(*) FROM post_award.closeouts WHERE status = 'Pending') AS "PendingCloseouts"`
+        (SELECT COUNT(*) FROM procurement_workflow.procurement_closeouts) AS "TotalCloseouts",
+        (SELECT COUNT(*) FROM procurement_workflow.procurement_closeouts WHERE status = 'Submitted') AS "PendingCloseouts"`
     );
 
     res.json(result.rows[0]);
@@ -61,8 +61,8 @@ auditRouter.get('/api/audit/summary', async (req, res) => {
         (SELECT COUNT(*) FROM post_award.inspections WHERE status = 'Completed') AS "CompletedInspections",
         (SELECT COUNT(*) FROM post_award.payments) AS "TotalPayments",
         (SELECT COALESCE(SUM(amount), 0) FROM post_award.payments WHERE status = 'Completed') AS "TotalPaid",
-        (SELECT COUNT(*) FROM post_award.closeouts) AS "TotalCloseouts",
-        (SELECT COUNT(*) FROM post_award.closeouts WHERE status = 'Pending') AS "PendingCloseouts"`
+        (SELECT COUNT(*) FROM procurement_workflow.procurement_closeouts) AS "TotalCloseouts",
+        (SELECT COUNT(*) FROM procurement_workflow.procurement_closeouts WHERE status = 'Submitted') AS "PendingCloseouts"`
     );
 
     const eventsResult = await pool.query(
@@ -127,29 +127,28 @@ auditRouter.get('/api/audit/closeouts', async (req, res) => {
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     const countResult = await pool.query(
-      `SELECT COUNT(*) AS total FROM post_award.closeouts co ${whereClause}`,
+      `SELECT COUNT(*) AS total FROM procurement_workflow.procurement_closeouts co ${whereClause}`,
       values
     );
 
     const result = await pool.query(
       `SELECT
         co.closeout_id AS "CloseoutId",
-        co.contract_code AS "ContractCode",
-        c.tender_title AS "ContractTitle",
-        co.closeout_code AS "CloseoutCode",
-        co.description AS "Description",
+        co.closeout_reference AS "ContractCode",
+        co.record_title AS "ContractTitle",
+        co.closeout_reference AS "CloseoutCode",
+        co.summary AS "Description",
         co.status AS "Status",
-        co.initiated_by AS "InitiatedBy",
-        co.initiated_at AS "InitiatedAt",
-        co.completed_at AS "CompletedAt",
+        NULL AS "InitiatedBy",
+        co.created_at AS "InitiatedAt",
+        co.archived_at AS "CompletedAt",
         co.archive_location AS "ArchiveLocation",
         co.final_acceptance_completed AS "FinalAcceptanceCompleted",
         co.final_payment_completed AS "FinalPaymentCompleted",
         co.archived_by AS "ArchivedBy",
         co.archived_at AS "ArchivedAt",
         co.created_at AS "CreatedAt"
-      FROM post_award.closeouts co
-      LEFT JOIN post_award.contracts c ON co.contract_code = c.contract_code
+      FROM procurement_workflow.procurement_closeouts co
       ${whereClause}
       ORDER BY co.created_at DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
@@ -157,7 +156,7 @@ auditRouter.get('/api/audit/closeouts', async (req, res) => {
     );
 
     res.json({
-      Closeouts: result.rows,
+      Items: result.rows,
       TotalCount: parseInt(countResult.rows[0].total, 10),
       Page: pageNum,
       PageSize: pageSizeNum,
@@ -186,26 +185,26 @@ auditRouter.post('/api/audit/closeouts', async (req, res) => {
     }
 
     const result = await pool.query(
-      `INSERT INTO post_award.closeouts
-        (contract_code, closeout_code, description, status, initiated_by, initiated_at,
-         archive_location, final_acceptance_completed, final_payment_completed, archived_by, archived_at, created_at)
-       VALUES ($1, $2, $3, 'Pending', $4, NOW(), $5, $6, $7, $8, CASE WHEN $8 IS NOT NULL THEN NOW() ELSE NULL END, NOW())
+      `INSERT INTO procurement_workflow.procurement_closeouts
+        (closeout_reference, entity_type, entity_id, status, summary, archive_location,
+         final_acceptance_completed, final_payment_completed, archived_by, archived_at, created_at)
+       VALUES ($1, 'contract', $2, 'Submitted', $3, $4, $5, $6, $7, CASE WHEN $7 IS NOT NULL THEN NOW() ELSE NULL END, NOW())
        RETURNING
          closeout_id AS "CloseoutId",
-         contract_code AS "ContractCode",
-         closeout_code AS "CloseoutCode",
-         description AS "Description",
+         closeout_reference AS "ContractCode",
+         closeout_reference AS "CloseoutCode",
+         summary AS "Description",
          status AS "Status",
-         initiated_by AS "InitiatedBy",
-         initiated_at AS "InitiatedAt",
+         NULL AS "InitiatedBy",
+         created_at AS "InitiatedAt",
          archive_location AS "ArchiveLocation",
          final_acceptance_completed AS "FinalAcceptanceCompleted",
          final_payment_completed AS "FinalPaymentCompleted",
          archived_by AS "ArchivedBy",
          archived_at AS "ArchivedAt",
          created_at AS "CreatedAt"`,
-       [ContractCode, CloseoutCode, Description || '', auth!.sub,
-        ArchiveLocation || null, FinalAcceptanceCompleted ?? false, FinalPaymentCompleted ?? false, ArchivedBy || null]
+       [CloseoutCode, ContractCode, Description || '', ArchiveLocation || null,
+        FinalAcceptanceCompleted ?? false, FinalPaymentCompleted ?? false, ArchivedBy || null]
     );
 
     res.status(201).json(result.rows[0]);
@@ -317,7 +316,7 @@ auditRouter.get('/api/audit/history', async (req, res) => {
     );
 
     res.json({
-      History: result.rows,
+      Items: result.rows,
       TotalCount: parseInt(countResult.rows[0].total, 10),
       Page: pageNum,
       PageSize: pageSizeNum,
@@ -368,18 +367,19 @@ auditRouter.get('/api/audit/diagnostics/:entityType/:entityId', async (req, res)
 
     const workflowResult = await pool.query(
       `SELECT
-        awl.log_id AS "LogId",
-        awl.entity_type AS "EntityType",
-        awl.entity_id AS "EntityId",
-        awl.action AS "Action",
-        awl.performed_by AS "PerformedBy",
-        awl.from_status AS "FromStatus",
-        awl.to_status AS "ToStatus",
-        awl.notes AS "Notes",
-        awl.created_at AS "CreatedAt"
-      FROM post_award.audit_workflow_log awl
-      WHERE awl.entity_type = $1 AND awl.entity_id = $2
-      ORDER BY awl.created_at ASC`,
+        wh.history_id AS "LogId",
+        wi.entity_type AS "EntityType",
+        wi.entity_id AS "EntityId",
+        wh.transition_source AS "Action",
+        wh.actor AS "PerformedBy",
+        wh.from_stage_key AS "FromStatus",
+        wh.to_stage_key AS "ToStatus",
+        wh.transition_reason AS "Notes",
+        wh.created_at AS "CreatedAt"
+      FROM procurement_workflow.workflow_instance_history wh
+      JOIN procurement_workflow.workflow_instances wi ON wi.instance_id = wh.instance_id
+      WHERE wi.entity_type = $1 AND wi.entity_id = $2
+      ORDER BY wh.created_at ASC`,
       [entityType, entityId]
     );
 

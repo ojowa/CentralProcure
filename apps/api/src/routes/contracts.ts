@@ -41,7 +41,7 @@ contractsRouter.get('/api/contracts/awards', async (req, res) => {
     }));
 
     res.json({
-      Awards: awards,
+      Items: awards,
       Page: pageNum,
       PageSize: pageSizeNum,
     });
@@ -166,7 +166,7 @@ contractsRouter.get('/api/contracts', async (req, res) => {
     }));
 
     res.json({
-      Contracts: contracts,
+      Items: contracts,
       Page: pageNum,
       PageSize: pageSizeNum,
     });

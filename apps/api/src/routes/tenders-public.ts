@@ -24,7 +24,7 @@ tendersPublicRouter.get('/api/Tender/open', async (_req, res) => {
       SubmissionDeadline: t.closing_date,
     }));
 
-    res.json(tenders);
+    res.json({ Items: tenders });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching open tenders.' });
   }
@@ -101,7 +101,7 @@ tendersPublicRouter.get('/api/Tender/submitted-bids', async (req, res) => {
       SubmittedAt: b.submitted_at,
     }));
 
-    res.json(bids);
+    res.json({ Items: bids });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching submitted bids.' });
   }
