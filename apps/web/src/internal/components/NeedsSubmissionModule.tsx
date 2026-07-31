@@ -182,46 +182,57 @@ export const NeedsSubmissionModule: React.FC<NeedsSubmissionModuleProps> = ({ mo
                   <textarea className="app-form__input" rows={2} value={formRemarks} onChange={e => setFormRemarks(e.target.value)} placeholder="Additional context..." disabled={!canEdit} />
                 </div>
               </div>
-              <div className="p-6 border-t border-slate-100">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-bold text-slate-800 flex items-center gap-2"><Package size={18} className="text-emerald-600" /> Items ({formItems.length})</h3>
-                  {canEdit && <button className="app-btn app-btn--secondary app-btn--sm" onClick={addItem}><Plus size={14} className="mr-1" /> Add Item</button>}
-                </div>
-                <div className="app-table-wrapper">
-                  <table className="app-table">
-                    <thead>
-                      <tr>
-                        <th style={{ width: '35%' }}>Description</th>
-                        <th>Type</th>
-                        <th style={{ width: '70px' }}>Qty</th>
-                        <th>Unit</th>
-                        <th>Priority</th>
-                        {canEdit && <th style={{ width: '50px' }}></th>}
+            </div>
+            {/* Items Card */}
+            <div className="app-card" style={{ marginTop: '1rem' }}>
+              <div className="app-card__header">
+                <h3 className="app-card__title flex items-center gap-2"><Package size={18} className="text-emerald-600" /> Items ({formItems.length})</h3>
+                {canEdit && <button className="app-btn app-btn--primary app-btn--sm" onClick={addItem}><Plus size={14} className="mr-1" /> Add Item</button>}
+              </div>
+              <div className="app-table-wrapper">
+                <table className="app-table app-table--compact">
+                  <thead>
+                    <tr>
+                      <th style={{ width: '40px' }}>#</th>
+                      <th>Description</th>
+                      <th style={{ width: '120px' }}>Type</th>
+                      <th style={{ width: '80px' }}>Qty</th>
+                      <th style={{ width: '80px' }}>Unit</th>
+                      <th style={{ width: '110px' }}>Priority</th>
+                      {canEdit && <th style={{ width: '50px' }}></th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {formItems.map((item, idx) => (
+                      <tr key={idx}>
+                        <td className="text-xs text-slate-400 font-mono">{idx + 1}</td>
+                        <td><input className="app-form__input app-form__input--sm" value={item.Description} onChange={e => updateItem(idx, 'Description', e.target.value)} disabled={!canEdit} placeholder="Item description" /></td>
+                        <td>
+                          <select className="app-form__select app-form__select--sm" value={item.ProcurementType} onChange={e => updateItem(idx, 'ProcurementType', e.target.value)} disabled={!canEdit}>
+                            <option value="Goods">Goods</option><option value="Works">Works</option><option value="Services">Services</option>
+                          </select>
+                        </td>
+                        <td><input type="number" className="app-form__input app-form__input--sm" value={item.Quantity} onChange={e => updateItem(idx, 'Quantity', Number(e.target.value))} disabled={!canEdit} min={1} /></td>
+                        <td><input className="app-form__input app-form__input--sm" value={item.Unit} onChange={e => updateItem(idx, 'Unit', e.target.value)} disabled={!canEdit} placeholder="Pcs" /></td>
+                        <td>
+                          <select className="app-form__select app-form__select--sm" value={item.Priority} onChange={e => updateItem(idx, 'Priority', e.target.value)} disabled={!canEdit}>
+                            <option value="Normal">Normal</option><option value="Urgent">Urgent</option><option value="Strategic">Strategic</option>
+                          </select>
+                        </td>
+                        {canEdit && <td><button className="text-red-400 hover:text-red-600" onClick={() => removeItem(idx)} aria-label="Remove"><Trash2 size={14} /></button></td>}
                       </tr>
-                    </thead>
-                    <tbody>
-                      {formItems.map((item, idx) => (
-                        <tr key={idx}>
-                          <td><input className="app-form__input app-form__input--sm" value={item.Description} onChange={e => updateItem(idx, 'Description', e.target.value)} disabled={!canEdit} placeholder="Item description" /></td>
-                          <td>
-                            <select className="app-form__select app-form__select--sm" value={item.ProcurementType} onChange={e => updateItem(idx, 'ProcurementType', e.target.value)} disabled={!canEdit}>
-                              <option value="Goods">Goods</option><option value="Works">Works</option><option value="Services">Services</option>
-                            </select>
-                          </td>
-                          <td><input type="number" className="app-form__input app-form__input--sm" value={item.Quantity} onChange={e => updateItem(idx, 'Quantity', Number(e.target.value))} disabled={!canEdit} min={1} /></td>
-                          <td><input className="app-form__input app-form__input--sm" value={item.Unit} onChange={e => updateItem(idx, 'Unit', e.target.value)} disabled={!canEdit} placeholder="Pcs" /></td>
-                          <td>
-                            <select className="app-form__select app-form__select--sm" value={item.Priority} onChange={e => updateItem(idx, 'Priority', e.target.value)} disabled={!canEdit}>
-                              <option value="Normal">Normal</option><option value="Urgent">Urgent</option><option value="Strategic">Strategic</option>
-                            </select>
-                          </td>
-                          {canEdit && <td><button className="text-red-400 hover:text-red-600" onClick={() => removeItem(idx)} aria-label="Remove"><Trash2 size={14} /></button></td>}
-                        </tr>
-                      ))}
-                      {!formItems.length && <tr><td colSpan={canEdit ? 6 : 5} className="py-8 text-center text-slate-400 italic">No items yet. Click "Add Item" to start.</td></tr>}
-                    </tbody>
-                  </table>
-                </div>
+                    ))}
+                    {!formItems.length && (
+                      <tr>
+                        <td colSpan={canEdit ? 7 : 6} className="py-10 text-center">
+                          <Package size={32} className="mx-auto text-slate-300 mb-2" />
+                          <p className="text-slate-400 italic">No items yet.</p>
+                          {canEdit && <p className="text-xs text-slate-400 mt-1">Click "Add Item" to start adding procurement needs.</p>}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
