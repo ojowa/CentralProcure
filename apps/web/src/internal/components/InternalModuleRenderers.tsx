@@ -35,6 +35,7 @@ import { ApprovalRejectionPage } from './ApprovalRejectionPage';
 import { HighValueTendersPage } from './HighValueTendersPage';
 import { ProcurementMethodDeterminationModule } from './ProcurementMethodDeterminationModule';
 import { NeedsCollectionModule } from './NeedsCollectionModule';
+import { NeedsAndRequisitionsModule } from './NeedsAndRequisitionsModule';
 import { OrganizationManagementModule } from './OrganizationManagementModule';
 
 export type InternalModuleRendererProps = {
@@ -90,7 +91,7 @@ export const moduleRenderers: Partial<Record<string, (props: InternalModuleRende
     'create-requisition': (props) => <CreateRequisitionPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} availableModuleIds={props.availableModuleIds} onModuleChange={props.onModuleChange} />,
     'requisition-history': (props) => <RequisitionHistoryPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} availableModuleIds={props.availableModuleIds} onModuleChange={props.onModuleChange} />,
     'requisition-tracking': (props) => <RequisitionTrackingPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} availableModuleIds={props.availableModuleIds} onModuleChange={props.onModuleChange} />,
-    'requisition-management': (props) => <AdminRequisitionManagementPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} availableModuleIds={props.availableModuleIds} onModuleChange={props.onModuleChange} />,
+    'requisition-management': (props) => <NeedsAndRequisitionsModule module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} availableModuleIds={props.availableModuleIds} onModuleChange={props.onModuleChange} />,
     'budget-workspace': (props) => <BudgetOfficerWorkspacePage module={props.module} token={props.token} role={props.role} />,
     'audit-dashboard': (props) => <AuditDashboardWorkspace module={props.module} token={props.token} />,
     'audit-trail-viewer': (props) => <AuditTrailWorkspace module={props.module} token={props.token} />,
@@ -123,6 +124,6 @@ export const moduleRenderers: Partial<Record<string, (props: InternalModuleRende
     'tender-review': (props) => <TenderReviewPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} availableModuleIds={props.availableModuleIds} onModuleChange={props.onModuleChange} initialData={props.moduleData} />,
     'approval-rejection': (props) => <ApprovalRejectionPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} availableModuleIds={props.availableModuleIds} onModuleChange={props.onModuleChange} initialData={props.moduleData} />,
     'high-value-tenders': (props) => <HighValueTendersPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} availableModuleIds={props.availableModuleIds} onModuleChange={props.onModuleChange} initialData={props.moduleData} />,
-    'needs-collection': (props) => <NeedsCollectionModule module={props.module} token={props.token!} role={props.role} />,
+    'needs-collection': (props) => <NeedsAndRequisitionsModule module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} availableModuleIds={props.availableModuleIds} onModuleChange={props.onModuleChange} />,
     'organization-management': (props) => <OrganizationManagementModule module={props.module} token={props.token!} />
 };
