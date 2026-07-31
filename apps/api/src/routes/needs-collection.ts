@@ -140,7 +140,7 @@ needsCollectionRouter.get('/api/needs-collection/analysis', async (req, res) => 
     const { FiscalYear } = req.query;
     if (!FiscalYear) { res.status(400).json({ ErrorMessage: 'FiscalYear is required.' }); return; }
     const result = await pool.query(`SELECT * FROM procurement_workflow.analyze_needs($1)`, [FiscalYear]);
-    res.json({ Items: result.rows });
+    res.json(result.rows);
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'Error fetching analysis.' });
   }
@@ -156,7 +156,7 @@ needsCollectionRouter.get('/api/needs-collection/analysis/category', async (req,
     const { FiscalYear } = req.query;
     if (!FiscalYear) { res.status(400).json({ ErrorMessage: 'FiscalYear is required.' }); return; }
     const result = await pool.query(`SELECT * FROM procurement_workflow.analyze_needs_by_category($1)`, [FiscalYear]);
-    res.json({ Items: result.rows });
+    res.json(result.rows);
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'Error fetching category analysis.' });
   }
@@ -172,7 +172,7 @@ needsCollectionRouter.get('/api/needs-collection/analysis/unit', async (req, res
     const { FiscalYear } = req.query;
     if (!FiscalYear) { res.status(400).json({ ErrorMessage: 'FiscalYear is required.' }); return; }
     const result = await pool.query(`SELECT * FROM procurement_workflow.analyze_needs_by_unit($1)`, [FiscalYear]);
-    res.json({ Items: result.rows });
+    res.json(result.rows);
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'Error fetching unit analysis.' });
   }
@@ -188,7 +188,7 @@ needsCollectionRouter.get('/api/needs-collection/analysis/weighted', async (req,
     const { FiscalYear } = req.query;
     if (!FiscalYear) { res.status(400).json({ ErrorMessage: 'FiscalYear is required.' }); return; }
     const result = await pool.query(`SELECT * FROM procurement_workflow.analyze_needs_weighted($1)`, [FiscalYear]);
-    res.json({ Items: result.rows });
+    res.json(result.rows);
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'Error fetching weighted analysis.' });
   }
@@ -204,7 +204,7 @@ needsCollectionRouter.get('/api/needs-collection/analysis/similar', async (req, 
     const { FiscalYear } = req.query;
     if (!FiscalYear) { res.status(400).json({ ErrorMessage: 'FiscalYear is required.' }); return; }
     const result = await pool.query(`SELECT * FROM procurement_workflow.detect_similar_needs($1)`, [FiscalYear]);
-    res.json({ Items: result.rows });
+    res.json(result.rows);
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'Error detecting similar needs.' });
   }
@@ -220,7 +220,7 @@ needsCollectionRouter.get('/api/needs-collection/analysis/plan-gap', async (req,
     const { FiscalYear } = req.query;
     if (!FiscalYear) { res.status(400).json({ ErrorMessage: 'FiscalYear is required.' }); return; }
     const result = await pool.query(`SELECT * FROM procurement_workflow.analyze_needs_plan_gap($1)`, [FiscalYear]);
-    res.json({ Items: result.rows });
+    res.json(result.rows);
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'Error analyzing plan gap.' });
   }
@@ -237,7 +237,7 @@ needsCollectionRouter.get('/api/needs-collection/analysis/thresholds', async (re
     if (!FiscalYear) { res.status(400).json({ ErrorMessage: 'FiscalYear is required.' }); return; }
     const unitPrice = parseFloat(UnitPrice as string) || 0;
     const result = await pool.query(`SELECT * FROM procurement_workflow.analyze_needs_thresholds($1, $2)`, [FiscalYear, unitPrice]);
-    res.json({ Items: result.rows });
+    res.json(result.rows);
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'Error analyzing thresholds.' });
   }
@@ -253,7 +253,7 @@ needsCollectionRouter.get('/api/needs-collection/analysis/non-submissions', asyn
     const { FiscalYear } = req.query;
     if (!FiscalYear) { res.status(400).json({ ErrorMessage: 'FiscalYear is required.' }); return; }
     const result = await pool.query(`SELECT * FROM procurement_workflow.get_non_submissions($1)`, [FiscalYear]);
-    res.json({ Items: result.rows });
+    res.json(result.rows);
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'Error fetching non-submissions.' });
   }
