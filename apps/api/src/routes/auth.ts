@@ -4,6 +4,7 @@ import { pool } from '../db.js';
 import { signToken, extractPayloadFromRequest, TokenPayload } from '../lib/jwt.js';
 import { hashPassword, verifyPassword } from '../lib/password.js';
 import { config } from '../config.js';
+import { authRateLimiter, registrationRateLimiter } from '../middleware/rate-limit.js';
 
 export const authRouter = Router();
 
@@ -35,6 +36,18 @@ function requireAuth(req: Request): TokenPayload | null {
   return extractPayloadFromRequest(req.headers.authorization);
 }
 
+const ADMIN_ROLES = ['Admin', 'IdentityAdministrator', 'SystemAdministrator', 'ict_admin', 'system_administrator'];
+
+function requireAdmin(req: Request, res: Response): TokenPayload | null {
+  const auth = requireAuth(req);
+  if (!auth) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return null; }
+  if (!auth.role || !ADMIN_ROLES.includes(auth.role)) {
+    res.status(403).json({ ErrorMessage: 'Forbidden: Administrator role required.' });
+    return null;
+  }
+  return auth;
+}
+
 function requireDb(res: Response): boolean {
   if (!pool) {
     res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
@@ -58,7 +71,7 @@ function mapRow(row: Record<string, unknown>): Record<string, unknown> {
 // ─────────────────────────────────────────────
 // 1. POST /api/Auth/internal/login
 // ─────────────────────────────────────────────
-authRouter.post('/api/Auth/internal/login', async (req: Request, res: Response) => {
+authRouter.post('/api/Auth/internal/login', authRateLimiter, async (req: Request, res: Response) => {
   const parsed = loginSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ ErrorMessage: parsed.error.issues[0].message });
@@ -69,7 +82,7 @@ authRouter.post('/api/Auth/internal/login', async (req: Request, res: Response) 
 
   try {
     const userQuery = await pool!.query(
-      'SELECT internal_user_id, email, password_hash, role_name, status FROM identity.internal_users iu JOIN identity.roles r ON r.role_id = iu.role_id WHERE iu.email = $1',
+      'SELECT internal_user_id, email, password_hash, role_name, status, security_stamp FROM identity.internal_users iu JOIN identity.roles r ON r.role_id = iu.role_id WHERE iu.email = $1',
       [Email]
     );
     const dbUser = userQuery.rows[0];
@@ -95,7 +108,8 @@ authRouter.post('/api/Auth/internal/login', async (req: Request, res: Response) 
       email: user.email,
       role: user.role,
       CanonicalRoleKey: user.role,
-      InternalUserId: user.internal_user_id
+      InternalUserId: user.internal_user_id,
+      SecurityStamp: dbUser.security_stamp || undefined
     });
 
     res.cookie('internalAuthToken', token, COOKIE_OPTS);
@@ -115,7 +129,9 @@ authRouter.post('/api/Auth/internal/login', async (req: Request, res: Response) 
 // ─────────────────────────────────────────────
 // 2. POST /api/Auth/internal/register
 // ─────────────────────────────────────────────
-authRouter.post('/api/Auth/internal/register', async (req: Request, res: Response) => {
+authRouter.post('/api/Auth/internal/register', registrationRateLimiter, async (req: Request, res: Response) => {
+  const auth = requireAdmin(req, res);
+  if (!auth) return;
   const parsed = registerSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ ErrorMessage: parsed.error.issues[0].message });
@@ -249,7 +265,7 @@ authRouter.post('/api/Auth/internal/logout', (_req: Request, res: Response) => {
 // ─────────────────────────────────────────────
 // 6. POST /api/Auth/login (vendor)
 // ─────────────────────────────────────────────
-authRouter.post('/api/Auth/login', async (req: Request, res: Response) => {
+authRouter.post('/api/Auth/login', authRateLimiter, async (req: Request, res: Response) => {
   const parsed = loginSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ ErrorMessage: parsed.error.issues[0].message });
@@ -260,7 +276,7 @@ authRouter.post('/api/Auth/login', async (req: Request, res: Response) => {
 
   try {
     const vendorQuery = await pool!.query(
-      'SELECT vendor_id, email, password_hash, company_name, vendor_status FROM identity.vendors WHERE email = $1',
+      'SELECT vendor_id, email, password_hash, company_name, vendor_status, security_stamp FROM identity.vendors WHERE email = $1',
       [Email]
     );
     const dbVendor = vendorQuery.rows[0];
@@ -286,7 +302,8 @@ authRouter.post('/api/Auth/login', async (req: Request, res: Response) => {
       email: vendor.email,
       role: 'Vendor',
       CanonicalRoleKey: 'Vendor',
-      VendorId: vendor.vendor_id
+      VendorId: vendor.vendor_id,
+      SecurityStamp: dbVendor.security_stamp || undefined
     });
 
     res.cookie('vendorAuthToken', token, COOKIE_OPTS);
@@ -316,7 +333,7 @@ const vendorRegisterSchema = z.object({
 // ─────────────────────────────────────────────
 // 7. POST /api/Auth/register (vendor)
 // ─────────────────────────────────────────────
-authRouter.post('/api/Auth/register', async (req: Request, res: Response) => {
+authRouter.post('/api/Auth/register', registrationRateLimiter, async (req: Request, res: Response) => {
   const parsed = vendorRegisterSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ ErrorMessage: parsed.error.issues[0].message });
@@ -376,8 +393,8 @@ authRouter.post('/api/Auth/logout', (_req: Request, res: Response) => {
 // 10. GET /api/Auth/internal/users
 // ─────────────────────────────────────────────
 authRouter.get('/api/Auth/internal/users', async (req: Request, res: Response) => {
-  const auth = requireAuth(req);
-  if (!auth) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = requireAdmin(req, res);
+  if (!auth) return;
   if (!requireDb(res)) return;
 
   try {
@@ -392,8 +409,8 @@ authRouter.get('/api/Auth/internal/users', async (req: Request, res: Response) =
 // 11. PUT /api/Auth/internal/users/:internalUserId
 // ─────────────────────────────────────────────
 authRouter.put('/api/Auth/internal/users/:internalUserId', async (req: Request, res: Response) => {
-  const auth = requireAuth(req);
-  if (!auth) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = requireAdmin(req, res);
+  if (!auth) return;
   if (!requireDb(res)) return;
 
   const { internalUserId } = req.params;
@@ -438,8 +455,8 @@ authRouter.put('/api/Auth/internal/users/:internalUserId', async (req: Request, 
 // 12. PUT /api/Auth/internal/users/:internalUserId/role
 // ─────────────────────────────────────────────
 authRouter.put('/api/Auth/internal/users/:internalUserId/role', async (req: Request, res: Response) => {
-  const auth = requireAuth(req);
-  if (!auth) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = requireAdmin(req, res);
+  if (!auth) return;
   if (!requireDb(res)) return;
 
   const { internalUserId } = req.params;
@@ -465,8 +482,8 @@ authRouter.put('/api/Auth/internal/users/:internalUserId/role', async (req: Requ
 // 13. PUT /api/Auth/internal/users/:internalUserId/status
 // ─────────────────────────────────────────────
 authRouter.put('/api/Auth/internal/users/:internalUserId/status', async (req: Request, res: Response) => {
-  const auth = requireAuth(req);
-  if (!auth) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = requireAdmin(req, res);
+  if (!auth) return;
   if (!requireDb(res)) return;
 
   const { internalUserId } = req.params;
@@ -492,8 +509,8 @@ authRouter.put('/api/Auth/internal/users/:internalUserId/status', async (req: Re
 // 14. DELETE /api/Auth/internal/users/:internalUserId
 // ─────────────────────────────────────────────
 authRouter.delete('/api/Auth/internal/users/:internalUserId', async (req: Request, res: Response) => {
-  const auth = requireAuth(req);
-  if (!auth) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = requireAdmin(req, res);
+  if (!auth) return;
   if (!requireDb(res)) return;
 
   const { internalUserId } = req.params;
@@ -513,15 +530,9 @@ authRouter.delete('/api/Auth/internal/users/:internalUserId', async (req: Reques
 // 15. POST /api/Auth/internal/users/:internalUserId/reset-password
 // ─────────────────────────────────────────────
 authRouter.post('/api/Auth/internal/users/:internalUserId/reset-password', async (req: Request, res: Response) => {
-  const auth = requireAuth(req);
-  if (!auth) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = requireAdmin(req, res);
+  if (!auth) return;
   if (!requireDb(res)) return;
-
-  const adminRoles = ['IdentityAdministrator', 'Admin', 'SystemAdministrator', 'ict_admin', 'system_administrator'];
-  if (!auth.role || !adminRoles.includes(auth.role)) {
-    res.status(403).json({ ErrorMessage: 'Forbidden: Admin role required.' });
-    return;
-  }
 
   const { internalUserId } = req.params;
   const { NewPassword, RequireChange } = req.body;
@@ -563,8 +574,8 @@ authRouter.get('/api/Auth/internal/units', async (req: Request, res: Response) =
 // 17. POST /api/Auth/internal/units
 // ─────────────────────────────────────────────
 authRouter.post('/api/Auth/internal/units', async (req: Request, res: Response) => {
-  const auth = requireAuth(req);
-  if (!auth) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = requireAdmin(req, res);
+  if (!auth) return;
   if (!requireDb(res)) return;
 
   const { UnitId, UnitName, ParentUnitId } = req.body;
@@ -697,8 +708,8 @@ authRouter.get('/api/Auth/roles/:roleId', async (req: Request, res: Response) =>
 // 23. POST /api/Auth/roles
 // ─────────────────────────────────────────────
 authRouter.post('/api/Auth/roles', async (req: Request, res: Response) => {
-  const auth = requireAuth(req);
-  if (!auth) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = requireAdmin(req, res);
+  if (!auth) return;
   if (!requireDb(res)) return;
 
   const { RoleName, Description, Group } = req.body;
@@ -722,8 +733,8 @@ authRouter.post('/api/Auth/roles', async (req: Request, res: Response) => {
 // 24. PUT /api/Auth/roles/:roleId
 // ─────────────────────────────────────────────
 authRouter.put('/api/Auth/roles/:roleId', async (req: Request, res: Response) => {
-  const auth = requireAuth(req);
-  if (!auth) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = requireAdmin(req, res);
+  if (!auth) return;
   if (!requireDb(res)) return;
 
   const { roleId } = req.params;
@@ -748,8 +759,8 @@ authRouter.put('/api/Auth/roles/:roleId', async (req: Request, res: Response) =>
 // 25. DELETE /api/Auth/roles/:roleId
 // ─────────────────────────────────────────────
 authRouter.delete('/api/Auth/roles/:roleId', async (req: Request, res: Response) => {
-  const auth = requireAuth(req);
-  if (!auth) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = requireAdmin(req, res);
+  if (!auth) return;
   if (!requireDb(res)) return;
 
   const { roleId } = req.params;
@@ -810,8 +821,8 @@ authRouter.get('/api/Auth/internal/module-access/roles', async (req: Request, re
 // 28. PUT /api/Auth/internal/module-access/roles
 // ─────────────────────────────────────────────
 authRouter.put('/api/Auth/internal/module-access/roles', async (req: Request, res: Response) => {
-  const auth = requireAuth(req);
-  if (!auth) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = requireAdmin(req, res);
+  if (!auth) return;
   if (!requireDb(res)) return;
 
   const { RoleName, ModuleId, IsEnabled, GrantedBy } = req.body;
@@ -835,8 +846,8 @@ authRouter.put('/api/Auth/internal/module-access/roles', async (req: Request, re
 // 29. DELETE /api/Auth/internal/module-access/roles
 // ─────────────────────────────────────────────
 authRouter.delete('/api/Auth/internal/module-access/roles', async (req: Request, res: Response) => {
-  const auth = requireAuth(req);
-  if (!auth) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = requireAdmin(req, res);
+  if (!auth) return;
   if (!requireDb(res)) return;
 
   const { roleName, moduleId } = req.query;
@@ -860,8 +871,8 @@ authRouter.delete('/api/Auth/internal/module-access/roles', async (req: Request,
 // 30. PUT /api/Auth/internal/module-access/roles/bulk
 // ─────────────────────────────────────────────
 authRouter.put('/api/Auth/internal/module-access/roles/bulk', async (req: Request, res: Response) => {
-  const auth = requireAuth(req);
-  if (!auth) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = requireAdmin(req, res);
+  if (!auth) return;
   if (!requireDb(res)) return;
 
   const { Grants } = req.body;
@@ -889,8 +900,8 @@ authRouter.put('/api/Auth/internal/module-access/roles/bulk', async (req: Reques
 // 31. DELETE /api/Auth/internal/module-access/roles/bulk
 // ─────────────────────────────────────────────
 authRouter.delete('/api/Auth/internal/module-access/roles/bulk', async (req: Request, res: Response) => {
-  const auth = requireAuth(req);
-  if (!auth) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = requireAdmin(req, res);
+  if (!auth) return;
   if (!requireDb(res)) return;
 
   const { RoleName } = req.body;
@@ -935,8 +946,8 @@ authRouter.get('/api/Auth/internal/module-access/users', async (req: Request, re
 // 33. PUT /api/Auth/internal/module-access/users
 // ─────────────────────────────────────────────
 authRouter.put('/api/Auth/internal/module-access/users', async (req: Request, res: Response) => {
-  const auth = requireAuth(req);
-  if (!auth) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = requireAdmin(req, res);
+  if (!auth) return;
   if (!requireDb(res)) return;
 
   const { InternalUserId, ModuleId, IsEnabled, GrantedBy, Reason, OverrideExpiry } = req.body;
@@ -967,8 +978,8 @@ authRouter.put('/api/Auth/internal/module-access/users', async (req: Request, re
 // 34. DELETE /api/Auth/internal/module-access/users
 // ─────────────────────────────────────────────
 authRouter.delete('/api/Auth/internal/module-access/users', async (req: Request, res: Response) => {
-  const auth = requireAuth(req);
-  if (!auth) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = requireAdmin(req, res);
+  if (!auth) return;
   if (!requireDb(res)) return;
 
   const { internalUserId, moduleId } = req.query;
@@ -992,8 +1003,8 @@ authRouter.delete('/api/Auth/internal/module-access/users', async (req: Request,
 // 35. PUT /api/Auth/internal/module-access/users/bulk
 // ─────────────────────────────────────────────
 authRouter.put('/api/Auth/internal/module-access/users/bulk', async (req: Request, res: Response) => {
-  const auth = requireAuth(req);
-  if (!auth) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = requireAdmin(req, res);
+  if (!auth) return;
   if (!requireDb(res)) return;
 
   const { Grants } = req.body;
@@ -1028,8 +1039,8 @@ authRouter.put('/api/Auth/internal/module-access/users/bulk', async (req: Reques
 // 36. DELETE /api/Auth/internal/module-access/users/bulk
 // ─────────────────────────────────────────────
 authRouter.delete('/api/Auth/internal/module-access/users/bulk', async (req: Request, res: Response) => {
-  const auth = requireAuth(req);
-  if (!auth) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = requireAdmin(req, res);
+  if (!auth) return;
   if (!requireDb(res)) return;
 
   const { InternalUserId } = req.body;

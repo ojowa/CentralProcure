@@ -37,6 +37,8 @@ import { cgisApprovalRouter } from './routes/cgis-approval.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { csrfMiddleware } from './middleware/csrf.js';
 import { authMiddleware } from './middleware/auth.js';
+import { securityStampMiddleware } from './middleware/security-stamp.js';
+import { sessionIdleTimeoutMiddleware } from './middleware/session-idle.js';
 
 export const createApp = () => {
   const app = express();
@@ -56,6 +58,8 @@ export const createApp = () => {
 
   app.use(csrfMiddleware);
   app.use(authMiddleware);
+  app.use(securityStampMiddleware);
+  app.use(sessionIdleTimeoutMiddleware);
 
   app.use(systemRouter);
   app.use(authRouter);

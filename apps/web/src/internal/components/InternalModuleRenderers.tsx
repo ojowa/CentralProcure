@@ -34,8 +34,8 @@ import { TenderReviewPage } from './TenderReviewPage';
 import { ApprovalRejectionPage } from './ApprovalRejectionPage';
 import { HighValueTendersPage } from './HighValueTendersPage';
 import { ProcurementMethodDeterminationModule } from './ProcurementMethodDeterminationModule';
-import { NeedsCollectionModule } from './NeedsCollectionModule';
 import { NeedsAndRequisitionsModule } from './NeedsAndRequisitionsModule';
+import { NeedsSubmissionModule } from './NeedsSubmissionModule';
 import { OrganizationManagementModule } from './OrganizationManagementModule';
 
 export type InternalModuleRendererProps = {
@@ -125,5 +125,6 @@ export const moduleRenderers: Partial<Record<string, (props: InternalModuleRende
     'approval-rejection': (props) => <ApprovalRejectionPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} availableModuleIds={props.availableModuleIds} onModuleChange={props.onModuleChange} initialData={props.moduleData} />,
     'high-value-tenders': (props) => <HighValueTendersPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} availableModuleIds={props.availableModuleIds} onModuleChange={props.onModuleChange} initialData={props.moduleData} />,
     'needs-collection': (props) => <NeedsAndRequisitionsModule module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} availableModuleIds={props.availableModuleIds} onModuleChange={props.onModuleChange} />,
+    'needs-submission': (props) => <NeedsSubmissionModule module={props.module} token={props.token!} role={props.role} />,
     'organization-management': (props) => <OrganizationManagementModule module={props.module} token={props.token!} />
 };
