@@ -42,9 +42,30 @@ yearlyAppsRouter.get('/api/yearly-apps', async (req, res) => {
     const result = await pool.query(
       `SELECT
         ya.yearly_app_id AS "YearlyAppId",
-        ya.fiscal_year AS "Year",
+        ya.fiscal_year AS "FiscalYear",
         ya.title AS "Title",
         ya.status AS "Status",
+        COALESCE((
+          SELECT COUNT(*) FROM procurement_workflow.procurement_plans pp WHERE pp.yearly_app_id = ya.yearly_app_id
+        ), 0) AS "PlansCount",
+        COALESCE((
+          SELECT COUNT(*) FROM procurement_workflow.procurement_plans pp
+          WHERE pp.yearly_app_id = ya.yearly_app_id AND pp.status = 'Approved'
+        ), 0) AS "IncludedPlansCount",
+        COALESCE((
+          SELECT COUNT(*) FROM procurement_workflow.procurement_plans pp
+          WHERE pp.yearly_app_id = ya.yearly_app_id AND pp.status != 'Approved'
+        ), 0) AS "PendingPlansCount",
+        COALESCE((
+          SELECT SUM(pi.estimated_cost) FROM procurement_workflow.procurement_plan_items pi
+          JOIN procurement_workflow.procurement_plans pp ON pp.plan_id = pi.plan_id
+          WHERE pp.yearly_app_id = ya.yearly_app_id
+        ), 0) AS "TotalBudget",
+        COALESCE((
+          SELECT COUNT(*) FROM procurement_workflow.procurement_plan_items pi
+          JOIN procurement_workflow.procurement_plans pp ON pp.plan_id = pi.plan_id
+          WHERE pp.yearly_app_id = ya.yearly_app_id
+        ), 0) AS "ItemsCount",
         ya.created_at AS "CreatedAt",
         ya.updated_at AS "UpdatedAt"
        FROM procurement_workflow.yearly_apps ya
@@ -79,10 +100,12 @@ yearlyAppsRouter.get('/api/yearly-apps/:yearlyAppId', async (req, res) => {
     const result = await pool.query(
       `SELECT
         ya.yearly_app_id AS "YearlyAppId",
-        ya.fiscal_year AS "Year",
+        ya.fiscal_year AS "FiscalYear",
         ya.title AS "Title",
-        ya.notes AS "Description",
+        ya.notes AS "Notes",
         ya.status AS "Status",
+        ya.submitted_at AS "SubmittedAt",
+        ya.approved_at AS "ApprovedAt",
         ya.created_at AS "CreatedAt",
         ya.updated_at AS "UpdatedAt"
        FROM procurement_workflow.yearly_apps ya
@@ -93,9 +116,51 @@ yearlyAppsRouter.get('/api/yearly-apps/:yearlyAppId', async (req, res) => {
       res.status(404).json({ ErrorMessage: 'Yearly APP not found.' }); return;
     }
 
+    const app = result.rows[0];
+
+    const plansResult = await pool.query(
+      `SELECT
+        pp.plan_id AS "PlanId",
+        pp.plan_title AS "PlanTitle",
+        pp.department AS "Department",
+        pp.fiscal_year AS "FiscalYear",
+        pp.status AS "Status",
+        COALESCE((
+          SELECT wi.current_stage_key FROM procurement_workflow.workflow_instances wi
+          WHERE wi.entity_type = 'procurement_plan' AND wi.entity_id = pp.plan_id
+          ORDER BY wi.created_at DESC LIMIT 1
+        ), '') AS "CurrentStageKey",
+        COALESCE((
+          SELECT wi.current_stage_title FROM procurement_workflow.workflow_instances wi
+          WHERE wi.entity_type = 'procurement_plan' AND wi.entity_id = pp.plan_id
+          ORDER BY wi.created_at DESC LIMIT 1
+        ), '') AS "CurrentStageTitle",
+        COALESCE((
+          SELECT SUM(pi.estimated_cost) FROM procurement_workflow.procurement_plan_items pi WHERE pi.plan_id = pp.plan_id
+        ), 0) AS "TotalBudget",
+        COALESCE((
+          SELECT COUNT(*) FROM procurement_workflow.procurement_plan_items pi WHERE pi.plan_id = pp.plan_id
+        ), 0) AS "ItemCount",
+        pp.created_at AS "CreatedAt"
+       FROM procurement_workflow.procurement_plans pp
+       WHERE pp.yearly_app_id = $1
+       ORDER BY pp.created_at DESC`, [yearlyAppId]
+    );
+
+    const includedPlans = plansResult.rows.filter((p: any) => p.Status === 'Approved');
+    const pendingPlans = plansResult.rows.filter((p: any) => p.Status !== 'Approved');
+
     res.json({
-      ...result.rows[0],
-      Items: [],
+      App: {
+        ...app,
+        TotalBudget: plansResult.rows.reduce((sum: number, p: any) => sum + (parseFloat(p.TotalBudget) || 0), 0),
+        PlansCount: plansResult.rows.length,
+        IncludedPlansCount: includedPlans.length,
+        PendingPlansCount: pendingPlans.length,
+        ItemsCount: plansResult.rows.reduce((sum: number, p: any) => sum + (parseInt(p.ItemCount) || 0), 0),
+      },
+      IncludedPlans: includedPlans,
+      PendingPlans: pendingPlans,
     });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching the yearly APP.' });

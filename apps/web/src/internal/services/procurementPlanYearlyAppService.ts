@@ -11,7 +11,8 @@ import { jsonHeaders, parseResponse, yearlyAppBaseUrl } from './procurementPlanS
 
 export const fetchYearlyApps = async (token: string): Promise<YearlyAppSummary[]> => {
   const response = await fetch(yearlyAppBaseUrl, { headers: { Authorization: `Bearer ${token}` } });
-  return parseResponse<YearlyAppSummary[]>(response);
+  const data = await parseResponse<{ Items: YearlyAppSummary[]; TotalCount?: number; Page?: number; PageSize?: number }>(response);
+  return data.Items ?? [];
 };
 
 export const fetchYearlyAppDetails = async (token: string, yearlyAppId: string): Promise<YearlyAppDetailsResponse> => {
