@@ -17,10 +17,6 @@ import {
 
 const moduleFetchSkipList = new Set<string>([
   'dashboard',
-  'create-requisition',
-  'requisition-history',
-  'requisition-tracking',
-  'requisition-management',
   'workflow-blueprint',
   'annual-procurement-plan',
   'procurement-method-determination',

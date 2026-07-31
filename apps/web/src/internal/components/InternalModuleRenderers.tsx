@@ -7,9 +7,6 @@ import { AuditTrailWorkspace } from './AuditTrailWorkspace';
 import { ComplianceReportsWorkspace } from './ComplianceReportsWorkspace';
 import { PaymentTrackingModulePage } from './PaymentTrackingModulePage';
 import { PostAwardInspectionModulePage } from './PostAwardInspectionModulePage';
-import { CreateRequisitionPage } from './CreateRequisitionPage';
-import { RequisitionHistoryPage } from './RequisitionHistoryPage';
-import { RequisitionTrackingPage } from './RequisitionTrackingPage';
 import { ProfilePage } from './ProfilePage';
 import { WorkflowConfigurationModulePage } from './WorkflowConfigurationModulePage';
 import { ProcurementPlanModule } from './ProcurementPlanModule';
@@ -88,10 +85,6 @@ export const renderGenericModuleWorkspace = ({
 };
 
 export const moduleRenderers: Partial<Record<string, (props: InternalModuleRendererProps) => React.ReactNode>> = {
-    'create-requisition': (props) => <CreateRequisitionPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} availableModuleIds={props.availableModuleIds} onModuleChange={props.onModuleChange} />,
-    'requisition-history': (props) => <RequisitionHistoryPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} availableModuleIds={props.availableModuleIds} onModuleChange={props.onModuleChange} />,
-    'requisition-tracking': (props) => <RequisitionTrackingPage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} availableModuleIds={props.availableModuleIds} onModuleChange={props.onModuleChange} />,
-    'requisition-management': (props) => <NeedsAndRequisitionsModule module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} availableModuleIds={props.availableModuleIds} onModuleChange={props.onModuleChange} />,
     'budget-workspace': (props) => <BudgetOfficerWorkspacePage module={props.module} token={props.token} role={props.role} />,
     'audit-dashboard': (props) => <AuditDashboardWorkspace module={props.module} token={props.token} />,
     'audit-trail-viewer': (props) => <AuditTrailWorkspace module={props.module} token={props.token} />,

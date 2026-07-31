@@ -104,33 +104,6 @@ export const roles: RoleDefinition[] = [
 
 const requisitionDepartmentModules: InternalModule[] = [
   {
-    id: 'create-requisition',
-    title: 'Create Requisition',
-    section: 'Requisitions',
-    description: 'Initiate departmental procurement requests with budget and requirement metadata.',
-    microservice: 'Requisition Service',
-    controlPurpose: 'Controlled initiation of procurement.',
-    actions: ['requisition.create']
-  },
-  {
-    id: 'requisition-history',
-    title: 'Requisition History',
-    section: 'Requisitions',
-    description: 'View historical department requests and current workflow states.',
-    microservice: 'Requisition Service',
-    controlPurpose: 'Visibility without unauthorized control.',
-    actions: ['requisition.view']
-  },
-  {
-    id: 'requisition-tracking',
-    title: 'Requisition Tracking',
-    section: 'Requisitions',
-    description: 'Track routing progress across procurement, evaluation, and approvals.',
-    microservice: 'Audit and Compliance Service',
-    controlPurpose: 'Read-only timeline for accountable traceability.',
-    actions: ['requisition.track']
-  },
-  {
     id: 'department-head-review',
     title: 'Department Head Review',
     section: 'Requisitions',
@@ -240,15 +213,6 @@ const postAwardModules: InternalModule[] = [
 ];
 
 const oversightModules: InternalModule[] = [
-  {
-    id: 'requisition-management',
-    title: 'Requisition Management',
-    section: 'Governance & Oversight',
-    description: 'Administrative control over all departmental procurement requests, including hard deletion and state overrides.',
-    microservice: 'Requisition Service',
-    controlPurpose: 'Ultimate administrative control over requisition lifecycle.',
-    actions: ['requisition.delete', 'requisition.view.all']
-  },
   {
     id: 'threshold-configuration',
     title: 'Threshold Configuration',
