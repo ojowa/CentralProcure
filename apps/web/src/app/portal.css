@@ -3961,7 +3961,7 @@
 }
 
 .dh-layout--sidebar-narrow {
-  grid-template-columns: 1fr 320px;
+  grid-template-columns: 1fr 260px;
 }
 
 .dh-queue-panel {

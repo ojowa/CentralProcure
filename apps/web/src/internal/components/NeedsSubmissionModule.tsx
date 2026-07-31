@@ -200,30 +200,30 @@ export const NeedsSubmissionModule: React.FC<NeedsSubmissionModuleProps> = ({ mo
                 {canEdit && <button className="app-btn app-btn--primary app-btn--sm" onClick={addItem}><Plus size={14} className="mr-1" /> Add Item</button>}
               </div>
               <div className="app-table-wrapper">
-                <table className="app-table app-table--compact">
+                <table className="app-table">
                   <thead>
                     <tr>
-                      <th style={{ width: '40px' }}>#</th>
+                      <th style={{ width: '36px' }}>#</th>
                       <th>Description</th>
-                      <th style={{ width: '120px' }}>Type</th>
-                      <th style={{ width: '80px' }}>Qty</th>
-                      <th style={{ width: '80px' }}>Unit</th>
-                      <th style={{ width: '110px' }}>Priority</th>
-                      {canEdit && <th style={{ width: '50px' }}></th>}
+                      <th style={{ width: '130px' }}>Type</th>
+                      <th style={{ width: '90px' }}>Qty</th>
+                      <th style={{ width: '90px' }}>Unit</th>
+                      <th style={{ width: '130px' }}>Priority</th>
+                      {canEdit && <th style={{ width: '40px' }}></th>}
                     </tr>
                   </thead>
                   <tbody>
                     {formItems.map((item, idx) => (
                       <tr key={idx}>
-                        <td className="text-xs text-slate-400 font-mono">{idx + 1}</td>
+                        <td className="text-xs text-slate-400 font-mono text-center">{idx + 1}</td>
                         <td><input className="app-form__input app-form__input--sm" value={item.Description} onChange={e => updateItem(idx, 'Description', e.target.value)} disabled={!canEdit} placeholder="Item description" /></td>
                         <td>
                           <select className="app-form__select app-form__select--sm" value={item.ProcurementType} onChange={e => updateItem(idx, 'ProcurementType', e.target.value)} disabled={!canEdit}>
                             <option value="Goods">Goods</option><option value="Works">Works</option><option value="Services">Services</option>
                           </select>
                         </td>
-                        <td><input type="number" className="app-form__input app-form__input--sm" value={item.Quantity} onChange={e => updateItem(idx, 'Quantity', Number(e.target.value))} disabled={!canEdit} min={1} /></td>
-                        <td><input className="app-form__input app-form__input--sm" value={item.Unit} onChange={e => updateItem(idx, 'Unit', e.target.value)} disabled={!canEdit} placeholder="Pcs" /></td>
+                        <td><input type="number" className="app-form__input app-form__input--sm" value={item.Quantity} onChange={e => updateItem(idx, 'Quantity', Number(e.target.value))} disabled={!canEdit} min={1} style={{ textAlign: 'center', fontWeight: 600 }} /></td>
+                        <td><input className="app-form__input app-form__input--sm" value={item.Unit} onChange={e => updateItem(idx, 'Unit', e.target.value)} disabled={!canEdit} placeholder="Pcs" style={{ textAlign: 'center' }} /></td>
                         <td>
                           <select className="app-form__select app-form__select--sm" value={item.Priority} onChange={e => updateItem(idx, 'Priority', e.target.value)} disabled={!canEdit}>
                             <option value="Normal">Normal</option><option value="Urgent">Urgent</option><option value="Strategic">Strategic</option>
@@ -247,28 +247,28 @@ export const NeedsSubmissionModule: React.FC<NeedsSubmissionModuleProps> = ({ mo
             </div>
           </div>
           <div className="dh-detail-panel">
-            <div className="app-card app-card--sticky">
-              <div className="app-card__header"><h3 className="app-card__title">{isCreating ? 'New Submission' : 'Status'}</h3></div>
-              <div className="app-info-list" style={{ flex: 1, overflowY: 'auto' }}>
+            <div className="app-card app-card--sticky" style={{ padding: '16px' }}>
+              <h3 className="text-sm font-bold text-slate-700 mb-3">{isCreating ? 'New Submission' : 'Status'}</h3>
+              <div className="space-y-2 text-xs mb-4">
                 {selected ? (
                   <>
-                    <div className="app-info-item"><span className="app-info-item__label">Status</span><span className={statusBadge(selected.Status)}>{selected.Status}</span></div>
-                    <div className="app-info-item"><span className="app-info-item__label">Unit</span><span className="app-info-item__value">{selected.UnitName}</span></div>
-                    <div className="app-info-item"><span className="app-info-item__label">Fiscal Year</span><span className="app-info-item__value">{selected.FiscalYear}</span></div>
-                    <div className="app-info-item"><span className="app-info-item__label">Items</span><span className="app-info-item__value">{formItems.length}</span></div>
-                    {selected.SubmittedAt && <div className="app-info-item"><span className="app-info-item__label">Submitted</span><span className="app-info-item__value">{formatDateTimeShort(selected.SubmittedAt)}</span></div>}
+                    <div className="flex justify-between items-center"><span className="text-slate-500">Status</span><span className={statusBadge(selected.Status)}>{selected.Status}</span></div>
+                    <div className="flex justify-between items-center"><span className="text-slate-500">Unit</span><span className="font-medium text-slate-700">{selected.UnitName}</span></div>
+                    <div className="flex justify-between items-center"><span className="text-slate-500">Year</span><span className="font-medium text-slate-700">{selected.FiscalYear}</span></div>
+                    <div className="flex justify-between items-center"><span className="text-slate-500">Items</span><span className="font-semibold text-emerald-700">{formItems.length}</span></div>
+                    {selected.SubmittedAt && <div className="flex justify-between items-center"><span className="text-slate-500">Submitted</span><span className="text-slate-600">{formatDateTimeShort(selected.SubmittedAt)}</span></div>}
                   </>
                 ) : (
                   <>
-                    <div className="app-info-item"><span className="app-info-item__label">Status</span><span className={statusBadge('Draft')}>Draft</span></div>
-                    <div className="app-info-item"><span className="app-info-item__label">Fiscal Year</span><span className="app-info-item__value">{formFiscalYear}</span></div>
-                    <div className="app-info-item"><span className="app-info-item__label">Items</span><span className="app-info-item__value">{formItems.length}</span></div>
+                    <div className="flex justify-between items-center"><span className="text-slate-500">Status</span><span className={statusBadge('Draft')}>Draft</span></div>
+                    <div className="flex justify-between items-center"><span className="text-slate-500">Year</span><span className="font-medium text-slate-700">{formFiscalYear}</span></div>
+                    <div className="flex justify-between items-center"><span className="text-slate-500">Items</span><span className="font-semibold text-emerald-700">{formItems.length}</span></div>
                   </>
                 )}
               </div>
-              <div className="app-card__footer" style={{ flexDirection: 'column', gap: '0.75rem' }}>
-                {canSubmit && <button className="app-btn app-btn--success app-btn--lg" onClick={handleSubmit} disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : <Send className="app-btn__icon" />} Submit Needs</button>}
-                {canEdit && <button className="app-btn app-btn--secondary" onClick={handleSave} disabled={loading}><Save className="app-btn__icon" /> {isCreating ? 'Create Draft' : 'Save Draft'}</button>}
+              <div className="space-y-2">
+                {canSubmit && <button className="app-btn app-btn--success app-btn--sm w-full" onClick={handleSubmit} disabled={loading}>{loading ? <Loader2 className="animate-spin" size={14} /> : <Send size={14} />} Submit</button>}
+                {canEdit && <button className="app-btn app-btn--secondary app-btn--sm w-full" onClick={handleSave} disabled={loading}><Save size={14} /> {isCreating ? 'Create Draft' : 'Save Draft'}</button>}
               </div>
             </div>
           </div>
