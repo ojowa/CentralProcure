@@ -48,10 +48,7 @@ const roleDashboardConfig: Partial<Record<RoleKey, {
       { label: 'Approved', value: '8', trend: '67% success rate', icon: <CheckCircle /> }
     ],
     quickActions: [
-      { label: 'Needs Assessment', moduleId: 'needs-collection', icon: <FileText /> },
-      { label: 'Create New Requisition', moduleId: 'create-requisition', icon: <Zap /> },
-      { label: 'View Requisition History', moduleId: 'requisition-history', icon: <Clock /> },
-      { label: 'Track Requests', moduleId: 'requisition-tracking', icon: <TrendingUp /> }
+      { label: 'Needs Assessment', moduleId: 'needs-collection', icon: <FileText /> }
     ],
     alerts: [
       { type: 'warning', message: '2 requisitions awaiting departmental endorsement' }
@@ -67,8 +64,7 @@ const roleDashboardConfig: Partial<Record<RoleKey, {
     ],
     quickActions: [
       { label: 'Needs Assessment', moduleId: 'needs-collection', icon: <Shield /> },
-      { label: 'Review Pending Requisitions', moduleId: 'department-head-review', icon: <Shield /> },
-      { label: 'View Team History', moduleId: 'requisition-history', icon: <Clock /> }
+      { label: 'Review Pending Requisitions', moduleId: 'department-head-review', icon: <Shield /> }
     ],
     alerts: [
       { type: 'warning', message: '3 requisitions require urgent review' }

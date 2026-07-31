@@ -17,7 +17,6 @@ import {
 
 const moduleFetchSkipList = new Set<string>([
   'dashboard',
-  'workflow-blueprint',
   'annual-procurement-plan',
   'procurement-method-determination',
   'create-tender',
@@ -30,6 +29,7 @@ const moduleFetchSkipList = new Set<string>([
   'vendor-registration-approval',
   'user-profile',
   'needs-collection',
+  'needs-submission',
   'organization-management'
 ]);
 

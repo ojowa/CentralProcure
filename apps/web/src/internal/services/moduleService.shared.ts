@@ -26,10 +26,6 @@ export const serviceBaseUrls = {
 
 const resolveModuleUrl = (moduleId: string): string => {
   switch (moduleId) {
-    case 'create-requisition':
-    case 'requisition-history':
-    case 'requisition-tracking':
-      return `${serviceBaseUrls.workflow}/api/requisitions`;
     case 'annual-procurement-plan':
     case 'procurement-planning-committee':
       return `${serviceBaseUrls.workflow}/api/procurement-plans`;
