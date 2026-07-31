@@ -102,7 +102,25 @@ needsCollectionRouter.post('/api/needs-collection', async (req, res) => {
       }
     }
 
-    res.status(201).json(collection);
+    const fullResult = await pool.query(
+      `SELECT
+        nc.collection_id AS "CollectionId",
+        nc.title AS "Title",
+        nc.fiscal_year AS "FiscalYear",
+        nc.unit_id AS "UnitId",
+        ou.unit_name AS "UnitName",
+        nc.status AS "Status",
+        nc.remarks AS "Remarks",
+        nc.created_by AS "CreatedBy",
+        nc.created_at AS "CreatedAt",
+        nc.updated_at AS "UpdatedAt",
+        (SELECT COUNT(*) FROM procurement_workflow.needs_collection_items nci WHERE nci.collection_id = nc.collection_id)::INT AS "ItemCount"
+       FROM procurement_workflow.needs_collection nc
+       LEFT JOIN identity.organizational_units ou ON nc.unit_id = ou.unit_id
+       WHERE nc.collection_id = $1`, [collection.CollectionId]
+    );
+
+    res.status(201).json(fullResult.rows[0]);
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'Error creating collection.' });
   }
@@ -326,8 +344,17 @@ needsCollectionRouter.post('/api/needs-collection/assessments', async (req, res)
     }
 
     const detail = await pool.query(
-      `SELECT assessment_id AS "AssessmentId", fiscal_year AS "FiscalYear", status AS "Status", created_at AS "CreatedAt"
-       FROM procurement_workflow.needs_assessment WHERE assessment_id = $1`, [assessmentId]
+      `SELECT
+        na.assessment_id AS "AssessmentId",
+        na.fiscal_year AS "FiscalYear",
+        na.status AS "Status",
+        na.remarks AS "Remarks",
+        na.assessed_by AS "AssessedBy",
+        na.assessed_at AS "AssessedAt",
+        na.created_at AS "CreatedAt",
+        (SELECT COUNT(*) FROM procurement_workflow.needs_assessment_items nai WHERE nai.assessment_id = na.assessment_id)::INT AS "ItemCount"
+       FROM procurement_workflow.needs_assessment na
+       WHERE na.assessment_id = $1`, [assessmentId]
     );
 
     // Advance workflow: needs_assessment → budget_allocation_and_confirmation
@@ -577,7 +604,15 @@ needsCollectionRouter.post('/api/needs-collection/assessments/:id/decision', asy
        SET status = $1, remarks = COALESCE(NULLIF($2, ''), remarks),
            assessed_by = $3, assessed_at = NOW(), updated_at = NOW()
        WHERE assessment_id = $4 AND status = 'Draft'
-       RETURNING assessment_id AS "AssessmentId", status AS "Status", assessed_at AS "AssessedAt"`,
+       RETURNING
+        assessment_id AS "AssessmentId",
+        fiscal_year AS "FiscalYear",
+        status AS "Status",
+        remarks AS "Remarks",
+        assessed_by AS "AssessedBy",
+        assessed_at AS "AssessedAt",
+        created_at AS "CreatedAt",
+        (SELECT COUNT(*) FROM procurement_workflow.needs_assessment_items nai WHERE nai.assessment_id = $4)::INT AS "ItemCount"`,
       [Decision, Remarks || '', auth!.sub, id]
     );
 
@@ -604,7 +639,16 @@ needsCollectionRouter.put('/api/needs-collection/assessments/:id', async (req, r
       `UPDATE procurement_workflow.needs_assessment
        SET remarks = COALESCE(NULLIF($1, ''), remarks), updated_at = NOW()
        WHERE assessment_id = $2 AND status = 'Draft'
-       RETURNING assessment_id AS "AssessmentId", remarks AS "Remarks", updated_at AS "UpdatedAt"`,
+       RETURNING
+        assessment_id AS "AssessmentId",
+        fiscal_year AS "FiscalYear",
+        status AS "Status",
+        remarks AS "Remarks",
+        assessed_by AS "AssessedBy",
+        assessed_at AS "AssessedAt",
+        created_at AS "CreatedAt",
+        updated_at AS "UpdatedAt",
+        (SELECT COUNT(*) FROM procurement_workflow.needs_assessment_items nai WHERE nai.assessment_id = $2)::INT AS "ItemCount"`,
       [Remarks || '', id]
     );
 

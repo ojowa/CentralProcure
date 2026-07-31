@@ -188,10 +188,12 @@ yearlyAppsRouter.post('/api/yearly-apps', async (req, res) => {
        VALUES ($1, $2, $3, 'Draft', NOW(), NOW())
        RETURNING
         yearly_app_id AS "YearlyAppId",
-        fiscal_year AS "Year",
+        fiscal_year AS "FiscalYear",
         title AS "Title",
+        notes AS "Notes",
         status AS "Status",
-        created_at AS "CreatedAt"`,
+        created_at AS "CreatedAt",
+        updated_at AS "UpdatedAt"`,
       [Year, Title, Notes || '']
     );
 
@@ -226,7 +228,7 @@ yearlyAppsRouter.put('/api/yearly-apps/:yearlyAppId', async (req, res) => {
        WHERE yearly_app_id = $5
        RETURNING
         yearly_app_id AS "YearlyAppId",
-        fiscal_year AS "Year",
+        fiscal_year AS "FiscalYear",
         title AS "Title",
         status AS "Status",
         updated_at AS "UpdatedAt"`,
@@ -256,13 +258,14 @@ yearlyAppsRouter.post('/api/yearly-apps/:yearlyAppId/submit', async (req, res) =
 
     const result = await pool.query(
       `UPDATE procurement_workflow.yearly_apps
-       SET status = 'Submitted', updated_at = NOW()
+       SET status = 'Submitted', submitted_at = NOW(), updated_at = NOW()
        WHERE yearly_app_id = $1 AND status = 'Draft'
        RETURNING
         yearly_app_id AS "YearlyAppId",
-        fiscal_year AS "Year",
+        fiscal_year AS "FiscalYear",
         title AS "Title",
-        status AS "Status",
+        status AS "AppStatus",
+        submitted_at AS "SubmittedAt",
         updated_at AS "UpdatedAt"`,
       [yearlyAppId]
     );
@@ -271,7 +274,13 @@ yearlyAppsRouter.post('/api/yearly-apps/:yearlyAppId/submit', async (req, res) =
       res.status(400).json({ ErrorMessage: 'APP not found or cannot be submitted in current status.' }); return;
     }
 
-    res.json(result.rows[0]);
+    res.json({
+      ...result.rows[0],
+      Message: 'Yearly APP submitted for approval.',
+      StageKey: 'submitted',
+      StageTitle: 'Submitted',
+      WorkflowStatus: 'Active',
+    });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred submitting the yearly APP.' });
   }
@@ -329,9 +338,9 @@ yearlyAppsRouter.post('/api/yearly-apps/:yearlyAppId/recommend-for-approval', as
        WHERE yearly_app_id = $1 AND status = 'Submitted'
        RETURNING
         yearly_app_id AS "YearlyAppId",
-        fiscal_year AS "Year",
+        fiscal_year AS "FiscalYear",
         title AS "Title",
-        status AS "Status",
+        status AS "AppStatus",
         updated_at AS "UpdatedAt"`,
       [yearlyAppId]
     );
@@ -340,7 +349,13 @@ yearlyAppsRouter.post('/api/yearly-apps/:yearlyAppId/recommend-for-approval', as
       res.status(400).json({ ErrorMessage: 'APP not found or cannot be recommended in current status.' }); return;
     }
 
-    res.json(result.rows[0]);
+    res.json({
+      ...result.rows[0],
+      Message: 'Yearly APP recommended for approval.',
+      StageKey: 'recommended',
+      StageTitle: 'Recommended',
+      WorkflowStatus: 'Active',
+    });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred recommending the yearly APP.' });
   }

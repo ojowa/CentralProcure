@@ -183,12 +183,13 @@ export const fetchNonSubmissions = (token: string, fiscalYear: number) =>
   send<NeedsNonSubmission[]>(baseUrl, `/analysis/non-submissions?FiscalYear=${fiscalYear}`, token, { method: 'GET' });
 
 // ── Assessment API ────────────────────────────
-export const fetchAssessments = (token: string, params?: { FiscalYear?: number; Status?: string }) => {
+export const fetchAssessments = async (token: string, params?: { FiscalYear?: number; Status?: string }) => {
   const query = new URLSearchParams();
   if (params?.FiscalYear) query.append('FiscalYear', String(params.FiscalYear));
   if (params?.Status) query.append('Status', params.Status);
   const qs = query.toString();
-  return send<NeedsAssessmentSummary[]>(`${baseUrl}/assessments`, qs ? `?${qs}` : '', token, { method: 'GET' });
+  const data = await send<{ Items: NeedsAssessmentSummary[] }>(`${baseUrl}/assessments`, qs ? `?${qs}` : '', token, { method: 'GET' });
+  return data.Items ?? [];
 };
 
 export const fetchAssessmentDetail = (id: string, token: string) =>
