@@ -41,7 +41,7 @@ DROP TABLE IF EXISTS procurement_workflow.procurement_complaints CASCADE;
 -- ─────────────────────────────────────────────
 -- 4. Add deprecation comments to legacy tables still in schema
 -- ─────────────────────────────────────────────
-COMMENT ON TABLE procurement_workflow.closeouts IS 'DEPRECATED: Use procurement_workflow.procurement_closeouts instead. This table is retained for backward compatibility only.';
+COMMENT ON TABLE post_award.closeouts IS 'DEPRECATED: Use procurement_workflow.procurement_closeouts instead. This table is retained for backward compatibility only.';
 
 COMMENT ON TABLE procurement_workflow.budget_appropriations IS 'DEPRECATED: Use post_award.appropriations instead. This table is retained for backward compatibility only.';
 COMMENT ON TABLE procurement_workflow.budget_releases IS 'DEPRECATED: Use post_award.releases instead. This table is retained for backward compatibility only.';
