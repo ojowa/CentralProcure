@@ -19,7 +19,6 @@ import { ContractManagementModule } from './ContractManagementModule';
 import { ContractAwardModule } from './ContractAwardModule';
 import { BppEscalationModule } from './BppEscalationModule';
 import { VendorRegistrationApprovalModule } from './VendorRegistrationApprovalModule';
-import { AdminRequisitionManagementPage } from './AdminRequisitionManagementPage';
 import { BudgetOfficerWorkspacePage } from './BudgetOfficerWorkspacePage';
 import { DepartmentHeadReviewModule } from './DepartmentHeadReviewModule';
 import { ThresholdConfigurationModule } from './ThresholdConfigurationModule';
