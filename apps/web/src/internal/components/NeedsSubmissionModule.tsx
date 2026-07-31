@@ -15,8 +15,8 @@ import {
 } from '../services/needsCollectionService';
 import { formatDateTimeShort } from '../utils/procureUtils';
 import {
-  FileText, Plus, ArrowLeft, Save, Send, Trash2,
-  Search, Building2, Package, Loader2, ClipboardList
+  Plus, ArrowLeft, Save, Send, Trash2,
+  Search, Package, Loader2
 } from 'lucide-react';
 
 interface NeedsSubmissionModuleProps {
@@ -94,15 +94,16 @@ export const NeedsSubmissionModule: React.FC<NeedsSubmissionModuleProps> = ({ mo
     if (!formTitle.trim()) { setError('Title is required.'); return; }
     setLoading(true); clearMessages();
     try {
-      const payload = { Title: formTitle, FiscalYear: formFiscalYear, Remarks: formRemarks, Items: formItems };
+      const payload = { Title: formTitle, FiscalYear: formFiscalYear, Remarks: formRemarks, Items: [...formItems] };
       if (selected) {
         await updateCollection(selected.CollectionId, token, payload);
         setSuccess('Collection updated.');
       } else {
         await createCollection(token, payload);
         setSuccess('Collection created.');
+        setIsCreating(false);
       }
-      setView('list'); setIsCreating(false);
+      setView('list');
     } catch (err: any) { setError(err.message); }
     finally { setLoading(false); }
   };
@@ -162,8 +163,8 @@ export const NeedsSubmissionModule: React.FC<NeedsSubmissionModuleProps> = ({ mo
         </header>
         {error && <div className="app-alert app-alert--error mb-4">{error}</div>}
         {success && <div className="app-alert app-alert--success mb-4">{success}</div>}
-        <div className="dh-layout" style={{ minHeight: 'calc(100vh - 220px)' }}>
-          <div className="dh-queue-panel" style={{ flex: 1.5 }}>
+        <div className="dh-layout">
+          <div className="dh-queue-panel">
             <div className="app-card">
               <div className="app-form-grid p-6">
                 <div className="app-form-group col-span-2">
@@ -224,23 +225,31 @@ export const NeedsSubmissionModule: React.FC<NeedsSubmissionModuleProps> = ({ mo
               </div>
             </div>
           </div>
-          <div className="dh-detail-panel" style={{ maxWidth: '320px', flex: '0 0 320px', display: 'flex', flexDirection: 'column', height: '100%' }}>
-            {selected && (
-              <div className="app-card" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <div className="app-card__header"><h3 className="app-card__title">Status</h3></div>
-                <div className="app-info-list" style={{ flex: 1, overflowY: 'auto' }}>
-                  <div className="app-info-item"><span className="app-info-item__label">Status</span><span className={statusBadge(selected.Status)}>{selected.Status}</span></div>
-                  <div className="app-info-item"><span className="app-info-item__label">Unit</span><span className="app-info-item__value">{selected.UnitName}</span></div>
-                  <div className="app-info-item"><span className="app-info-item__label">Fiscal Year</span><span className="app-info-item__value">{selected.FiscalYear}</span></div>
-                  <div className="app-info-item"><span className="app-info-item__label">Items</span><span className="app-info-item__value">{formItems.length}</span></div>
-                  {selected.SubmittedAt && <div className="app-info-item"><span className="app-info-item__label">Submitted</span><span className="app-info-item__value">{formatDateTimeShort(selected.SubmittedAt)}</span></div>}
-                </div>
-                <div className="app-card__footer" style={{ flexDirection: 'column', gap: '0.75rem' }}>
-                  {canSubmit && <button className="app-btn app-btn--success app-btn--lg" onClick={handleSubmit} disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : <Send className="app-btn__icon" />} Submit Needs</button>}
-                  {canEdit && <button className="app-btn app-btn--secondary" onClick={handleSave} disabled={loading}><Save className="app-btn__icon" /> Save Draft</button>}
-                </div>
+          <div className="dh-detail-panel">
+            <div className="app-card app-card--sticky">
+              <div className="app-card__header"><h3 className="app-card__title">{isCreating ? 'New Submission' : 'Status'}</h3></div>
+              <div className="app-info-list" style={{ flex: 1, overflowY: 'auto' }}>
+                {selected ? (
+                  <>
+                    <div className="app-info-item"><span className="app-info-item__label">Status</span><span className={statusBadge(selected.Status)}>{selected.Status}</span></div>
+                    <div className="app-info-item"><span className="app-info-item__label">Unit</span><span className="app-info-item__value">{selected.UnitName}</span></div>
+                    <div className="app-info-item"><span className="app-info-item__label">Fiscal Year</span><span className="app-info-item__value">{selected.FiscalYear}</span></div>
+                    <div className="app-info-item"><span className="app-info-item__label">Items</span><span className="app-info-item__value">{formItems.length}</span></div>
+                    {selected.SubmittedAt && <div className="app-info-item"><span className="app-info-item__label">Submitted</span><span className="app-info-item__value">{formatDateTimeShort(selected.SubmittedAt)}</span></div>}
+                  </>
+                ) : (
+                  <>
+                    <div className="app-info-item"><span className="app-info-item__label">Status</span><span className={statusBadge('Draft')}>Draft</span></div>
+                    <div className="app-info-item"><span className="app-info-item__label">Fiscal Year</span><span className="app-info-item__value">{formFiscalYear}</span></div>
+                    <div className="app-info-item"><span className="app-info-item__label">Items</span><span className="app-info-item__value">{formItems.length}</span></div>
+                  </>
+                )}
               </div>
-            )}
+              <div className="app-card__footer" style={{ flexDirection: 'column', gap: '0.75rem' }}>
+                {canSubmit && <button className="app-btn app-btn--success app-btn--lg" onClick={handleSubmit} disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : <Send className="app-btn__icon" />} Submit Needs</button>}
+                {canEdit && <button className="app-btn app-btn--secondary" onClick={handleSave} disabled={loading}><Save className="app-btn__icon" /> {isCreating ? 'Create Draft' : 'Save Draft'}</button>}
+              </div>
+            </div>
           </div>
         </div>
       </section>
