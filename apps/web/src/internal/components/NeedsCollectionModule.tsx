@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import type { InternalModule, RoleKey } from '../types/internal';
 import { usePermission } from '../hooks/usePermission';
 import {
@@ -62,10 +63,15 @@ type AnalysisView = 'overview' | 'category' | 'units' | 'weighted' | 'similar' |
 
 export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ module, token, role }) => {
   const { hasPermission } = usePermission(token);
+  const searchParams = useSearchParams();
+  const router = typeof window !== 'undefined' ? window.history : null;
 
-  const [activeTab, setActiveTab] = useState<Tab>('collections');
+  const urlTab = (searchParams.get('tab') as Tab) || 'collections';
+  const urlAnalysisView = (searchParams.get('view') as AnalysisView) || 'overview';
+
+  const [activeTab, setActiveTabState] = useState<Tab>(urlTab);
   const [view, setView] = useState<View>('list');
-  const [analysisView, setAnalysisView] = useState<AnalysisView>('overview');
+  const [analysisView, setAnalysisViewState] = useState<AnalysisView>(urlAnalysisView);
 
   const [collections, setCollections] = useState<NeedsCollectionSummary[]>([]);
   const [analysis, setAnalysis] = useState<NeedsAnalysisResult[]>([]);
@@ -105,6 +111,28 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
   const [showItemForm, setShowItemForm] = useState(false);
 
   const clearMessages = useCallback(() => { setError(null); setSuccess(null); }, []);
+
+  const setActiveTab = useCallback((tab: Tab) => {
+    setActiveTabState(tab);
+    setView('list');
+    const params = new URLSearchParams(window.location.search);
+    params.set('tab', tab);
+    if (tab === 'analysis') {
+      params.set('view', analysisView);
+    } else {
+      params.delete('view');
+    }
+    window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`);
+  }, [analysisView]);
+
+  const setAnalysisView = useCallback((v: AnalysisView) => {
+    setAnalysisViewState(v);
+    setSearchQuery('');
+    const params = new URLSearchParams(window.location.search);
+    params.set('tab', 'analysis');
+    params.set('view', v);
+    window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`);
+  }, []);
 
   // ── Loaders ──────────────────────────────────
   const loadCollections = useCallback(async () => {
@@ -686,13 +714,13 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
 
       {/* Main Tabs */}
       <div className="app-tabs" style={{ marginTop: '1.5rem' }}>
-        <button className={`app-tab ${activeTab === 'collections' ? 'app-tab--active' : ''}`} onClick={() => { setActiveTab('collections'); setView('list'); setSearchQuery(''); }}>
+        <button className={`app-tab ${activeTab === 'collections' ? 'app-tab--active' : ''}`} onClick={() => { setActiveTab('collections'); setSearchQuery(''); }}>
           <FileText className="app-tab__icon" /> Collections
         </button>
-        <button className={`app-tab ${activeTab === 'analysis' ? 'app-tab--active' : ''}`} onClick={() => { setActiveTab('analysis'); setView('list'); setAnalysisView('overview'); setSearchQuery(''); }}>
+        <button className={`app-tab ${activeTab === 'analysis' ? 'app-tab--active' : ''}`} onClick={() => { setActiveTab('analysis'); setAnalysisView('overview'); setSearchQuery(''); }}>
           <BarChart3 className="app-tab__icon" /> Analysis
         </button>
-        <button className={`app-tab ${activeTab === 'assessments' ? 'app-tab--active' : ''}`} onClick={() => { setActiveTab('assessments'); setView('list'); setSearchQuery(''); }}>
+        <button className={`app-tab ${activeTab === 'assessments' ? 'app-tab--active' : ''}`} onClick={() => { setActiveTab('assessments'); setSearchQuery(''); }}>
           <ClipboardList className="app-tab__icon" /> Assessments
         </button>
       </div>
@@ -720,7 +748,7 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
           {analysisSubTabs.map(st => (
             <button key={st.key}
               className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${analysisView === st.key ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-              onClick={() => { setAnalysisView(st.key); setSearchQuery(''); }}>
+              onClick={() => setAnalysisView(st.key)}>
               {st.icon} {st.label}
             </button>
           ))}
