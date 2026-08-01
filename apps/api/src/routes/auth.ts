@@ -1289,14 +1289,14 @@ authRouter.get('/api/Auth/internal/role-permissions', async (req: Request, res: 
 
     if (roleName) {
       query = `SELECT role_name as "RoleName", permission_key as "PermissionKey", module as "Module",
-                      action as "Action", description as "Description", is_enabled as "IsEnabled"
+                      action as "Action", permission_description as "Description", is_enabled as "IsEnabled"
                FROM identity.v_role_permissions
                WHERE role_name = $1
                ORDER BY module, action`;
       params = [roleName];
     } else {
       query = `SELECT role_name as "RoleName", permission_key as "PermissionKey", module as "Module",
-                      action as "Action", description as "Description", is_enabled as "IsEnabled"
+                      action as "Action", permission_description as "Description", is_enabled as "IsEnabled"
                FROM identity.v_role_permissions
                ORDER BY role_name, module, action`;
       params = [];
