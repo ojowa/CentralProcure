@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import type { AuditCloseoutItem, AuditSummaryResponse, InternalModule } from '../types/internal';
 import { fetchAuditCloseouts, fetchAuditSummary } from '../services/auditService';
 
@@ -17,12 +18,22 @@ type Props = {
 };
 
 export const AuditDashboardWorkspace = ({ module, token }: Props) => {
-  const [activeView, setActiveView] = useState<AuditViewType>('overview');
+  const searchParams = useSearchParams();
+  const [activeView, setActiveViewState] = useState<AuditViewType>(
+    (searchParams.get('view') as AuditViewType) || 'overview'
+  );
   const [summary, setSummary] = useState<AuditSummaryResponse | null>(null);
   const [closeouts, setCloseouts] = useState<AuditCloseoutItem[]>([]);
   const [statusFilter, setStatusFilter] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const setActiveView = (v: AuditViewType) => {
+    setActiveViewState(v);
+    const params = new URLSearchParams(window.location.search);
+    params.set('view', v);
+    window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`);
+  };
 
   const load = async () => {
     if (!token) {

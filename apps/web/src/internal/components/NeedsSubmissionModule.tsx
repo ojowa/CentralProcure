@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import type { InternalModule, RoleKey } from '../types/internal';
 import {
   fetchCollections,
@@ -30,7 +31,16 @@ interface NeedsSubmissionModuleProps {
 type View = 'list' | 'detail';
 
 export const NeedsSubmissionModule: React.FC<NeedsSubmissionModuleProps> = ({ module, token }) => {
-  const [view, setView] = useState<View>('list');
+  const searchParams = useSearchParams();
+  const [view, setViewState] = useState<View>(
+    (searchParams.get('view') as View) || 'list'
+  );
+  const setView = (v: View) => {
+    setViewState(v);
+    const params = new URLSearchParams(window.location.search);
+    params.set('view', v);
+    window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`);
+  };
   const [collections, setCollections] = useState<NeedsCollectionSummary[]>([]);
   const [selected, setSelected] = useState<NeedsCollectionDetail | null>(null);
   const [isCreating, setIsCreating] = useState(false);

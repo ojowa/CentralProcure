@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import type { InternalModule, TenderSummary } from '../types/internal';
 import { fetchTenderDetails } from '../services/moduleService';
 import { fetchTenders } from '../services/tenderService';
@@ -17,12 +18,24 @@ interface Props {
 
 export const TenderManagementModule = ({ module, token, role, initialData }: Props) => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [tenders, setTenders] = useState<TenderSummary[]>([]);
-  const [activeTab, setActiveTab] = useState<'all' | 'draft' | 'published'>('all');
+  const [activeTab, setActiveTabState] = useState<'all' | 'draft' | 'published'>(
+    (searchParams.get('tab') as 'all' | 'draft' | 'published') || 'all'
+  );
   const [selectedTender, setSelectedTender] = useState<any>(null);
   const [selectedWorkflow, setSelectedWorkflow] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const setActiveTab = (tab: 'all' | 'draft' | 'published') => {
+    setActiveTabState(tab);
+    setSelectedTender(null);
+    setSelectedWorkflow(null);
+    const params = new URLSearchParams(window.location.search);
+    params.set('tab', tab);
+    window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`);
+  };
 
   useEffect(() => {
     if (activeTab === 'all' && initialData?.Items) {
@@ -96,33 +109,21 @@ export const TenderManagementModule = ({ module, token, role, initialData }: Pro
         <button
           type="button"
           className={activeTab === 'all' ? 'active' : undefined}
-          onClick={() => {
-            setSelectedTender(null);
-            setSelectedWorkflow(null);
-            setActiveTab('all');
-          }}
+          onClick={() => setActiveTab('all')}
         >
           All Tenders
         </button>
         <button
           type="button"
           className={activeTab === 'draft' ? 'active' : undefined}
-          onClick={() => {
-            setSelectedTender(null);
-            setSelectedWorkflow(null);
-            setActiveTab('draft');
-          }}
+          onClick={() => setActiveTab('draft')}
         >
           Draft Tenders
         </button>
         <button
           type="button"
           className={activeTab === 'published' ? 'active' : undefined}
-          onClick={() => {
-            setSelectedTender(null);
-            setSelectedWorkflow(null);
-            setActiveTab('published');
-          }}
+          onClick={() => setActiveTab('published')}
         >
           Published Tenders
         </button>

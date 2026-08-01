@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import type { InternalModule, ContractSummary, ContractMilestone } from '../types/internal';
 import { fetchContracts, fetchContractMilestones, logContractMilestone } from '../services/moduleService';
 
@@ -10,7 +11,16 @@ interface Props {
 }
 
 export const ContractManagementModule = ({ module, token, role, initialData }: Props) => {
-  const [view, setView] = useState<'list' | 'details'>('list');
+  const searchParams = useSearchParams();
+  const [view, setViewState] = useState<'list' | 'details'>(
+    (searchParams.get('view') as 'list' | 'details') || 'list'
+  );
+  const setView = (v: 'list' | 'details') => {
+    setViewState(v);
+    const params = new URLSearchParams(window.location.search);
+    params.set('view', v);
+    window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`);
+  };
   const [contracts, setContracts] = useState<ContractSummary[]>([]);
   const [selectedContract, setSelectedContract] = useState<ContractSummary | null>(null);
   const [milestones, setMilestones] = useState<ContractMilestone[]>([]);

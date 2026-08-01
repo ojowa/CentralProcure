@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import type { AuditHistoryItem, AuditWorkflowDiagnosticsResponse, InternalModule } from '../types/internal';
 import { fetchAuditHistoryPage, fetchAuditWorkflowDiagnostics } from '../services/auditService';
 
@@ -63,7 +64,16 @@ type Props = {
 };
 
 export const AuditTrailWorkspace = ({ module, token }: Props) => {
-  const [viewMode, setViewMode] = useState<ViewMode>('timeline');
+  const searchParams = useSearchParams();
+  const [viewMode, setViewModeState] = useState<ViewMode>(
+    (searchParams.get('mode') as ViewMode) || 'timeline'
+  );
+  const setViewMode = (m: ViewMode) => {
+    setViewModeState(m);
+    const params = new URLSearchParams(window.location.search);
+    params.set('mode', m);
+    window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`);
+  };
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [total, setTotal] = useState(0);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import type { InternalModule, AssignedTenderItem } from '../types/internal';
 import { fetchAssignedTenders, fetchTenderBids, logEvaluationAction } from '../services/moduleService';
 
@@ -10,7 +11,16 @@ interface Props {
 }
 
 export const EvaluationScoringModule = ({ module, token, role, initialData }: Props) => {
-  const [view, setView] = useState<'list' | 'evaluate'>('list');
+  const searchParams = useSearchParams();
+  const [view, setViewState] = useState<'list' | 'evaluate'>(
+    (searchParams.get('view') as 'list' | 'evaluate') || 'list'
+  );
+  const setView = (v: 'list' | 'evaluate') => {
+    setViewState(v);
+    const params = new URLSearchParams(window.location.search);
+    params.set('view', v);
+    window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`);
+  };
   const [assignedTenders, setAssignedTenders] = useState<AssignedTenderItem[]>([]);
   const [selectedTender, setSelectedTender] = useState<AssignedTenderItem | null>(null);
   const [bids, setBids] = useState<any[]>([]);

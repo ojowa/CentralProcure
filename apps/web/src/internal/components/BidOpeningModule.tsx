@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import type { InternalModule, BidOpeningSessionSummary, BidOpeningSessionDetail, TenderSummary } from '../types/internal';
 import { fetchBidOpeningSessions, fetchBidOpeningSessionDetails, createBidOpeningSession, updateBidOpeningSession, fetchModuleData } from '../services/moduleService';
 
@@ -10,7 +11,16 @@ interface Props {
 }
 
 export const BidOpeningModule = ({ module, token, role, initialData }: Props) => {
-  const [view, setView] = useState<'list' | 'create' | 'control'>('list');
+  const searchParams = useSearchParams();
+  const [view, setViewState] = useState<'list' | 'create' | 'control'>(
+    (searchParams.get('view') as 'list' | 'create' | 'control') || 'list'
+  );
+  const setView = (v: 'list' | 'create' | 'control') => {
+    setViewState(v);
+    const params = new URLSearchParams(window.location.search);
+    params.set('view', v);
+    window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`);
+  };
   const [sessions, setSessions] = useState<BidOpeningSessionSummary[]>([]);
   const [selectedSession, setSelectedSession] = useState<BidOpeningSessionDetail | null>(null);
   const [publishedTenders, setPublishedTenders] = useState<TenderSummary[]>([]);

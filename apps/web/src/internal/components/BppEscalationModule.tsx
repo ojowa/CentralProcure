@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import type { CgisQueueItem, InternalModule, BppNoObjectionDetail, TenderSummary } from '../types/internal';
 import { fetchBppNoObjections, createBppNoObjection, fetchModuleData } from '../services/moduleService';
 
@@ -10,7 +11,16 @@ interface Props {
 }
 
 export const BppEscalationModule = ({ module, token, role, initialData }: Props) => {
-  const [view, setView] = useState<'list' | 'create'>('list');
+  const searchParams = useSearchParams();
+  const [view, setViewState] = useState<'list' | 'create'>(
+    (searchParams.get('view') as 'list' | 'create') || 'list'
+  );
+  const setView = (v: 'list' | 'create') => {
+    setViewState(v);
+    const params = new URLSearchParams(window.location.search);
+    params.set('view', v);
+    window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`);
+  };
   const [noObjections, setNoObjections] = useState<BppNoObjectionDetail[]>([]);
   const [highValueTenders, setHighValueTenders] = useState<TenderSummary[]>([]);
   const [loading, setLoading] = useState(false);
