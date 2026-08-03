@@ -550,6 +550,7 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
   }
 
   if (view === 'assessment-detail' && selectedAssessment) {
+    const assessmentItems = selectedAssessment.Items ?? [];
     const isDraft = selectedAssessment.Status === 'Draft';
     return (
       <section className="app-module">
@@ -597,7 +598,7 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
         {/* Items Section */}
         <div className="app-card">
           <div className="app-card__header">
-            <h3 className="app-card__title">Items ({selectedAssessment.Items.length})</h3>
+            <h3 className="app-card__title">Items ({assessmentItems.length})</h3>
             {isDraft && (
               <div className="flex gap-2">
                 <button className="app-btn app-btn--primary app-btn--sm" onClick={() => { setEditingItem(null); setItemForm({ Description: '', Quantity: 1, Unit: 'Unit', Priority: 'Normal', ProcurementType: 'Goods' }); setShowItemForm(true); }}>
@@ -637,7 +638,7 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
                 <tr><th>Description</th><th>Type</th><th>Unit</th><th className="app-table__cell--numeric">Qty</th><th>Priority</th><th>Source Units</th>{isDraft && <th style={{ width: '80px' }}>Actions</th>}</tr>
               </thead>
               <tbody>
-                {selectedAssessment.Items.map((item: NeedsAssessmentItem) => (
+                {assessmentItems.map((item: NeedsAssessmentItem) => (
                   <tr key={item.ItemId}>
                     <td className="font-medium text-slate-800">{item.Description}</td>
                     <td><span className="app-badge">{item.ProcurementType}</span></td>
@@ -655,7 +656,7 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
                     )}
                   </tr>
                 ))}
-                {!selectedAssessment.Items.length && <tr><td colSpan={isDraft ? 7 : 6} className="py-8 text-center text-slate-400 italic">No items yet. Add items manually or carry forward from a previous year.</td></tr>}
+                {!assessmentItems.length && <tr><td colSpan={isDraft ? 7 : 6} className="py-8 text-center text-slate-400 italic">No items yet. Add items manually or carry forward from a previous year.</td></tr>}
               </tbody>
             </table>
           </div>

@@ -178,10 +178,13 @@ export const parseJson = async <T>(response: Response): Promise<T> => {
     if (text) {
       try {
         const problem = JSON.parse(text) as ProblemDetails;
-        throw new Error(formatProblemDetails(problem));
-      } catch {
-        throw new Error(text);
+        if (problem.status || problem.title || problem.detail || problem.errors) {
+          throw new Error(formatProblemDetails(problem));
+        }
+      } catch (e) {
+        if (e instanceof Error && e.message !== text) throw e;
       }
+      throw new Error(text);
     }
 
     throw new Error(`Request failed (${response.status}).`);
