@@ -550,7 +550,13 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
   }
 
   if (view === 'assessment-detail' && selectedAssessment) {
-    const assessmentItems = selectedAssessment.Items ?? [];
+    const rawItems = selectedAssessment.Items ?? [];
+    const assessmentItems = rawItems.map(item => ({
+      ...item,
+      SourceUnits: Array.isArray(item.SourceUnits) ? item.SourceUnits
+        : typeof item.SourceUnits === 'string' ? (() => { try { return JSON.parse(item.SourceUnits); } catch { return []; } })()
+        : []
+    }));
     const isDraft = selectedAssessment.Status === 'Draft';
     return (
       <section className="app-module">
