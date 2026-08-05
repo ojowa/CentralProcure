@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import type { InternalModule, RoleKey } from '../types/internal';
 import { getInternalDashboardPath } from '../utils/internalRoutes';
-import { roles, thresholdBands } from '../data/internalData';
 import { useRecentActivity, formatRelativeTime } from '../hooks/useRecentActivity';
+import { fetchInternalDashboard } from '../services/dashboardService';
+import type { InternalDashboardResponse } from '../types/internal';
 import {
   LayoutDashboard,
   FileText,
@@ -17,8 +18,6 @@ import {
   Briefcase,
   Shield,
   TrendingUp,
-  Calendar,
-  Zap,
   Bell,
   Activity,
   Settings
@@ -29,155 +28,48 @@ interface DashboardProps {
   modules: InternalModule[];
   role?: RoleKey | null;
   userEmail?: string | null;
+  roleName?: string | null;
+  token?: string | null;
 }
 
-// Role-specific dashboard configurations
-const roleDashboardConfig: Partial<Record<RoleKey, {
-  title: string;
-  subtitle: string;
-  primaryMetrics: { label: string; value: string; trend?: string; icon: React.ReactNode }[];
-  quickActions: { label: string; moduleId: string; icon: React.ReactNode }[];
-  alerts: { type: 'warning' | 'info' | 'success'; message: string }[];
-}>> = {
-  requisitioning_officer: {
-    title: 'Requisitioning Officer Workspace',
-    subtitle: 'Capture and manage departmental procurement needs',
-    primaryMetrics: [
-      { label: 'Active Needs', value: '12', trend: '+3 this month', icon: <FileText /> },
-      { label: 'Pending Approval', value: '4', icon: <Clock /> },
-      { label: 'Approved', value: '8', trend: '67% success rate', icon: <CheckCircle /> }
-    ],
-    quickActions: [
-      { label: 'Needs Assessment', moduleId: 'needs-collection', icon: <FileText /> }
-    ],
-    alerts: [
-      { type: 'warning', message: '2 needs awaiting departmental endorsement' }
-    ]
-  },
-  department_head: {
-    title: 'Department Head Dashboard',
-    subtitle: 'Review and endorse departmental procurement needs',
-    primaryMetrics: [
-      { label: 'Pending Review', value: '5', icon: <AlertTriangle /> },
-      { label: 'Endorsed This Month', value: '12', icon: <CheckCircle /> },
-      { label: 'Team Needs', value: '24', icon: <FileText /> }
-    ],
-    quickActions: [
-      { label: 'Needs Assessment', moduleId: 'needs-collection', icon: <Shield /> }
-    ],
-    alerts: [
-      { type: 'warning', message: '3 needs require urgent review' }
-    ]
-  },
-  comptroller_procurement: {
-    title: 'Comptroller Procurement Dashboard',
-    subtitle: 'Oversee procurement planning and committee reviews',
-    primaryMetrics: [
-      { label: 'APP Items', value: '156', icon: <FileText /> },
-      { label: 'Active Tenders', value: '12', icon: <TrendingUp /> }
-    ],
-    quickActions: [
-      { label: 'Needs Assessment', moduleId: 'needs-collection', icon: <Shield /> },
-      { label: 'Annual Procurement Plan', moduleId: 'annual-procurement-plan', icon: <Calendar /> },
-      { label: 'Tender Management', moduleId: 'create-tender', icon: <Briefcase /> }
-    ],
-    alerts: []
-  },
-  financial_unit_officer: {
-    title: 'Budget Officer Dashboard',
-    subtitle: 'Manage budget alignment and appropriation controls',
-    primaryMetrics: [
-      { label: 'Budget Queue', value: '6', icon: <Clock /> },
-      { label: 'Released This Month', value: '₦45.2M', trend: 'On track', icon: <CheckCircle /> },
-      { label: 'Commitments', value: '₦128.5M', icon: <FileText /> }
-    ],
-    quickActions: [
-      { label: 'Budget Workspace', moduleId: 'budget-workspace', icon: <Briefcase /> },
-      { label: 'View Commitments', moduleId: 'budget-workspace', icon: <FileText /> }
-    ],
-    alerts: [
-      { type: 'warning', message: '2 items require budget realignment' }
-    ]
-  },
-  tenders_board: {
-    title: 'Tenders Board Dashboard',
-    subtitle: 'High-value procurement oversight and decisions',
-    primaryMetrics: [
-      { label: 'Board Review Queue', value: '4', icon: <Shield /> },
-      { label: 'BPP Escalations', value: '2', icon: <AlertTriangle /> },
-      { label: 'Approved Awards', value: '18', icon: <CheckCircle /> }
-    ],
-    quickActions: [
-      { label: 'Board Approvals', moduleId: 'tenders-board-approval', icon: <Shield /> },
-      { label: 'BPP Escalations', moduleId: 'bpp-escalation', icon: <AlertTriangle /> }
-    ],
-    alerts: [
-      { type: 'warning', message: '1 high-value tender requires board decision' }
-    ]
-  },
-  accounting_officer: {
-    title: 'CGIS Executive Dashboard',
-    subtitle: 'Direct approval authority and executive oversight',
-    primaryMetrics: [
-      { label: 'Pending CGIS Approval', value: '3', icon: <Clock /> },
-      { label: 'Direct Approvals', value: '24', trend: 'This month', icon: <CheckCircle /> },
-      { label: 'Executive Decisions', value: '156', icon: <Shield /> }
-    ],
-    quickActions: [
-      { label: 'CGIS Approvals', moduleId: 'cgis-approval', icon: <Shield /> },
-      { label: 'View Board Decisions', moduleId: 'tenders-board-approval', icon: <Briefcase /> }
-    ],
-    alerts: [
-      { type: 'info', message: 'Monthly executive summary available' }
-    ]
-  },
-  audit_oversight: {
-    title: 'Audit Oversight Dashboard',
-    subtitle: 'Compliance monitoring and traceability controls',
-    primaryMetrics: [
-      { label: 'Active Audits', value: '8', icon: <Shield /> },
-      { label: 'Compliance Score', value: '94%', trend: 'Above target', icon: <CheckCircle /> },
-      { label: 'Exceptions', value: '3', icon: <AlertTriangle /> }
-    ],
-    quickActions: [
-      { label: 'Audit Dashboard', moduleId: 'audit-dashboard', icon: <Shield /> },
-      { label: 'Audit Trail Viewer', moduleId: 'audit-trail-viewer', icon: <FileText /> },
-      { label: 'Compliance Reports', moduleId: 'compliance-reports', icon: <TrendingUp /> }
-    ],
-    alerts: [
-      { type: 'info', message: 'Quarterly compliance review due in 5 days' }
-    ]
-  },
-  ict_admin: {
-    title: 'ICT Admin Dashboard',
-    subtitle: 'Platform administration and access management',
-    primaryMetrics: [
-      { label: 'Active Users', value: '247', icon: <User /> },
-      { label: 'System Health', value: '99.9%', trend: 'Operational', icon: <CheckCircle /> },
-      { label: 'Pending Access', value: '5', icon: <Clock /> }
-    ],
-    quickActions: [
-      { label: 'User Management', moduleId: 'user-management', icon: <User /> },
-      { label: 'System Monitoring', moduleId: 'system-monitoring', icon: <Shield /> },
-      { label: 'Threshold Configuration', moduleId: 'threshold-configuration', icon: <Briefcase /> }
-    ],
-    alerts: [
-      { type: 'success', message: 'All systems operational' }
-    ]
+// Icon mapper for metrics
+const getMetricIcon = (label: string): React.ReactNode => {
+  if (label.toLowerCase().includes('module')) {
+    return <Briefcase className="w-5 h-5" />;
   }
+  if (label.toLowerCase().includes('notification')) {
+    return <Bell className="w-5 h-5" />;
+  }
+  if (label.toLowerCase().includes('threshold')) {
+    return <Shield className="w-5 h-5" />;
+  }
+  if (label.toLowerCase().includes('pending')) {
+    return <Clock className="w-5 h-5" />;
+  }
+  if (label.toLowerCase().includes('approval') || label.toLowerCase().includes('released')) {
+    return <CheckCircle className="w-5 h-5" />;
+  }
+  return <TrendingUp className="w-5 h-5" />;
 };
 
-// Default dashboard config
-const defaultConfig = {
-  title: 'Procurement Dashboard',
-  subtitle: 'Welcome to the CentralProcure internal workspace',
-  primaryMetrics: [
-    { label: 'Accessible Modules', value: '0', trend: undefined as string | undefined, icon: <Briefcase /> },
-    { label: 'Active Workflows', value: '0', trend: undefined as string | undefined, icon: <TrendingUp /> },
-    { label: 'Pending Items', value: '0', trend: undefined as string | undefined, icon: <Clock /> }
-  ],
-  quickActions: [] as { label: string; moduleId: string; icon: React.ReactNode }[],
-  alerts: [] as { type: 'warning' | 'info' | 'success'; message: string }[]
+// Icon mapper for quick actions
+const getQuickActionIcon = (moduleId: string): React.ReactNode => {
+  if (moduleId.includes('budget')) {
+    return <Briefcase className="w-5 h-5" />;
+  }
+  if (moduleId.includes('audit') || moduleId.includes('compliance')) {
+    return <Shield className="w-5 h-5" />;
+  }
+  if (moduleId.includes('tender') || moduleId.includes('evaluation')) {
+    return <TrendingUp className="w-5 h-5" />;
+  }
+  if (moduleId.includes('approval') || moduleId.includes('cgis') || moduleId.includes('board')) {
+    return <CheckCircle className="w-5 h-5" />;
+  }
+  if (moduleId.includes('profile') || moduleId.includes('user')) {
+    return <User className="w-5 h-5" />;
+  }
+  return <FileText className="w-5 h-5" />;
 };
 
 // Activity icon mapper
@@ -212,10 +104,57 @@ const getStatusColor = (status?: 'completed' | 'pending' | 'in_progress' | 'reje
   }
 };
 
-export const DashboardPage = ({ modules, role, userEmail }: DashboardProps) => {
-  const config = role ? (roleDashboardConfig[role] || defaultConfig) : defaultConfig;
-  const roleInfo = role ? roles.find(r => r.key === role) : null;
-  const { activities, loading: activitiesLoading } = useRecentActivity(role, 5);
+export const DashboardPage = ({ modules, role, userEmail, roleName, token }: DashboardProps) => {
+  const resolvedRoleName = roleName || (role ? role.replace(/_/g, ' ') : null);
+  const { activities, loading: activitiesLoading } = useRecentActivity(token, 5);
+
+  const [dashboard, setDashboard] = useState<InternalDashboardResponse | null>(null);
+  const [dashboardError, setDashboardError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!token) {
+      setDashboard(null);
+      setDashboardError(null);
+      return;
+    }
+
+    let isMounted = true;
+    setDashboardError(null);
+
+    fetchInternalDashboard(token)
+      .then((data) => {
+        if (isMounted) {
+          setDashboard(data);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setDashboardError('Unable to load dashboard summary.');
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [token]);
+
+  const config = {
+    title: dashboard?.Title ?? 'Procurement Dashboard',
+    subtitle: dashboard?.Subtitle ?? 'Welcome to the CentralProcure internal workspace',
+    primaryMetrics: (dashboard?.Metrics ?? []).map((metric) => ({
+      label: metric.label,
+      value: metric.value,
+      trend: metric.trend,
+      icon: getMetricIcon(metric.label)
+    })),
+    quickActions: (dashboard?.QuickActions ?? []).map((action) => ({
+      label: action.label,
+      moduleId: action.moduleId,
+      icon: getQuickActionIcon(action.moduleId)
+    })),
+    alerts: (dashboard?.Alerts ?? []) as { type: 'warning' | 'info' | 'success'; message: string }[]
+  };
+  const thresholdBands = dashboard?.Thresholds ?? [];
 
   // Group modules by section
   const groupedModules = useMemo(() => {
@@ -262,10 +201,10 @@ export const DashboardPage = ({ modules, role, userEmail }: DashboardProps) => {
             </p>
             <h1 className="dashboard-welcome__title">{config.title}</h1>
             <p className="dashboard-welcome__subtitle">{config.subtitle}</p>
-            {roleInfo && (
+            {resolvedRoleName && (
               <span className="dashboard-welcome__role-badge">
                 <Shield className="w-3 h-3" />
-                {roleInfo.name}
+                {resolvedRoleName}
               </span>
             )}
           </div>
@@ -282,20 +221,24 @@ export const DashboardPage = ({ modules, role, userEmail }: DashboardProps) => {
       </section>
 
       {/* Primary Metrics */}
-      <section className="dashboard-metrics">
-        {config.primaryMetrics.map((metric, index) => (
-          <div key={index} className="dashboard-metric-card">
-            <div className="dashboard-metric-card__icon">{metric.icon}</div>
-            <div className="dashboard-metric-card__content">
-              <span className="dashboard-metric-card__value">{metric.value}</span>
-              <span className="dashboard-metric-card__label">{metric.label}</span>
-              {metric.trend && (
-                <span className="dashboard-metric-card__trend">{metric.trend}</span>
-              )}
+      {dashboardError ? (
+        <div className="portal-alert">{dashboardError}</div>
+      ) : (
+        <section className="dashboard-metrics">
+          {config.primaryMetrics.map((metric, index) => (
+            <div key={index} className="dashboard-metric-card">
+              <div className="dashboard-metric-card__icon">{metric.icon}</div>
+              <div className="dashboard-metric-card__content">
+                <span className="dashboard-metric-card__value">{metric.value}</span>
+                <span className="dashboard-metric-card__label">{metric.label}</span>
+                {metric.trend && (
+                  <span className="dashboard-metric-card__trend">{metric.trend}</span>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
-      </section>
+          ))}
+        </section>
+      )}
 
       {/* Alerts */}
       {config.alerts.length > 0 && (
@@ -436,33 +379,45 @@ export const DashboardPage = ({ modules, role, userEmail }: DashboardProps) => {
       <section className="dashboard-thresholds">
         <h2 className="dashboard-section-title">Procurement Thresholds</h2>
         <div className="dashboard-thresholds__grid">
-          {thresholdBands.map((band) => (
-            <div key={band.id} className="dashboard-threshold-card">
+          {thresholdBands.length === 0 ? (
+            <div className="dashboard-threshold-card">
               <div className="dashboard-threshold-card__header">
-                <h3 className="dashboard-threshold-card__label">{band.label}</h3>
-                <span className={`dashboard-threshold-card__badge ${band.requiresBpp ? 'dashboard-threshold-card__badge--bpp' : ''}`}>
-                  {band.requiresBpp ? 'BPP Required' : 'Internal'}
-                </span>
-              </div>
-              <div className="dashboard-threshold-card__details">
-                <div className="dashboard-threshold-card__item">
-                  <span className="dashboard-threshold-card__item-label">Approval</span>
-                  <span className="dashboard-threshold-card__item-value">{band.approvalLevel}</span>
-                </div>
-                <div className="dashboard-threshold-card__item">
-                  <span className="dashboard-threshold-card__item-label">Timeline</span>
-                  <span className="dashboard-threshold-card__item-value">{band.timeline}</span>
-                </div>
-              </div>
-              <div className="dashboard-threshold-card__steps">
-                {band.steps.map((step, idx) => (
-                  <span key={idx} className="dashboard-threshold-card__step">
-                    {step}
-                  </span>
-                ))}
+                <h3 className="dashboard-threshold-card__label">No threshold data available</h3>
               </div>
             </div>
-          ))}
+          ) : (
+            thresholdBands.map((band) => (
+              <div key={band.id} className="dashboard-threshold-card">
+                <div className="dashboard-threshold-card__header">
+                  <h3 className="dashboard-threshold-card__label">{band.label}</h3>
+                  <span className={`dashboard-threshold-card__badge ${band.requiresBpp ? 'dashboard-threshold-card__badge--bpp' : ''}`}>
+                    {band.requiresBpp ? 'BPP Required' : 'Internal'}
+                  </span>
+                </div>
+                <div className="dashboard-threshold-card__details">
+                  <div className="dashboard-threshold-card__item">
+                    <span className="dashboard-threshold-card__item-label">Approval</span>
+                    <span className="dashboard-threshold-card__item-value">{band.approvalLevel}</span>
+                  </div>
+                  {band.timeline && (
+                    <div className="dashboard-threshold-card__item">
+                      <span className="dashboard-threshold-card__item-label">Timeline</span>
+                      <span className="dashboard-threshold-card__item-value">{band.timeline}</span>
+                    </div>
+                  )}
+                </div>
+                {band.steps.length > 0 && (
+                  <div className="dashboard-threshold-card__steps">
+                    {band.steps.map((step, idx) => (
+                      <span key={idx} className="dashboard-threshold-card__step">
+                        {step}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
         </div>
       </section>
     </div>

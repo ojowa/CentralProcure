@@ -33,6 +33,7 @@ import { monitoringRouter } from './routes/monitoring.js';
 import { workflowRouter } from './routes/workflow.js';
 import { workflowConfigRouter } from './routes/workflow-config.js';
 import { cgisApprovalRouter } from './routes/cgis-approval.js';
+import { dashboardRouter } from './routes/dashboard.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { csrfMiddleware } from './middleware/csrf.js';
 import { authMiddleware } from './middleware/auth.js';
@@ -89,6 +90,7 @@ export const createApp = () => {
   app.use(workflowRouter);
   app.use(workflowConfigRouter);
   app.use(cgisApprovalRouter);
+  app.use(dashboardRouter);
 
   app.use(errorHandler);
 

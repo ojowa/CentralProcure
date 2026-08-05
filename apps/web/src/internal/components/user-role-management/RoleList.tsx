@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import type { InternalRoleRecord, InternalUserProfile } from '../../types/internal';
-import { roles as roleDefinitions } from '../../data/internalData';
 
 interface RoleListProps {
   roles: InternalRoleRecord[];
@@ -22,7 +21,11 @@ export const RoleList: React.FC<RoleListProps> = ({
   onDeactivateRole
 }) => {
   const [expandedRole, setExpandedRole] = useState<string | null>(null);
-  const roleLabelMap = new Map(roleDefinitions.map((role) => [role.key, role.name]));
+  const roleLabelMap = new Map(
+    roles
+      .filter((role) => role.CanonicalRoleKey)
+      .map((role) => [role.CanonicalRoleKey as string, role.RoleName])
+  );
 
   const getRoleDisplayName = (role: InternalRoleRecord) =>
     (role.CanonicalRoleKey ? roleLabelMap.get(role.CanonicalRoleKey) : null) ?? role.RoleName;

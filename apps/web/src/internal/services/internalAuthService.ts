@@ -14,20 +14,14 @@ import {
   InternalUnitStaffRecord,
   InternalNotificationResult
 } from '../types/internal';
+import {
+  applyBasePath as withBasePath,
+  buildCsrfHeaders,
+  COOKIE_SESSION_TOKEN,
+  buildAuthHeaders
+} from './apiClient';
 
-const normalizeBasePath = (value: string): string => {
-  if (!value || value === '/') {
-    return '';
-  }
-
-  return value.endsWith('/') ? value.slice(0, -1) : value;
-};
-
-const APP_BASE_PATH = normalizeBasePath(
-  process.env.NEXT_PUBLIC_APP_BASE_PATH ?? ''
-);
-
-const withBasePath = (path: string): string => `${APP_BASE_PATH}${path}`;
+export { buildCsrfHeaders, COOKIE_SESSION_TOKEN, buildAuthHeaders };
 
 const API_ENDPOINTS = {
   INTERNAL_LOGIN: withBasePath('/api/Auth/internal/login'),
@@ -50,66 +44,33 @@ const API_ENDPOINTS = {
   CSRF_INIT: withBasePath('/api/Auth/csrf'),
 };
 
-export const CSRF_COOKIE = 'XSRF-TOKEN';
-export const COOKIE_SESSION_TOKEN = '__internal_cookie_session__';
-const VALID_ROLES: RoleKey[] = [
-  'admin',
-  'requisitioning_officer',
-  'department_head',
-  'formation_officer',
-  'formation_head',
-  'comptroller_procurement',
-  'procurement_manager',
-  'planning_statistics_officer',
-  'financial_unit_officer',
-  'procurement_secretary',
-  'legal_reviewer',
-  'technical_evaluator',
-  'financial_evaluator',
-  'evaluation_committee',
-  'tenders_board',
-  'tenders_board_secretary',
-  'accounting_officer',
-  'bpp_liaison',
-  'bpp_reviewer',
-  'complaints_review_officer',
-  'contract_manager',
-  'inspection_officer',
-  'payment_officer',
-  'audit_oversight',
-  'ict_admin'
-];
+export const CSRF_COOKIE_NAME = 'XSRF-TOKEN';
+export const getStoredJwtInternal = (): string | null => (typeof window === 'undefined' ? null : window.localStorage.getItem('__internal_jwt_token__'));
 
-export const getCookieValue = (name: string): string | null => {
-  if (typeof document === 'undefined') {
-    return null;
+export const normalizeRoleValue = (value: string): string => {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return '';
   }
 
-  const match = document.cookie.match(new RegExp(`(^|; )${name}=([^;]*)`));
-  return match ? decodeURIComponent(match[2]) : null;
+  const withUnderscores = trimmed.replace(/[\s-]+/g, '_');
+  const camelToSnake = withUnderscores.replace(/([a-z0-9])([A-Z])/g, '$1_$2');
+  return camelToSnake.toLowerCase();
 };
 
-export const buildCsrfHeaders = (): Record<string, string> => {
-  const csrfToken = getCookieValue(CSRF_COOKIE);
-  return csrfToken ? { 'X-CSRF-Token': csrfToken } : {};
-};
+export const resolveCanonicalRole = (...claims: unknown[]): RoleKey | undefined => {
+  for (const claim of claims) {
+    if (typeof claim !== 'string') {
+      continue;
+    }
 
-const JWT_STORAGE_KEY = '__internal_jwt_token__';
-
-const getStoredJwt = (): string | null => {
-  if (typeof window === 'undefined') return null;
-  return window.localStorage.getItem(JWT_STORAGE_KEY);
-};
-
-export const buildAuthHeaders = (token?: string | null): Record<string, string> => {
-  const resolved = token && token !== COOKIE_SESSION_TOKEN ? token : getStoredJwt();
-  if (!resolved) {
-    return {};
+    const normalized = normalizeRoleValue(claim);
+    if (normalized) {
+      return normalized as RoleKey;
+    }
   }
 
-  return {
-    Authorization: `Bearer ${resolved}`
-  };
+  return undefined;
 };
 
 const parseJwtPayload = (token: string): Record<string, unknown> | null => {
@@ -126,61 +87,6 @@ const parseJwtPayload = (token: string): Record<string, unknown> | null => {
   } catch {
     return null;
   }
-};
-
-export const normalizeRoleValue = (value: string): string => {
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return '';
-  }
-
-  const withUnderscores = trimmed.replace(/[\s-]+/g, '_');
-  const camelToSnake = withUnderscores.replace(/([a-z0-9])([A-Z])/g, '$1_$2');
-  return camelToSnake.toLowerCase();
-};
-
-// Keep this list limited to legacy role spellings that still appear in old data or tokens.
-// Canonical snake_case role keys are handled directly through VALID_ROLES.
-const ROLE_ALIASES: Record<string, RoleKey> = {
-  system_administrator: 'ict_admin',
-  tenders_board_member: 'tenders_board',
-  audit_officer: 'audit_oversight',
-  department_user: 'requisitioning_officer',
-  procurement_planning_committee: 'planning_statistics_officer',
-  procurementsecretary: 'procurement_secretary',
-  comptrollerprocurement: 'comptroller_procurement',
-  legalreviewofficer: 'legal_reviewer',
-  bppliaison: 'bpp_liaison',
-  bppreviewer: 'bpp_reviewer',
-  cgis: 'accounting_officer'
-};
-
-export const resolveRole = (claim: unknown): RoleKey | undefined => {
-  if (typeof claim !== 'string') {
-    return undefined;
-  }
-
-  const normalized = normalizeRoleValue(claim);
-  if (!normalized) {
-    return undefined;
-  }
-
-  if (VALID_ROLES.includes(normalized as RoleKey)) {
-    return normalized as RoleKey;
-  }
-
-  return ROLE_ALIASES[normalized];
-};
-
-export const resolveCanonicalRole = (...claims: unknown[]): RoleKey | undefined => {
-  for (const claim of claims) {
-    const resolved = resolveRole(claim);
-    if (resolved) {
-      return resolved;
-    }
-  }
-
-  return undefined;
 };
 
 const parseBody = async (response: Response): Promise<unknown> => {
@@ -395,6 +301,30 @@ export const fetchInternalUnitStaff = async (
   return parseResponse<InternalUnitStaffRecord[]>(response, 'Unable to load unit staff.');
 };
 
+const mapInternalModule = (module: Record<string, unknown>): InternalModule => ({
+  id: module.ModuleId as string,
+  title: module.Title as string,
+  section: module.Section as string,
+  description: module.Description as string,
+  microservice: module.Microservice as string,
+  controlPurpose: module.ControlPurpose as string,
+  actions: Array.isArray(module.Actions)
+    ? (module.Actions as unknown[]).filter((a): a is string => typeof a === 'string')
+    : [],
+  catalogActions: Array.isArray(module.CatalogActions)
+    ? (module.CatalogActions as unknown[]).filter((a): a is string => typeof a === 'string')
+    : [],
+  grantSource: typeof module.GrantSource === 'string' ? module.GrantSource : undefined,
+  isVisible: typeof module.IsVisible === 'boolean' ? module.IsVisible : undefined,
+  hasRoleOverride: typeof module.HasRoleOverride === 'boolean' ? module.HasRoleOverride : undefined,
+  hasUserOverride: typeof module.HasUserOverride === 'boolean' ? module.HasUserOverride : undefined,
+  requiredPermission: typeof module.RequiredPermission === 'string' ? module.RequiredPermission : undefined,
+  group: typeof module.Group === 'string' ? module.Group as InternalModule['group'] : undefined,
+  subSection: typeof module.SubSection === 'string' ? module.SubSection : null,
+  datasetUrl: typeof module.DatasetUrl === 'string' ? module.DatasetUrl : null,
+  hasDataset: typeof module.HasDataset === 'boolean' ? module.HasDataset : undefined,
+});
+
 export const fetchInternalModules = async (token?: string | null): Promise<InternalModule[]> => {
   const response = await fetch(API_ENDPOINTS.INTERNAL_MODULES, {
     method: 'GET',
@@ -423,27 +353,7 @@ export const fetchInternalModules = async (token?: string | null): Promise<Inter
         typeof module.ControlPurpose === 'string' &&
         Array.isArray(module.Actions);
     })
-    .map((module) => ({
-      id: module.ModuleId,
-      title: module.Title,
-      section: module.Section,
-      description: module.Description,
-      microservice: module.Microservice,
-      controlPurpose: module.ControlPurpose,
-      actions: Array.isArray(module.Actions)
-        ? module.Actions.filter((action: unknown): action is string => typeof action === 'string')
-        : [],
-      catalogActions: Array.isArray(module.CatalogActions)
-        ? module.CatalogActions.filter((action: unknown): action is string => typeof action === 'string')
-        : [],
-      grantSource: typeof module.GrantSource === 'string' ? module.GrantSource : undefined,
-      isVisible: typeof module.IsVisible === 'boolean' ? module.IsVisible : undefined,
-      hasRoleOverride: typeof module.HasRoleOverride === 'boolean' ? module.HasRoleOverride : undefined,
-      hasUserOverride: typeof module.HasUserOverride === 'boolean' ? module.HasUserOverride : undefined,
-      requiredPermission: typeof module.RequiredPermission === 'string' ? module.RequiredPermission : undefined,
-      group: typeof module.Group === 'string' ? module.Group : undefined,
-      subSection: typeof module.SubSection === 'string' ? module.SubSection : undefined
-    }));
+    .map(mapInternalModule);
 };
 
 export const fetchInternalModulesCatalog = async (token?: string | null): Promise<InternalModule[]> => {
@@ -469,27 +379,7 @@ export const fetchInternalModulesCatalog = async (token?: string | null): Promis
         typeof module.Microservice === 'string' &&
         typeof module.ControlPurpose === 'string';
     })
-    .map((module) => ({
-      id: module.ModuleId,
-      title: module.Title,
-      section: module.Section,
-      description: module.Description,
-      microservice: module.Microservice,
-      controlPurpose: module.ControlPurpose,
-      actions: Array.isArray(module.Actions)
-        ? module.Actions.filter((action: unknown): action is string => typeof action === 'string')
-        : [],
-      catalogActions: Array.isArray(module.CatalogActions)
-        ? module.CatalogActions.filter((action: unknown): action is string => typeof action === 'string')
-        : [],
-      grantSource: typeof module.GrantSource === 'string' ? module.GrantSource : undefined,
-      isVisible: typeof module.IsVisible === 'boolean' ? module.IsVisible : undefined,
-      hasRoleOverride: typeof module.HasRoleOverride === 'boolean' ? module.HasRoleOverride : undefined,
-      hasUserOverride: typeof module.HasUserOverride === 'boolean' ? module.HasUserOverride : undefined,
-      requiredPermission: typeof module.RequiredPermission === 'string' ? module.RequiredPermission : undefined,
-      group: typeof module.Group === 'string' ? module.Group : undefined,
-      subSection: typeof module.SubSection === 'string' ? module.SubSection : undefined
-    }));
+    .map(mapInternalModule);
 };
 
 export type RoleModuleAccessGrant = {

@@ -5,6 +5,8 @@ import { signToken, extractPayloadFromRequest, TokenPayload } from '../lib/jwt.j
 import { hashPassword, verifyPassword } from '../lib/password.js';
 import { config } from '../config.js';
 import { authRateLimiter, registrationRateLimiter } from '../middleware/rate-limit.js';
+import { withModuleDataset } from '../lib/module-datasets.js';
+import { toCanonicalRoleKey } from '../lib/role-canonical.js';
 
 export const authRouter = Router();
 
@@ -107,7 +109,7 @@ authRouter.post('/api/Auth/internal/login', authRateLimiter, async (req: Request
       sub: user.internal_user_id,
       email: user.email,
       role: user.role,
-      CanonicalRoleKey: user.role,
+      CanonicalRoleKey: toCanonicalRoleKey(user.role),
       InternalUserId: user.internal_user_id,
       UnitId: dbUser.unit_id || null,
       SecurityStamp: dbUser.security_stamp || undefined
@@ -119,7 +121,7 @@ authRouter.post('/api/Auth/internal/login', authRateLimiter, async (req: Request
       Email: user.email,
       InternalUserId: user.internal_user_id,
       Role: user.role,
-      CanonicalRoleKey: user.role,
+      CanonicalRoleKey: toCanonicalRoleKey(user.role),
       UnitId: dbUser.unit_id || null,
       Token: token
     });
@@ -199,7 +201,7 @@ authRouter.get('/api/Auth/internal/profile', async (req: Request, res: Response)
       UnitId: profile.unit_id,
       UnitName: profile.unit_name,
       RoleName: profile.role_name,
-      CanonicalRoleKey: profile.role_name,
+      CanonicalRoleKey: toCanonicalRoleKey(profile.role_name),
       Group: profile.Group,
       IsActive: profile.status === 'Active'
     });
@@ -241,7 +243,7 @@ authRouter.put('/api/Auth/internal/profile', async (req: Request, res: Response)
       UnitId: profile.unit_id,
       UnitName: profile.unit_name,
       RoleName: profile.role_name,
-      CanonicalRoleKey: profile.role_name,
+      CanonicalRoleKey: toCanonicalRoleKey(profile.role_name),
       IsActive: profile.status === 'Active'
     });
   } catch (error: any) {
@@ -394,7 +396,10 @@ authRouter.get('/api/Auth/internal/users', async (req: Request, res: Response) =
 
   try {
     const result = await pool!.query('SELECT * FROM identity.get_internal_users()');
-    res.json(result.rows.map(mapRow));
+    res.json(result.rows.map((row) => ({
+      ...mapRow(row),
+      CanonicalRoleKey: toCanonicalRoleKey((row.role_name as string) ?? '')
+    })));
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching users.' });
   }
@@ -640,7 +645,7 @@ authRouter.get('/api/Auth/internal/modules', async (req: Request, res: Response)
       'SELECT grm.*, im."group" AS "Group", im.sub_section AS "SubSection" FROM identity.get_role_modules($1) grm JOIN identity.internal_modules im ON im.module_id = grm.module_id',
       [auth.role]
     );
-    res.json(result.rows.map(mapRow));
+    res.json(result.rows.map((row) => withModuleDataset(mapRow(row))));
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching modules.' });
   }
@@ -656,7 +661,7 @@ authRouter.get('/api/Auth/internal/modules/catalog', async (req: Request, res: R
 
   try {
     const result = await pool!.query('SELECT *, "group" AS "Group", sub_section AS "SubSection" FROM identity.internal_modules WHERE is_active = true ORDER BY title');
-    res.json(result.rows.map(mapRow));
+    res.json(result.rows.map((row) => withModuleDataset(mapRow(row))));
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching module catalog.' });
   }
@@ -672,7 +677,10 @@ authRouter.get('/api/Auth/roles', async (req: Request, res: Response) => {
 
   try {
     const result = await pool!.query('SELECT *, "group" AS "Group" FROM identity.roles WHERE is_active = true ORDER BY role_name');
-    res.json(result.rows.map(mapRow));
+    res.json(result.rows.map((row) => ({
+      ...mapRow(row),
+      CanonicalRoleKey: toCanonicalRoleKey((row.role_name as string) ?? '')
+    })));
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching roles.' });
   }

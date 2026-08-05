@@ -1,85 +1,78 @@
-import { buildAuthHeaders, buildCsrfHeaders } from './internalAuthService';
+import { buildAuthHeaders } from './apiClient';
 
-const normalizeBasePath = (value: string): string => {
-  if (!value || value === '/') {
-    return '';
-  }
+export {
+  apiServiceBaseUrl,
+  serviceBaseUrls,
+  applyBasePath,
+  CSRF_COOKIE,
+  COOKIE_SESSION_TOKEN,
+  getCookieValue,
+  buildCsrfHeaders,
+  getStoredJwt,
+  buildCsrfHeaders as buildCsrfHeadersCompat,
+  formatProblemDetails,
+  parseJson,
+  send
+} from './apiClient';
 
-  return value.endsWith('/') ? value.slice(0, -1) : value;
-};
-
-const defaultApiBaseUrl = process.env.NODE_ENV === 'development'
-  ? 'http://localhost:5000'
-  : '';
-
-const appBasePath = normalizeBasePath(process.env.NEXT_PUBLIC_APP_BASE_PATH ?? '');
-
-export const apiServiceBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? defaultApiBaseUrl;
-
-export const serviceBaseUrls = {
-  identity: appBasePath,
-  workflow: appBasePath,
-  vendorSourcing: appBasePath,
-  postAward: appBasePath,
-  governance: appBasePath,
-};
+export type { JsonBody, ProblemDetails } from './apiClient';
 
 const resolveModuleUrl = (moduleId: string): string => {
   switch (moduleId) {
     case 'annual-procurement-plan':
-      return `${serviceBaseUrls.workflow}/api/procurement-plans`;
+      return `/api/procurement-plans`;
     case 'procurement-method-determination':
-      return `${serviceBaseUrls.workflow}/api/procurement-methods/queue`;
+      return `/api/procurement-methods/queue`;
     case 'create-tender':
-      return `${serviceBaseUrls.vendorSourcing}/api/tenders`;
+      return `/api/tenders`;
     case 'bid-opening-session':
-      return `${serviceBaseUrls.vendorSourcing}/api/bid-opening/sessions`;
+      return `/api/bid-opening/sessions`;
     case 'assigned-tenders':
     case 'technical-evaluation':
     case 'financial-evaluation':
-      return `${serviceBaseUrls.workflow}/api/evaluations/assigned-tenders/default`;
+      return `/api/evaluations/assigned-tenders/default`;
     case 'evaluation-report':
-      return `${serviceBaseUrls.workflow}/api/evaluation-reports`;
+      return `/api/evaluation-reports`;
     case 'tender-review':
     case 'approval-rejection':
     case 'tenders-board-approval':
-      return `${serviceBaseUrls.workflow}/api/tenders-board-approvals/queue`;
+      return `/api/tenders-board-approvals/queue`;
     case 'high-value-tenders':
-      return `${serviceBaseUrls.workflow}/api/workflow-runtime/cgis-queue`;
+      return `/api/workflow-runtime/cgis-queue`;
     case 'cgis-approval':
     case 'final-approval':
-      return `${serviceBaseUrls.workflow}/api/workflow-runtime/cgis-queue`;
+      return `/api/workflow-runtime/cgis-queue`;
     case 'bpp-escalation':
-      return `${serviceBaseUrls.workflow}/api/bpp-no-objections`;
+      return `/api/bpp-no-objections`;
     case 'administrative-review':
-      return `${serviceBaseUrls.workflow}/api/administrative-reviews`;
+      return `/api/administrative-reviews`;
     case 'contract-award':
-      return `${serviceBaseUrls.postAward}/api/contracts/awards`;
+      return `/api/contracts/awards`;
     case 'contract-management':
-      return `${serviceBaseUrls.postAward}/api/contracts`;
+      return `/api/contracts`;
     case 'inspection-acceptance':
-      return `${serviceBaseUrls.postAward}/api/inspections`;
+      return `/api/inspections`;
     case 'payment-tracking':
-      return `${serviceBaseUrls.postAward}/api/payments`;
+      return `/api/payments`;
     case 'budget-workspace':
-      return `${serviceBaseUrls.governance}/api/budget/dashboard`;
+      return `/api/budget/dashboard`;
     case 'audit-dashboard':
     case 'audit-trail-viewer':
     case 'compliance-reports':
-      return `${serviceBaseUrls.governance}/api/audit`;
+      return `/api/audit`;
     case 'workflow-configuration':
-      return `${serviceBaseUrls.workflow}/api/config/workflows`;
+      return `/api/config/workflows`;
     case 'system-monitoring':
-      return `${serviceBaseUrls.governance}/api/monitoring`;
+      return `/api/monitoring`;
     case 'user-role-management':
-      return `${serviceBaseUrls.identity}/api/Auth/roles`;
+      return `/api/Auth/roles`;
     default:
-      return `${serviceBaseUrls.governance}/api/notifications`;
+      return `/api/notifications`;
   }
 };
 
-export const fetchModuleData = async (moduleId: string, token: string): Promise<unknown> => {
-  const finalUrl = resolveModuleUrl(moduleId);
+export const fetchModuleData = async (moduleId: string, token: string, datasetUrl?: string | null): Promise<unknown> => {
+  const finalUrl = datasetUrl || resolveModuleUrl(moduleId);
 
   const response = await fetch(finalUrl, {
     headers: buildAuthHeaders(token),
@@ -118,11 +111,9 @@ export const fetchModuleData = async (moduleId: string, token: string): Promise<
 };
 
 export const fetchCgisQueue = async (token: string): Promise<unknown> => {
-  const url = `${serviceBaseUrls.workflow}/api/workflow-runtime/cgis-queue`;
+  const url = `/api/workflow-runtime/cgis-queue`;
   const response = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${token}`
-    },
+    headers: buildAuthHeaders(token),
     credentials: 'include'
   });
 
@@ -141,65 +132,4 @@ export const fetchCgisQueue = async (token: string): Promise<unknown> => {
   } catch {
     return text;
   }
-};
-
-export { buildCsrfHeaders };
-
-export type JsonBody = Record<string, unknown> | null;
-
-export type ProblemDetails = {
-  title?: string;
-  detail?: string;
-  status?: number;
-  errors?: Record<string, string[]>;
-};
-
-export const formatProblemDetails = (payload: ProblemDetails) => {
-  const fieldErrors = payload.errors
-    ? Object.values(payload.errors)
-        .flat()
-        .filter(Boolean)
-    : [];
-
-  if (fieldErrors.length > 0) {
-    return fieldErrors.join(' ');
-  }
-
-  return payload.detail || payload.title || (payload.status ? `Request failed (${payload.status}).` : 'Request failed.');
-};
-
-export const parseJson = async <T>(response: Response): Promise<T> => {
-  const text = await response.text();
-  if (!response.ok) {
-    if (text) {
-      try {
-        const problem = JSON.parse(text) as ProblemDetails;
-        if (problem.status || problem.title || problem.detail || problem.errors) {
-          throw new Error(formatProblemDetails(problem));
-        }
-      } catch (e) {
-        if (e instanceof Error && e.message !== text) throw e;
-      }
-      throw new Error(text);
-    }
-
-    throw new Error(`Request failed (${response.status}).`);
-  }
-
-  return text ? JSON.parse(text) as T : ({} as T);
-};
-
-export const send = async <T>(baseUrl: string, path: string, token: string, init?: RequestInit, body?: JsonBody): Promise<T> => {
-  const response = await fetch(`${baseUrl}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      ...(body ? { 'Content-Type': 'application/json', ...buildCsrfHeaders() } : {}),
-      ...(init?.headers ?? {})
-    },
-    credentials: 'include',
-    body: body ? JSON.stringify(body) : init?.body
-  });
-
-  return parseJson<T>(response);
 };

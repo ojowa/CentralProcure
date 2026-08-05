@@ -2,7 +2,6 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import type { InternalUserProfile, InternalRoleRecord } from '../../types/internal';
-import { roles as roleDefinitions } from '../../data/internalData';
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100, 'all'] as const;
 
@@ -35,8 +34,12 @@ export const UserList: React.FC<UserListProps> = ({
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZE_OPTIONS)[number]>(10);
   const roleLabelMap = useMemo(
-    () => new Map(roleDefinitions.map((role) => [role.key, role.name])),
-    []
+    () => new Map(
+      roles
+        .filter((role) => role.CanonicalRoleKey)
+        .map((role) => [role.CanonicalRoleKey as string, role.RoleName])
+    ),
+    [roles]
   );
   const getRoleDisplayName = (user: InternalUserProfile) =>
     (user.CanonicalRoleKey ? roleLabelMap.get(user.CanonicalRoleKey) : null) ?? user.RoleName;

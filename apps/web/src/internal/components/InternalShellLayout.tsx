@@ -7,7 +7,6 @@ import { DashboardPage } from './DashboardPage';
 import { moduleRenderers, renderGenericModuleWorkspace } from './InternalModuleRenderers';
 import { fetchInternalModules, fetchInternalRoles, fetchInternalUserProfile, resolveCanonicalRole } from '../services/internalAuthService';
 import { fetchModuleData } from '../services/moduleService';
-import { roles } from '../data/internalData';
 import { useAuth } from '../hooks/useAuth';
 import {
   getInternalDashboardPath,
@@ -15,23 +14,18 @@ import {
   resolveModuleIdFromRouteSegment
 } from '../utils/internalRoutes';
 
-const moduleFetchSkipList = new Set<string>([
-  'dashboard',
-  'annual-procurement-plan',
-  'procurement-method-determination',
-  'create-tender',
-  'bid-opening-session',
-  'bpp-escalation',
-  'contract-award',
-  'contract-management',
-  'inspection-acceptance',
-  'evaluation-report',
-  'vendor-registration-approval',
-  'user-profile',
-  'needs-collection',
-  'needs-submission',
-  'organization-management'
-]);
+const shouldSkipModuleFetch = (module: InternalModule | null): boolean => {
+  if (!module) {
+    return true;
+  }
+
+  // Management/self-service workspaces source their own data.
+  if (module.hasDataset === false) {
+    return true;
+  }
+
+  return !module.hasDataset && module.datasetUrl == null;
+};
 
 interface InternalShellProps {
   token: string | null;
@@ -46,20 +40,16 @@ const formatRoleName = (value: string): string =>
     .replace(/[_-]+/g, ' ')
     .trim();
 
-const roleFallbackByKey = new Map<RoleKey, RoleDefinition>(roles.map((role) => [role.key, role]));
-
 const mapRoleRecordToDefinition = (roleRecord: InternalRoleRecord): RoleDefinition | null => {
   const key = resolveCanonicalRole(roleRecord.CanonicalRoleKey, roleRecord.RoleName);
   if (!key) {
     return null;
   }
 
-  const fallbackRole = roleFallbackByKey.get(key);
-
   return {
     key,
-    name: fallbackRole?.name ?? formatRoleName(roleRecord.RoleName),
-    description: roleRecord.Description?.trim() || fallbackRole?.description || ''
+    name: roleRecord.RoleName ? formatRoleName(roleRecord.RoleName) : 'Role',
+    description: roleRecord.Description?.trim() || ''
   };
 };
 
@@ -68,7 +58,7 @@ export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShel
   const router = useRouter();
   const { logout } = useAuth();
   const [accessibleModules, setAccessibleModules] = useState<InternalModule[]>([]);
-  const [availableRoles, setAvailableRoles] = useState<RoleDefinition[]>(roles);
+  const [availableRoles, setAvailableRoles] = useState<RoleDefinition[]>([]);
   const [headerRoleOverride, setHeaderRoleOverride] = useState<RoleDefinition | null>(null);
   const [profileRoleKey, setProfileRoleKey] = useState<RoleKey | null>(userRole ?? null);
   const [profileRoleNameRaw, setProfileRoleNameRaw] = useState<string | null>(null);
@@ -81,10 +71,9 @@ export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShel
 
   const selectedRole = profileRoleKey ?? userRole ?? null;
   const activeRoleDefinition = selectedRole
-    ? (availableRoles.find((role) => role.key === selectedRole) ??
-      roleFallbackByKey.get(selectedRole) ??
-      null)
+    ? (availableRoles.find((role) => role.key === selectedRole) ?? null)
     : null;
+  const recordRoleName = activeRoleDefinition?.name ?? (profileRoleNameRaw ? formatRoleName(profileRoleNameRaw) : undefined);
   const headerRoleDefinition = headerRoleOverride ?? activeRoleDefinition ?? {
     key: userRole ?? 'ict_admin',
     name: profileRoleNameRaw ? formatRoleName(profileRoleNameRaw) : 'Role Unavailable',
@@ -133,10 +122,10 @@ export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShel
         const mappedRoles = roleRecords
           .filter((roleRecord) => roleRecord.IsActive)
           .map(mapRoleRecordToDefinition)
-          .filter((role): role is RoleDefinition => Boolean(role));
+          .filter((role): role is RoleDefinition => Boolean(role) && Boolean(role?.key));
 
         if (!mappedRoles.length) {
-          setAvailableRoles(roles);
+          setAvailableRoles([]);
           return;
         }
 
@@ -155,7 +144,7 @@ export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShel
       })
       .catch(() => {
         if (isMounted) {
-          setAvailableRoles(roles);
+          setAvailableRoles([]);
         }
       });
 
@@ -187,9 +176,7 @@ export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShel
         }
 
         const resolvedDefinition =
-          availableRoles.find((role) => role.key === resolvedKey) ??
-          roleFallbackByKey.get(resolvedKey) ??
-          null;
+          availableRoles.find((role) => role.key === resolvedKey) ?? null;
 
         setHeaderRoleOverride(resolvedDefinition);
         setProfileRoleKey(resolvedKey);
@@ -244,7 +231,7 @@ export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShel
   }, [selectedRole, token]);
 
   useEffect(() => {
-    if (!token || !activeModuleId || moduleFetchSkipList.has(activeModuleId)) {
+    if (!token || !activeModuleId || shouldSkipModuleFetch(activeModule)) {
       setIsModuleLoading(false);
       setModuleError(null);
       setModuleData(null);
@@ -255,7 +242,7 @@ export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShel
     setIsModuleLoading(true);
     setModuleError(null);
 
-    fetchModuleData(activeModuleId, token)
+    fetchModuleData(activeModuleId, token, activeModule?.datasetUrl)
       .then((data) => {
         if (isMounted) {
           setModuleData(data);
@@ -276,7 +263,7 @@ export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShel
     return () => {
       isMounted = false;
     };
-  }, [activeModuleId, token]);
+  }, [activeModule, activeModuleId, token]);
 
   useEffect(() => {
     if (!token || !routeSegment || modulesLoading || !hasResolvedModules) {
@@ -303,7 +290,7 @@ export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShel
         <main className="portal-main">
           {modulesError ? <div className="portal-alert">{modulesError}</div> : null}
           {modulesLoading ? <div className="plan-loading">Loading role workspace...</div> : null}
-          {activeModuleId === 'dashboard' ? <DashboardPage modules={accessibleModules} role={selectedRole} userEmail={userEmail} /> : null}
+          {activeModuleId === 'dashboard' ? <DashboardPage modules={accessibleModules} role={selectedRole} userEmail={userEmail} roleName={recordRoleName} token={token} /> : null}
           {activeModuleId && activeModuleId !== 'dashboard' && activeModule ? (
             <>
               {(activeModuleRenderer ?? renderGenericModuleWorkspace)({
