@@ -283,7 +283,7 @@ export const BidOpeningModule = ({ module, token, role, initialData }: Props) =>
           
           {!isTimeForOpening && selectedSession.Status === 'Scheduled' && (
             <div className="portal-alert" style={{ marginTop: '24px' }}>
-              <strong>Security Lock:</strong> PPA compliance requires that the "Open Bids" action remains locked until the scheduled closing time.
+              <strong>Security Lock:</strong> PPA compliance requires that the &quot;Open Bids&quot; action remains locked until the scheduled closing time.
             </div>
           )}
         </div>

@@ -148,7 +148,7 @@ const EmptyState: React.FC<{ onClearFilters: () => void }> = ({ onClearFilters }
         </div>
         <h3 className="tender-empty__title">No tenders found</h3>
         <p className="tender-empty__message">
-            Try adjusting your search or filter criteria to find what you're looking for.
+            Try adjusting your search or filter criteria to find what you&apos;re looking for.
         </p>
         <button onClick={onClearFilters} className="app-btn app-btn--primary">
             Clear Filters

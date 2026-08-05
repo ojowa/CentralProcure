@@ -72,14 +72,14 @@ export const BudgetDecisionPanel = ({
     };
   }, [isOpen]);
 
-  if (!isOpen || !detail) return null;
-
   const handleDecision = useCallback(
     (decision: DecisionKey) => {
       onDecision(decision, decisionNote);
     },
     [onDecision, decisionNote]
   );
+
+  if (!isOpen || !detail) return null;
 
   return (
     <div

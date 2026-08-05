@@ -247,7 +247,7 @@ export const NeedsSubmissionModule: React.FC<NeedsSubmissionModuleProps> = ({ mo
                         <td colSpan={canEdit ? 7 : 6} className="py-10 text-center">
                           <Package size={32} className="mx-auto text-slate-300 mb-2" />
                           <p className="text-slate-400 italic">No items yet.</p>
-                          {canEdit && <p className="text-xs text-slate-400 mt-1">Click "Add Item" to start adding procurement needs.</p>}
+                          {canEdit && <p className="text-xs text-slate-400 mt-1">Click &quot;Add Item&quot; to start adding procurement needs.</p>}
                         </td>
                       </tr>
                     )}
@@ -340,7 +340,7 @@ export const NeedsSubmissionModule: React.FC<NeedsSubmissionModuleProps> = ({ mo
                     </td>
                   </tr>
                 ))}
-                {!filtered.length && <tr><td colSpan={6} className="py-8 text-center text-slate-400">No submissions yet. Click "New Submission" to get started.</td></tr>}
+                {!filtered.length && <tr><td colSpan={6} className="py-8 text-center text-slate-400">No submissions yet. Click &quot;New Submission&quot; to get started.</td></tr>}
               </tbody>
             </table>
           </div>

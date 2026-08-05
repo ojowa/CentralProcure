@@ -153,8 +153,8 @@ export const ModuleAccessPanel: React.FC<ModuleAccessPanelProps> = ({
     let allowed = 0;
     let denied = 0;
 
-    for (const module of modules) {
-      const grant = activeGrantMap.get(module.id);
+    for (const mod of modules) {
+      const grant = activeGrantMap.get(mod.id);
       if (!grant) {
         continue;
       }

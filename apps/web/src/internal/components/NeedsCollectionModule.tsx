@@ -110,6 +110,12 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
   const [itemForm, setItemForm] = useState({ Description: '', Quantity: 1, Unit: 'Unit', Priority: 'Normal', ProcurementType: 'Goods' });
   const [showItemForm, setShowItemForm] = useState(false);
 
+  const statusCounts = useMemo(() => ({
+    total: collections.length,
+    draft: collections.filter(c => c.Status === 'Draft').length,
+    submitted: collections.filter(c => c.Status === 'Submitted').length,
+  }), [collections]);
+
   const clearMessages = useCallback(() => { setError(null); setSuccess(null); }, []);
 
   const setActiveTab = useCallback((tab: Tab) => {
@@ -672,12 +678,6 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
   }
 
   // ── List view ────────────────────────────────
-  const statusCounts = useMemo(() => ({
-    total: collections.length,
-    draft: collections.filter(c => c.Status === 'Draft').length,
-    submitted: collections.filter(c => c.Status === 'Submitted').length,
-  }), [collections]);
-
   const analysisSubTabs: { key: AnalysisView; label: string; icon: React.ReactNode }[] = [
     { key: 'overview', label: 'Overview', icon: <BarChart3 size={14} /> },
     { key: 'category', label: 'Category', icon: <PieChart size={14} /> },

@@ -70,17 +70,17 @@ export const SidebarNav = ({ modules, activeModuleId, onModuleChange }: SidebarP
     const profileModule = filteredModules.find((m) => m.id === 'user-profile');
     const otherModules = filteredModules.filter((m) => m.id !== 'user-profile');
 
-    for (const module of otherModules) {
-      const group = module.group ?? 'procurement_staff';
+    for (const mod of otherModules) {
+      const group = mod.group ?? 'procurement_staff';
       const nav = navMap.get(group) ?? navMap.get('procurement_staff')!;
-      const subSection = module.subSection ?? module.section ?? 'Other';
+      const subSection = mod.subSection ?? mod.section ?? 'Other';
 
       let section = nav.sections.find((s) => s.label === subSection);
       if (!section) {
         section = { label: subSection, modules: [] };
         nav.sections.push(section);
       }
-      section.modules.push(module);
+      section.modules.push(mod);
     }
 
     for (const nav of navMap.values()) {
