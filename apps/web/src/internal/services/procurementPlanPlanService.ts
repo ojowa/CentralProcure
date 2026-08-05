@@ -6,11 +6,9 @@ import type {
   ProcurementPlanDetail,
   ProcurementPlanFilters,
   ProcurementPlanListResponse,
-  ProcurementPlanRecommendationReadinessResponse,
   ProcurementPlanRecommendationRequest,
   ProcurementPlanRecommendationResponse,
-  ProcurementPlanUpdateRequest,
-  RequisitionSummary
+  ProcurementPlanUpdateRequest
 } from './procurementPlanService.shared';
 import { baseUrl, buildQuery, jsonHeaders, parseResponse } from './procurementPlanService.shared';
 
@@ -69,23 +67,6 @@ export const recommendProcurementPlanForApproval = async (
     body: JSON.stringify(payload ?? {})
   });
   return parseResponse<ProcurementPlanRecommendationResponse>(response);
-};
-
-export const fetchProcurementPlanRecommendationReadiness = async (
-  token: string,
-  planId: string
-): Promise<ProcurementPlanRecommendationReadinessResponse> => {
-  const response = await fetch(`${baseUrl}/${planId}/recommendation-readiness`, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
-  return parseResponse<ProcurementPlanRecommendationReadinessResponse>(response);
-};
-
-export const fetchProcurementPlanRequisitions = async (token: string, planId: string): Promise<RequisitionSummary[]> => {
-  const response = await fetch(`${baseUrl}/${planId}/requisitions`, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
-  return parseResponse<RequisitionSummary[]>(response);
 };
 
 export const initiateProcurementPlan = async (token: string, planId: string): Promise<ProcurementInitiationResponse> => {

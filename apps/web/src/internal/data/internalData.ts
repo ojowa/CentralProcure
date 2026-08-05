@@ -102,18 +102,6 @@ export const roles: RoleDefinition[] = [
   }
 ];
 
-const requisitionDepartmentModules: InternalModule[] = [
-  {
-    id: 'department-head-review',
-    title: 'Department Head Review',
-    section: 'Requisitions',
-    description: 'Review, endorse, return, or reject departmental requisitions awaiting approval.',
-    microservice: 'Requisition Service',
-    controlPurpose: 'Department-level validation before procurement processing.',
-    actions: ['requisition.endorse', 'requisition.return', 'requisition.reject']
-  }
-];
-
 const procurementPlanningModules: InternalModule[] = [
   {
     id: 'annual-procurement-plan',
@@ -123,15 +111,6 @@ const procurementPlanningModules: InternalModule[] = [
     microservice: 'Procurement Workflow Service',
     controlPurpose: 'Mandatory PPA 2007 baseline for all spending.',
     actions: ['plan.create', 'plan.view', 'plan.update']
-  },
-  {
-    id: 'procurement-planning-committee',
-    title: 'Planning Committee Review',
-    section: 'Planning & Budget',
-    description: 'Link requisitions to APP items and record committee review decisions.',
-    microservice: 'Procurement Workflow Service',
-    controlPurpose: 'Section 21 planning committee visibility and pre-tender discipline.',
-    actions: ['planning_committee.view']
   }
 ];
 
@@ -253,138 +232,6 @@ const sharedModules: InternalModule[] = [
     actions: ['profile.view', 'profile.update']
   }
 ];
-
-export const requisitionTypes = ['Goods', 'Works', 'Services'];
-export const requisitionPriorities = ['Normal', 'Urgent', 'Strategic'];
-export const requisitionFundingSources = [
-  'Capital Budget',
-  'Recurrent Budget',
-  'Donor Grant',
-  'Special Intervention'
-];
-export const requisitionStatuses = [
-  'Draft',
-  'Submitted',
-  'Endorsed',
-  'Initial',
-  'Under Review',
-  'Evaluation',
-  'Board Review',
-  'Approved',
-  'Rejected'
-];
-export const editableRequisitionStatuses = new Set(['Draft', 'Submitted', 'Endorsed', 'Rejected']);
-
-export const requisitionSteps: Array<{
-  key: RoleKey;
-  title: string;
-  status: string;
-  detail: string;
-}> = [
-  {
-    key: 'requisitioning_officer',
-    title: 'Requisitioning Officer',
-    status: 'Draft',
-    detail: 'Capture need, scope, APP linkage, and budget basis.'
-  },
-  {
-    key: 'comptroller_procurement',
-    title: 'Comptroller Procurement',
-    status: 'Pending Review',
-    detail: 'Head of the procurement unit reviewing specifications, method, threshold routing, and APP approval.'
-  },
-  {
-    key: 'evaluation_committee',
-    title: 'Evaluation Committee',
-    status: 'Queued',
-    detail: 'Prepare or execute evaluation based on workflow stage.'
-  },
-  {
-    key: 'tenders_board',
-    title: 'Tenders Board',
-    status: 'Awaiting',
-    detail: 'NIS Tenders Board chaired by CGIS reviews and decides board-routed recommendations.'
-  },
-  {
-    key: 'accounting_officer',
-    title: 'CGIS Approval',
-    status: 'Conditional',
-    detail: 'Exercise direct low-value approval authority before award publication.'
-  },
-  {
-    key: 'audit_oversight',
-    title: 'Audit and Oversight',
-    status: 'Monitor',
-    detail: 'Observe traceability and compliance after movement.'
-  }
-];
-
-export const requisitionRoleGuidance: Partial<
-  Record<
-    RoleKey,
-    {
-      focus: string;
-      checks: string[];
-    }
-  >
-> = {
-  requisitioning_officer: {
-    focus: 'Frame the need clearly and anchor it to the approved plan and budget.',
-    checks: [
-      'Use a live APP line item.',
-      'Match the budget code to the selected APP item.',
-      'Capture delivery timing, justification, and risk notes.'
-    ]
-  },
-  department_head: {
-    focus: 'Confirm the departmental need is complete, defensible, and ready to enter procurement control.',
-    checks: [
-      'Validate that scope, timing, and justification are clear enough for procurement processing.',
-      'Confirm APP linkage and budget coding before endorsing the request.',
-      'Review live routing implications and record a traceable departmental note.'
-    ]
-  },
-  comptroller_procurement: {
-    focus: 'Act as head of the procurement unit for completeness review, routing basis, procurement method readiness, and APP approval.',
-    checks: [
-      'Validate specifications and scope clarity.',
-      'Confirm threshold route and approval path.',
-      'Return incomplete drafts with actionable comments.'
-    ]
-  },
-  evaluation_committee: {
-    focus: 'Prepare evaluation criteria that are defensible and aligned to scope.',
-    checks: [
-      'Review scope and technical requirements.',
-      'Confirm evaluation inputs are complete.',
-      'Document committee decisions clearly.'
-    ]
-  },
-  tenders_board: {
-    focus: 'Exercise board oversight under the NIS Tenders Board chaired by CGIS.',
-    checks: [
-      'Check completeness of supporting documentation.',
-      'Confirm that the recommendation basis is defensible.',
-      'Record the board decision and any BPP escalation clearly.'
-    ]
-  },
-  accounting_officer: {
-    focus: 'Exercise CGIS direct approval on low-value cases and keep the executive decision traceable.',
-    checks: [
-      'Validate that the threshold route resolves to CGIS direct approval.',
-      'Confirm the supporting pack is complete before approval.',
-      'Record the executive decision traceably.'
-    ]
-  },
-  audit_oversight: {
-    focus: 'Monitor compliance, traceability, and stage movement.',
-    checks: [
-      'Check audit trail completeness.',
-      'Review turnaround times and exceptions.',
-      'Flag non-compliant routing or actions.'
-    ]
-  }
-};
 
 export const thresholdBands: ThresholdBand[] = [
   {

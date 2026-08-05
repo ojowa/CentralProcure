@@ -82,7 +82,7 @@ authRouter.post('/api/Auth/internal/login', authRateLimiter, async (req: Request
 
   try {
     const userQuery = await pool!.query(
-      'SELECT internal_user_id, email, password_hash, role_name, status, security_stamp FROM identity.internal_users iu JOIN identity.roles r ON r.role_id = iu.role_id WHERE iu.email = $1',
+      'SELECT internal_user_id, email, password_hash, role_name, status, security_stamp, unit_id FROM identity.internal_users iu JOIN identity.roles r ON r.role_id = iu.role_id WHERE iu.email = $1',
       [Email]
     );
     const dbUser = userQuery.rows[0];
@@ -109,6 +109,7 @@ authRouter.post('/api/Auth/internal/login', authRateLimiter, async (req: Request
       role: user.role,
       CanonicalRoleKey: user.role,
       InternalUserId: user.internal_user_id,
+      UnitId: dbUser.unit_id || null,
       SecurityStamp: dbUser.security_stamp || undefined
     });
 
@@ -119,6 +120,7 @@ authRouter.post('/api/Auth/internal/login', authRateLimiter, async (req: Request
       InternalUserId: user.internal_user_id,
       Role: user.role,
       CanonicalRoleKey: user.role,
+      UnitId: dbUser.unit_id || null,
       Token: token
     });
   } catch (error: any) {
@@ -143,8 +145,8 @@ authRouter.post('/api/Auth/internal/register', registrationRateLimiter, async (r
   try {
     const passwordHash = await hashPassword(Password);
     const result = await pool!.query(
-      'SELECT * FROM identity.register_internal_user($1, $2, $3, $4, $5, $6, $7, $8)',
-      [Email, Username, FirstName, MiddleName || '', Surname, ServiceNumber || '', passwordHash, Role]
+      'SELECT * FROM identity.register_internal_user($1, $2, $3, $4, $5, $6, $7, $8, $9)',
+      [Email, Username, FirstName, MiddleName || '', Surname, ServiceNumber || '', UnitId || null, passwordHash, Role]
     );
     const user = result.rows[0];
 
@@ -153,18 +155,11 @@ authRouter.post('/api/Auth/internal/register', registrationRateLimiter, async (r
       return;
     }
 
-    if (UnitId) {
-      await pool!.query(
-        'UPDATE identity.internal_users SET unit_id = $1 WHERE internal_user_id = $2',
-        [UnitId, user.internal_user_id]
-      );
-    }
-
     res.json({
       InternalUserId: user.internal_user_id,
       Email: user.email,
       RoleName: user.role_name,
-      UnitId: UnitId || null
+      UnitId: user.unit_id || null
     });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred during registration.' });
@@ -417,18 +412,19 @@ authRouter.put('/api/Auth/internal/users/:internalUserId', async (req: Request, 
   const { Username, FirstName, MiddleName, Surname, ServiceNumber, Email, Role, UnitId, Status } = req.body;
 
   try {
+    const isActive = Status === 'Active';
     const result = await pool!.query(
       'SELECT * FROM identity.update_internal_user($1, $2, $3, $4, $5, $6, $7, $8, $9)',
       [
         internalUserId,
+        Email || '',
         Username || '',
         FirstName || '',
         MiddleName || '',
         Surname || '',
         ServiceNumber || '',
-        Email || '',
-        Role || '',
-        UnitId || null
+        UnitId || null,
+        isActive
       ]
     );
     const user = result.rows[0];

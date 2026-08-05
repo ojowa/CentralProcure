@@ -305,7 +305,7 @@ const STATES: WorkflowStateResult[] = [
     requires_approval: false,
     requires_external_review: false,
     statute_reference: 'PPA 2007 s.16, s.38',
-    assigned_roles: ['audit_oversight', 'admin'],
+    assigned_roles: ['audit_oversight', 'admin', 'ict_admin', 'system_administrator'],
     action_keys: ['closeout.archive'],
   },
   {

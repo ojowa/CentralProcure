@@ -4,7 +4,7 @@ import React, { useMemo } from 'react';
 import Link from 'next/link';
 import type { InternalModule, RoleKey } from '../types/internal';
 import { getInternalDashboardPath } from '../utils/internalRoutes';
-import { roles, requisitionRoleGuidance, thresholdBands } from '../data/internalData';
+import { roles, thresholdBands } from '../data/internalData';
 import { useRecentActivity, formatRelativeTime } from '../hooks/useRecentActivity';
 import {
   LayoutDashboard,
@@ -41,9 +41,9 @@ const roleDashboardConfig: Partial<Record<RoleKey, {
 }>> = {
   requisitioning_officer: {
     title: 'Requisitioning Officer Workspace',
-    subtitle: 'Create and manage departmental procurement requests',
+    subtitle: 'Capture and manage departmental procurement needs',
     primaryMetrics: [
-      { label: 'My Requisitions', value: '12', trend: '+3 this month', icon: <FileText /> },
+      { label: 'Active Needs', value: '12', trend: '+3 this month', icon: <FileText /> },
       { label: 'Pending Approval', value: '4', icon: <Clock /> },
       { label: 'Approved', value: '8', trend: '67% success rate', icon: <CheckCircle /> }
     ],
@@ -51,42 +51,37 @@ const roleDashboardConfig: Partial<Record<RoleKey, {
       { label: 'Needs Assessment', moduleId: 'needs-collection', icon: <FileText /> }
     ],
     alerts: [
-      { type: 'warning', message: '2 requisitions awaiting departmental endorsement' }
+      { type: 'warning', message: '2 needs awaiting departmental endorsement' }
     ]
   },
   department_head: {
     title: 'Department Head Dashboard',
-    subtitle: 'Review and endorse departmental requisitions',
+    subtitle: 'Review and endorse departmental procurement needs',
     primaryMetrics: [
       { label: 'Pending Review', value: '5', icon: <AlertTriangle /> },
       { label: 'Endorsed This Month', value: '12', icon: <CheckCircle /> },
-      { label: 'Team Requisitions', value: '24', icon: <FileText /> }
+      { label: 'Team Needs', value: '24', icon: <FileText /> }
     ],
     quickActions: [
-      { label: 'Needs Assessment', moduleId: 'needs-collection', icon: <Shield /> },
-      { label: 'Review Pending Requisitions', moduleId: 'department-head-review', icon: <Shield /> }
+      { label: 'Needs Assessment', moduleId: 'needs-collection', icon: <Shield /> }
     ],
     alerts: [
-      { type: 'warning', message: '3 requisitions require urgent review' }
+      { type: 'warning', message: '3 needs require urgent review' }
     ]
   },
   comptroller_procurement: {
     title: 'Comptroller Procurement Dashboard',
     subtitle: 'Oversee procurement planning and committee reviews',
     primaryMetrics: [
-      { label: 'Planning Committee Queue', value: '8', icon: <Briefcase /> },
       { label: 'APP Items', value: '156', icon: <FileText /> },
       { label: 'Active Tenders', value: '12', icon: <TrendingUp /> }
     ],
     quickActions: [
       { label: 'Needs Assessment', moduleId: 'needs-collection', icon: <Shield /> },
-      { label: 'Planning Committee Review', moduleId: 'procurement-planning-committee', icon: <Shield /> },
       { label: 'Annual Procurement Plan', moduleId: 'annual-procurement-plan', icon: <Calendar /> },
       { label: 'Tender Management', moduleId: 'create-tender', icon: <Briefcase /> }
     ],
-    alerts: [
-      { type: 'info', message: 'Next planning committee meeting scheduled for tomorrow' }
-    ]
+    alerts: []
   },
   financial_unit_officer: {
     title: 'Budget Officer Dashboard',
@@ -186,10 +181,8 @@ const defaultConfig = {
 };
 
 // Activity icon mapper
-const ActivityIcon: React.FC<{ type: 'requisition' | 'approval' | 'tender' | 'bid' | 'system'; className?: string }> = ({ type, className }) => {
+const ActivityIcon: React.FC<{ type: 'approval' | 'tender' | 'bid' | 'system'; className?: string }> = ({ type, className }) => {
   switch (type) {
-    case 'requisition':
-      return <FileText className={className} />;
     case 'approval':
       return <CheckCircle className={className} />;
     case 'tender':
@@ -222,7 +215,6 @@ const getStatusColor = (status?: 'completed' | 'pending' | 'in_progress' | 'reje
 export const DashboardPage = ({ modules, role, userEmail }: DashboardProps) => {
   const config = role ? (roleDashboardConfig[role] || defaultConfig) : defaultConfig;
   const roleInfo = role ? roles.find(r => r.key === role) : null;
-  const guidance = role ? requisitionRoleGuidance[role] : null;
   const { activities, loading: activitiesLoading } = useRecentActivity(role, 5);
 
   // Group modules by section
@@ -378,24 +370,6 @@ export const DashboardPage = ({ modules, role, userEmail }: DashboardProps) => {
                 <ArrowRight className="dashboard-quick-action__arrow" />
               </Link>
             ))}
-          </div>
-        </section>
-      )}
-
-      {/* Role Guidance */}
-      {guidance && (
-        <section className="dashboard-guidance">
-          <h2 className="dashboard-section-title">Role Guidance</h2>
-          <div className="dashboard-guidance__card">
-            <h3 className="dashboard-guidance__focus">{guidance.focus}</h3>
-            <ul className="dashboard-guidance__checks">
-              {guidance.checks.map((check, index) => (
-                <li key={index}>
-                  <CheckCircle className="w-4 h-4" />
-                  {check}
-                </li>
-              ))}
-            </ul>
           </div>
         </section>
       )}

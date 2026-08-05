@@ -7,12 +7,10 @@ import { fetchPlanDetails } from '../services/moduleService';
 import { usePermission } from '../hooks/usePermission';
 import {
   decideProcurementPlanApproval,
-  fetchProcurementPlanRecommendationReadiness,
   fetchYearlyAppDetails,
   fetchYearlyApps,
   initiateProcurementPlan,
   recommendProcurementPlanForApproval,
-  type ProcurementPlanRecommendationReadinessResponse,
   type YearlyAppDetail,
   type YearlyAppPlanSummary,
   type YearlyAppSummary
@@ -55,7 +53,6 @@ export const ProcurementPlanModule = ({ module, token, role }: Props) => {
   const [approvalNote, setApprovalNote] = useState('');
   const [query, setQuery] = useState('');
   const [thresholdSummary, setThresholdSummary] = useState<string | null>(null);
-  const [recommendationReadiness, setRecommendationReadiness] = useState<ProcurementPlanRecommendationReadinessResponse | null>(null);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isModalProcessing, setIsModalProcessing] = useState(false);
@@ -118,14 +115,10 @@ export const ProcurementPlanModule = ({ module, token, role }: Props) => {
     setLoading(true);
     setError(null);
     try {
-      const [details, readiness] = await Promise.all([
-        fetchPlanDetails(planId, token),
-        fetchProcurementPlanRecommendationReadiness(token, planId)
-      ]);
+      const details = await fetchPlanDetails(planId, token);
       setActionError(null);
       setSelectedPlan(details.Plan);
       setPlanItems(details.Items || []);
-      setRecommendationReadiness(readiness);
       setView('details');
       if (pushUrl) syncUrl(yearlyAppIdOverride ?? selectedYearlyApp?.YearlyAppId ?? details.Plan.YearlyAppId ?? null, planId);
     } catch (err: any) {
@@ -148,7 +141,6 @@ export const ProcurementPlanModule = ({ module, token, role }: Props) => {
       setPendingPlans(appData.PendingPlans ?? groupedLegacyPlans.pending);
       setSelectedPlan(null);
       setPlanItems([]);
-      setRecommendationReadiness(null);
       setView('details');
       if (planIdToOpen) await openPlan(planIdToOpen, false, yearlyAppId);
       else if (pushUrl) syncUrl(yearlyAppId, null);
@@ -295,7 +287,6 @@ export const ProcurementPlanModule = ({ module, token, role }: Props) => {
               setSelectedYearlyApp(null);
               setSelectedPlan(null);
               setPlanItems([]);
-              setRecommendationReadiness(null);
               syncUrl();
             }}
           >
@@ -324,7 +315,6 @@ export const ProcurementPlanModule = ({ module, token, role }: Props) => {
         selectedYearlyApp={selectedYearlyApp}
         selectedPlan={selectedPlan}
         canRecommendApp={canRecommendApp}
-        recommendationReadiness={recommendationReadiness}
       />
 
       {view === 'list' ? (

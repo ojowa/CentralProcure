@@ -16,7 +16,6 @@ import { evaluationsRouter } from './routes/evaluations.js';
 import { evaluationReportsRouter } from './routes/evaluation-reports.js';
 import { procurementPlansRouter } from './routes/procurement-plans.js';
 import { procurementPlanItemsRouter } from './routes/procurement-plan-items.js';
-import { requisitionsRouter } from './routes/requisitions.js';
 import { yearlyAppsRouter } from './routes/yearly-apps.js';
 import { planningCommitteeRouter } from './routes/planning-committee.js';
 import { needsCollectionRouter } from './routes/needs-collection.js';
@@ -73,7 +72,6 @@ export const createApp = () => {
   app.use(evaluationReportsRouter);
   app.use(procurementPlansRouter);
   app.use(procurementPlanItemsRouter);
-  app.use(requisitionsRouter);
   app.use(yearlyAppsRouter);
   app.use(planningCommitteeRouter);
   app.use(needsCollectionRouter);

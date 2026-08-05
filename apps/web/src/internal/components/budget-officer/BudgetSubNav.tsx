@@ -1,6 +1,6 @@
 'use client';
 
-type ViewType = 'dashboard' | 'queue' | 'ledger' | 'releaseledger' | 'commitments' | 'create' | 'review';
+type ViewType = 'dashboard' | 'ledger' | 'releaseledger' | 'commitments' | 'create' | 'review';
 
 type Props = {
   activeView: ViewType;
@@ -25,7 +25,6 @@ export const BudgetSubNav = ({
     badge?: string;
   }> = [
     { key: 'dashboard', title: 'Dashboard', subtitle: 'Insights', disabled: false },
-    { key: 'queue', title: 'Queue', subtitle: 'Requisition list', disabled: false },
     { key: 'ledger', title: 'Ledger', subtitle: 'Appropriations', disabled: !canViewLedger, badge: canViewLedger ? undefined : 'Locked' },
     { key: 'releaseledger', title: 'Release Ledger', subtitle: 'Fund logs', disabled: !canViewLedger, badge: canViewLedger ? undefined : 'Locked' },
     { key: 'commitments', title: 'Commitments', subtitle: 'Committed funds', disabled: !canViewLedger, badge: canViewLedger ? undefined : 'Locked' },

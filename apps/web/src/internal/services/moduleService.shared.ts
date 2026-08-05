@@ -27,7 +27,6 @@ export const serviceBaseUrls = {
 const resolveModuleUrl = (moduleId: string): string => {
   switch (moduleId) {
     case 'annual-procurement-plan':
-    case 'procurement-planning-committee':
       return `${serviceBaseUrls.workflow}/api/procurement-plans`;
     case 'procurement-method-determination':
       return `${serviceBaseUrls.workflow}/api/procurement-methods/queue`;
@@ -80,10 +79,7 @@ const resolveModuleUrl = (moduleId: string): string => {
 };
 
 export const fetchModuleData = async (moduleId: string, token: string): Promise<unknown> => {
-  const url = resolveModuleUrl(moduleId);
-  const finalUrl = moduleId === 'procurement-planning-committee'
-    ? `${serviceBaseUrls.workflow}/api/procurement-plans?status=Under%20Review`
-    : url;
+  const finalUrl = resolveModuleUrl(moduleId);
 
   const response = await fetch(finalUrl, {
     headers: buildAuthHeaders(token),

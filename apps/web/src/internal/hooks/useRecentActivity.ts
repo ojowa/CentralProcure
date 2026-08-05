@@ -5,7 +5,7 @@ import type { RoleKey } from '../types/internal';
 
 export interface Activity {
   id: string;
-  type: 'requisition' | 'approval' | 'tender' | 'bid' | 'system';
+  type: 'approval' | 'tender' | 'bid' | 'system';
   title: string;
   description: string;
   timestamp: string;
@@ -19,25 +19,25 @@ const generateMockActivities = (role: RoleKey): Activity[] => {
     requisitioning_officer: [
       {
         id: '1',
-        type: 'requisition',
-        title: 'Requisition Submitted',
-        description: 'REQ-2024-0156: Office Equipment Procurement',
+        type: 'system',
+        title: 'Needs Submitted',
+        description: 'NND-2024-0156: Office Equipment Procurement',
         timestamp: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(),
         status: 'pending'
       },
       {
         id: '2',
         type: 'approval',
-        title: 'Requisition Endorsed',
-        description: 'REQ-2024-0154: IT Infrastructure Upgrade',
+        title: 'Need Endorsed',
+        description: 'NND-2024-0154: IT Infrastructure Upgrade',
         timestamp: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(),
         status: 'completed'
       },
       {
         id: '3',
-        type: 'requisition',
-        title: 'Requisition Created',
-        description: 'REQ-2024-0157: Vehicle Maintenance Services',
+        type: 'system',
+        title: 'Need Captured',
+        description: 'NND-2024-0157: Vehicle Maintenance Services',
         timestamp: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(),
         status: 'in_progress'
       }
@@ -46,16 +46,16 @@ const generateMockActivities = (role: RoleKey): Activity[] => {
       {
         id: '1',
         type: 'approval',
-        title: 'Requisition Pending Review',
-        description: 'REQ-2024-0156: Office Equipment Procurement',
+        title: 'Need Pending Review',
+        description: 'NND-2024-0156: Office Equipment Procurement',
         timestamp: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(),
         status: 'pending'
       },
       {
         id: '2',
         type: 'approval',
-        title: 'Requisition Endorsed',
-        description: 'REQ-2024-0154: IT Infrastructure Upgrade',
+        title: 'Need Endorsed',
+        description: 'NND-2024-0154: IT Infrastructure Upgrade',
         timestamp: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(),
         status: 'completed'
       }
@@ -71,9 +71,9 @@ const generateMockActivities = (role: RoleKey): Activity[] => {
       },
       {
         id: '2',
-        type: 'requisition',
-        title: 'Planning Committee Review',
-        description: '5 items queued for committee review',
+        type: 'approval',
+        title: 'APP Approval Pending',
+        description: '5 items queued for APP approval',
         timestamp: new Date(now.getTime() - 8 * 60 * 60 * 1000).toISOString(),
         status: 'in_progress'
       }
@@ -119,7 +119,7 @@ const generateMockActivities = (role: RoleKey): Activity[] => {
         id: '1',
         type: 'approval',
         title: 'Direct Approval Required',
-        description: '3 low-value requisitions pending CGIS approval',
+        description: '3 low-value cases pending CGIS approval',
         timestamp: new Date(now.getTime() - 1 * 60 * 60 * 1000).toISOString(),
         status: 'pending'
       },
@@ -245,8 +245,6 @@ export const formatRelativeTime = (timestamp: string): string => {
 // Get activity icon based on type
 export const getActivityIcon = (type: Activity['type']) => {
   switch (type) {
-    case 'requisition':
-      return 'file-text';
     case 'approval':
       return 'check-circle';
     case 'tender':

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
+import { resolveUnitScope } from '../lib/unit-scope.js';
 import { syncAsync } from '../lib/workflow/runtime-tracker.js';
 
 export const needsCollectionRouter = Router();
@@ -15,6 +16,8 @@ needsCollectionRouter.get('/api/needs-collection', async (req, res) => {
   if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
+  const scope = resolveUnitScope(auth);
+
   try {
     const { Status, UnitId, FiscalYear, Page, PageSize } = req.query;
     const pageNum = Math.max(1, parseInt(Page as string, 10) || 1);
@@ -26,8 +29,11 @@ needsCollectionRouter.get('/api/needs-collection', async (req, res) => {
     let idx = 1;
 
     if (Status) { conditions.push(`nc.status = $${idx}`); values.push(Status); idx++; }
-    if (UnitId) { conditions.push(`nc.unit_id = $${idx}`); values.push(UnitId); idx++; }
     if (FiscalYear) { conditions.push(`nc.fiscal_year = $${idx}`); values.push(FiscalYear); idx++; }
+
+    // Non-admin users only ever see their own unit's needs collections.
+    const effectiveUnitId = scope.isSystemAdmin ? (UnitId as string | undefined) : scope.unitId;
+    if (effectiveUnitId) { conditions.push(`nc.unit_id = $${idx}`); values.push(effectiveUnitId); idx++; }
 
     const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
@@ -69,11 +75,16 @@ needsCollectionRouter.post('/api/needs-collection', async (req, res) => {
   if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
+  const scope = resolveUnitScope(auth);
+
   try {
     const { Title, FiscalYear, UnitId, Remarks, Items } = req.body;
     if (!Title || !FiscalYear) {
       res.status(400).json({ ErrorMessage: 'Title and FiscalYear are required.' }); return;
     }
+
+    // Non-admin users can only submit needs for their own unit.
+    const effectiveUnitId = scope.isSystemAdmin ? (UnitId || null) : scope.unitId;
 
     const result = await pool.query(
       `INSERT INTO procurement_workflow.needs_collection
@@ -83,9 +94,10 @@ needsCollectionRouter.post('/api/needs-collection', async (req, res) => {
         collection_id AS "CollectionId",
         title AS "Title",
         fiscal_year AS "FiscalYear",
+        unit_id AS "UnitId",
         status AS "Status",
         created_at AS "CreatedAt"`,
-      [Title, FiscalYear, UnitId || null, Remarks || '', auth!.sub]
+      [Title, FiscalYear, effectiveUnitId, Remarks || '', auth!.sub]
     );
 
     const collection = result.rows[0];
@@ -394,8 +406,14 @@ needsCollectionRouter.get('/api/needs-collection/:id', async (req, res) => {
   if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
+  const scope = resolveUnitScope(auth);
+
   try {
     const { id } = req.params;
+    const scopeClause = scope.isSystemAdmin ? '' : ` AND nc.unit_id = $2`;
+    const params: unknown[] = [id];
+    if (!scope.isSystemAdmin) params.push(scope.unitId);
+
     const result = await pool.query(
       `SELECT
         nc.collection_id AS "CollectionId",
@@ -411,7 +429,7 @@ needsCollectionRouter.get('/api/needs-collection/:id', async (req, res) => {
         nc.updated_at AS "UpdatedAt"
        FROM procurement_workflow.needs_collection nc
        LEFT JOIN identity.organizational_units ou ON nc.unit_id = ou.unit_id
-       WHERE nc.collection_id = $1`, [id]
+       WHERE nc.collection_id = $1${scopeClause}`, params
     );
 
     if (result.rows.length === 0) {
@@ -443,9 +461,15 @@ needsCollectionRouter.put('/api/needs-collection/:id', async (req, res) => {
   if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
+  const scope = resolveUnitScope(auth);
+
   try {
     const { id } = req.params;
     const { Title, FiscalYear, UnitId, Remarks, Items } = req.body;
+
+    // Non-admin users can only edit (and keep) their own unit's collection.
+    const effectiveUnitId = scope.isSystemAdmin ? (UnitId || null) : scope.unitId;
+    const scopeClause = scope.isSystemAdmin ? '' : ` AND unit_id = $6`;
 
     const result = await pool.query(
       `UPDATE procurement_workflow.needs_collection
@@ -454,14 +478,16 @@ needsCollectionRouter.put('/api/needs-collection/:id', async (req, res) => {
            unit_id = COALESCE($3, unit_id),
            remarks = COALESCE(NULLIF($4, ''), remarks),
            updated_at = NOW()
-       WHERE collection_id = $5 AND status IN ('Draft', 'Returned')
+       WHERE collection_id = $5${scopeClause} AND status IN ('Draft', 'Returned')
        RETURNING
         collection_id AS "CollectionId",
         title AS "Title",
         fiscal_year AS "FiscalYear",
         status AS "Status",
         updated_at AS "UpdatedAt"`,
-      [Title || '', FiscalYear || '', UnitId || null, Remarks || '', id]
+      scope.isSystemAdmin
+        ? [Title || '', FiscalYear || '', effectiveUnitId, Remarks || '', id]
+        : [Title || '', FiscalYear || '', effectiveUnitId, Remarks || '', id, scope.unitId]
     );
 
     if (result.rows.length === 0) {
@@ -493,14 +519,20 @@ needsCollectionRouter.post('/api/needs-collection/:id/submit', async (req, res) 
   if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
+  const scope = resolveUnitScope(auth);
+
   try {
     const { id } = req.params;
+    const scopeClause = scope.isSystemAdmin ? '' : ` AND unit_id = $2`;
+    const params: unknown[] = [id];
+    if (!scope.isSystemAdmin) params.push(scope.unitId);
+
     const result = await pool.query(
       `UPDATE procurement_workflow.needs_collection
        SET status = 'Submitted', submitted_at = NOW(), updated_at = NOW()
-       WHERE collection_id = $1 AND status IN ('Draft', 'Returned')
+       WHERE collection_id = $1${scopeClause} AND status IN ('Draft', 'Returned')
        RETURNING collection_id AS "CollectionId", status AS "Status"`,
-      [id]
+      params
     );
 
     if (result.rows.length === 0) {
@@ -518,13 +550,19 @@ needsCollectionRouter.delete('/api/needs-collection/:id', async (req, res) => {
   if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
+  const scope = resolveUnitScope(auth);
+
   try {
     const { id } = req.params;
+    const scopeClause = scope.isSystemAdmin ? '' : ` AND unit_id = $2`;
+    const params: unknown[] = [id];
+    if (!scope.isSystemAdmin) params.push(scope.unitId);
+
     const result = await pool.query(
       `DELETE FROM procurement_workflow.needs_collection
-       WHERE collection_id = $1 AND status = 'Draft'
+       WHERE collection_id = $1${scopeClause} AND status = 'Draft'
        RETURNING collection_id AS "CollectionId"`,
-      [id]
+      params
     );
     if (result.rows.length === 0) {
       res.status(404).json({ ErrorMessage: 'Collection not found or not deletable.' }); return;

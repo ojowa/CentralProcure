@@ -6,33 +6,29 @@ import type {
   BudgetAppropriationResponse,
   BudgetConfirmationDetail,
   BudgetDashboardResponse,
-  BudgetFilters as IBudgetFilters,
-  BudgetRequisitionQueueItem,
   InternalModule,
   RoleKey
 } from '../types/internal';
 import {
   decideBudgetConfirmation,
   fetchBudgetConfirmationDetail,
-  fetchBudgetDashboard,
-  fetchBudgetRequisitionQueue
+  fetchBudgetDashboard
 } from '../services/budgetService';
 
 // Sub-components
-import { BudgetFilters } from './budget-officer/BudgetFilters';
-import { BudgetQueue } from './budget-officer/BudgetQueue';
 import { BudgetDetailView } from './budget-officer/BudgetDetailView';
 import { BudgetDecisionPanel } from './budget-officer/BudgetDecisionPanel';
 import { BudgetSubNav } from './budget-officer/BudgetSubNav';
 import { BudgetAppropriationLedger } from './budget-officer/BudgetAppropriationLedger';
 import { BudgetAppropriationForm } from './budget-officer/BudgetAppropriationForm';
-import { BudgetAlignmentPanel } from './budget-officer/BudgetAlignmentPanel';
 import { BudgetExecutionDashboard } from './budget-officer/BudgetExecutionDashboard';
 import { BudgetReleaseForm } from './budget-officer/BudgetReleaseForm';
 import { BudgetCommitmentForm } from './budget-officer/BudgetCommitmentForm';
 import { BudgetCommitmentLedger } from './budget-officer/BudgetCommitmentLedger';
 import { BudgetReleaseLedger } from './budget-officer/BudgetReleaseLedger';
-import { hasModuleAction } from './requisitionWorkspace/helpers';
+
+const hasModuleAction = (module: InternalModule, actionKey: string): boolean =>
+  (module.actions ?? []).some((action) => action.toLowerCase() === actionKey.toLowerCase());
 
 type Props = {
   module: InternalModule;
@@ -40,14 +36,7 @@ type Props = {
   role?: RoleKey | null;
 };
 
-type ViewType = 'dashboard' | 'queue' | 'ledger' | 'releaseledger' | 'commitments' | 'create' | 'review';
-
-const defaultFilters: IBudgetFilters = {
-  fiscalYear: '',
-  department: '',
-  stage: '',
-  query: ''
-};
+type ViewType = 'dashboard' | 'ledger' | 'releaseledger' | 'commitments' | 'create' | 'review';
 
 const getDecisionOptions = (detail: BudgetConfirmationDetail | null) => {
   if (!detail) return [];
@@ -76,20 +65,14 @@ export const BudgetOfficerWorkspacePage = ({ module, token, role }: Props) => {
   };
 
   const [isDecisionModalOpen, setIsDecisionModalOpen] = useState(false);
-  const [isAlignmentModalOpen, setIsAlignmentModalOpen] = useState(false);
-  const [filters, setFilters] = useState<IBudgetFilters>(defaultFilters);
-  const [page, setPage] = useState(1);
   const [dashboard, setDashboard] = useState<BudgetDashboardResponse | null>(null);
-  const [queue, setQueue] = useState<BudgetRequisitionQueueItem[]>([]);
-  const [total, setTotal] = useState(0);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
-  const [selectedRequisitionId, setSelectedRequisitionId] = useState<string | null>(null);
   const [detail, setDetail] = useState<BudgetConfirmationDetail | null>(null);
   const [decisionNote, setDecisionNote] = useState('');
   const [feedback, setFeedback] = useState('');
   const [error, setError] = useState('');
   const [modalError, setModalError] = useState<string | null>(null);
-  const [isLoadingQueue, setIsLoadingQueue] = useState(false);
+  const [isLoadingDashboard, setIsLoadingDashboard] = useState(false);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -105,52 +88,30 @@ export const BudgetOfficerWorkspacePage = ({ module, token, role }: Props) => {
 
   const availableDecisions = useMemo(() => getDecisionOptions(detail) as any[], [detail]);
 
-  const loadQueueAndDashboard = async () => {
+  const loadDashboard = async () => {
     if (!token) {
       setDashboard(null);
-      setQueue([]);
-      setTotal(0);
       setSelectedPlanId(null);
-      setSelectedRequisitionId(null);
       return;
     }
 
-    const fiscalYear = Number(filters.fiscalYear);
-
-    setIsLoadingQueue(true);
+    setIsLoadingDashboard(true);
     setError('');
     try {
-      const [nextDashboard, nextQueue] = await Promise.all([
-        fetchBudgetDashboard(token, {
-          fiscalYear: Number.isFinite(fiscalYear) && fiscalYear > 0 ? fiscalYear : undefined,
-          department: filters.department || undefined
-        }),
-        fetchBudgetRequisitionQueue(token, {
-          fiscalYear: Number.isFinite(fiscalYear) && fiscalYear > 0 ? fiscalYear : undefined,
-          department: filters.department || undefined,
-          stage: filters.stage || undefined,
-          query: filters.query || undefined,
-          page,
-          pageSize: 12
-        })
-      ]);
+      const nextDashboard = await fetchBudgetDashboard(token);
 
       setDashboard(nextDashboard);
-      setQueue(nextQueue.Items);
-      setTotal(nextQueue.TotalCount);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Unable to load budget workspace.');
       setDashboard(null);
-      setQueue([]);
-      setTotal(0);
     } finally {
-      setIsLoadingQueue(false);
+      setIsLoadingDashboard(false);
     }
   };
 
   useEffect(() => {
-    void loadQueueAndDashboard();
-  }, [token, filters.department, filters.fiscalYear, filters.query, filters.stage, page, activeView]);
+    void loadDashboard();
+  }, [token, activeView]);
 
   useEffect(() => {
     if (!token || !selectedPlanId) {
@@ -198,7 +159,7 @@ export const BudgetOfficerWorkspacePage = ({ module, token, role }: Props) => {
       });
       setFeedback(result.Message);
       setIsDecisionModalOpen(false); // Close modal on success
-      await loadQueueAndDashboard();
+      await loadDashboard();
       const refreshed = await fetchBudgetConfirmationDetail(token, detail.PlanId);
       setDetail(refreshed);
       setDecisionNote('');
@@ -211,29 +172,17 @@ export const BudgetOfficerWorkspacePage = ({ module, token, role }: Props) => {
 
   const handleAppropriationCreated = (response: BudgetAppropriationResponse) => {
     setFeedback(`Appropriation ${response.AppropriationCode} added for FY ${response.FiscalYear}.`);
-    void loadQueueAndDashboard();
+    void loadDashboard();
   };
 
   const handleReleaseCreated = () => {
     setFeedback('Budget release recorded successfully.');
-    void loadQueueAndDashboard();
+    void loadDashboard();
   };
 
   const handleCommitmentCreated = () => {
     setFeedback('Budget commitment recorded successfully.');
-    void loadQueueAndDashboard();
-  };
-
-  const selectedRequisition = useMemo(
-    () => queue.find((item) => item.RequisitionId === selectedRequisitionId) ?? null,
-    [queue, selectedRequisitionId]
-  );
-
-  const handleBudgetAligned = () => {
-    setFeedback('Budget code aligned. Requisition now waits for APP approval.');
-    setIsAlignmentModalOpen(false);
-    setSelectedRequisitionId(null);
-    void loadQueueAndDashboard();
+    void loadDashboard();
   };
 
   const onSelectPlan = (planId: string) => {
@@ -253,18 +202,17 @@ export const BudgetOfficerWorkspacePage = ({ module, token, role }: Props) => {
           <div className="admin-kicker">NIS Financial Oversight</div>
           <h2>Budget Control Center</h2>
           <p className="plan-muted">
-            Monitoring {total} active requisitions for Fiscal Year{' '}
-            {filters.fiscalYear.trim() || new Date().getFullYear()}
+            Monitoring budget execution for the current fiscal year.
           </p>
         </div>
         <div className="plan-actions">
           <button
             type="button"
             className="plan-button plan-button--secondary"
-            onClick={() => void loadQueueAndDashboard()}
-            disabled={!token || isLoadingQueue}
+            onClick={() => void loadDashboard()}
+            disabled={!token || isLoadingDashboard}
           >
-            {isLoadingQueue ? 'Syncing...' : 'Refresh Financials'}
+            {isLoadingDashboard ? 'Syncing...' : 'Refresh Financials'}
           </button>
         </div>
       </header>
@@ -286,30 +234,6 @@ export const BudgetOfficerWorkspacePage = ({ module, token, role }: Props) => {
           {activeView === 'dashboard' && (
             <div className="budget-view-content animate-fade">
               <BudgetExecutionDashboard dashboard={dashboard} onSelectPlan={onSelectPlan} />
-            </div>
-          )}
-
-          {activeView === 'queue' && (
-            <div className="budget-view-content animate-fade">
-              <BudgetFilters
-                filters={filters}
-                onFilterChange={(next) => {
-                  setPage(1);
-                  setFilters((prev) => ({ ...prev, ...next }));
-                }}
-              />
-              <BudgetQueue
-                queue={queue}
-                selectedRequisitionId={selectedRequisitionId}
-                onSelectRequisition={(id) => {
-                  setSelectedRequisitionId(id);
-                  setIsAlignmentModalOpen(true);
-                }}
-                isLoading={isLoadingQueue}
-                page={page}
-                total={total}
-                onPageChange={setPage}
-              />
             </div>
           )}
 
@@ -352,7 +276,7 @@ export const BudgetOfficerWorkspacePage = ({ module, token, role }: Props) => {
                      <span className="terminal-icon">⚖️</span>
                      <div>
                        <h3>Decision Terminal</h3>
-                       <p className="plan-muted">Record the final budget decision for this requisition.</p>
+                       <p className="plan-muted">Record the final budget decision for this plan.</p>
                      </div>
                    </div>
                    
@@ -394,21 +318,6 @@ export const BudgetOfficerWorkspacePage = ({ module, token, role }: Props) => {
         isSaving={isSaving}
         error={modalError}
       />
-      {isAlignmentModalOpen && selectedRequisition ? (
-        <div className="budget-modal-overlay" role="dialog" aria-modal="true" aria-label="Budget alignment">
-          <div className="budget-modal-shell">
-            <BudgetAlignmentPanel
-              token={token}
-              requisition={selectedRequisition}
-              onAligned={handleBudgetAligned}
-              onClose={() => {
-                setIsAlignmentModalOpen(false);
-                setSelectedRequisitionId(null);
-              }}
-            />
-          </div>
-        </div>
-      ) : null}
       <style jsx>{`
         .budget-workspace__topbar {
           margin-bottom: 8px;
@@ -424,24 +333,6 @@ export const BudgetOfficerWorkspacePage = ({ module, token, role }: Props) => {
           .budget-create-stack {
             grid-template-columns: 1fr;
           }
-        }
-
-        .budget-modal-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(15, 23, 42, 0.48);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 24px;
-          z-index: 90;
-          backdrop-filter: blur(6px);
-        }
-
-        .budget-modal-shell {
-          width: min(880px, 100%);
-          max-height: calc(100vh - 48px);
-          overflow: auto;
         }
       `}</style>
     </section>

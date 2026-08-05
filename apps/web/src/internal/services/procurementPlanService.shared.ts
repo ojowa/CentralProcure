@@ -7,8 +7,7 @@ import type {
   ProcurementPlanCreateRequest,
   ProcurementPlanDetail,
   ProcurementPlanListResponse,
-  ProcurementPlanUpdateRequest,
-  RequisitionSummary
+  ProcurementPlanUpdateRequest
 } from '../types/internal';
 
 export type {
@@ -18,8 +17,7 @@ export type {
   ProcurementPlanCreateRequest,
   ProcurementPlanDetail,
   ProcurementPlanListResponse,
-  ProcurementPlanUpdateRequest,
-  RequisitionSummary
+  ProcurementPlanUpdateRequest
 };
 
 export type YearlyAppCreateRequest = {
@@ -45,28 +43,6 @@ export type ProcurementPlanRecommendationResponse = {
 
 export type ProcurementPlanRecommendationRequest = {
   Note?: string | null;
-};
-
-export type ProcurementPlanRecommendationRequisitionResponse = {
-  RequisitionId: string;
-  Title: string;
-  Department: string;
-  TotalEstimate: number;
-  FinalCommitteeDecision?: string | null;
-  AppItemId?: string | null;
-  IsReadyForRecommendation: boolean;
-};
-
-export type ProcurementPlanRecommendationReadinessResponse = {
-  PlanId: string;
-  TotalTrackedRequisitions: number;
-  RecommendedRequisitions: number;
-  PendingFinalDecisionRequisitions: number;
-  NonRecommendedRequisitions: number;
-  AppItemCount: number;
-  CanRecommend: boolean;
-  Message: string;
-  Requisitions: ProcurementPlanRecommendationRequisitionResponse[];
 };
 
 export type YearlyAppSummary = {
@@ -121,19 +97,6 @@ export type YearlyAppDetailsResponse = {
   IncludedPlans?: YearlyAppPlanSummary[];
   PendingPlans?: YearlyAppPlanSummary[];
   Plans?: YearlyAppPlanSummary[];
-};
-
-export type YearlyAppRecommendationReadinessResponse = {
-  YearlyAppId: string;
-  TotalPlans: number;
-  TotalTrackedRequisitions: number;
-  RecommendedRequisitions: number;
-  PendingFinalDecisionRequisitions: number;
-  NonRecommendedRequisitions: number;
-  AppItemCount: number;
-  CanRecommend: boolean;
-  Message: string;
-  Requisitions: ProcurementPlanRecommendationRequisitionResponse[];
 };
 
 export type YearlyAppRecommendationResponse = {

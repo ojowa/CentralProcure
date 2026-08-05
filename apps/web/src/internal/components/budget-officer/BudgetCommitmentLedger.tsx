@@ -246,8 +246,8 @@ export const BudgetCommitmentLedger = ({ token }: Props) => {
                   <th className="p-4 font-semibold text-left">Commit Date</th>
                   <th className="p-4 font-semibold text-left">Budget Line</th>
                   <th className="p-4 font-semibold text-left">Department</th>
-                  <th className="p-4 font-semibold text-left">Requisition</th>
-                  <th className="p-4 font-semibold text-left">Requisition Status</th>
+                  <th className="p-4 font-semibold text-left">Beneficiary</th>
+                  <th className="p-4 font-semibold text-left">Release</th>
                   <th className="p-4 font-semibold text-right">Amount</th>
                   <th className="p-4 font-semibold text-left">Status</th>
                   <th className="p-4 font-semibold text-center">Actions</th>

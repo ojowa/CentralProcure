@@ -8,6 +8,7 @@ export interface TokenPayload {
   CanonicalRoleKey?: string;
   InternalUserId?: string;
   VendorId?: string;
+  UnitId?: string | null;
   SecurityStamp?: string;
   exp?: number;
   iat?: number;

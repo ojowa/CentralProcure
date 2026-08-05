@@ -266,10 +266,11 @@ export function buildAuthority(
     new Set(actions.map((a) => a.action_key.toLowerCase())),
   ).sort((a, b) => a.localeCompare(b));
 
-  const canEdit = allowedActionKeys.includes('requisition.update');
+  const isSystemAdmin = ['admin', 'ict_admin', 'system_administrator'].includes(roleKey.toLowerCase());
+  const canEdit = allowedActionKeys.includes('requisition.update') || isSystemAdmin;
   const canDelete =
     entityType.toLowerCase() === 'requisition' &&
-    roleKey.toLowerCase() === 'admin';
+    isSystemAdmin;
   const canRoute =
     entityType.toLowerCase() === 'requisition' &&
     canEdit &&

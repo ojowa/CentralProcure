@@ -50,7 +50,7 @@ export const BudgetDetailView = ({ detail, isLoading }: Props) => {
         <div className="budget-card p-16 text-center">
           <div className="text-5xl mb-4 opacity-50">📋</div>
           <h3 className="text-2xl font-bold text-slate-900 mb-2">Select Plan</h3>
-          <p className="text-slate-500 max-w-md mx-auto">Choose a requisition from the queue to view detailed budget analysis.</p>
+          <p className="text-slate-500 max-w-md mx-auto">Select a plan from the dashboard to view detailed budget analysis.</p>
         </div>
       </section>
     );

@@ -1,6 +1,6 @@
 -- Function for Registering an Internal User (PostgreSQL)
-DROP PROCEDURE IF EXISTS identity.register_internal_user_sp(VARCHAR(255), VARCHAR(100), VARCHAR(100), VARCHAR(100), VARCHAR(100), VARCHAR(100), VARCHAR(255), VARCHAR(100));
-DROP FUNCTION IF EXISTS identity.register_internal_user(VARCHAR(255), VARCHAR(100), VARCHAR(100), VARCHAR(100), VARCHAR(100), VARCHAR(100), VARCHAR(255), VARCHAR(100));
+DROP PROCEDURE IF EXISTS identity.register_internal_user_sp(VARCHAR(255), VARCHAR(100), VARCHAR(100), VARCHAR(100), VARCHAR(100), VARCHAR(100), UUID, VARCHAR(255), VARCHAR(100));
+DROP FUNCTION IF EXISTS identity.register_internal_user(VARCHAR(255), VARCHAR(100), VARCHAR(100), VARCHAR(100), VARCHAR(100), VARCHAR(100), UUID, VARCHAR(255), VARCHAR(100));
 
 CREATE OR REPLACE FUNCTION identity.register_internal_user(
     p_email VARCHAR(255),
@@ -26,6 +26,7 @@ DECLARE
     v_RoleID UUID;
     v_InternalUserID UUID;
     v_UnitName VARCHAR(150);
+    v_IsSystemAdmin BOOLEAN;
 BEGIN
     SELECT role_id
     INTO v_RoleID
@@ -37,15 +38,22 @@ BEGIN
         RAISE EXCEPTION 'Role not found or inactive';
     END IF;
 
-    SELECT ou.unit_name
-    INTO v_UnitName
-    FROM identity.organizational_units ou
-    WHERE ou.unit_id = p_unit_id
-      AND ou.is_active = TRUE
-      AND ou.is_assignable = TRUE;
+    v_IsSystemAdmin := p_role_name IN ('Admin', 'SystemAdministrator', 'ict_admin');
 
-    IF v_UnitName IS NULL THEN
-        RAISE EXCEPTION 'Organizational unit not found or not assignable';
+    IF NOT v_IsSystemAdmin THEN
+        SELECT ou.unit_name
+        INTO v_UnitName
+        FROM identity.organizational_units ou
+        WHERE ou.unit_id = p_unit_id
+          AND ou.is_active = TRUE
+          AND ou.is_assignable = TRUE;
+
+        IF v_UnitName IS NULL THEN
+            RAISE EXCEPTION 'Organizational unit not found or not assignable';
+        END IF;
+    ELSE
+        v_UnitName := NULL;
+        p_unit_id := NULL;
     END IF;
 
     INSERT INTO identity.internal_users (

@@ -2,7 +2,6 @@ import type {
   YearlyAppCreateRequest,
   YearlyAppDetail,
   YearlyAppDetailsResponse,
-  YearlyAppRecommendationReadinessResponse,
   YearlyAppRecommendationResponse,
   YearlyAppSummary,
   YearlyAppUpdateRequest
@@ -18,16 +17,6 @@ export const fetchYearlyApps = async (token: string): Promise<YearlyAppSummary[]
 export const fetchYearlyAppDetails = async (token: string, yearlyAppId: string): Promise<YearlyAppDetailsResponse> => {
   const response = await fetch(`${yearlyAppBaseUrl}/${yearlyAppId}`, { headers: { Authorization: `Bearer ${token}` } });
   return parseResponse<YearlyAppDetailsResponse>(response);
-};
-
-export const fetchYearlyAppRecommendationReadiness = async (
-  token: string,
-  yearlyAppId: string
-): Promise<YearlyAppRecommendationReadinessResponse> => {
-  const response = await fetch(`${yearlyAppBaseUrl}/${yearlyAppId}/recommendation-readiness`, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
-  return parseResponse<YearlyAppRecommendationReadinessResponse>(response);
 };
 
 export const recommendYearlyAppForApproval = async (

@@ -41,7 +41,7 @@ const SUB_SECTION_ORDER: Record<string, string[]> = {
     'System Administration',
   ],
   office_formation: [
-    'Requisitions',
+    'Needs & Requisitions',
   ],
 };
 

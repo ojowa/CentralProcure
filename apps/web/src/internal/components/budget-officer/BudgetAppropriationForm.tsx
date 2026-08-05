@@ -135,7 +135,7 @@ export const BudgetAppropriationForm = ({ token, onSuccess }: Props) => {
       <div className="view-header">
         <h3>Record an appropriation</h3>
         <p style={{ marginBottom: '0.5rem' }}>
-          Add or refresh the funding lines that requisitions will draw from.
+          Add or refresh the funding lines that plans will draw from.
         </p>
       </div>
 

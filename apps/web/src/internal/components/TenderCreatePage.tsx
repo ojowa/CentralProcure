@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import type { InternalModule, RequisitionDetail, RequisitionSummary, TenderSummary } from '../types/internal';
-import { fetchApprovedRequisitions, createTender, deleteTender, publishTender, fetchTenderDetails } from '../services/moduleService.tenders';
+import type { InternalModule, TenderSummary } from '../types/internal';
+import { createTender, deleteTender, publishTender, fetchTenderDetails } from '../services/moduleService.tenders';
 import { fetchTenderWorkflowDisplay } from '../services/tenderWorkflowService';
 import { fetchTenders } from '../services/tenderService';
-import { fetchRequisitionDetail } from '../services/requisitionService';
 import { WorkflowProgressStepper } from './WorkflowProgressStepper';
 import type { WorkflowRuntimeDisplay } from './workflowDisplayTypes';
 import { getInternalDashboardPath } from '../utils/internalRoutes';
@@ -22,8 +21,7 @@ export const TenderCreatePage: React.FC<Props> = ({ token, module }) => {
   const tabParam = searchParams?.get('tab');
   const activeTab = tabParam === 'drafts' ? 'drafts' : tabParam === 'published' ? 'published' : 'create';
 
-  const [step, setStep] = useState<'select' | 'existing' | 'draft' | 'publish'>(editId ? 'publish' : 'select');
-  const [requisitions, setRequisitions] = useState<RequisitionSummary[]>([]);
+  const [step, setStep] = useState<'draft' | 'existing' | 'publish'>(editId ? 'publish' : 'draft');
   const [existingTenders, setExistingTenders] = useState<TenderSummary[]>([]);
   const [publishedTenders, setPublishedTenders] = useState<TenderSummary[]>([]);
   const [tenderId, setTenderId] = useState<string | null>(editId);
@@ -33,7 +31,6 @@ export const TenderCreatePage: React.FC<Props> = ({ token, module }) => {
   const [error, setError] = useState<string | null>(null);
 
   const [form, setForm] = useState({
-    RequisitionId: '',
     Title: '',
     Description: '',
     Category: 'Goods',
@@ -48,64 +45,6 @@ export const TenderCreatePage: React.FC<Props> = ({ token, module }) => {
     OpeningDate: '',
     ClosingDate: ''
   });
-
-  const buildSpecificationsFromLineItems = (detail: RequisitionDetail) => {
-    if (!detail.LineItems?.length) {
-      return '';
-    }
-
-    return detail.LineItems
-      .map((item, index) => {
-        const quantity = Number(item.Quantity || 0);
-        const unit = String(item.Unit || '').trim();
-        const description = String(item.Description || '').trim();
-        const quantityLabel = quantity > 0 ? `${quantity}` : '';
-        return `${index + 1}. ${quantityLabel}${unit ? ` ${unit}` : ''} ${description}`.replace(/\s+/g, ' ').trim();
-      })
-      .join('\n');
-  };
-
-  const buildEligibilityCriteriaTemplate = () => [
-    'Valid CAC registration or equivalent business registration document.',
-    'Current Tax Clearance Certificate.',
-    'PENCOM compliance certificate where applicable.',
-    'ITF compliance certificate where applicable.',
-    'NSITF compliance evidence where applicable.',
-    'Evidence of similar contract experience.',
-    'Relevant professional, technical, or regulatory licenses where applicable.',
-    'Signed bid declaration and conflict-of-interest disclosure.'
-  ].join('\n');
-
-  const buildEvaluationCriteriaByProcurementType = (procurementType?: string | null) => {
-    switch ((procurementType || '').trim().toLowerCase()) {
-      case 'works':
-        return [
-          'Preliminary examination: responsiveness to mandatory submission requirements.',
-          'Technical evaluation: methodology, work programme, key personnel, equipment, and relevant experience.',
-          'Financial evaluation: comparison of responsive bids and arithmetic checks.',
-          'Post-qualification: validation of capacity, references, and statutory compliance before award.'
-        ].join('\n');
-      case 'services':
-        return [
-          'Preliminary examination: responsiveness to mandatory submission requirements.',
-          'Technical evaluation: understanding of assignment, methodology, team composition, and relevant experience.',
-          'Financial evaluation: comparison of financial proposals for technically responsive bidders.',
-          'Final recommendation based on the applicable quality and cost assessment method.'
-        ].join('\n');
-      default:
-        return [
-          'Preliminary examination: responsiveness to mandatory submission requirements.',
-          'Technical evaluation: compliance with specifications, delivery capacity, warranty, and relevant experience.',
-          'Financial evaluation: comparison of responsive bids and arithmetic checks.',
-          'Post-qualification: validation of statutory compliance and vendor capacity before award.'
-        ].join('\n');
-    }
-  };
-
-  useEffect(() => {
-    if (!token) return;
-    fetchApprovedRequisitions(token).then(setRequisitions).catch(() => setError('Failed to load requisitions'));
-  }, [token]);
 
   useEffect(() => {
     if (!token || editId) return;
@@ -168,7 +107,7 @@ export const TenderCreatePage: React.FC<Props> = ({ token, module }) => {
     setTenderId(null);
     setTender(null);
     setWorkflow(null);
-    setStep('select');
+    setStep('draft');
   }, [activeTab, editId]);
 
   const loadTender = async (id: string) => {
@@ -251,34 +190,6 @@ export const TenderCreatePage: React.FC<Props> = ({ token, module }) => {
     }
   };
 
-  const handleSelectRequisition = async (id: string) => {
-    if (!token) return;
-
-    const req = requisitions.find(r => r.RequisitionId === id);
-    setLoading(true);
-    setError(null);
-
-    try {
-      const detail = await fetchRequisitionDetail(token, id);
-      setForm({
-        RequisitionId: id,
-        Title: req?.Title ?? detail.Title ?? '',
-        Description: req ? `Tender for ${req.Title}` : `Tender for ${detail.Title}`,
-        Category: detail.ProcurementType || 'Goods',
-        Requirements: buildSpecificationsFromLineItems(detail),
-        EvaluationCriteria: buildEvaluationCriteriaByProcurementType(detail.ProcurementType),
-        EligibilityCriteria: '',
-        EstimatedValue: 0
-      });
-      setStep('draft');
-      router.replace(buildWorkspacePath('create'));
-    } catch (err: any) {
-      setError(err.message || 'Failed to load requisition detail.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token) return;
@@ -328,7 +239,6 @@ export const TenderCreatePage: React.FC<Props> = ({ token, module }) => {
     }
   };
 
-  const selectedReq = requisitions.find(r => r.RequisitionId === form.RequisitionId);
   const backPath = getInternalDashboardPath(sourceModuleId);
   const pageTitle = module?.title || 'Tender Management';
 
@@ -428,33 +338,10 @@ export const TenderCreatePage: React.FC<Props> = ({ token, module }) => {
         </div>
       )}
 
-      {step === 'select' && (
-        <div className="app-card">
-          <h3 className="app-card__title">Create New Tender</h3>
-          <div className="requisition-grid">
-            {requisitions.map(req => (
-              <button
-                key={req.RequisitionId}
-                className="requisition-card"
-                onClick={() => handleSelectRequisition(req.RequisitionId)}
-              >
-                <div className="requisition-card__title">{req.Title}</div>
-                <div className="requisition-card__meta">{req.Department} • {req.TotalEstimate?.toLocaleString('en-NG', { style: 'currency', currency: 'NGN' })}</div>
-              </button>
-            ))}
-            {requisitions.length === 0 && <p className="plan-empty">No approved requisitions available.</p>}
-          </div>
-        </div>
-      )}
-
-      {step === 'draft' && selectedReq && (
+      {step === 'draft' && (
         <form className="portal-form app-card" onSubmit={handleCreate}>
           <h3 className="app-card__title">Tender Draft Details</h3>
           <div className="portal-form-grid">
-            <label className="plan-field">
-              <span>Requisition</span>
-              <input className="plan-input" value={selectedReq.Title} disabled />
-            </label>
             <label className="plan-field">
               <span>Tender Title</span>
               <input className="plan-input" required value={form.Title} onChange={e => setForm({ ...form, Title: e.target.value })} />
@@ -502,13 +389,6 @@ export const TenderCreatePage: React.FC<Props> = ({ token, module }) => {
               placeholder="Enter the evaluation basis, such as pass/fail compliance, technical weighting, financial weighting, delivery timeline, or post-qualification rules."
             />
           </label>
-          <div className="requisition-seed">
-            <h4>Requisition Seed</h4>
-            <ul>
-              <li><strong>Department:</strong> {selectedReq.Department}</li>
-              <li><strong>Approved Estimate:</strong> {selectedReq.TotalEstimate?.toLocaleString('en-NG', { style: 'currency', currency: 'NGN' })}</li>
-            </ul>
-          </div>
           <div className="portal-form-actions" style={{ marginTop: '16px', gap: '20px' }}>
             <button type="button" className="plan-button plan-button--secondary" onClick={() => navigateToTab('create')}>Back</button>
             <button type="submit" className="plan-button" style={{ marginLeft: '16px' }} disabled={loading}>Create Draft</button>

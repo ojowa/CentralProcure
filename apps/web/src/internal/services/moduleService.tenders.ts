@@ -176,17 +176,6 @@ export const fetchTenderBids = async (tenderId: string, token: string) => {
   return response.json();
 };
 
-export const fetchApprovedRequisitions = async (token: string) => {
-  const url = `${serviceBaseUrls.workflow}/api/requisitions?status=Approved`;
-  const response = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` },
-    credentials: 'include'
-  });
-  if (!response.ok) throw new Error('Failed to fetch approved requisitions');
-  const data = await response.json();
-  return data.Items || data;
-};
-
 export const fetchBidOpeningSessions = async (token: string) => {
   const url = `${serviceBaseUrls.vendorSourcing}/api/bid-opening/sessions`;
   const response = await fetch(url, {
@@ -199,25 +188,6 @@ export const fetchBidOpeningSessions = async (token: string) => {
   }
   const data = await response.json();
   return data.Items || data;
-};
-
-export const updateRequisitionStatus = async (requisitionId: string, status: string, token: string) => {
-  const url = `${serviceBaseUrls.workflow}/api/requisitions/${requisitionId}`;
-  const response = await fetch(url, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      ...buildAuthHeaders(token),
-      ...buildCsrfHeaders()
-    },
-    credentials: 'include',
-    body: JSON.stringify({ status })
-  });
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(text || 'Failed to update requisition status');
-  }
-  return response.json();
 };
 
 export const fetchEvaluationReports = async (status: string, token: string) => {

@@ -269,7 +269,7 @@ export const ProcurementPlanYearlyAppDetail = ({
               <h3 className="app-section-title__text">APP Items</h3>
               <span className="app-section-title__count">{planItems.length}</span>
             </div>
-            <p className="app-card__description">Items generated from requisitions that passed planning committee review</p>
+            <p className="app-card__description">Items generated for this departmental plan</p>
           </div>
 
           <div className="app-table-wrapper">

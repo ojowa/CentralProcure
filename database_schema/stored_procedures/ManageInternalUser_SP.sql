@@ -27,7 +27,23 @@ RETURNS TABLE (
 )
 LANGUAGE plpgsql
 AS $$
+DECLARE
+    v_RoleName VARCHAR(100);
+    v_IsSystemAdmin BOOLEAN;
+    v_UnitIdToUse UUID := p_unit_id;
 BEGIN
+    SELECT r.role_name
+    INTO v_RoleName
+    FROM identity.internal_users iu
+    JOIN identity.roles r ON r.role_id = iu.role_id
+    WHERE iu.internal_user_id = p_internal_user_id;
+
+    v_IsSystemAdmin := v_RoleName IN ('Admin', 'SystemAdministrator', 'ict_admin');
+
+    IF v_IsSystemAdmin THEN
+        v_UnitIdToUse := NULL;
+    END IF;
+
     UPDATE identity.internal_users AS iu
     SET email = p_email,
         username = p_username,
@@ -35,7 +51,7 @@ BEGIN
         middle_name = NULLIF(p_middle_name, ''),
         surname = p_surname,
         service_number = p_service_number,
-        unit_id = p_unit_id,
+        unit_id = v_UnitIdToUse,
         is_active = p_is_active,
         status = CASE WHEN p_is_active THEN 'Active' ELSE 'Inactive' END,
         updated_at = NOW()

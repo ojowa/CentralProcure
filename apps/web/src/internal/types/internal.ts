@@ -431,7 +431,6 @@ export interface TenderCreateRequest {
     UnitId?: string | null;
     DepartmentId?: string | null;
     ProjectId?: string | null;
-    RequisitionId?: string | null;
 }
 
 export interface TenderUpdateRequest {
@@ -475,13 +474,6 @@ export interface BudgetSummaryResponse {
     Committed: number;
     Spent: number;
     Available: number;
-}
-
-export interface BudgetFilters {
-  fiscalYear: string;
-  department: string;
-  stage: string;
-  query: string;
 }
 
 export interface BudgetDashboardRiskItem {
@@ -690,32 +682,6 @@ export interface BudgetCommitmentResponse {
 
 export interface BudgetCommitmentListResponse {
     Items: BudgetCommitmentResponse[];
-    Page: number;
-    PageSize: number;
-    TotalCount: number;
-}
-
-export interface BudgetRequisitionQueueItem {
-    RequisitionId: string;
-    Title: string;
-    Department: string;
-    BudgetCode?: string | null;
-    AppItemId?: string | null;
-    TotalEstimate: number;
-    RequiredBy?: string | null;
-    Status: string;
-    CurrentStageKey: string;
-    CurrentStageTitle: string;
-    WorkflowStatus?: string | null;
-    Available: number;
-    Committed: number;
-    Variance: number;
-    CreatedAt: string;
-    UpdatedAt: string;
-}
-
-export interface BudgetRequisitionListResponse {
-    Items: BudgetRequisitionQueueItem[];
     Page: number;
     PageSize: number;
     TotalCount: number;
@@ -1068,14 +1034,6 @@ export interface AdministrativeReviewUpdateRequest {
     ResolutionNotes?: string | null;
 }
 
-export interface RequisitionLineItem {
-    ItemId?: string | null;
-    Description: string;
-    Unit: string;
-    Quantity: number;
-    UnitCost: number;
-}
-
 export interface RequisitionAuthority {
     IsEditable: boolean;
     CanEdit: boolean;
@@ -1085,88 +1043,6 @@ export interface RequisitionAuthority {
     AllowedActionKeys: string[];
     CurrentStageKey?: string | null;
     CurrentStageTitle?: string | null;
-}
-
-export interface RequisitionRouteDecision {
-    ThresholdId?: string | null;
-    ApprovalRoute?: string | null;
-    ApprovalAuthorityCode?: string | null;
-    ApprovalAuthorityLabel?: string | null;
-    RequiresCgisApproval: boolean;
-    RequiresBoard: boolean;
-    RequiresBpp: boolean;
-    GovernanceBodyId?: string | null;
-    GovernanceBodyName?: string | null;
-    Amount?: number | null;
-    ProcurementType?: string | null;
-    Notes?: string | null;
-}
-
-export interface RequisitionSummary {
-    RequisitionId: string;
-    Title: string;
-    Department: string;
-    UnitId?: string | null;
-    CommitteePlanId?: string | null;
-    CommitteePlanTitle?: string | null;
-    AppItemId?: string | null;
-    AppItemDescription?: string | null;
-    FinalCommitteeDecision?: string | null;
-    Status: string;
-    Priority?: string | null;
-    FundingSource?: string | null;
-    TotalEstimate: number;
-    RequiredBy?: string | null;
-    CreatedAt: string;
-    Authority?: RequisitionAuthority | null;
-}
-
-export interface RequisitionDetail extends RequisitionSummary {
-    ProcurementType?: string | null;
-    BudgetCode?: string | null;
-    AppItemId?: string | null;
-    ProjectCode?: string | null;
-    DeliveryLocation?: string | null;
-    Justification?: string | null;
-    RiskNotes?: string | null;
-    LineItems: RequisitionLineItem[];
-    UpdatedAt: string;
-    CurrentStage?: string | null;
-    RouteDecision?: RequisitionRouteDecision | null;
-}
-
-export interface RequisitionCreateRequest {
-    Title: string;
-    DepartmentId?: string | null;
-    ProcurementType?: string | null;
-    Priority?: string | null;
-    FundingSource?: string | null;
-    BudgetCode?: string | null;
-    AppItemId?: string | null;
-    ProjectCode?: string | null;
-    RequiredBy?: string | null;
-    DeliveryLocation?: string | null;
-    Justification?: string | null;
-    RiskNotes?: string | null;
-    Status?: string | null;
-    LineItems: RequisitionLineItem[];
-}
-
-export interface RequisitionUpdateRequest {
-    Title?: string | null;
-    DepartmentId?: string | null;
-    ProcurementType?: string | null;
-    Priority?: string | null;
-    FundingSource?: string | null;
-    BudgetCode?: string | null;
-    AppItemId?: string | null;
-    ProjectCode?: string | null;
-    RequiredBy?: string | null;
-    DeliveryLocation?: string | null;
-    Justification?: string | null;
-    RiskNotes?: string | null;
-    Status?: string | null;
-    LineItems?: RequisitionLineItem[] | null;
 }
 
 export interface ContractAwardItem {
@@ -1532,13 +1408,6 @@ export interface TenderEvaluationAssignmentItem {
 export interface TenderEvaluationAssignmentUpdateRequest {
     AssignmentRole: TenderEvaluationAssignmentRole;
     InternalUserId?: string | null;
-}
-
-export interface RequisitionListResponse {
-    Items: RequisitionSummary[];
-    Page: number;
-    PageSize: number;
-    TotalCount: number;
 }
 
 // ── RBAC Permissions ──────────────────────────────────────────

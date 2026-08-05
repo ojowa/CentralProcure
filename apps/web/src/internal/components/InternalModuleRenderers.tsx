@@ -10,7 +10,6 @@ import { PostAwardInspectionModulePage } from './PostAwardInspectionModulePage';
 import { ProfilePage } from './ProfilePage';
 import { WorkflowConfigurationModulePage } from './WorkflowConfigurationModulePage';
 import { ProcurementPlanModule } from './ProcurementPlanModule';
-import { PlanningCommitteeReviewModule } from './PlanningCommitteeReviewModule';
 import { EvaluationScoringModule } from './EvaluationScoringModule';
 import { BidOpeningModule } from './BidOpeningModule';
 import { TendersBoardApprovalModule } from './TendersBoardApprovalModule';
@@ -20,7 +19,6 @@ import { ContractAwardModule } from './ContractAwardModule';
 import { BppEscalationModule } from './BppEscalationModule';
 import { VendorRegistrationApprovalModule } from './VendorRegistrationApprovalModule';
 import { BudgetOfficerWorkspacePage } from './BudgetOfficerWorkspacePage';
-import { DepartmentHeadReviewModule } from './DepartmentHeadReviewModule';
 import { ThresholdConfigurationModule } from './ThresholdConfigurationModule';
 import { TenderCreatePage } from './TenderCreatePage';
 import { EvaluationReportModule } from './EvaluationReportModule';
@@ -96,7 +94,6 @@ export const moduleRenderers: Partial<Record<string, (props: InternalModuleRende
     'administrative-review': (props) => <AdministrativeReviewModulePage module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} />,
     'annual-procurement-plan': (props) => <ProcurementPlanModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
     'procurement-method-determination': (props) => <ProcurementMethodDeterminationModule module={props.module} token={props.token} />,
-    'procurement-planning-committee': (props) => <PlanningCommitteeReviewModule module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} initialData={props.moduleData} />,
     'create-tender': (props) => <TenderCreatePage token={props.token} module={props.module} />,
     'assigned-tenders': (props) => <AssignedTendersModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} onModuleChange={props.onModuleChange} />,
     'technical-evaluation': (props) => <EvaluationScoringModule module={props.module} token={props.token} role={props.role} initialData={props.moduleData} />,
@@ -109,7 +106,6 @@ export const moduleRenderers: Partial<Record<string, (props: InternalModuleRende
     'cgis-approval': (props) => <CgisApprovalModule module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} />,
     'workflow-configuration': (props) => <WorkflowConfigurationModulePage module={props.module} moduleData={props.moduleData} moduleError={props.moduleError} token={props.token} />,
     'vendor-registration-approval': (props) => <VendorRegistrationApprovalModule module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} />,
-    'department-head-review': (props) => <DepartmentHeadReviewModule module={props.module} token={props.token} role={props.role} userEmail={props.userEmail} />,
     'threshold-configuration': (props) => <ThresholdConfigurationModule module={props.module} token={props.token} />,
     'system-monitoring': (props) => <SystemMonitoringModule module={props.module} token={props.token} initialData={props.moduleData} />,
     'user-profile': (props) => <ProfilePage module={props.module} token={props.token} userEmail={props.userEmail} />,

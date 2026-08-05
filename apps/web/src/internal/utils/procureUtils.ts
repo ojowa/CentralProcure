@@ -57,24 +57,6 @@ export const toTitle = (value: string): string => {
     .join(' ');
 };
 
-export const requisitionStatusTone = (status: string): string => {
-  switch (status) {
-    case 'Approved':
-      return 'admin-status--good';
-    case 'Initial':
-    case 'Endorsed':
-    case 'Submitted':
-    case 'Under Review':
-    case 'Evaluation':
-    case 'Board Review':
-      return 'admin-status--warn';
-    case 'Rejected':
-      return 'admin-status--alert';
-    default:
-      return '';
-  }
-};
-
 export const getVarianceColor = (variance: number): string => {
   if (variance >= 0) return 'variance-positive';
   return 'variance-negative';

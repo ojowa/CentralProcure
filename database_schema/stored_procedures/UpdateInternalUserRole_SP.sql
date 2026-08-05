@@ -12,30 +12,34 @@ LANGUAGE plpgsql
 AS $$
 DECLARE
     v_RoleID UUID;
+    v_IsSystemAdmin BOOLEAN;
 BEGIN
-    SELECT RoleID
+    SELECT role_id
     INTO v_RoleID
-    FROM identity.Roles
-    WHERE RoleName = p_role_name
-      AND IsActive = TRUE;
+    FROM identity.roles
+    WHERE role_name = p_role_name
+      AND is_active = TRUE;
 
     IF v_RoleID IS NULL THEN
         RAISE EXCEPTION 'Role not found or inactive';
     END IF;
 
-    UPDATE identity.InternalUsers
-    SET RoleID = v_RoleID,
-        UpdatedAt = NOW()
-    WHERE InternalUserID = p_internal_user_id;
+    v_IsSystemAdmin := p_role_name IN ('Admin', 'SystemAdministrator', 'ict_admin');
+
+    UPDATE identity.internal_users
+    SET role_id = v_RoleID,
+        unit_id = CASE WHEN v_IsSystemAdmin THEN NULL ELSE unit_id END,
+        updated_at = NOW()
+    WHERE internal_user_id = p_internal_user_id;
 
     RETURN QUERY
     SELECT
-        IU.InternalUserID,
-        IU.Email,
-        R.RoleName AS Role
-    FROM identity.InternalUsers IU
-    JOIN identity.Roles R ON R.RoleID = IU.RoleID
-    WHERE IU.InternalUserID = p_internal_user_id;
+        iu.internal_user_id,
+        iu.email,
+        r.role_name AS role
+    FROM identity.internal_users iu
+    JOIN identity.roles r ON r.role_id = iu.role_id
+    WHERE iu.internal_user_id = p_internal_user_id;
 END;
 $$;
 

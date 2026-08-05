@@ -15,7 +15,6 @@ import type {
   BudgetDashboardResponse,
   BudgetDecisionRequest,
   BudgetDecisionResponse,
-  BudgetRequisitionListResponse,
   BudgetSummaryResponse
 } from '../types/internal';
 
@@ -176,53 +175,6 @@ export const fetchBudgetConfirmations = async (
     PageSize: data?.PageSize ?? 20,
     TotalCount: data?.TotalCount ?? 0
   } as BudgetConfirmationListResponse;
-};
-
-export const fetchBudgetRequisitionQueue = async (
-  token: string,
-  params?: {
-    fiscalYear?: number;
-    department?: string;
-    stage?: string;
-    query?: string;
-    page?: number;
-    pageSize?: number;
-  }
-): Promise<BudgetRequisitionListResponse> => {
-  const query = new URLSearchParams();
-  if (params?.fiscalYear) {
-    query.set('fiscalYear', String(params.fiscalYear));
-  }
-  if (params?.department?.trim()) {
-    query.set('department', params.department.trim());
-  }
-  if (params?.stage?.trim()) {
-    query.set('stage', params.stage.trim());
-  }
-  if (params?.query?.trim()) {
-    query.set('query', params.query.trim());
-  }
-  if (params?.page) {
-    query.set('page', String(params.page));
-  }
-  if (params?.pageSize) {
-    query.set('pageSize', String(params.pageSize));
-  }
-
-  const response = await fetch(`${baseUrl}/requisitions?${query.toString()}`, {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
-  });
-
-  const data = await parseResponse<{ Items?: BudgetRequisitionListResponse['Items']; Page?: number; PageSize?: number; TotalCount?: number }>(response);
-
-  return {
-    Items: data?.Items ?? [],
-    Page: data?.Page ?? 1,
-    PageSize: data?.PageSize ?? 20,
-    TotalCount: data?.TotalCount ?? 0
-  } as BudgetRequisitionListResponse;
 };
 
 export const fetchBudgetAppropriations = async (

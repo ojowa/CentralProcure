@@ -1,20 +1,18 @@
 import type { ProcurementPlanDetail } from '../types/internal';
-import type { YearlyAppDetail, ProcurementPlanRecommendationReadinessResponse } from '../services/procurementPlanService';
+import type { YearlyAppDetail } from '../services/procurementPlanService';
 
 type Props = {
   role?: string | null;
   selectedYearlyApp: YearlyAppDetail | null;
   selectedPlan: ProcurementPlanDetail | null;
   canRecommendApp: boolean;
-  recommendationReadiness: ProcurementPlanRecommendationReadinessResponse | null;
 };
 
 export const ProcurementPlanDiagnostics = ({
   role,
   selectedYearlyApp,
   selectedPlan,
-  canRecommendApp,
-  recommendationReadiness
+  canRecommendApp
 }: Props) => (
   <section className="app-card app-card--compact">
     <div className="app-card__header">
@@ -38,12 +36,6 @@ export const ProcurementPlanDiagnostics = ({
         <span className="app-diagnostic-item__label">Secretary Panel</span>
         <span className={`app-diagnostic-item__value app-diagnostic-item__value--${canRecommendApp ? 'success' : 'muted'}`}>
           {canRecommendApp ? 'visible' : 'hidden'}
-        </span>
-      </div>
-      <div className="app-diagnostic-item">
-        <span className="app-diagnostic-item__label">Recommend Button</span>
-        <span className={`app-diagnostic-item__value app-diagnostic-item__value--${recommendationReadiness?.CanRecommend ? 'success' : 'warning'}`}>
-          {recommendationReadiness?.CanRecommend ? 'enabled' : 'disabled'}
         </span>
       </div>
     </div>
