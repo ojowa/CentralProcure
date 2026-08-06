@@ -31,7 +31,7 @@ const GROUP_LABELS: Record<string, string> = {
 
 const SUB_SECTION_ORDER: Record<string, string[]> = {
   procurement_staff: [
-    'Needs & Requisitions',
+    'Needs',
     'Planning & Budget',
     'Tendering & Sourcing',
     'Evaluation',
@@ -41,9 +41,15 @@ const SUB_SECTION_ORDER: Record<string, string[]> = {
     'System Administration',
   ],
   office_formation: [
-    'Needs & Requisitions',
+    'Needs',
   ],
 };
+
+const SUBSECTION_LABELS: Record<string, string> = {
+  'Needs & Requisitions': 'Needs',
+};
+
+const normalizeSubSectionLabel = (value: string): string => SUBSECTION_LABELS[value] ?? value;
 
 export const SidebarNav = ({ modules, activeModuleId, onModuleChange }: SidebarProps) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -73,7 +79,7 @@ export const SidebarNav = ({ modules, activeModuleId, onModuleChange }: SidebarP
     for (const mod of otherModules) {
       const group = mod.group ?? 'procurement_staff';
       const nav = navMap.get(group) ?? navMap.get('procurement_staff')!;
-      const subSection = mod.subSection ?? mod.section ?? 'Other';
+      const subSection = normalizeSubSectionLabel(mod.subSection ?? mod.section ?? 'Other');
 
       let section = nav.sections.find((s) => s.label === subSection);
       if (!section) {

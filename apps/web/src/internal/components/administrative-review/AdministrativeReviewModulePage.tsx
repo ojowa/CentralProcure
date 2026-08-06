@@ -327,7 +327,7 @@ export const AdministrativeReviewModulePage = ({ module, token, role, userEmail 
               className="plan-input"
               value={filters.entityType}
               onChange={(event) => setFilters((previous) => ({ ...previous, entityType: event.target.value }))}
-              placeholder="tender, requisition, contract"
+              placeholder="tender, contract"
             />
           </label>
           <label className="plan-field">
@@ -408,7 +408,7 @@ export const AdministrativeReviewModulePage = ({ module, token, role, userEmail 
                   onChange={(event) => setCreateForm((previous) => ({ ...previous, EntityType: event.target.value }))}
                 >
                   <option value="tender">Tender</option>
-                  <option value="requisition">Requisition</option>
+                  <option value="requisition">Procurement Item</option>
                   <option value="contract_award">Contract Award</option>
                 </select>
               </label>

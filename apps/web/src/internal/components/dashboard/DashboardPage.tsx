@@ -172,7 +172,6 @@ export const DashboardPage = ({ modules, role, userEmail, roleName, token }: Das
       const weights: Record<string, number> = {
         'Governance and Planning': 1000,
         'Account Management': 900,
-        'Requisitioning Departments': 800,
         'Procurement Planning': 700
       };
       return (weights[b] || 0) - (weights[a] || 0);
