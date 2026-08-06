@@ -1,16 +1,3 @@
-import util from 'node:util';
-
-if (
-  typeof util._extend === 'function' &&
-  util._extend !== Object.assign
-) {
-  Object.defineProperty(util, '_extend', {
-    value: Object.assign,
-    configurable: true,
-    writable: true
-  });
-}
-
 const appBasePath = process.env.NEXT_PUBLIC_APP_BASE_PATH ?? '';
 const apiServiceUrl = process.env.NEXT_PUBLIC_API_URL || '';
 const normalizeBasePath = (value) => {
@@ -22,14 +9,17 @@ const normalizeBasePath = (value) => {
 };
 const normalizedBasePath = normalizeBasePath(appBasePath);
 
+const parseAllowedDevOrigins = (raw) =>
+  (raw ?? '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  ...(normalizedBasePath ? { basePath: normalizedBasePath } : {}),
   pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
-  allowedDevOrigins: ['10.169.246.197'],
+  ...(normalizedBasePath ? { basePath: normalizedBasePath } : {}),
+  allowedDevOrigins: parseAllowedDevOrigins(process.env.ALLOWED_DEV_ORIGINS),
   async rewrites() {
     const rules = [
       {
