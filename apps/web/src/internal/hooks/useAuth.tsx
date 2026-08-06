@@ -158,7 +158,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           role
         });
         markActivity(true);
-        console.log('[Internal Auth] Session restored successfully');
       } catch (error) {
         console.error('[Internal Auth] Failed to restore session:', error);
         if (!isMounted) {
@@ -188,7 +187,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (isMounted) {
           setHasSessionAttempted(true);
           setIsReady(true);
-          console.log('[Internal Auth] Session attempt complete');
         }
       }
     };

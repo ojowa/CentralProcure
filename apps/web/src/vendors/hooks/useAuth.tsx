@@ -8,6 +8,7 @@ import {
     setVendorAuthToken,
     fetchCsrfToken
 } from '../features/vendor/services/vendorService';
+import { decodeJwtPayload } from '../../shared/utils/jwt';
 
 interface AuthContextType {
     isAuthenticated: boolean;
@@ -25,37 +26,29 @@ const WARNING_THRESHOLD_MS = 60 * 1000;
 const LAST_ACTIVE_KEY = 'vendorLastActiveAt';
 
 const parseStoredJwtUser = (token: string): { UserId: string; Email: string; Role: string } | null => {
-    try {
-        const payload = token.split('.')[1];
-        if (!payload) {
-            return null;
-        }
-
-        const normalizedPayload = payload.replace(/-/g, '+').replace(/_/g, '/');
-        const paddedPayload = normalizedPayload + '='.repeat((4 - (normalizedPayload.length % 4)) % 4);
-        const decodedPayload = atob(paddedPayload);
-        const claims = JSON.parse(decodedPayload) as Record<string, unknown>;
-        const userId = typeof claims.sub === 'string' ? claims.sub : null;
-        const email = typeof claims.email === 'string' ? claims.email : null;
-        const role = typeof claims.role === 'string' ? claims.role : null;
-        const expiration = typeof claims.exp === 'number' ? claims.exp : null;
-
-        if (!userId || !email || !role) {
-            return null;
-        }
-
-        if (expiration && (Date.now() >= expiration * 1000)) {
-            return null;
-        }
-
-        return {
-            UserId: userId,
-            Email: email,
-            Role: role
-        };
-    } catch {
+    const claims = decodeJwtPayload(token);
+    if (!claims) {
         return null;
     }
+
+    const userId = typeof claims.sub === 'string' ? claims.sub : null;
+    const email = typeof claims.email === 'string' ? claims.email : null;
+    const role = typeof claims.role === 'string' ? claims.role : null;
+    const expiration = typeof claims.exp === 'number' ? claims.exp : null;
+
+    if (!userId || !email || !role) {
+        return null;
+    }
+
+    if (expiration && (Date.now() >= expiration * 1000)) {
+        return null;
+    }
+
+    return {
+        UserId: userId,
+        Email: email,
+        Role: role
+    };
 };
 
 export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
@@ -71,7 +64,6 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
 
     useEffect(() => {
         const storedToken = getStoredVendorAuthToken();
-        console.log('[Auth] Stored token exists:', !!storedToken);
         if (storedToken) {
             setVendorAuthToken(storedToken);
             const storedUser = parseStoredJwtUser(storedToken);
@@ -85,10 +77,8 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
             try {
                 // Ensure CSRF cookie is initialized before we do anything
                 await fetchCsrfToken();
-                
-                console.log('[Auth] Fetching current user...');
+
                 const currentUser = await getCurrentUser();
-                console.log('[Auth] Current user:', currentUser);
                 if (currentUser) {
                     setIsAuthenticated(true);
                     setUser(currentUser);
@@ -108,14 +98,15 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
             } finally {
                 setHasSessionAttempted(true);
                 setIsReady(true);
-                console.log('[Auth] Session attempt complete.');
             }
         };
 
         syncAuth();
 
-        // Storage event no longer syncs token since it's HttpOnly cookie
-        // But we can still keep it for LAST_ACTIVE_KEY if we want sync across tabs
+        // Note: the vendor session is a JWT held in localStorage ('vendorAuthToken')
+        // and attached as a Bearer header by the apiClient. It is NOT an HttpOnly cookie,
+        // so it is readable to any script on the page (XSS exposure) unless the backend
+        // is configured to also issue an HttpOnly session cookie.
     }, []);
 
     const login = async (nextUser?: { UserId: string; Email: string; Role: string } | null) => {

@@ -1,5 +1,6 @@
 import apiClient, { fetchCsrfToken } from '../../shared/services/apiClient';
 export { fetchCsrfToken };
+import { decodeJwtPayload } from '../../../../shared/utils/jwt';
 import {
     VendorLoginData,
     VendorRegistrationData,
@@ -47,21 +48,7 @@ export const getStoredVendorAuthToken = (): string | null => {
     return localStorage.getItem(VENDOR_AUTH_TOKEN_KEY);
 };
 
-const parseJwtPayload = (token: string): Record<string, unknown> | null => {
-  try {
-    const payload = token.split('.')[1];
-    if (!payload) {
-      return null;
-    }
-
-    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
-    const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
-    const json = atob(padded);
-    return JSON.parse(json) as Record<string, unknown>;
-  } catch {
-    return null;
-  }
-};
+const parseJwtPayload = (token: string): Record<string, unknown> | null => decodeJwtPayload(token);
 
 /**
  * Uploads a compliance document for the vendor.
@@ -358,17 +345,12 @@ export const logoutVendor = async (): Promise<void> => {
  */
 export const getCurrentUser = async (): Promise<{ UserId: string; Email: string; Role: string } | null> => {
     try {
-        console.log('[Auth] Calling API:', API_ENDPOINTS.VENDOR_ME);
-        console.log('[Auth] Authorization header:', apiClient.defaults.headers.common.Authorization);
         const response = await apiClient.get(API_ENDPOINTS.VENDOR_ME);
-        console.log('[Auth] API response:', response.data);
         return response.data;
     } catch (error: any) {
         const status = error.response?.status;
         if (status === 401) {
-            console.info('[Auth] Not authenticated; skipping profile fetch.', status);
-        } else {
-            console.error('[Auth] API call failed:', error.message, status, error.response?.data);
+            return null;
         }
         return null;
     }
