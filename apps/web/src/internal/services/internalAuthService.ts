@@ -592,12 +592,12 @@ export const fetchModuleAccessAudit = async (
   });
 
   return parseResponse<ModuleAccessAuditEntry[]>(response, 'Unable to load module access audit.');
-  };
+};
 
-  export const fetchUserRoleAudit = async (
+export const fetchUserRoleAudit = async (
   token: string,
   params: { InternalUserId?: string; Limit?: number }
-  ): Promise<UserRoleAuditResult[]> => {
+): Promise<UserRoleAuditResult[]> => {
   const query = new URLSearchParams();
   if (params.InternalUserId) query.set('internalUserId', params.InternalUserId);
   if (params.Limit) query.set('limit', String(params.Limit));
@@ -609,12 +609,12 @@ export const fetchModuleAccessAudit = async (
   });
 
   return parseResponse<UserRoleAuditResult[]>(response, 'Unable to load user role audit.');
-  };
+};
 
-  export const fetchInternalNotifications = async (
+export const fetchInternalNotifications = async (
   token: string,
   limit: number = 50
-  ): Promise<InternalNotificationResult[]> => {
+): Promise<InternalNotificationResult[]> => {
   const response = await fetch(`${API_ENDPOINTS.INTERNAL_NOTIFICATIONS}?limit=${limit}`, {
     method: 'GET',
     headers: buildAuthHeaders(token),
@@ -622,12 +622,12 @@ export const fetchModuleAccessAudit = async (
   });
 
   return parseResponse<InternalNotificationResult[]>(response, 'Unable to load notifications.');
-  };
+};
 
-  export const markInternalNotificationAsRead = async (
+export const markInternalNotificationAsRead = async (
   token: string,
   notificationId: string
-  ): Promise<void> => {
+): Promise<void> => {
   const response = await fetch(API_ENDPOINTS.INTERNAL_NOTIFICATION_READ(notificationId), {
     method: 'PUT',
     headers: buildAuthHeaders(token),
@@ -635,11 +635,11 @@ export const fetchModuleAccessAudit = async (
   });
 
   await parseResponse<void>(response, 'Unable to mark notification as read.');
-  };
+};
 
-  export const fetchInternalUserProfile = async (
-
-token?: string | null): Promise<InternalUserProfile> => {
+export const fetchInternalUserProfile = async (
+  token?: string | null
+): Promise<InternalUserProfile> => {
   const response = await fetch(API_ENDPOINTS.INTERNAL_PROFILE, {
     method: 'GET',
     headers: buildAuthHeaders(token),

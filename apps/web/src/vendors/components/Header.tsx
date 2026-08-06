@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../hooks/useAuth';
@@ -37,7 +38,14 @@ const Header: React.FC = () => {
       <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <Link href="/vendors" className="flex items-center gap-3">
-            <img src="/nis-logo.svg" className="h-11 w-11 rounded-md border border-slate-200 bg-white p-1" alt="NIS Logo" />
+            <Image
+              src="/nis-logo.svg"
+              alt="NIS Logo"
+              width={44}
+              height={44}
+              unoptimized
+              className="h-11 w-11 rounded-md border border-slate-200 bg-white p-1"
+            />
             <div>
               <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">NIS e-Procurement</p>
               <p className="text-xs text-slate-500">Transparent Tender Administration Platform</p>

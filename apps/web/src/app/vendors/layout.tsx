@@ -4,7 +4,7 @@ import VendorLayout from '../../vendors/layouts/VendorLayout';
 import VendorProviders from '../../vendors/providers';
 
 export const metadata: Metadata = {
-  title: ' NIS ePROCUREMENT',
+  title: 'NIS ePROCUREMENT',
   description: 'NIS vendor procurement frontend'
 };
 
