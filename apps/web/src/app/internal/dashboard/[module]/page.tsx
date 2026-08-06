@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import App from '../../../../internal/App';
+import { InternalModuleView } from '../../../../internal/components/InternalModuleView';
 import { createCanonicalMetadata } from '../../../seo';
 
 export async function generateMetadata({
@@ -12,5 +12,5 @@ export async function generateMetadata({
 }
 
 export default function InternalDashboardModulePage() {
-  return <App />;
+  return <InternalModuleView />;
 }

@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react';
 import DashboardGuard from '../../../vendors/components/DashboardGuard';
-import VendorDashboardPage from '../../../vendors/views/VendorDashboardPage';
+import VendorDashboardLayout from '../../../vendors/layouts/VendorDashboardLayout';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <DashboardGuard>
-      <VendorDashboardPage>{children}</VendorDashboardPage>
+      <VendorDashboardLayout>{children}</VendorDashboardLayout>
     </DashboardGuard>
   );
 }

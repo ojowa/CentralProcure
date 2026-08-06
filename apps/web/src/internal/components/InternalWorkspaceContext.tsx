@@ -1,13 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+'use client';
+
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import type { InternalModule, InternalRoleRecord, RoleDefinition, RoleKey } from '../types/internal';
-import { InternalHeader } from './InternalHeader';
-import { SidebarNav } from './SidebarNav';
-import { DashboardPage } from './DashboardPage';
-import { moduleRenderers, renderGenericModuleWorkspace } from './InternalModuleRenderers';
+import { useAuth } from '../hooks/useAuth';
 import { fetchInternalModules, fetchInternalRoles, fetchInternalUserProfile, resolveCanonicalRole } from '../services/internalAuthService';
 import { fetchModuleData } from '../services/moduleService';
-import { useAuth } from '../hooks/useAuth';
 import {
   getInternalDashboardPath,
   getInternalDashboardRouteSegment,
@@ -19,19 +17,12 @@ const shouldSkipModuleFetch = (module: InternalModule | null): boolean => {
     return true;
   }
 
-  // Management/self-service workspaces source their own data.
   if (module.hasDataset === false) {
     return true;
   }
 
   return !module.hasDataset && module.datasetUrl == null;
 };
-
-interface InternalShellProps {
-  token: string | null;
-  userRole?: RoleKey | null;
-  userEmail?: string | null;
-}
 
 const formatRoleName = (value: string): string =>
   value
@@ -53,14 +44,46 @@ const mapRoleRecordToDefinition = (roleRecord: InternalRoleRecord): RoleDefiniti
   };
 };
 
-export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShellProps) => {
+type WorkspaceContextValue = {
+  token: string;
+  userRole: RoleKey | null;
+  userEmail: string | null;
+  modules: InternalModule[];
+  modulesLoading: boolean;
+  modulesError: string | null;
+  activeModuleId: string | null;
+  activeModule: InternalModule | null;
+  moduleData: unknown;
+  moduleError: string | null;
+  isModuleLoading: boolean;
+  availableRoles: RoleDefinition[];
+  headerRoleDefinition: RoleDefinition;
+  recordRoleName: string | undefined;
+  selectedRole: RoleKey | null;
+  availableModuleIds: string[];
+  handleModuleChange: (moduleId: string) => void;
+  handleSignOut: () => void;
+};
+
+const WorkspaceContext = createContext<WorkspaceContextValue | undefined>(undefined);
+
+export const useWorkspace = (): WorkspaceContextValue => {
+  const context = useContext(WorkspaceContext);
+  if (!context) {
+    throw new Error('useWorkspace must be used within an InternalWorkspaceProvider');
+  }
+
+  return context;
+};
+
+export const InternalWorkspaceProvider = ({ children }: { children: ReactNode }) => {
   const pathname = usePathname();
   const router = useRouter();
-  const { logout } = useAuth();
+  const { logout, token, user } = useAuth();
   const [accessibleModules, setAccessibleModules] = useState<InternalModule[]>([]);
   const [availableRoles, setAvailableRoles] = useState<RoleDefinition[]>([]);
   const [headerRoleOverride, setHeaderRoleOverride] = useState<RoleDefinition | null>(null);
-  const [profileRoleKey, setProfileRoleKey] = useState<RoleKey | null>(userRole ?? null);
+  const [profileRoleKey, setProfileRoleKey] = useState<RoleKey | null>(user?.role ?? null);
   const [profileRoleNameRaw, setProfileRoleNameRaw] = useState<string | null>(null);
   const [modulesLoading, setModulesLoading] = useState(false);
   const [hasResolvedModules, setHasResolvedModules] = useState(false);
@@ -69,13 +92,14 @@ export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShel
   const [moduleError, setModuleError] = useState<string | null>(null);
   const [isModuleLoading, setIsModuleLoading] = useState(false);
 
-  const selectedRole = profileRoleKey ?? userRole ?? null;
+  const userEmail = user?.email ?? null;
+  const selectedRole = profileRoleKey ?? user?.role ?? null;
   const activeRoleDefinition = selectedRole
     ? (availableRoles.find((role) => role.key === selectedRole) ?? null)
     : null;
   const recordRoleName = activeRoleDefinition?.name ?? (profileRoleNameRaw ? formatRoleName(profileRoleNameRaw) : undefined);
   const headerRoleDefinition = headerRoleOverride ?? activeRoleDefinition ?? {
-    key: userRole ?? 'ict_admin',
+    key: user?.role ?? 'ict_admin',
     name: profileRoleNameRaw ? formatRoleName(profileRoleNameRaw) : 'Role Unavailable',
     description: profileRoleNameRaw
       ? 'Resolved from API profile (custom role label).'
@@ -156,7 +180,7 @@ export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShel
   useEffect(() => {
     if (!token) {
       setHeaderRoleOverride(null);
-      setProfileRoleKey(userRole ?? null);
+      setProfileRoleKey(user?.role ?? null);
       setProfileRoleNameRaw(null);
       return;
     }
@@ -171,7 +195,7 @@ export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShel
         const resolvedKey = resolveCanonicalRole(profile.CanonicalRoleKey, profile.RoleName);
         if (!resolvedKey) {
           setHeaderRoleOverride(null);
-          setProfileRoleKey(userRole ?? null);
+          setProfileRoleKey(user?.role ?? null);
           return;
         }
 
@@ -184,7 +208,7 @@ export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShel
       .catch(() => {
         if (isMounted) {
           setHeaderRoleOverride(null);
-          setProfileRoleKey(userRole ?? null);
+          setProfileRoleKey(user?.role ?? null);
           setProfileRoleNameRaw(null);
         }
       });
@@ -192,7 +216,7 @@ export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShel
     return () => {
       isMounted = false;
     };
-  }, [availableRoles, token, userRole]);
+  }, [availableRoles, token, user?.role]);
 
   useEffect(() => {
     if (!token) {
@@ -275,39 +299,47 @@ export const InternalShellLayout = ({ token, userRole, userEmail }: InternalShel
     }
   }, [accessibleModules, hasResolvedModules, modulesLoading, routeSegment, router, token]);
 
-  const activeModuleRenderer = activeModule ? moduleRenderers[activeModule.id] : null;
-  const moduleIds = accessibleModules.map((module) => module.id);
-  return (
-    <div className="portal-shell">
-      <InternalHeader role={headerRoleDefinition} token={token} onSignOut={handleSignOut} />
-      <div className="portal-flagband" aria-hidden="true" />
-      <div className="portal-content">
-        <SidebarNav
-          modules={accessibleModules}
-          activeModuleId={activeModuleId ?? 'dashboard'}
-          onModuleChange={handleModuleChange}
-        />
-        <main className="portal-main">
-          {modulesError ? <div className="portal-alert">{modulesError}</div> : null}
-          {modulesLoading ? <div className="plan-loading">Loading role workspace...</div> : null}
-          {activeModuleId === 'dashboard' ? <DashboardPage modules={accessibleModules} role={selectedRole} userEmail={userEmail} roleName={recordRoleName} token={token} /> : null}
-          {activeModuleId && activeModuleId !== 'dashboard' && activeModule ? (
-            <>
-              {(activeModuleRenderer ?? renderGenericModuleWorkspace)({
-                module: activeModule,
-                moduleData,
-                moduleError,
-                isLoading: isModuleLoading,
-                token,
-                role: selectedRole,
-                userEmail,
-                availableModuleIds: moduleIds,
-                onModuleChange: handleModuleChange
-              })}
-            </>
-          ) : null}
-        </main>
-      </div>
-    </div>
+  const value = useMemo<WorkspaceContextValue>(
+    () => ({
+      token,
+      userRole: user?.role ?? null,
+      userEmail,
+      modules: accessibleModules,
+      modulesLoading,
+      modulesError,
+      activeModuleId,
+      activeModule,
+      moduleData,
+      moduleError,
+      isModuleLoading,
+      availableRoles,
+      headerRoleDefinition,
+      recordRoleName,
+      selectedRole,
+      availableModuleIds: accessibleModules.map((module) => module.id),
+      handleModuleChange,
+      handleSignOut
+    }),
+    [
+      token,
+      user?.role,
+      userEmail,
+      accessibleModules,
+      modulesLoading,
+      modulesError,
+      activeModuleId,
+      activeModule,
+      moduleData,
+      moduleError,
+      isModuleLoading,
+      availableRoles,
+      headerRoleDefinition,
+      recordRoleName,
+      selectedRole,
+      handleModuleChange,
+      handleSignOut
+    ]
   );
+
+  return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 };

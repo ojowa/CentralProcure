@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../hooks/useAuth';
 
-const VendorDashboardPage = ({ children }: { children?: ReactNode }) => {
+const VendorDashboardLayout = ({ children }: { children?: ReactNode }) => {
     const router = useRouter();
     const { logout } = useAuth();
 
@@ -65,4 +65,4 @@ const VendorDashboardPage = ({ children }: { children?: ReactNode }) => {
     );
 };
 
-export default VendorDashboardPage;
+export default VendorDashboardLayout;
