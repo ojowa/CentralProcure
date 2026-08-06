@@ -3,9 +3,9 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../internal/hooks/useAuth';
-import { InternalWorkspaceProvider, useWorkspace } from '../../../internal/components/InternalWorkspaceContext';
-import { InternalHeader } from '../../../internal/components/InternalHeader';
-import { SidebarNav } from '../../../internal/components/SidebarNav';
+import { InternalWorkspaceProvider, useWorkspace } from '../../../internal/components/shell/InternalWorkspaceContext';
+import { InternalHeader } from '../../../internal/components/shell/InternalHeader';
+import { SidebarNav } from '../../../internal/components/shell/SidebarNav';
 
 const WorkspaceShell = ({ children }: { children: React.ReactNode }) => {
   const {

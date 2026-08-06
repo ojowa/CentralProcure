@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { InternalModuleView } from '../../../../internal/components/InternalModuleView';
+import { InternalModuleView } from '../../../../internal/components/shell/InternalModuleView';
 import { createCanonicalMetadata } from '../../../seo';
 
 export async function generateMetadata({

@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import type { BudgetConfirmationDetail } from '../../types/internal';
 import { formatCurrency, formatDate, formatDateTimeShort, toTitle, getVarianceColor } from '../../utils/procureUtils';
-import { WorkflowProgressStepper } from '../WorkflowProgressStepper';
-import type { WorkflowRuntimeDisplay } from '../workflowDisplayTypes';
+import { WorkflowProgressStepper } from '../shared/WorkflowProgressStepper';
+import type { WorkflowRuntimeDisplay } from '../shared/workflowDisplayTypes';
 
 type Props = {
   detail: BudgetConfirmationDetail | null;

@@ -1,4 +1,4 @@
-import type { WorkflowRuntimeDisplay } from '../components/workflowDisplayTypes';
+import type { WorkflowRuntimeDisplay } from '../components/shared/workflowDisplayTypes';
 import { serviceBaseUrls } from './moduleService';
 
 export type TenderWorkflowDisplayResponse = {

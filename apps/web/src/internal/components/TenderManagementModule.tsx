@@ -5,8 +5,8 @@ import type { InternalModule, TenderSummary } from '../types/internal';
 import { fetchTenderDetails } from '../services/moduleService';
 import { fetchTenders } from '../services/tenderService';
 import { fetchTenderWorkflowDisplay } from '../services/tenderWorkflowService';
-import { WorkflowProgressStepper } from './WorkflowProgressStepper';
-import type { WorkflowRuntimeDisplay } from './workflowDisplayTypes';
+import { WorkflowProgressStepper } from './shared/WorkflowProgressStepper';
+import type { WorkflowRuntimeDisplay } from './shared/workflowDisplayTypes';
 import { getInternalDashboardPath } from '../utils/internalRoutes';
 
 interface Props {
