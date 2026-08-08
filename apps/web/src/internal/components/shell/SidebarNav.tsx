@@ -46,7 +46,7 @@ const SUB_SECTION_ORDER: Record<string, string[]> = {
 };
 
 const SUBSECTION_LABELS: Record<string, string> = {
-  'Needs & Requisitions': 'Needs',
+  'Needs Collection': 'Needs',
 };
 
 const normalizeSubSectionLabel = (value: string): string => SUBSECTION_LABELS[value] ?? value;
