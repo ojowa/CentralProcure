@@ -324,11 +324,8 @@ const STATES: WorkflowStateResult[] = [
 ];
 
 const TRANSITIONS: WorkflowTransitionResult[] = [
-  { from_stage_key: 'department_need_capture', to_stage_key: 'department_head_endorsement', condition: 'Department captures a procurement need for endorsement.' },
-  { from_stage_key: 'department_head_endorsement', to_stage_key: 'budget_allocation_and_confirmation', condition: 'Department Head endorsement completed.' },
   { from_stage_key: 'budget_allocation_and_confirmation', to_stage_key: 'comptroller_procurement_review', condition: 'Budget allocation and confirmation completed for planning review.' },
   { from_stage_key: 'comptroller_procurement_review', to_stage_key: 'planning_committee_review', condition: 'Comptroller Procurement approves for committee review.' },
-  { from_stage_key: 'planning_committee_review', to_stage_key: 'department_head_endorsement', condition: 'Committee returns the request to the department for rework.' },
   { from_stage_key: 'planning_committee_review', to_stage_key: 'app_approval', condition: 'Committee review complete and routed for APP approval.' },
   { from_stage_key: 'app_approval', to_stage_key: 'planning_committee_review', condition: 'APP approval returns the plan for committee rework.' },
   { from_stage_key: 'app_approval', to_stage_key: 'accounting_officer_review', condition: 'Comptroller Procurement forwards the committee-approved plan to CGIS for approval.' },
@@ -353,7 +350,6 @@ const TRANSITIONS: WorkflowTransitionResult[] = [
 ];
 
 const ROLE_TASKS: WorkflowRoleTaskResult[] = [
-  { role_key: 'department_head', role_label: 'Department Head', stage_key: 'department_head_endorsement', task_description: 'Endorse the departmental request.', completion_summary: 'Department endorsement is recorded.' },
   { role_key: 'financial_unit_officer', role_label: 'Budget Officer', stage_key: 'budget_allocation_and_confirmation', task_description: 'Allocate budget code and confirm funds for the request.', completion_summary: 'Budget allocation and confirmation are recorded.' },
   { role_key: 'comptroller_procurement', role_label: 'Comptroller Procurement', stage_key: 'comptroller_procurement_review', task_description: 'Approve the request for Planning Committee review.', completion_summary: 'Request is approved for committee consideration.' },
   { role_key: 'planning_statistics_officer', role_label: 'Planning, Research and Statistics', stage_key: 'planning_committee_review', task_description: 'Validate aggregation, sequencing, and annual planning assumptions.', completion_summary: 'Planning package is coherent.' },
