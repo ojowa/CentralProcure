@@ -17,6 +17,7 @@ needsCollectionRouter.get('/api/needs-collection', async (req, res) => {
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   const scope = resolveUnitScope(auth);
+  const roleLower = (auth!.role ?? '').toLowerCase();
 
   try {
     const { Status, UnitId, FiscalYear, Page, PageSize } = req.query;
@@ -31,9 +32,38 @@ needsCollectionRouter.get('/api/needs-collection', async (req, res) => {
     if (Status) { conditions.push(`nc.status = $${idx}`); values.push(Status); idx++; }
     if (FiscalYear) { conditions.push(`nc.fiscal_year = $${idx}`); values.push(FiscalYear); idx++; }
 
-    // Non-admin users only ever see their own unit's needs collections.
-    const effectiveUnitId = scope.isSystemAdmin ? (UnitId as string | undefined) : scope.unitId;
-    if (effectiveUnitId) { conditions.push(`nc.unit_id = $${idx}`); values.push(effectiveUnitId); idx++; }
+    // Scope filtering based on role
+    if (!scope.isSystemAdmin) {
+      if (roleLower === 'formation_head') {
+        // Formation heads see collections from their formation and all child units
+        conditions.push(`nc.unit_id IN (
+          WITH RECURSIVE unit_tree AS (
+            SELECT unit_id FROM identity.organizational_units WHERE unit_id = $${idx}
+            UNION ALL
+            SELECT ou.unit_id FROM identity.organizational_units ou
+            INNER JOIN unit_tree ut ON ou.parent_unit_id = ut.unit_id
+          )
+          SELECT unit_id FROM unit_tree
+        )`);
+        values.push(scope.unitId);
+        idx++;
+      } else if (UnitId) {
+        // Admin or other roles can filter by specific unit
+        conditions.push(`nc.unit_id = $${idx}`);
+        values.push(UnitId as string);
+        idx++;
+      } else {
+        // Other non-admin users only see their own unit's collections
+        conditions.push(`nc.unit_id = $${idx}`);
+        values.push(scope.unitId);
+        idx++;
+      }
+    } else if (UnitId) {
+      // Admin can filter by specific unit
+      conditions.push(`nc.unit_id = $${idx}`);
+      values.push(UnitId as string);
+      idx++;
+    }
 
     const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
@@ -407,12 +437,32 @@ needsCollectionRouter.get('/api/needs-collection/:id', async (req, res) => {
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   const scope = resolveUnitScope(auth);
+  const roleLower = (auth!.role ?? '').toLowerCase();
 
   try {
     const { id } = req.params;
-    const scopeClause = scope.isSystemAdmin ? '' : ` AND nc.unit_id = $2`;
+    let scopeClause = '';
     const params: unknown[] = [id];
-    if (!scope.isSystemAdmin) params.push(scope.unitId);
+
+    if (!scope.isSystemAdmin) {
+      if (roleLower === 'formation_head') {
+        // Formation heads can view collections from their formation and all child units
+        scopeClause = ` AND nc.unit_id IN (
+          WITH RECURSIVE unit_tree AS (
+            SELECT unit_id FROM identity.organizational_units WHERE unit_id = $2
+            UNION ALL
+            SELECT ou.unit_id FROM identity.organizational_units ou
+            INNER JOIN unit_tree ut ON ou.parent_unit_id = ut.unit_id
+          )
+          SELECT unit_id FROM unit_tree
+        )`;
+        params.push(scope.unitId);
+      } else {
+        // Other users can only view their own unit's collections
+        scopeClause = ` AND nc.unit_id = $2`;
+        params.push(scope.unitId);
+      }
+    }
 
     const result = await pool.query(
       `SELECT
@@ -552,17 +602,44 @@ needsCollectionRouter.post('/api/needs-collection/:id/endorse', async (req, res)
   if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
+  const scope = resolveUnitScope(auth);
+  const roleLower = (auth!.role ?? '').toLowerCase();
+
   try {
     const { id } = req.params;
     const { Remarks } = req.body;
 
+    // Build scope clause based on role
+    let scopeClause = '';
+    const params: unknown[] = [id, auth!.sub, Remarks || ''];
+
+    if (!scope.isSystemAdmin) {
+      if (roleLower === 'formation_head') {
+        // Formation heads can endorse collections from their formation and all child units
+        scopeClause = ` AND nc.unit_id IN (
+          WITH RECURSIVE unit_tree AS (
+            SELECT unit_id FROM identity.organizational_units WHERE unit_id = $4
+            UNION ALL
+            SELECT ou.unit_id FROM identity.organizational_units ou
+            INNER JOIN unit_tree ut ON ou.parent_unit_id = ut.unit_id
+          )
+          SELECT unit_id FROM unit_tree
+        )`;
+        params.push(scope.unitId);
+      } else {
+        // Department heads and others can only endorse their own unit's collections
+        scopeClause = ` AND nc.unit_id = $4`;
+        params.push(scope.unitId);
+      }
+    }
+
     const result = await pool.query(
-      `UPDATE procurement_workflow.needs_collection
+      `UPDATE procurement_workflow.needs_collection nc
        SET status = 'Endorsed', endorsed_by = $2, endorsed_at = NOW(),
-           remarks = COALESCE(NULLIF($3, ''), remarks), updated_at = NOW()
-       WHERE collection_id = $1 AND status = 'Submitted'
-       RETURNING collection_id AS "CollectionId", status AS "Status"`,
-      [id, auth!.sub, Remarks || '']
+           remarks = COALESCE(NULLIF($3, ''), nc.remarks), updated_at = NOW()
+       WHERE nc.collection_id = $1${scopeClause} AND nc.status = 'Submitted'
+       RETURNING nc.collection_id AS "CollectionId", nc.status AS "Status"`,
+      params
     );
 
     if (result.rows.length === 0) {
@@ -581,17 +658,37 @@ needsCollectionRouter.delete('/api/needs-collection/:id', async (req, res) => {
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   const scope = resolveUnitScope(auth);
+  const roleLower = (auth!.role ?? '').toLowerCase();
 
   try {
     const { id } = req.params;
-    const scopeClause = scope.isSystemAdmin ? '' : ` AND unit_id = $2`;
+    let scopeClause = '';
     const params: unknown[] = [id];
-    if (!scope.isSystemAdmin) params.push(scope.unitId);
+
+    if (!scope.isSystemAdmin) {
+      if (roleLower === 'formation_head') {
+        // Formation heads can delete draft collections from their formation and all child units
+        scopeClause = ` AND nc.unit_id IN (
+          WITH RECURSIVE unit_tree AS (
+            SELECT unit_id FROM identity.organizational_units WHERE unit_id = $2
+            UNION ALL
+            SELECT ou.unit_id FROM identity.organizational_units ou
+            INNER JOIN unit_tree ut ON ou.parent_unit_id = ut.unit_id
+          )
+          SELECT unit_id FROM unit_tree
+        )`;
+        params.push(scope.unitId);
+      } else {
+        // Other users can only delete their own unit's draft collections
+        scopeClause = ` AND nc.unit_id = $2`;
+        params.push(scope.unitId);
+      }
+    }
 
     const result = await pool.query(
-      `DELETE FROM procurement_workflow.needs_collection
-       WHERE collection_id = $1${scopeClause} AND status = 'Draft'
-       RETURNING collection_id AS "CollectionId"`,
+      `DELETE FROM procurement_workflow.needs_collection nc
+       WHERE nc.collection_id = $1${scopeClause} AND nc.status = 'Draft'
+       RETURNING nc.collection_id AS "CollectionId"`,
       params
     );
     if (result.rows.length === 0) {
