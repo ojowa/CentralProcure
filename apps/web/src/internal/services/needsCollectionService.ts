@@ -212,8 +212,11 @@ export const createManualAssessment = (token: string, fiscalYear: number, items:
 export const updateAssessment = (id: string, token: string, payload: { Remarks?: string }) =>
   send<NeedsAssessmentSummary>(`${baseUrl}/assessments`, `/${id}`, token, { method: 'PUT' }, payload);
 
-export const submitAssessmentDecision = (id: string, token: string, decision: 'Endorsed' | 'Rejected', remarks?: string) =>
+export const submitAssessmentDecision = (id: string, token: string, decision: 'Endorsed' | 'Rejected' | 'Returned', remarks?: string) =>
   send<NeedsAssessmentSummary>(`${baseUrl}/assessments`, `/${id}/decision`, token, { method: 'POST' }, { Decision: decision, Remarks: remarks });
+
+export const convertAssessmentToPlan = (id: string, token: string) =>
+  send<{ PlanId: string; Message: string }>(`${baseUrl}/assessments`, `/${id}/convert-to-plan`, token, { method: 'POST' });
 
 // ── Assessment Items API ──────────────────────
 export const addAssessmentItem = (id: string, token: string, item: { Description: string; Quantity: number; Unit: string; Priority: string; ProcurementType: string; SourceUnits?: Array<{ unitId: string; unitName: string }> }) =>

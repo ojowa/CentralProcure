@@ -354,6 +354,20 @@ needsCollectionRouter.post('/api/needs-collection/assessments', async (req, res)
     const { FiscalYear, Items } = req.body;
     if (!FiscalYear) { res.status(400).json({ ErrorMessage: 'FiscalYear is required.' }); return; }
 
+    // Check if there are endorsed collections for this fiscal year
+    const endorsedCheck = await pool.query(
+      `SELECT COUNT(*) AS count FROM procurement_workflow.needs_collection
+       WHERE fiscal_year = $1 AND status = 'Endorsed'`,
+      [FiscalYear]
+    );
+
+    if (parseInt(endorsedCheck.rows[0].count) === 0 && (!Array.isArray(Items) || Items.length === 0)) {
+      res.status(400).json({
+        ErrorMessage: 'No endorsed collections found for this fiscal year. Please ensure needs are endorsed before creating an assessment.',
+      });
+      return;
+    }
+
     let assessmentId: string;
 
     if (Array.isArray(Items) && Items.length > 0) {
@@ -398,27 +412,6 @@ needsCollectionRouter.post('/api/needs-collection/assessments', async (req, res)
        FROM procurement_workflow.needs_assessment na
        WHERE na.assessment_id = $1`, [assessmentId]
     );
-
-    // Advance workflow: needs_assessment → budget_allocation_and_confirmation
-    try {
-      await syncAsync({
-        entity_type: 'needs_assessment',
-        entity_id: assessmentId,
-        stage_key: 'budget_allocation_and_confirmation',
-        status: 'Active',
-        record_title: `Needs Assessment FY${FiscalYear}`,
-        parent_entity_type: null,
-        parent_entity_id: null,
-        amount: null,
-        procurement_type: null,
-        threshold_id: null,
-        actor: auth!.sub,
-        transition_source: 'assessment_created',
-        transition_reason: 'Needs assessment created successfully — proceeding to budget allocation.',
-      });
-    } catch (wfErr: any) {
-      console.error('Workflow sync failed for needs assessment:', wfErr.message);
-    }
 
     res.status(201).json(detail.rows[0]);
   } catch (error: any) {
@@ -760,8 +753,8 @@ needsCollectionRouter.post('/api/needs-collection/assessments/:id/decision', asy
     const { id } = req.params;
     const { Decision, Remarks } = req.body;
 
-    if (!Decision || !['Endorsed', 'Rejected'].includes(Decision)) {
-      res.status(400).json({ ErrorMessage: 'Decision must be Endorsed or Rejected.' }); return;
+    if (!Decision || !['Endorsed', 'Rejected', 'Returned'].includes(Decision)) {
+      res.status(400).json({ ErrorMessage: 'Decision must be Endorsed, Rejected, or Returned.' }); return;
     }
 
     const result = await pool.query(
@@ -784,6 +777,31 @@ needsCollectionRouter.post('/api/needs-collection/assessments/:id/decision', asy
     if (result.rows.length === 0) {
       res.status(404).json({ ErrorMessage: 'Assessment not found or already decided.' }); return;
     }
+
+    // Advance workflow only when endorsed
+    if (Decision === 'Endorsed') {
+      try {
+        const fiscalYear = result.rows[0].FiscalYear;
+        await syncAsync({
+          entity_type: 'needs_assessment',
+          entity_id: id,
+          stage_key: 'budget_allocation_and_confirmation',
+          status: 'Active',
+          record_title: `Needs Assessment FY${fiscalYear}`,
+          parent_entity_type: null,
+          parent_entity_id: null,
+          amount: null,
+          procurement_type: null,
+          threshold_id: null,
+          actor: auth!.sub,
+          transition_source: 'assessment_endorsed',
+          transition_reason: 'Needs assessment endorsed — proceeding to budget allocation.',
+        });
+      } catch (wfErr: any) {
+        console.error('Workflow sync failed for needs assessment endorsement:', wfErr.message);
+      }
+    }
+
     res.json(result.rows[0]);
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'Error submitting decision.' });
@@ -823,6 +841,31 @@ needsCollectionRouter.put('/api/needs-collection/assessments/:id', async (req, r
     res.json(result.rows[0]);
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'Error updating assessment.' });
+  }
+});
+
+// POST /api/needs-collection/assessments/:id/convert-to-plan — convert endorsed assessment to procurement plan
+needsCollectionRouter.post('/api/needs-collection/assessments/:id/convert-to-plan', async (req, res) => {
+  const auth = await requirePermission(req, 'needs.consolidate');
+  if (denyIfNoPermission(res, auth)) return;
+  if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
+
+  try {
+    const { id } = req.params;
+
+    const result = await pool.query(
+      `SELECT procurement_workflow.convert_assessment_to_plan($1, $2) AS "PlanId"`,
+      [id, auth!.sub]
+    );
+
+    const planId = result.rows[0].PlanId;
+
+    res.status(201).json({
+      PlanId: planId,
+      Message: 'Assessment converted to procurement plan successfully.',
+    });
+  } catch (error: any) {
+    res.status(500).json({ ErrorMessage: error.message || 'Error converting assessment to plan.' });
   }
 });
 

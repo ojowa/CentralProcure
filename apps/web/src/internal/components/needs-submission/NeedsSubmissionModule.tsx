@@ -293,7 +293,7 @@ export const NeedsSubmissionModule: React.FC<NeedsSubmissionModuleProps> = ({ mo
               </div>
               <div className="space-y-2">
                 {canSubmit && <button className="app-btn app-btn--success app-btn--sm w-full" onClick={handleSubmit} disabled={loading}>{loading ? <Loader2 className="animate-spin" size={14} /> : <Send size={14} />} Submit</button>}
-                {canEndorse && <button className="app-btn app-btn--success app-btn--sm w-full" onClick={handleEndorse} disabled={loading}>{loading ? <Loader2 className="animate-spin" size={14} /> : <CheckCircle size={14} />} Endorse</button>}
+                {canEndorse && <button className="app-btn app-btn--success app-btn--sm w-full" onClick={handleEndorse} disabled={loading}>{loading ? <Loader2 className="animate-spin" size={14} /> : <CheckCircle size={14} />} Endorse Collection</button>}
                 {canEdit && <button className="app-btn app-btn--secondary app-btn--sm w-full" onClick={handleSave} disabled={loading}><Save size={14} /> {isCreating ? 'Create Draft' : 'Save Draft'}</button>}
               </div>
             </div>

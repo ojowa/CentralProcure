@@ -28,6 +28,7 @@ import {
   deleteAssessmentItem,
   carryForwardNeeds,
   submitAssessmentDecision,
+  convertAssessmentToPlan,
   type NeedsCollectionSummary,
   type NeedsCollectionDetail,
   type NeedsCollectionItem,
@@ -114,6 +115,7 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
     total: collections.length,
     draft: collections.filter(c => c.Status === 'Draft').length,
     submitted: collections.filter(c => c.Status === 'Submitted').length,
+    endorsed: collections.filter(c => c.Status === 'Endorsed').length,
   }), [collections]);
 
   const clearMessages = useCallback(() => { setError(null); setSuccess(null); }, []);
@@ -423,12 +425,23 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
     finally { setLoading(false); }
   };
 
-  const handleAssessmentDecision = async (decision: 'Endorsed' | 'Rejected') => {
+  const handleAssessmentDecision = async (decision: 'Endorsed' | 'Rejected' | 'Returned') => {
     if (!selectedAssessment) return;
     setLoading(true); clearMessages();
     try {
       await submitAssessmentDecision(selectedAssessment.AssessmentId, token, decision);
       setSuccess(`Assessment ${decision.toLowerCase()}.`);
+      setView('list');
+    } catch (err: any) { setError(err.message); }
+    finally { setLoading(false); }
+  };
+
+  const handleConvertToPlan = async () => {
+    if (!selectedAssessment) return;
+    setLoading(true); clearMessages();
+    try {
+      const result = await convertAssessmentToPlan(selectedAssessment.AssessmentId, token);
+      setSuccess(`Assessment converted to procurement plan. Plan ID: ${result.PlanId}`);
       setView('list');
     } catch (err: any) { setError(err.message); }
     finally { setLoading(false); }
@@ -585,8 +598,16 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
           </div>
           {isDraft && hasPermission('needs.endorse') && (
             <div className="app-card__footer" style={{ flexDirection: 'row', gap: '0.75rem' }}>
-              <button className="app-btn app-btn--success" onClick={() => handleAssessmentDecision('Endorsed')} disabled={loading}><CheckCircle className="app-btn__icon" /> Endorse</button>
+              <button className="app-btn app-btn--success" onClick={() => handleAssessmentDecision('Endorsed')} disabled={loading}><CheckCircle className="app-btn__icon" /> Endorse Assessment</button>
               <button className="app-btn app-btn--danger" onClick={() => handleAssessmentDecision('Rejected')} disabled={loading}><XCircle className="app-btn__icon" /> Reject</button>
+              <button className="app-btn app-btn--secondary" onClick={() => handleAssessmentDecision('Returned')} disabled={loading}><RotateCcw className="app-btn__icon" /> Return</button>
+            </div>
+          )}
+          {selectedAssessment.Status === 'Endorsed' && hasPermission('needs.consolidate') && (
+            <div className="app-card__footer" style={{ flexDirection: 'row', gap: '0.75rem' }}>
+              <button className="app-btn app-btn--primary" onClick={handleConvertToPlan} disabled={loading}>
+                <ClipboardList className="app-btn__icon" /> Convert to Procurement Plan
+              </button>
             </div>
           )}
         </div>
@@ -716,6 +737,7 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
           <div className="app-stat-card"><div className="app-stat-card__value">{statusCounts.total}</div><div className="app-stat-card__label">Total Collections</div></div>
           <div className="app-stat-card"><div className="app-stat-card__value">{statusCounts.draft}</div><div className="app-stat-card__label">Draft</div></div>
           <div className="app-stat-card app-stat-card--info"><div className="app-stat-card__value">{statusCounts.submitted}</div><div className="app-stat-card__label">Submitted</div></div>
+          <div className="app-stat-card app-stat-card--success"><div className="app-stat-card__value">{statusCounts.endorsed}</div><div className="app-stat-card__label">Endorsed</div></div>
         </div>
       )}
 
