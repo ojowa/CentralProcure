@@ -48,26 +48,16 @@ const API_ENDPOINTS = {
 export const CSRF_COOKIE_NAME = 'XSRF-TOKEN';
 export const getStoredJwtInternal = (): string | null => (typeof window === 'undefined' ? null : window.localStorage.getItem('__internal_jwt_token__'));
 
-export const normalizeRoleValue = (value: string): string => {
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return '';
-  }
-
-  const withUnderscores = trimmed.replace(/[\s-]+/g, '_');
-  const camelToSnake = withUnderscores.replace(/([a-z0-9])([A-Z])/g, '$1_$2');
-  return camelToSnake.toLowerCase();
-};
-
+// Roles are defined by the database (identity.roles.role_key). No normalization
+// or aliasing is performed client-side: the API returns the canonical role_key
+// in the JWT payload, and we pass it through untouched.
 export const resolveCanonicalRole = (...claims: unknown[]): RoleKey | undefined => {
   for (const claim of claims) {
-    if (typeof claim !== 'string') {
-      continue;
-    }
-
-    const normalized = normalizeRoleValue(claim);
-    if (normalized) {
-      return normalized as RoleKey;
+    if (typeof claim === 'string') {
+      const trimmed = claim.trim();
+      if (trimmed) {
+        return trimmed as RoleKey;
+      }
     }
   }
 

@@ -5,6 +5,7 @@ export interface TokenPayload {
   sub: string;
   email: string;
   role: string;
+  RoleName?: string;
   CanonicalRoleKey?: string;
   InternalUserId?: string;
   VendorId?: string;

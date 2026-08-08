@@ -103,25 +103,7 @@ const StageModuleActionMap: Record<string, string[]> = {
 
 function normalizeRoleKey(role: string | null | undefined): string | null {
   if (!role || !role.trim()) return null;
-
-  const trimmed = role.trim();
-  const withUnderscores = trimmed.replace(/-/g, '_').replace(/ /g, '_');
-  const snakeCase = withUnderscores.replace(/([a-z0-9])([A-Z])/g, '$1_$2');
-  const lower = snakeCase.toLowerCase();
-
-  const aliasMap: Record<string, string> = {
-    system_administrator: 'ict_admin',
-    tenders_board_member: 'tenders_board',
-    audit_officer: 'audit_oversight',
-    procurement_planning_committee: 'planning_statistics_officer',
-    bpp_liaison: 'bpp_liaison',
-    bpp_reviewer: 'bpp_reviewer',
-    procurementsecretary: 'procurement_secretary',
-    comptrollerprocurement: 'comptroller_procurement',
-    cgis: 'accounting_officer',
-  };
-
-  return aliasMap[lower] ?? lower;
+  return role.trim().toLowerCase();
 }
 
 export function resolveRoleKey(user: TokenPayload): string | null {
@@ -262,7 +244,7 @@ export function buildAuthority(
     new Set(actions.map((a) => a.action_key.toLowerCase())),
   ).sort((a, b) => a.localeCompare(b));
 
-  const isSystemAdmin = ['admin', 'ict_admin', 'system_administrator'].includes(roleKey.toLowerCase());
+  const isSystemAdmin = ['admin'].includes(roleKey.toLowerCase());
   const canEdit = allowedActionKeys.includes('procurement_plan.manage') || isSystemAdmin;
   const canDelete = false;
   const canRoute = false;

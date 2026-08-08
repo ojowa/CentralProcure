@@ -1,28 +1,7 @@
-export type RoleKey =
-  | 'admin'
-  | 'department_head'
-  | 'formation_officer'
-  | 'formation_head'
-  | 'comptroller_procurement'
-  | 'procurement_manager'
-  | 'planning_statistics_officer'
-  | 'financial_unit_officer'
-  | 'procurement_secretary'
-  | 'legal_reviewer'
-  | 'technical_evaluator'
-  | 'financial_evaluator'
-  | 'evaluation_committee'
-  | 'tenders_board'
-  | 'tenders_board_secretary'
-  | 'accounting_officer'
-  | 'bpp_liaison'
-  | 'bpp_reviewer'
-  | 'complaints_review_officer'
-  | 'contract_manager'
-  | 'inspection_officer'
-  | 'payment_officer'
-  | 'audit_oversight'
-  | 'ict_admin';
+// Roles come from the database (identity.roles.role_key). The web layer never
+// hardcodes the role set. RoleKey is kept as a string alias so component prop
+// signatures stay typed against whatever the DB reports.
+export type RoleKey = string;
 
 export type UserGroup = 'vendor' | 'office_formation' | 'procurement_staff';
 

@@ -1,6 +1,6 @@
 import type { TokenPayload } from './jwt.js';
 
-const SYSTEM_ADMIN_KEYS = new Set(['admin', 'ict_admin', 'system_administrator']);
+const SYSTEM_ADMIN_KEYS = new Set(['admin']);
 
 export interface UnitScope {
   unitId: string | null;
@@ -10,8 +10,8 @@ export interface UnitScope {
 /**
  * Resolves whether a user is scoped to their home unit or operates system-wide.
  *
- * - System admins (Admin / SystemAdministrator / ict_admin) are independent of any
- *   department/directorate: their unit is always null and they see everything.
+ * - System admins are independent of any department/directorate: their unit is
+ *   always null and they see everything.
  * - All other users are scoped to the unit assigned on their identity profile.
  */
 export function resolveUnitScope(auth: TokenPayload | null): UnitScope {

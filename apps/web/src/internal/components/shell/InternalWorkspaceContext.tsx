@@ -99,7 +99,7 @@ export const InternalWorkspaceProvider = ({ children }: { children: ReactNode })
     : null;
   const recordRoleName = activeRoleDefinition?.name ?? (profileRoleNameRaw ? formatRoleName(profileRoleNameRaw) : undefined);
   const headerRoleDefinition = headerRoleOverride ?? activeRoleDefinition ?? {
-    key: user?.role ?? 'ict_admin',
+    key: user?.role ?? 'admin',
     name: profileRoleNameRaw ? formatRoleName(profileRoleNameRaw) : 'Role Unavailable',
     description: profileRoleNameRaw
       ? 'Resolved from API profile (custom role label).'

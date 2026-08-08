@@ -1,13 +1,11 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../db.js';
 import { extractPayloadFromRequest } from '../lib/jwt.js';
-import { toCanonicalRoleKey } from '../lib/role-canonical.js';
 
 export const dashboardRouter = Router();
 
 const ROLE_COPY: Record<string, { title: string; subtitle: string }> = {
   admin: { title: 'Administrator Dashboard', subtitle: 'Platform-wide administration and oversight' },
-  ict_admin: { title: 'ICT Admin Dashboard', subtitle: 'Platform administration and access management' },
   department_head: { title: 'Department Head Dashboard', subtitle: 'Review and endorse departmental procurement needs' },
   formation_officer: { title: 'Formation Officer Workspace', subtitle: 'Capture procurement needs at formation level' },
   formation_head: { title: 'Formation Head Dashboard', subtitle: 'Review and endorse formation procurement needs' },
@@ -68,7 +66,7 @@ const MODULE_QUICK_ACTIONS: Record<string, { label: string }> = {
   'organization-management': { label: 'Organization Management' }
 };
 
-const normalizeRole = (value: string): string => toCanonicalRoleKey(value);
+const normalizeRole = (value: string): string => value.trim().toLowerCase();
 
 dashboardRouter.get('/api/Auth/internal/dashboard', async (req: Request, res: Response) => {
   const payload = extractPayloadFromRequest(req.headers.authorization);
@@ -126,7 +124,7 @@ dashboardRouter.get('/api/Auth/internal/dashboard', async (req: Request, res: Re
     }));
 
     res.json({
-      Role: toCanonicalRoleKey(payload.role || payload.CanonicalRoleKey || ''),
+      Role: normalizeRole(payload.role || payload.CanonicalRoleKey || ''),
       Title: copy.title,
       Subtitle: copy.subtitle,
       Metrics: [

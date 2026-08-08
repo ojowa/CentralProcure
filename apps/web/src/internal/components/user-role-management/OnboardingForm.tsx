@@ -20,7 +20,7 @@ interface OnboardingFormProps {
   }) => void | Promise<void>;
 }
 
-const SYSTEM_ADMIN_ROLES = ['Admin', 'SystemAdministrator', 'ict_admin'];
+const SYSTEM_ADMIN_ROLES = ['Admin'];
 
 export const OnboardingForm: React.FC<OnboardingFormProps> = ({
   roles,

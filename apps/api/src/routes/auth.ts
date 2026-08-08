@@ -6,7 +6,6 @@ import { hashPassword, verifyPassword } from '../lib/password.js';
 import { config } from '../config.js';
 import { authRateLimiter, registrationRateLimiter } from '../middleware/rate-limit.js';
 import { withModuleDataset } from '../lib/module-datasets.js';
-import { toCanonicalRoleKey } from '../lib/role-canonical.js';
 
 export const authRouter = Router();
 
@@ -38,7 +37,7 @@ function requireAuth(req: Request): TokenPayload | null {
   return extractPayloadFromRequest(req.headers.authorization);
 }
 
-const ADMIN_ROLES = ['Admin', 'IdentityAdministrator', 'SystemAdministrator', 'ict_admin', 'system_administrator'];
+const ADMIN_ROLES = ['Admin', 'admin'];
 
 function requireAdmin(req: Request, res: Response): TokenPayload | null {
   const auth = requireAuth(req);
@@ -108,8 +107,9 @@ authRouter.post('/api/Auth/internal/login', authRateLimiter, async (req: Request
     const token = signToken({
       sub: user.internal_user_id,
       email: user.email,
-      role: user.role,
-      CanonicalRoleKey: toCanonicalRoleKey(user.role),
+      role: user.role_key || user.role_name || user.role,
+      RoleName: user.role_name || user.role,
+      CanonicalRoleKey: user.role_key || user.role_name || user.role,
       InternalUserId: user.internal_user_id,
       UnitId: dbUser.unit_id || null,
       SecurityStamp: dbUser.security_stamp || undefined
@@ -120,8 +120,9 @@ authRouter.post('/api/Auth/internal/login', authRateLimiter, async (req: Request
       Status: 'Success',
       Email: user.email,
       InternalUserId: user.internal_user_id,
-      Role: user.role,
-      CanonicalRoleKey: toCanonicalRoleKey(user.role),
+      Role: user.role_key || user.role_name || user.role,
+      RoleName: user.role_name || user.role,
+      CanonicalRoleKey: user.role_key || user.role_name || user.role,
       UnitId: dbUser.unit_id || null,
       Token: token
     });
@@ -179,7 +180,7 @@ authRouter.get('/api/Auth/internal/profile', async (req: Request, res: Response)
   try {
     const result = await pool!.query(
       `SELECT iu.internal_user_id, iu.email, iu.username, iu.first_name, iu.middle_name, iu.surname,
-              iu.service_number, iu.unit_id, ou.unit_name, r.role_name, r."group" AS "Group",
+              iu.service_number, iu.unit_id, ou.unit_name, r.role_name, r.role_key, r."group" AS "Group",
               iu.status, iu.last_login, iu.created_at
        FROM identity.internal_users iu
        JOIN identity.roles r ON r.role_id = iu.role_id
@@ -201,7 +202,8 @@ authRouter.get('/api/Auth/internal/profile', async (req: Request, res: Response)
       UnitId: profile.unit_id,
       UnitName: profile.unit_name,
       RoleName: profile.role_name,
-      CanonicalRoleKey: toCanonicalRoleKey(profile.role_name),
+      RoleKey: profile.role_key,
+      CanonicalRoleKey: profile.role_key,
       Group: profile.Group,
       IsActive: profile.status === 'Active'
     });
@@ -243,7 +245,8 @@ authRouter.put('/api/Auth/internal/profile', async (req: Request, res: Response)
       UnitId: profile.unit_id,
       UnitName: profile.unit_name,
       RoleName: profile.role_name,
-      CanonicalRoleKey: toCanonicalRoleKey(profile.role_name),
+      RoleKey: profile.role_key,
+      CanonicalRoleKey: profile.role_key,
       IsActive: profile.status === 'Active'
     });
   } catch (error: any) {
@@ -398,7 +401,8 @@ authRouter.get('/api/Auth/internal/users', async (req: Request, res: Response) =
     const result = await pool!.query('SELECT * FROM identity.get_internal_users()');
     res.json(result.rows.map((row) => ({
       ...mapRow(row),
-      CanonicalRoleKey: toCanonicalRoleKey((row.role_name as string) ?? '')
+      RoleKey: (row.role_key as string) ?? '',
+      CanonicalRoleKey: (row.role_key as string) ?? ''
     })));
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching users.' });
@@ -679,7 +683,8 @@ authRouter.get('/api/Auth/roles', async (req: Request, res: Response) => {
     const result = await pool!.query('SELECT *, "group" AS "Group" FROM identity.roles WHERE is_active = true ORDER BY role_name');
     res.json(result.rows.map((row) => ({
       ...mapRow(row),
-      CanonicalRoleKey: toCanonicalRoleKey((row.role_name as string) ?? '')
+      RoleKey: (row.role_key as string) ?? '',
+      CanonicalRoleKey: (row.role_key as string) ?? ''
     })));
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching roles.' });
@@ -724,7 +729,7 @@ authRouter.post('/api/Auth/roles', async (req: Request, res: Response) => {
 
   try {
     const result = await pool!.query(
-      'INSERT INTO identity.roles (role_name, description, "group") VALUES ($1, $2, $3) RETURNING *, "group" AS "Group"',
+      "INSERT INTO identity.roles (role_name, role_key, description, \"group\") VALUES ($1, identity.derive_role_key($1), $2, $3) RETURNING *, \"group\" AS \"Group\"",
       [RoleName, Description || '', Group || 'procurement_staff']
     );
     res.json(mapRow(result.rows[0]));
@@ -746,7 +751,7 @@ authRouter.put('/api/Auth/roles/:roleId', async (req: Request, res: Response) =>
 
   try {
     const result = await pool!.query(
-      'UPDATE identity.roles SET role_name = $1, description = $2, is_active = $3, "group" = $4 WHERE role_id = $5 RETURNING *, "group" AS "Group"',
+      'UPDATE identity.roles SET role_name = $1, role_key = identity.derive_role_key($1), description = $2, is_active = $3, "group" = $4 WHERE role_id = $5 RETURNING *, "group" AS "Group"',
       [RoleName || '', Description || '', IsActive !== undefined ? IsActive : true, Group || 'procurement_staff', roleId]
     );
     if (!result.rows[0]) {
@@ -788,7 +793,7 @@ authRouter.get('/api/Auth/roles/:roleId/users', async (req: Request, res: Respon
   const { roleId } = req.params;
 
   try {
-    const rolesResult = await pool!.query('SELECT * FROM identity.get_roles() WHERE role_id = $1', [roleId]);
+    const rolesResult = await pool!.query('SELECT role_id, role_name, role_key, description, is_active FROM identity.roles WHERE role_id = $1', [roleId]);
     const role = rolesResult.rows[0];
     if (!role) {
       res.status(404).json({ ErrorMessage: 'Role not found.' });
@@ -796,8 +801,12 @@ authRouter.get('/api/Auth/roles/:roleId/users', async (req: Request, res: Respon
     }
 
     const result = await pool!.query(
-      "SELECT * FROM identity.internal_users WHERE lower(role) = lower($1) AND status = 'Active' ORDER BY surname, first_name",
-      [role.role_name]
+      `SELECT u.internal_user_id, u.email, u.username, u.first_name, u.middle_name, u.surname, u.service_number, u.unit_id, r.role_name, r.role_key, u.status, u.last_login, u.created_at
+       FROM identity.internal_users u
+       JOIN identity.roles r ON r.role_id = u.role_id
+       WHERE u.role_id = $1 AND u.status = 'Active'
+       ORDER BY u.surname, u.first_name`,
+      [role.role_id]
     );
     res.json(result.rows.map(mapRow));
   } catch (error: any) {
@@ -1253,7 +1262,7 @@ authRouter.get('/api/Auth/internal/permissions/all', async (req: Request, res: R
   if (!requireDb(res)) return;
 
   const roleLower = auth.role.toLowerCase();
-  const isAdmin = roleLower === 'admin' || roleLower === 'ict_admin' || roleLower === 'system_administrator';
+  const isAdmin = roleLower === 'admin';
   if (!isAdmin) {
     res.status(403).json({ ErrorMessage: 'Forbidden: admin access required.' });
     return;
@@ -1279,7 +1288,7 @@ authRouter.get('/api/Auth/internal/role-permissions', async (req: Request, res: 
   if (!requireDb(res)) return;
 
   const roleLower = auth.role.toLowerCase();
-  const isAdmin = roleLower === 'admin' || roleLower === 'ict_admin' || roleLower === 'system_administrator';
+  const isAdmin = roleLower === 'admin';
   const roleName = req.query.roleName as string | undefined;
 
   if (!isAdmin && !roleName) {
@@ -1320,7 +1329,7 @@ authRouter.put('/api/Auth/internal/role-permissions', async (req: Request, res: 
   if (!requireDb(res)) return;
 
   const roleLower = auth.role.toLowerCase();
-  const isAdmin = roleLower === 'admin' || roleLower === 'ict_admin' || roleLower === 'system_administrator';
+  const isAdmin = roleLower === 'admin';
   if (!isAdmin) {
     res.status(403).json({ ErrorMessage: 'Forbidden: admin access required.' });
     return;
@@ -1358,7 +1367,7 @@ authRouter.delete('/api/Auth/internal/role-permissions', async (req: Request, re
   if (!requireDb(res)) return;
 
   const roleLower = auth.role.toLowerCase();
-  const isAdmin = roleLower === 'admin' || roleLower === 'ict_admin' || roleLower === 'system_administrator';
+  const isAdmin = roleLower === 'admin';
   if (!isAdmin) {
     res.status(403).json({ ErrorMessage: 'Forbidden: admin access required.' });
     return;
