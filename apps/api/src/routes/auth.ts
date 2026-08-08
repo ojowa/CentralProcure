@@ -37,7 +37,7 @@ function requireAuth(req: Request): TokenPayload | null {
   return extractPayloadFromRequest(req.headers.authorization);
 }
 
-const ADMIN_ROLES = ['Admin', 'admin'];
+const ADMIN_ROLES = ['admin'];
 
 function requireAdmin(req: Request, res: Response): TokenPayload | null {
   const auth = requireAuth(req);
@@ -446,7 +446,7 @@ authRouter.put('/api/Auth/internal/users/:internalUserId', async (req: Request, 
     if (Status) {
       await pool!.query(
         'SELECT * FROM identity.update_internal_user_status($1, $2, $3)',
-        [internalUserId, Status, auth.sub]
+        [internalUserId, Status, Status === 'Active']
       );
     }
 
@@ -465,17 +465,17 @@ authRouter.put('/api/Auth/internal/users/:internalUserId/role', async (req: Requ
   if (!requireDb(res)) return;
 
   const { internalUserId } = req.params;
-  const { RoleName } = req.body;
+  const { RoleKey } = req.body;
 
-  if (!RoleName) {
-    res.status(400).json({ ErrorMessage: 'RoleName is required.' });
+  if (!RoleKey) {
+    res.status(400).json({ ErrorMessage: 'RoleKey is required.' });
     return;
   }
 
   try {
     const result = await pool!.query(
       'SELECT * FROM identity.update_internal_user_role($1, $2)',
-      [internalUserId, RoleName]
+      [internalUserId, RoleKey]
     );
     res.json(mapRow(result.rows[0]));
   } catch (error: any) {
@@ -502,7 +502,7 @@ authRouter.put('/api/Auth/internal/users/:internalUserId/status', async (req: Re
   try {
     const result = await pool!.query(
       'SELECT * FROM identity.update_internal_user_status($1, $2, $3)',
-      [internalUserId, Status, auth.sub]
+      [internalUserId, Status, Status === 'Active']
     );
     res.json(mapRow(result.rows[0]));
   } catch (error: any) {
@@ -523,7 +523,7 @@ authRouter.delete('/api/Auth/internal/users/:internalUserId', async (req: Reques
   try {
     const result = await pool!.query(
       'SELECT * FROM identity.update_internal_user_status($1, $2, $3)',
-      [internalUserId, 'Inactive', auth.sub]
+      [internalUserId, 'Inactive', false]
     );
     res.json(mapRow(result.rows[0]));
   } catch (error: any) {

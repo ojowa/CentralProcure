@@ -178,16 +178,11 @@ export const UserRoleManagementModule = ({ module, token }: Props) => {
     catch (err) { showError(err instanceof Error ? err.message : 'Failed to deactivate role.'); }
   };
 
-  const handleAssignCommitteeMember = async (userId: string, roleName: string) => {
+  const handleAssignCommitteeMember = async (userId: string, roleKey: string) => {
     clearMessages();
     try {
-      await updateUserRole(userId, roleName);
-      const normalizedRole = roleName.trim().toLowerCase().replace(/[_\s-]+/g, '');
-      showSuccess(
-        normalizedRole === 'comptrollerprocurement'
-          ? 'Planning Committee Chairman assigned successfully.'
-          : `Committee assignment updated: ${roleName}.`
-      );
+      await updateUserRole(userId, roleKey);
+      showSuccess(`Committee assignment updated: ${roleKey}.`);
     } catch (err) {
       showError(err instanceof Error ? err.message : 'Failed to assign committee member.');
     }

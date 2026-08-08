@@ -140,12 +140,12 @@ export const UserList: React.FC<UserListProps> = ({
                         <select
                           className="plan-select"
                           style={{ fontSize: '0.75rem', padding: '4px 8px', flex: 1 }}
-                          value={user.RoleName}
+                          value={user.CanonicalRoleKey ?? ''}
                           onChange={e => handleRoleChange(user.InternalUserId, e.target.value)}
                           disabled={isLoading}
                         >
                           {roles.map(r => (
-                            <option key={r.RoleId} value={r.RoleName}>{r.RoleName}</option>
+                            <option key={r.RoleId} value={r.CanonicalRoleKey ?? r.RoleName}>{r.RoleName}</option>
                           ))}
                         </select>
                         <button 

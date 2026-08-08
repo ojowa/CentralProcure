@@ -15,7 +15,7 @@ interface CommitteeMembersPanelProps {
   users: InternalUserProfile[];
   token?: string | null;
   isLoading: boolean;
-  onAssignRole: (userId: string, roleName: string) => void | Promise<void>;
+  onAssignRole: (userId: string, roleKey: string) => void | Promise<void>;
   onAssignChairman: (userId: string | null) => void | Promise<void>;
 }
 
@@ -254,7 +254,7 @@ export const CommitteeMembersPanel: React.FC<CommitteeMembersPanelProps> = ({
                               >
                                 <option value="">Select replacement role</option>
                                 {removableToRoles.map((role) => (
-                                  <option key={role.RoleId} value={role.RoleName}>
+                                  <option key={role.RoleId} value={role.CanonicalRoleKey ?? role.RoleName}>
                                     {role.RoleName}
                                   </option>
                                 ))}
@@ -337,7 +337,7 @@ export const CommitteeMembersPanel: React.FC<CommitteeMembersPanelProps> = ({
                     type="button"
                     className="plan-button"
                     disabled={isLoading || rolesLoading || !selectedUserId}
-                    onClick={() => selectedUserId && onAssignRole(selectedUserId, roleConfig.RoleName)}
+                    onClick={() => selectedUserId && onAssignRole(selectedUserId, roleConfig.RoleKey)}
                   >
                     Assign Member
                   </button>

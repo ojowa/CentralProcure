@@ -20,7 +20,7 @@ interface OnboardingFormProps {
   }) => void | Promise<void>;
 }
 
-const SYSTEM_ADMIN_ROLES = ['Admin'];
+const SYSTEM_ADMIN_ROLES = ['admin'];
 
 export const OnboardingForm: React.FC<OnboardingFormProps> = ({
   roles,
@@ -37,7 +37,7 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
     ServiceNumber: '',
     UnitId: '',
     Password: '',
-    Role: roles[0]?.RoleName || 'Internal'
+    Role: roles[0]?.CanonicalRoleKey || 'admin'
   });
 
   const isSystemAdminRole = useMemo(() => 
@@ -58,7 +58,7 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
       ServiceNumber: '',
       UnitId: '',
       Password: '',
-      Role: roles[0]?.RoleName || 'Internal'
+      Role: roles[0]?.CanonicalRoleKey || 'admin'
     });
   };
 
@@ -140,7 +140,7 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
               value={formData.Role}
               onChange={e => updateField('Role', e.target.value)}
             >
-              {roles.map(r => <option key={r.RoleId} value={r.RoleName}>{r.RoleName}</option>)}
+              {roles.map(r => <option key={r.RoleId} value={r.CanonicalRoleKey ?? r.RoleName}>{r.RoleName}</option>)}
             </select>
           </label>
         </div>

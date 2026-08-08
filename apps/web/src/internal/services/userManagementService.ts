@@ -160,7 +160,7 @@ export const updateUser = async (
 export const updateUserRole = async (
   token: string,
   userId: string,
-  role: string
+  roleKey: string
 ): Promise<void> => {
   const response = await fetch(API_ENDPOINTS.INTERNAL_USER_ROLE(userId), {
     method: 'PUT',
@@ -170,7 +170,7 @@ export const updateUserRole = async (
       ...buildCsrfHeaders()
     },
     credentials: 'include',
-    body: JSON.stringify({ InternalUserId: userId, Role: role })
+    body: JSON.stringify({ InternalUserId: userId, RoleKey: roleKey })
   });
   await parseResponse<unknown>(response, 'Failed to update user role');
 };
