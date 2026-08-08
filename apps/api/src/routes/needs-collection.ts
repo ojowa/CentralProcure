@@ -424,6 +424,8 @@ needsCollectionRouter.get('/api/needs-collection/:id', async (req, res) => {
         nc.status AS "Status",
         nc.remarks AS "Remarks",
         nc.submitted_at AS "SubmittedAt",
+        nc.endorsed_by AS "EndorsedBy",
+        nc.endorsed_at AS "EndorsedAt",
         nc.created_by AS "CreatedBy",
         nc.created_at AS "CreatedAt",
         nc.updated_at AS "UpdatedAt"
@@ -541,6 +543,34 @@ needsCollectionRouter.post('/api/needs-collection/:id/submit', async (req, res) 
     res.json(result.rows[0]);
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'Error submitting collection.' });
+  }
+});
+
+// POST /api/needs-collection/:id/endorse — department/formation head endorses needs
+needsCollectionRouter.post('/api/needs-collection/:id/endorse', async (req, res) => {
+  const auth = await requirePermission(req, 'needs.endorse');
+  if (denyIfNoPermission(res, auth)) return;
+  if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
+
+  try {
+    const { id } = req.params;
+    const { Remarks } = req.body;
+
+    const result = await pool.query(
+      `UPDATE procurement_workflow.needs_collection
+       SET status = 'Endorsed', endorsed_by = $2, endorsed_at = NOW(),
+           remarks = COALESCE(NULLIF($3, ''), remarks), updated_at = NOW()
+       WHERE collection_id = $1 AND status = 'Submitted'
+       RETURNING collection_id AS "CollectionId", status AS "Status"`,
+      [id, auth!.sub, Remarks || '']
+    );
+
+    if (result.rows.length === 0) {
+      res.status(404).json({ ErrorMessage: 'Collection not found or not in Submitted status.' }); return;
+    }
+    res.json(result.rows[0]);
+  } catch (error: any) {
+    res.status(500).json({ ErrorMessage: error.message || 'Error endorsing collection.' });
   }
 });
 

@@ -29,6 +29,8 @@ export interface NeedsCollectionItem {
 
 export interface NeedsCollectionDetail extends NeedsCollectionSummary {
   SubmittedAt?: string;
+  EndorsedBy?: string;
+  EndorsedAt?: string;
   Items: NeedsCollectionItem[];
 }
 
@@ -153,6 +155,12 @@ export const updateCollection = (id: string, token: string, payload: { Title?: s
 
 export const submitCollection = (id: string, token: string) =>
   send<{ CollectionId: string; Status: string }>(baseUrl, `/${id}/submit`, token, { method: 'POST' });
+
+export const endorseCollection = (id: string, token: string, remarks?: string) =>
+  send<{ CollectionId: string; Status: string }>(baseUrl, `/${id}/endorse`, token, {
+    method: 'POST',
+    body: JSON.stringify({ Remarks: remarks || '' }),
+  });
 
 export const deleteCollection = (id: string, token: string) =>
   send<{ Message: string }>(baseUrl, `/${id}`, token, { method: 'DELETE' });

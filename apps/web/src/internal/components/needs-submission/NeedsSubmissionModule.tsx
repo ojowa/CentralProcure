@@ -9,6 +9,7 @@ import {
   createCollection,
   updateCollection,
   submitCollection,
+  endorseCollection,
   deleteCollection,
   type NeedsCollectionSummary,
   type NeedsCollectionDetail,
@@ -19,7 +20,7 @@ import { serviceBaseUrls } from '../../services/moduleService';
 import { formatDateTimeShort } from '../../utils/procureUtils';
 import {
   Plus, ArrowLeft, Save, Send, Trash2,
-  Search, Package, Loader2
+  Search, Package, Loader2, CheckCircle
 } from 'lucide-react';
 
 interface NeedsSubmissionModuleProps {
@@ -31,6 +32,7 @@ interface NeedsSubmissionModuleProps {
 type View = 'list' | 'detail';
 
 export const NeedsSubmissionModule: React.FC<NeedsSubmissionModuleProps> = ({ module, token }) => {
+  const hasAction = (key: string) => (module.actions ?? []).some(a => a.toLowerCase() === key.toLowerCase());
   const searchParams = useSearchParams();
   const [view, setViewState] = useState<View>(
     (searchParams.get('view') as View) || 'list'
@@ -140,6 +142,17 @@ export const NeedsSubmissionModule: React.FC<NeedsSubmissionModuleProps> = ({ mo
     finally { setLoading(false); }
   };
 
+  const handleEndorse = async () => {
+    if (!selected) return;
+    setLoading(true); clearMessages();
+    try {
+      await endorseCollection(selected.CollectionId, token);
+      setSuccess('Collection endorsed successfully.');
+      setView('list');
+    } catch (err: any) { setError(err.message); }
+    finally { setLoading(false); }
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this draft submission?')) return;
     setLoading(true); clearMessages();
@@ -159,6 +172,7 @@ export const NeedsSubmissionModule: React.FC<NeedsSubmissionModuleProps> = ({ mo
 
   const canEdit = isCreating || selected?.Status === 'Draft' || selected?.Status === 'Returned';
   const canSubmit = selected && (selected.Status === 'Draft' || selected.Status === 'Returned') && formItems.length > 0;
+  const canEndorse = selected && selected.Status === 'Submitted' && hasAction('needs.endorse');
 
   const statusBadge = (s: string) => {
     const map: Record<string, string> = {
@@ -267,6 +281,7 @@ export const NeedsSubmissionModule: React.FC<NeedsSubmissionModuleProps> = ({ mo
                     <div className="flex justify-between items-center"><span className="text-slate-500">Year</span><span className="font-medium text-slate-700">{selected.FiscalYear}</span></div>
                     <div className="flex justify-between items-center"><span className="text-slate-500">Items</span><span className="font-semibold text-emerald-700">{formItems.length}</span></div>
                     {selected.SubmittedAt && <div className="flex justify-between items-center"><span className="text-slate-500">Submitted</span><span className="text-slate-600">{formatDateTimeShort(selected.SubmittedAt)}</span></div>}
+                    {selected.EndorsedAt && <div className="flex justify-between items-center"><span className="text-slate-500">Endorsed</span><span className="text-slate-600">{formatDateTimeShort(selected.EndorsedAt)}</span></div>}
                   </>
                 ) : (
                   <>
@@ -278,6 +293,7 @@ export const NeedsSubmissionModule: React.FC<NeedsSubmissionModuleProps> = ({ mo
               </div>
               <div className="space-y-2">
                 {canSubmit && <button className="app-btn app-btn--success app-btn--sm w-full" onClick={handleSubmit} disabled={loading}>{loading ? <Loader2 className="animate-spin" size={14} /> : <Send size={14} />} Submit</button>}
+                {canEndorse && <button className="app-btn app-btn--success app-btn--sm w-full" onClick={handleEndorse} disabled={loading}>{loading ? <Loader2 className="animate-spin" size={14} /> : <CheckCircle size={14} />} Endorse</button>}
                 {canEdit && <button className="app-btn app-btn--secondary app-btn--sm w-full" onClick={handleSave} disabled={loading}><Save size={14} /> {isCreating ? 'Create Draft' : 'Save Draft'}</button>}
               </div>
             </div>
