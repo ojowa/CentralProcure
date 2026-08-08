@@ -18,7 +18,7 @@ bppNoObjectionsRouter.get('/api/bpp-no-objections', async (req, res) => {
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
-    const { RequisitionId, TenderId, Status, Page, PageSize } = req.query;
+    const { TenderId, Status, Page, PageSize } = req.query;
     const pageNum = Math.max(1, parseInt(Page as string, 10) || 1);
     const pageSizeNum = Math.min(100, Math.max(1, parseInt(PageSize as string, 10) || 20));
     const offset = (pageNum - 1) * pageSizeNum;
@@ -27,7 +27,6 @@ bppNoObjectionsRouter.get('/api/bpp-no-objections', async (req, res) => {
     const values: unknown[] = [];
     let idx = 1;
 
-    if (RequisitionId) { conditions.push(`bno.requisition_id = $${idx}`); values.push(RequisitionId); idx++; }
     if (TenderId) { conditions.push(`bno.tender_id = $${idx}`); values.push(TenderId); idx++; }
     if (Status) { conditions.push(`bno.status = $${idx}`); values.push(Status); idx++; }
 
@@ -43,8 +42,6 @@ bppNoObjectionsRouter.get('/api/bpp-no-objections', async (req, res) => {
     const result = await pool.query(
       `SELECT
         bno.no_objection_id AS "NoObjectionId",
-        bno.requisition_id AS "RequisitionId",
-        r.title AS "RequisitionTitle",
         bno.tender_id AS "TenderId",
         t.title AS "TenderTitle",
         bno.amount AS "Amount",
@@ -59,7 +56,6 @@ bppNoObjectionsRouter.get('/api/bpp-no-objections', async (req, res) => {
         bno.created_at AS "CreatedAt",
         bno.updated_at AS "UpdatedAt"
        FROM procurement_workflow.bpp_no_objections bno
-       LEFT JOIN procurement_workflow.requisitions r ON bno.requisition_id = r.requisition_id
        LEFT JOIN vendor_sourcing.tenders t ON bno.tender_id = t.tender_id
        ${whereClause}
        ORDER BY bno.created_at DESC
@@ -92,8 +88,6 @@ bppNoObjectionsRouter.get('/api/bpp-no-objections/:id', async (req, res) => {
     const result = await pool.query(
       `SELECT
         bno.no_objection_id AS "NoObjectionId",
-        bno.requisition_id AS "RequisitionId",
-        r.title AS "RequisitionTitle",
         bno.tender_id AS "TenderId",
         t.title AS "TenderTitle",
         bno.amount AS "Amount",
@@ -108,7 +102,6 @@ bppNoObjectionsRouter.get('/api/bpp-no-objections/:id', async (req, res) => {
         bno.created_at AS "CreatedAt",
         bno.updated_at AS "UpdatedAt"
        FROM procurement_workflow.bpp_no_objections bno
-       LEFT JOIN procurement_workflow.requisitions r ON bno.requisition_id = r.requisition_id
        LEFT JOIN vendor_sourcing.tenders t ON bno.tender_id = t.tender_id
        WHERE bno.no_objection_id = $1`, [id]
     );
@@ -132,19 +125,18 @@ bppNoObjectionsRouter.post('/api/bpp-no-objections', async (req, res) => {
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
-    const { RequisitionId, TenderId, Amount, ProcurementType, Status, DecisionNotes, Justification } = req.body;
+    const { TenderId, Amount, ProcurementType, Status, DecisionNotes, Justification } = req.body;
 
-    if (!RequisitionId) {
-      res.status(400).json({ ErrorMessage: 'RequisitionId is required.' }); return;
+    if (!TenderId) {
+      res.status(400).json({ ErrorMessage: 'TenderId is required.' }); return;
     }
 
     const result = await pool.query(
       `INSERT INTO procurement_workflow.bpp_no_objections
-        (requisition_id, tender_id, amount, procurement_type, status, requested_by, requested_at, decision_notes, reference_code, created_by, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7, $8, $9, NOW(), NOW())
+        (tender_id, amount, procurement_type, status, requested_by, requested_at, decision_notes, reference_code, created_by, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, NOW(), $6, $7, $8, NOW(), NOW())
        RETURNING
         no_objection_id AS "NoObjectionId",
-        requisition_id AS "RequisitionId",
         tender_id AS "TenderId",
         amount AS "Amount",
         procurement_type AS "ProcurementType",
@@ -152,7 +144,7 @@ bppNoObjectionsRouter.post('/api/bpp-no-objections', async (req, res) => {
         requested_by AS "RequestedBy",
         requested_at AS "RequestedAt",
         created_at AS "CreatedAt"`,
-      [RequisitionId, TenderId || null, Amount || 0, ProcurementType || null,
+      [TenderId, Amount || 0, ProcurementType || null,
        Status || 'Draft', auth!.sub, DecisionNotes || '',
        `BNO-${Date.now().toString(36).toUpperCase()}`, auth!.sub]
     );
@@ -186,7 +178,6 @@ bppNoObjectionsRouter.put('/api/bpp-no-objections/:id', async (req, res) => {
        WHERE no_objection_id = $5
        RETURNING
         no_objection_id AS "NoObjectionId",
-        requisition_id AS "RequisitionId",
         tender_id AS "TenderId",
         status AS "Status",
         decision_by AS "DecisionBy",

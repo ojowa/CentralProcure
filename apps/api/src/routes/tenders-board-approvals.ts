@@ -107,13 +107,7 @@ tendersBoardApprovalsRouter.post('/api/tenders-board-approvals/approve', async (
 
     const approval = result.rows[0];
 
-    if (approval.EntityType === 'Requisition') {
-      await pool.query(
-        `UPDATE procurement_workflow.requisitions
-         SET status = 'Board Approved', updated_at = NOW()
-         WHERE requisition_id = $1`, [approval.EntityId]
-      );
-    } else if (approval.EntityType === 'Plan') {
+    if (approval.EntityType === 'Plan') {
       await pool.query(
         `UPDATE procurement_workflow.procurement_plans
          SET status = 'Board Approved', updated_at = NOW()
@@ -175,13 +169,7 @@ tendersBoardApprovalsRouter.post('/api/tenders-board-approvals/reject', async (r
 
     const approval = result.rows[0];
 
-    if (approval.EntityType === 'Requisition') {
-      await pool.query(
-        `UPDATE procurement_workflow.requisitions
-         SET status = 'Board Rejected', updated_at = NOW()
-         WHERE requisition_id = $1`, [approval.EntityId]
-      );
-    } else if (approval.EntityType === 'Plan') {
+    if (approval.EntityType === 'Plan') {
       await pool.query(
         `UPDATE procurement_workflow.procurement_plans
          SET status = 'Board Rejected', updated_at = NOW()
@@ -243,13 +231,7 @@ tendersBoardApprovalsRouter.post('/api/tenders-board-approvals/return', async (r
 
     const approval = result.rows[0];
 
-    if (approval.EntityType === 'Requisition') {
-      await pool.query(
-        `UPDATE procurement_workflow.requisitions
-         SET status = 'Returned to Committee', updated_at = NOW()
-         WHERE requisition_id = $1`, [approval.EntityId]
-      );
-    } else if (approval.EntityType === 'Plan') {
+    if (approval.EntityType === 'Plan') {
       await pool.query(
         `UPDATE procurement_workflow.procurement_plans
          SET status = 'Returned to Committee', updated_at = NOW()

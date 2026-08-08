@@ -51,7 +51,7 @@ const STATES: WorkflowStateResult[] = [
     requires_approval: false,
     requires_external_review: false,
     statute_reference: 'PPA 2007 s.18',
-    assigned_roles: ['requisitioning_officer'],
+    assigned_roles: [],
     action_keys: ['needs.create', 'needs.submit'],
   },
   {
@@ -149,7 +149,7 @@ const STATES: WorkflowStateResult[] = [
     requires_approval: false,
     requires_external_review: false,
     statute_reference: 'PPA 2007 s.16, s.19',
-    assigned_roles: ['requisitioning_officer', 'comptroller_procurement'],
+    assigned_roles: ['comptroller_procurement'],
     action_keys: ['procurement.initiate'],
   },
   {
@@ -324,7 +324,7 @@ const STATES: WorkflowStateResult[] = [
 ];
 
 const TRANSITIONS: WorkflowTransitionResult[] = [
-  { from_stage_key: 'department_need_capture', to_stage_key: 'department_head_endorsement', condition: 'Requisition officer submits departmental need for endorsement.' },
+  { from_stage_key: 'department_need_capture', to_stage_key: 'department_head_endorsement', condition: 'Department captures a procurement need for endorsement.' },
   { from_stage_key: 'department_head_endorsement', to_stage_key: 'budget_allocation_and_confirmation', condition: 'Department Head endorsement completed.' },
   { from_stage_key: 'budget_allocation_and_confirmation', to_stage_key: 'comptroller_procurement_review', condition: 'Budget allocation and confirmation completed for planning review.' },
   { from_stage_key: 'comptroller_procurement_review', to_stage_key: 'planning_committee_review', condition: 'Comptroller Procurement approves for committee review.' },
@@ -353,14 +353,13 @@ const TRANSITIONS: WorkflowTransitionResult[] = [
 ];
 
 const ROLE_TASKS: WorkflowRoleTaskResult[] = [
-  { role_key: 'requisitioning_officer', role_label: 'Requisitioning Officer', stage_key: 'department_need_capture', task_description: 'Create and submit the departmental request.', completion_summary: 'Department request is logged for endorsement.' },
   { role_key: 'department_head', role_label: 'Department Head', stage_key: 'department_head_endorsement', task_description: 'Endorse the departmental request.', completion_summary: 'Department endorsement is recorded.' },
   { role_key: 'financial_unit_officer', role_label: 'Budget Officer', stage_key: 'budget_allocation_and_confirmation', task_description: 'Allocate budget code and confirm funds for the request.', completion_summary: 'Budget allocation and confirmation are recorded.' },
   { role_key: 'comptroller_procurement', role_label: 'Comptroller Procurement', stage_key: 'comptroller_procurement_review', task_description: 'Approve the request for Planning Committee review.', completion_summary: 'Request is approved for committee consideration.' },
   { role_key: 'planning_statistics_officer', role_label: 'Planning, Research and Statistics', stage_key: 'planning_committee_review', task_description: 'Validate aggregation, sequencing, and annual planning assumptions.', completion_summary: 'Planning package is coherent.' },
   { role_key: 'financial_unit_officer', role_label: 'Financial Unit Officer', stage_key: 'planning_committee_review', task_description: 'Review funding alignment and confirm budget integrity within the committee.', completion_summary: 'Funding position is confirmed for committee review.' },
   { role_key: 'department_head', role_label: 'Department Head', stage_key: 'planning_committee_review', task_description: "Confirm the originating department's operational justification during committee review.", completion_summary: 'Department need remains justified at committee stage.' },
-  { role_key: 'legal_reviewer', role_label: 'Legal Reviewer', stage_key: 'planning_committee_review', task_description: 'Review legal compliance of the requisition package before APP approval.', completion_summary: 'Committee record includes legal compliance view.' },
+  { role_key: 'legal_reviewer', role_label: 'Legal Reviewer', stage_key: 'planning_committee_review', task_description: 'Review legal compliance of the procurement request before APP approval.', completion_summary: 'Committee record includes legal compliance view.' },
   { role_key: 'procurement_secretary', role_label: 'Procurement Secretary', stage_key: 'planning_committee_review', task_description: 'Record committee deliberations and maintain the planning committee trail.', completion_summary: 'Committee proceedings are properly recorded.' },
   { role_key: 'comptroller_procurement', role_label: 'Comptroller Procurement', stage_key: 'app_approval', task_description: 'Approve the annual procurement plan as head of the procurement unit.', completion_summary: 'APP is approved for execution.' },
   { role_key: 'accounting_officer', role_label: 'CGIS', stage_key: 'app_approval', task_description: 'Provide Comptroller General of Immigration Service concurrence before the APP is released for execution.', completion_summary: 'APP approval includes CGIS control.' },
@@ -392,7 +391,6 @@ const DATABASE_TABLES: string[] = [
   'identity.organizational_positions',
   'procurement_workflow.governance_bodies',
   'procurement_workflow.governance_body_memberships',
-  'procurement_workflow.requisitions',
   'procurement_workflow.tenders',
   'procurement_workflow.bid_opening_sessions',
   'procurement_workflow.evaluation_reports',

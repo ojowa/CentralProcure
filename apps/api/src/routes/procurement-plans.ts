@@ -380,37 +380,6 @@ procurementPlansRouter.get('/api/procurement-plans/:planId/recommendation-readin
 });
 
 // ─────────────────────────────────────────────
-// GET /api/procurement-plans/:planId/requisitions
-// ─────────────────────────────────────────────
-procurementPlansRouter.get('/api/procurement-plans/:planId/requisitions', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
-  if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
-
-  try {
-    const { planId } = req.params;
-
-    const result = await pool.query(
-      `SELECT
-        r.requisition_id AS "RequisitionId",
-        r.requisition_number AS "RequisitionNumber",
-        r.title AS "Title",
-        r.status AS "Status",
-        r.created_at AS "CreatedAt",
-        pcl.linked_at AS "LinkedAt"
-       FROM procurement_workflow.planning_committee_plan_links pcl
-       JOIN procurement_workflow.requisitions r ON pcl.requisition_id = r.requisition_id
-       WHERE pcl.plan_id = $1
-       ORDER BY pcl.linked_at DESC`, [planId]
-    );
-
-    res.json({ Items: result.rows });
-  } catch (error: any) {
-    res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching linked requisitions.' });
-  }
-});
-
-// ─────────────────────────────────────────────
 // POST /api/procurement-plans/:planId/initiate-procurement
 // ─────────────────────────────────────────────
 procurementPlansRouter.post('/api/procurement-plans/:planId/initiate-procurement', async (req, res) => {

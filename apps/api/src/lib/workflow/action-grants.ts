@@ -11,11 +11,11 @@ const StageActionMap: Record<string, string[]> = {
   needs_collection: ['needs.create', 'needs.submit'],
   needs_analysis: ['needs.analysis', 'needs.consolidate'],
   needs_assessment: ['needs.endorse', 'needs.return'],
-  budget_allocation_and_confirmation: ['requisition.update', 'budget.confirm'],
-  comptroller_procurement_review: ['requisition.update'],
+  budget_allocation_and_confirmation: ['budget.confirm'],
+  comptroller_procurement_review: ['planning_committee.review'],
   planning_committee_review: ['planning_committee.review'],
   app_approval: ['procurement_plan.approve'],
-  procurement_initiation: ['requisition.create', 'requisition.update'],
+  procurement_initiation: ['procurement_plan.manage'],
   threshold_resolution: ['threshold.resolve', 'approval.review'],
   method_validation: ['tender.manage', 'tender.publish'],
   solicitation: [
@@ -52,18 +52,15 @@ const StageModuleActionMap: Record<string, string[]> = {
   needs_analysis: ['needs.view', 'needs.analysis', 'needs.consolidate'],
   needs_assessment: ['needs.view', 'needs.endorse', 'needs.return'],
   budget_allocation_and_confirmation: [
-    'requisition.view',
-    'requisition.track',
+    'budget.view',
     'planning_committee.view',
   ],
   comptroller_procurement_review: [
-    'requisition.view',
-    'requisition.track',
     'planning_committee.view',
   ],
   planning_committee_review: ['planning_committee.view'],
-  app_approval: ['procurement_plan.manage', 'requisition.view', 'requisition.track'],
-  procurement_initiation: ['requisition.create', 'requisition.view', 'requisition.track'],
+  app_approval: ['procurement_plan.manage'],
+  procurement_initiation: ['procurement_plan.view', 'procurement_plan.manage'],
   threshold_resolution: ['approval.review'],
   method_validation: ['tender.manage'],
   solicitation: [
@@ -116,7 +113,6 @@ function normalizeRoleKey(role: string | null | undefined): string | null {
     system_administrator: 'ict_admin',
     tenders_board_member: 'tenders_board',
     audit_officer: 'audit_oversight',
-    department_user: 'requisitioning_officer',
     procurement_planning_committee: 'planning_statistics_officer',
     bpp_liaison: 'bpp_liaison',
     bpp_reviewer: 'bpp_reviewer',
@@ -267,14 +263,9 @@ export function buildAuthority(
   ).sort((a, b) => a.localeCompare(b));
 
   const isSystemAdmin = ['admin', 'ict_admin', 'system_administrator'].includes(roleKey.toLowerCase());
-  const canEdit = allowedActionKeys.includes('requisition.update') || isSystemAdmin;
-  const canDelete =
-    entityType.toLowerCase() === 'requisition' &&
-    isSystemAdmin;
-  const canRoute =
-    entityType.toLowerCase() === 'requisition' &&
-    canEdit &&
-    currentStageKey.toLowerCase() === 'comptroller_procurement_review';
+  const canEdit = allowedActionKeys.includes('procurement_plan.manage') || isSystemAdmin;
+  const canDelete = false;
+  const canRoute = false;
   const canFileComplaint = allowedActionKeys.includes('administrative_review.create');
 
   return {

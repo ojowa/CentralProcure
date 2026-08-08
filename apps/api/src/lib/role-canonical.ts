@@ -20,7 +20,6 @@ const ROLE_ALIASES: Record<string, string> = {
   system_administrator: 'ict_admin',
   tenders_board_member: 'tenders_board',
   audit_officer: 'audit_oversight',
-  department_user: 'requisitioning_officer',
   procurement_planning_committee: 'planning_statistics_officer',
   procurementsecretary: 'procurement_secretary',
   comptrollerprocurement: 'comptroller_procurement',

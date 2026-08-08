@@ -1,6 +1,5 @@
 export interface BppNoObjectionDetail {
     NoObjectionId: string;
-    RequisitionId?: string | null;
     TenderId?: string | null;
     Amount: number;
     ProcurementType?: string | null;
@@ -16,7 +15,6 @@ export interface BppNoObjectionDetail {
 }
 
 export interface BppNoObjectionCreateRequest {
-    RequisitionId?: string | null;
     TenderId?: string | null;
     Amount: number;
     ProcurementType?: string | null;

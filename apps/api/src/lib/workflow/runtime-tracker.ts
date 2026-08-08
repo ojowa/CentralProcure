@@ -368,7 +368,7 @@ SELECT
     wi.entity_type,
     wi.entity_id,
     wi.record_title,
-    COALESCE(r.department, t.department, 'N/A') as department,
+    COALESCE(t.department, 'N/A') as department,
     wi.amount,
     at.approval_route,
     at.approval_authority_label,
@@ -378,7 +378,6 @@ SELECT
     EXTRACT(DAY FROM (CURRENT_TIMESTAMP - wi.created_at))::int as days_pending
 FROM procurement_workflow.workflow_instances wi
 LEFT JOIN procurement_workflow.approval_thresholds at ON at.threshold_id = wi.threshold_id
-LEFT JOIN procurement_workflow.requisitions r ON wi.entity_type = 'requisition' AND r.requisition_id = wi.entity_id
 LEFT JOIN vendor_sourcing.tenders t ON wi.entity_type = 'tender' AND t.tender_id = wi.entity_id
 LEFT JOIN vendor_sourcing.bids b ON wi.entity_type = 'tender' AND b.tender_id = wi.entity_id AND b.status = 'Recommended'
 LEFT JOIN identity.vendors v ON b.vendor_id = v.vendor_id

@@ -192,7 +192,7 @@ export interface WorkflowThresholdUpdateRequest {
     Notes?: string | null;
 }
 
-export interface RequisitionAuthority {
+export interface WorkflowAuthority {
     IsEditable: boolean;
     CanEdit: boolean;
     CanDelete: boolean;
@@ -217,7 +217,7 @@ export interface WorkflowActionSnapshotResponse {
     CurrentStageTitle: string;
     RoleKey: string;
     Actions: WorkflowGrantedAction[];
-    Authority?: RequisitionAuthority | null;
+    Authority?: WorkflowAuthority | null;
     RouteDecision?: WorkflowRouteDecision | null;
 }
 

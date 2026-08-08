@@ -117,7 +117,6 @@ export interface ComplianceHistoryEntry {
 
 export interface Tender {
   tender_id: string;
-  requisition_id: string | null;
   title: string;
   description: string | null;
   category: string;
@@ -138,7 +137,6 @@ export interface Tender {
 
 export interface TenderSummary {
   tender_id: string;
-  requisition_id: string | null;
   title: string;
   category: string;
   status: string;

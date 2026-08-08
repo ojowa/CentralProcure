@@ -8,7 +8,6 @@ export const dashboardRouter = Router();
 const ROLE_COPY: Record<string, { title: string; subtitle: string }> = {
   admin: { title: 'Administrator Dashboard', subtitle: 'Platform-wide administration and oversight' },
   ict_admin: { title: 'ICT Admin Dashboard', subtitle: 'Platform administration and access management' },
-  requisitioning_officer: { title: 'Requisitioning Officer Workspace', subtitle: 'Capture and manage departmental procurement needs' },
   department_head: { title: 'Department Head Dashboard', subtitle: 'Review and endorse departmental procurement needs' },
   formation_officer: { title: 'Formation Officer Workspace', subtitle: 'Capture procurement needs at formation level' },
   formation_head: { title: 'Formation Head Dashboard', subtitle: 'Review and endorse formation procurement needs' },
