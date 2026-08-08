@@ -12,7 +12,6 @@ const StageActionMap: Record<string, string[]> = {
   needs_analysis: ['needs.analysis', 'needs.consolidate'],
   needs_assessment: ['needs.endorse', 'needs.return'],
   budget_allocation_and_confirmation: ['budget.confirm'],
-  comptroller_procurement_review: ['planning_committee.review'],
   planning_committee_review: ['planning_committee.review'],
   app_approval: ['procurement_plan.approve'],
   procurement_initiation: ['procurement_plan.manage'],
@@ -53,9 +52,6 @@ const StageModuleActionMap: Record<string, string[]> = {
   needs_assessment: ['needs.view', 'needs.endorse', 'needs.return'],
   budget_allocation_and_confirmation: [
     'budget.view',
-    'planning_committee.view',
-  ],
-  comptroller_procurement_review: [
     'planning_committee.view',
   ],
   planning_committee_review: ['planning_committee.view'],

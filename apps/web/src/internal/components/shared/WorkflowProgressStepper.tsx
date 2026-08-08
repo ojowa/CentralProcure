@@ -21,7 +21,6 @@ const PHASES: PhaseConfig[] = [
       'needs_analysis',
       'needs_assessment',
       'budget_allocation_and_confirmation',
-      'comptroller_procurement_review',
       'planning_committee_review',
       'app_approval',
       'procurement_initiation',

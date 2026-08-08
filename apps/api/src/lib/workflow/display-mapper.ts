@@ -19,7 +19,6 @@ const StagePhaseMap: Record<string, string> = {
   needs_analysis: 'app_planning',
   needs_assessment: 'app_planning',
   budget_allocation_and_confirmation: 'app_planning',
-  comptroller_procurement_review: 'app_planning',
   planning_committee_review: 'app_planning',
   app_approval: 'app_planning',
   procurement_initiation: 'threshold_control',
