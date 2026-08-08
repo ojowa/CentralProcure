@@ -94,7 +94,6 @@ export const CommitteeMembersPanel: React.FC<CommitteeMembersPanelProps> = ({
       'procurement_secretary',
       'planning_statistics_officer',
       'financial_unit_officer',
-      'department_head',
       'legal_reviewer'
     ]);
 
