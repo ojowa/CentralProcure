@@ -9,7 +9,11 @@ export const pool = config.databaseUrl
       connectionString: config.databaseUrl,
       ssl: hasSsl(config.databaseUrl)
         ? { rejectUnauthorized: false }
-        : undefined
+        : undefined,
+      max: 10,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000,
+      allowExitOnIdle: true,
     })
   : undefined;
 
