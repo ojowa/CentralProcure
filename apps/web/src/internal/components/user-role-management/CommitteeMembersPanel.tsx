@@ -91,10 +91,9 @@ export const CommitteeMembersPanel: React.FC<CommitteeMembersPanelProps> = ({
   const fallbackCommitteeRoles = useMemo(() => {
     const allowed = new Set([
       'comptroller_procurement',
-      'procurement_secretary',
-      'planning_statistics_officer',
-      'financial_unit_officer',
-      'legal_reviewer'
+      'procurement_officer',
+      'planning_officer',
+      'compliance_officer'
     ]);
 
     const mapped: PlanningCommitteeRoleDefinition[] = [];
@@ -122,9 +121,7 @@ export const CommitteeMembersPanel: React.FC<CommitteeMembersPanelProps> = ({
 
   const fallbackEvaluationRoles = useMemo(() => {
     const allowed = new Set([
-      'technical_evaluator',
-      'financial_evaluator',
-      'evaluation_committee'
+      'evaluator'
     ]);
 
     const mapped: PlanningCommitteeRoleDefinition[] = [];
