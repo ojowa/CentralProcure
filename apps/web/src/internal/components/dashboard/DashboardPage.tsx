@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import type { InternalModule, RoleKey } from '../../types/internal';
 import { getInternalDashboardPath } from '../../utils/internalRoutes';
-import { formatRelativeTime } from '../../hooks/useRecentActivity';
+import { formatRelativeTime } from '../../utils/formatUtils';
 import { fetchInternalDashboard } from '../../services/dashboardService';
 import type { InternalDashboardResponse } from '../../types/internal';
 import {
