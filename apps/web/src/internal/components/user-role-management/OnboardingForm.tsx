@@ -37,7 +37,7 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
     ServiceNumber: '',
     UnitId: '',
     Password: '',
-    Role: roles[0]?.CanonicalRoleKey || 'admin'
+    Role: roles[0]?.CanonicalRoleKey ?? ''
   });
 
   const isSystemAdminRole = useMemo(() => 
@@ -58,7 +58,7 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
       ServiceNumber: '',
       UnitId: '',
       Password: '',
-      Role: roles[0]?.CanonicalRoleKey || 'admin'
+      Role: roles[0]?.CanonicalRoleKey ?? ''
     });
   };
 

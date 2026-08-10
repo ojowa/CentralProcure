@@ -33,13 +33,14 @@ export const ScheduleRoleModal: React.FC<ScheduleRoleModalProps> = ({
 
   useEffect(() => {
     if (user) {
-      setRole(user.RoleName);
+      setRole(user.CanonicalRoleKey ?? user.RoleName);
       setEffectiveFrom(user.RoleEffectiveFrom ? new Date(user.RoleEffectiveFrom).toISOString().slice(0, 16) : '');
       setExpiresAt(user.RoleExpiresAt ? new Date(user.RoleExpiresAt).toISOString().slice(0, 16) : '');
-      setBackupRole(user.BackupRoleName || '');
+      const resolvedBackup = roles.find(r => r.RoleName === user.BackupRoleName)?.CanonicalRoleKey ?? user.BackupRoleName ?? '';
+      setBackupRole(resolvedBackup);
       setUseScheduling(!!(user.RoleEffectiveFrom || user.RoleExpiresAt));
     }
-  }, [user, isOpen]);
+  }, [user, isOpen, roles]);
 
   if (!isOpen || !user) return null;
 
@@ -77,7 +78,7 @@ export const ScheduleRoleModal: React.FC<ScheduleRoleModalProps> = ({
                 required
               >
                 {roles.map(r => (
-                  <option key={r.RoleId} value={r.RoleName}>{r.RoleName}</option>
+                  <option key={r.RoleId} value={r.CanonicalRoleKey ?? r.RoleName}>{r.RoleName}</option>
                 ))}
               </select>
             </label>
@@ -123,7 +124,7 @@ export const ScheduleRoleModal: React.FC<ScheduleRoleModalProps> = ({
                     >
                       <option value="">No Backup (Keep expired role)</option>
                       {roles.map(r => (
-                        <option key={r.RoleId} value={r.RoleName}>{r.RoleName}</option>
+                        <option key={r.RoleId} value={r.CanonicalRoleKey ?? r.RoleName}>{r.RoleName}</option>
                       ))}
                     </select>
                     <p className="plan-muted" style={{ fontSize: '0.7rem', marginTop: '4px' }}>
