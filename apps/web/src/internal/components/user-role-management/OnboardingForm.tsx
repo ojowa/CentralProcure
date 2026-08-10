@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import type { InternalRoleRecord, InternalOrganizationalUnitRecord } from '../../types/internal';
 
 interface OnboardingFormProps {
@@ -20,8 +20,6 @@ interface OnboardingFormProps {
   }) => void | Promise<void>;
 }
 
-const SYSTEM_ADMIN_ROLES = ['admin'];
-
 export const OnboardingForm: React.FC<OnboardingFormProps> = ({
   roles,
   units,
@@ -39,11 +37,6 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
     Password: '',
     Role: roles[0]?.CanonicalRoleKey ?? ''
   });
-
-  const isSystemAdminRole = useMemo(() => 
-    SYSTEM_ADMIN_ROLES.includes(formData.Role), 
-    [formData.Role]
-  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,10 +140,10 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
           <label className="plan-field">
-            <span>Organizational Unit {isSystemAdminRole ? <small className="plan-muted">(Optional for System Admin)</small> : '*'}</span>
+            <span>Organizational Unit *</span>
             <select
               className="plan-select"
-              required={!isSystemAdminRole}
+              required
               value={formData.UnitId}
               onChange={e => updateField('UnitId', e.target.value)}
             >

@@ -89,30 +89,19 @@ export const CommitteeMembersPanel: React.FC<CommitteeMembersPanelProps> = ({
   );
 
   const fallbackCommitteeRoles = useMemo(() => {
-    const allowed = new Set([
-      'comptroller_procurement',
-      'procurement_officer',
-      'planning_officer',
-      'compliance_officer'
-    ]);
-
     const mapped: PlanningCommitteeRoleDefinition[] = [];
     for (const role of roles) {
       const roleKey = resolveCanonicalRole(role.CanonicalRoleKey, role.RoleName);
-      if (!roleKey || !allowed.has(roleKey)) {
-        continue;
-      }
+      if (!roleKey) continue;
 
-      if (mapped.some((entry) => entry.RoleKey === roleKey)) {
-        continue;
-      }
+      if (mapped.some((entry) => entry.RoleKey === roleKey)) continue;
 
       mapped.push({
         RoleKey: roleKey,
         RoleName: role.RoleName,
         DisplayName: role.RoleName,
         Description: role.Description ?? '',
-        IsChair: roleKey === 'comptroller_procurement'
+        IsChair: false
       });
     }
 
@@ -120,20 +109,12 @@ export const CommitteeMembersPanel: React.FC<CommitteeMembersPanelProps> = ({
   }, [roles]);
 
   const fallbackEvaluationRoles = useMemo(() => {
-    const allowed = new Set([
-      'evaluator'
-    ]);
-
     const mapped: PlanningCommitteeRoleDefinition[] = [];
     for (const role of roles) {
       const roleKey = resolveCanonicalRole(role.CanonicalRoleKey, role.RoleName);
-      if (!roleKey || !allowed.has(roleKey)) {
-        continue;
-      }
+      if (!roleKey) continue;
 
-      if (mapped.some((entry) => entry.RoleKey === roleKey)) {
-        continue;
-      }
+      if (mapped.some((entry) => entry.RoleKey === roleKey)) continue;
 
       mapped.push({
         RoleKey: roleKey,
