@@ -5488,3 +5488,399 @@
    END OF AUDIT TRAIL WORKSPACE STYLES
    ============================================================================ */
 
+/* ============================================================================
+   PERMISSIONS PANEL WORKSPACE STYLES
+   ============================================================================ */
+
+.perm-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.perm-panel__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.perm-panel__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.perm-panel__subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--portal-slate, #6b7280);
+}
+
+.perm-panel__controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.perm-panel__mode-toggle {
+  display: flex;
+  border-radius: 6px;
+  border: 1px solid var(--portal-border, #d1d5db);
+  overflow: hidden;
+}
+
+.perm-panel__mode-btn {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  background: var(--portal-card, #fff);
+  color: var(--portal-ink, #374151);
+}
+
+.perm-panel__mode-btn--active {
+  background: var(--portal-forest, #2563eb);
+  color: #fff;
+}
+
+.perm-panel__role-select,
+.perm-panel__compare-select {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--portal-border, #d1d5db);
+  font-size: 13px;
+  min-width: 180px;
+}
+
+.perm-panel__search {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--portal-border, #d1d5db);
+  font-size: 13px;
+  width: 200px;
+}
+
+.perm-panel__clone-btn {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--portal-border, #d1d5db);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  background: var(--portal-card, #fff);
+  color: var(--portal-ink, #374151);
+}
+
+.perm-panel__overall {
+  background: var(--portal-mist, #f3f4f6);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+}
+
+.perm-panel__overall-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.perm-panel__overall-label {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.perm-panel__overall-pct {
+  font-size: 13px;
+  color: var(--portal-slate, #6b7280);
+}
+
+.perm-panel__bar-track {
+  height: 8px;
+  background: var(--portal-border, #e5e7eb);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.perm-panel__bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+
+.perm-panel__bar-fill--full {
+  background: var(--app-success, #16a34a);
+}
+
+.perm-panel__bar-fill--partial {
+  background: var(--app-info, #2563eb);
+}
+
+.perm-panel__bar-fill--empty {
+  background: var(--portal-border, #e5e7eb);
+}
+
+.perm-panel__success {
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: #d1fae5;
+  color: #065f46;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.perm-panel__saving {
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--portal-slate, #6b7280);
+}
+
+.perm-panel__empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--portal-slate, #6b7280);
+  background: var(--portal-mist, #f9fafb);
+  border-radius: 8px;
+}
+
+.perm-panel__expand-controls {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.perm-panel__expand-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 4px;
+  border: 1px solid var(--portal-border, #d1d5db);
+  background: var(--portal-card, #fff);
+  cursor: pointer;
+}
+
+.perm-panel__module-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.perm-panel__module {
+  border: 1px solid var(--portal-border, #e5e7eb);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.perm-panel__module-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--portal-mist, #f9fafb);
+  cursor: pointer;
+  user-select: none;
+}
+
+.perm-panel__module-header--collapsed {
+  border-bottom: none;
+}
+
+.perm-panel__module-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.perm-panel__module-chevron {
+  font-size: 12px;
+  color: var(--portal-slate, #6b7280);
+  transition: transform 0.15s;
+}
+
+.perm-panel__module-chevron--collapsed {
+  transform: rotate(-90deg);
+}
+
+.perm-panel__module-name {
+  font-weight: 600;
+  font-size: 14px;
+  text-transform: capitalize;
+}
+
+.perm-panel__module-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.perm-panel__bulk-btns {
+  display: flex;
+  gap: 4px;
+}
+
+.perm-panel__bulk-btn {
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--portal-border, #d1d5db);
+  font-size: 11px;
+  cursor: pointer;
+  background: var(--portal-card, #fff);
+}
+
+.perm-panel__bulk-btn--disabled {
+  background: var(--portal-mist, #f3f4f6);
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.perm-panel__bulk-btn--grant {
+  color: var(--app-success, #16a34a);
+}
+
+.perm-panel__bulk-btn--revoke {
+  color: var(--app-danger, #dc2626);
+}
+
+.perm-panel__module-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 140px;
+}
+
+.perm-panel__module-bar-track {
+  flex: 1;
+  height: 6px;
+  background: var(--portal-border, #e5e7eb);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.perm-panel__module-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+
+.perm-panel__module-count {
+  font-size: 12px;
+  color: var(--portal-slate, #6b7280);
+  white-space: nowrap;
+}
+
+.perm-panel__perm-rows {
+  padding: 4px 14px;
+}
+
+.perm-panel__perm-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--portal-mist, #f3f4f6);
+}
+
+.perm-panel__perm-row--saving {
+  opacity: 0.6;
+}
+
+.perm-panel__perm-info {
+  flex: 1;
+}
+
+.perm-panel__perm-action {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.perm-panel__perm-code {
+  background: var(--portal-mist, #f3f4f6);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.perm-panel__perm-desc {
+  font-size: 12px;
+  color: var(--portal-slate, #6b7280);
+  margin-top: 2px;
+}
+
+.perm-panel__toggle-btn {
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: none;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  min-width: 70px;
+  color: #fff;
+}
+
+.perm-panel__toggle-btn--grant {
+  background: var(--app-success, #16a34a);
+}
+
+.perm-panel__toggle-btn--revoke {
+  background: var(--app-danger, #dc2626);
+}
+
+.perm-panel__toggle-btn--disabled {
+  cursor: not-allowed;
+}
+
+.perm-panel__compare-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--portal-mist, #f3f4f6);
+  gap: 12px;
+}
+
+.perm-panel__compare-badges {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.perm-panel__badge {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.perm-panel__badge--yes {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.perm-panel__badge--no {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.perm-panel__badge--same {
+  background: var(--portal-mist, #f3f4f6);
+  color: var(--portal-slate, #6b7280);
+}
+
+.perm-panel__badge--diff {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.perm-panel__badge--only-compare {
+  background: #f3e8ff;
+  color: #9333ea;
+}
+
+/* ============================================================================
+   END OF PERMISSIONS PANEL WORKSPACE STYLES
+   ============================================================================ */
+

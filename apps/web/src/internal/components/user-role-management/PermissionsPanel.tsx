@@ -35,13 +35,12 @@ export const PermissionsPanel: React.FC<PermissionsPanelProps> = ({ roles, token
   const [collapsedModules, setCollapsedModules] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<ViewMode>('manage');
 
-  // Compare mode state
   const [compareRole, setCompareRole] = useState<string>('');
   const [compareRolePerms, setCompareRolePerms] = useState<RolePermission[]>([]);
 
-  // Clone mode state
   const [showCloneDialog, setShowCloneDialog] = useState(false);
   const [cloneSourceRole, setCloneSourceRole] = useState<string>('');
+  const [clonePreview, setClonePreview] = useState<{ toAdd: number; alreadyExist: number } | null>(null);
 
   const loadData = useCallback(async () => {
     if (!token) return;
@@ -55,16 +54,13 @@ export const PermissionsPanel: React.FC<PermissionsPanelProps> = ({ roles, token
       setAllPermissions(perms);
       setRolePerms(rolePermsData);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to load permissions';
-      setError(message);
+      setError(err instanceof Error ? err.message : 'Failed to load permissions');
     } finally {
       setIsLoading(false);
     }
   }, [token, selectedRole]);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  useEffect(() => { loadData(); }, [loadData]);
 
   useEffect(() => {
     if (success) {
@@ -73,7 +69,6 @@ export const PermissionsPanel: React.FC<PermissionsPanelProps> = ({ roles, token
     }
   }, [success]);
 
-  // Load compare role permissions
   useEffect(() => {
     if (viewMode !== 'compare' || !compareRole || !token) {
       setCompareRolePerms([]);
@@ -93,17 +88,13 @@ export const PermissionsPanel: React.FC<PermissionsPanelProps> = ({ roles, token
 
   const rolePermKeys = useMemo(() => {
     const keys = new Set<string>();
-    for (const rp of rolePerms) {
-      if (rp.IsEnabled) keys.add(rp.PermissionKey);
-    }
+    for (const rp of rolePerms) { if (rp.IsEnabled) keys.add(rp.PermissionKey); }
     return keys;
   }, [rolePerms]);
 
   const comparePermKeys = useMemo(() => {
     const keys = new Set<string>();
-    for (const rp of compareRolePerms) {
-      if (rp.IsEnabled) keys.add(rp.PermissionKey);
-    }
+    for (const rp of compareRolePerms) { if (rp.IsEnabled) keys.add(rp.PermissionKey); }
     return keys;
   }, [compareRolePerms]);
 
@@ -169,19 +160,15 @@ export const PermissionsPanel: React.FC<PermissionsPanelProps> = ({ roles, token
         } else {
           const perm = allPermissions.find(p => p.PermissionKey === permissionKey);
           return [...prev, {
-            RoleName: selectedRole,
-            PermissionKey: permissionKey,
-            Module: perm?.Module ?? '',
-            Action: perm?.Action ?? '',
-            Description: perm?.Description ?? null,
-            IsEnabled: true,
+            RoleName: selectedRole, PermissionKey: permissionKey,
+            Module: perm?.Module ?? '', Action: perm?.Action ?? '',
+            Description: perm?.Description ?? null, IsEnabled: true,
           }];
         }
       });
       setSuccess(currentEnabled ? 'Permission removed' : 'Permission granted');
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to update permission';
-      setError(message);
+      setError(err instanceof Error ? err.message : 'Failed to update permission');
     } finally {
       setIsSaving(false);
     }
@@ -191,7 +178,6 @@ export const PermissionsPanel: React.FC<PermissionsPanelProps> = ({ roles, token
     if (!token || !selectedRole || isSaving) return;
     setIsSaving(true);
     setError(null);
-
     const ops = modulePerms.map(async perm => {
       const isEnabled = rolePermKeys.has(perm.PermissionKey);
       if (grantAll && !isEnabled) {
@@ -203,16 +189,13 @@ export const PermissionsPanel: React.FC<PermissionsPanelProps> = ({ roles, token
       }
       return null;
     });
-
     try {
       await Promise.all(ops);
-      // Refresh role perms
       const updated = await fetchRolePermissions(token, selectedRole);
       setRolePerms(updated);
       setSuccess(grantAll ? 'All permissions granted for module' : 'All permissions revoked for module');
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Bulk update failed';
-      setError(message);
+      setError(err instanceof Error ? err.message : 'Bulk update failed');
     } finally {
       setIsSaving(false);
     }
@@ -223,72 +206,53 @@ export const PermissionsPanel: React.FC<PermissionsPanelProps> = ({ roles, token
     setIsSaving(true);
     setError(null);
     try {
-      // Get source role permissions
       const sourcePerms = await fetchRolePermissions(token, cloneSourceRole);
       const sourceEnabled = sourcePerms.filter(rp => rp.IsEnabled);
-
-      // Grant all source permissions to target role
-      await Promise.all(
-        sourceEnabled.map(rp => upsertRolePermission(token, selectedRole, rp.PermissionKey, true))
-      );
-
-      // Refresh
+      await Promise.all(sourceEnabled.map(rp => upsertRolePermission(token, selectedRole, rp.PermissionKey, true)));
       const updated = await fetchRolePermissions(token, selectedRole);
       setRolePerms(updated);
       setShowCloneDialog(false);
+      setCloneSourceRole('');
+      setClonePreview(null);
       setSuccess(`Permissions cloned from "${cloneSourceRole}"`);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Clone failed';
-      setError(message);
+      setError(err instanceof Error ? err.message : 'Clone failed');
     } finally {
       setIsSaving(false);
     }
   }, [token, selectedRole, cloneSourceRole, isSaving]);
+
+  const getBarClass = (pct: number) =>
+    pct === 100 ? 'perm-panel__bar-fill perm-panel__bar-fill--full'
+    : pct > 0 ? 'perm-panel__bar-fill perm-panel__bar-fill--partial'
+    : 'perm-panel__bar-fill perm-panel__bar-fill--empty';
 
   if (isLoading) {
     return <div className="plan-loading">Loading permissions...</div>;
   }
 
   return (
-    <div>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+    <div className="perm-panel">
+      <div className="perm-panel__header">
         <div>
-          <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>Role Permissions</h3>
-          <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#6b7280' }}>
+          <h3 className="perm-panel__title">Role Permissions</h3>
+          <p className="perm-panel__subtitle">
             Configure fine-grained permissions for each role. {totalEnabled} of {totalPermissions} enabled ({overallPercent}%).
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-          {/* View mode toggle */}
-          <div style={{ display: 'flex', borderRadius: '6px', border: '1px solid #d1d5db', overflow: 'hidden' }}>
+        <div className="perm-panel__controls">
+          <div className="perm-panel__mode-toggle">
             <button
+              className={`perm-panel__mode-btn ${viewMode === 'manage' ? 'perm-panel__mode-btn--active' : ''}`}
               onClick={() => setViewMode('manage')}
-              style={{
-                padding: '6px 12px', fontSize: '12px', fontWeight: 500, border: 'none', cursor: 'pointer',
-                background: viewMode === 'manage' ? '#2563eb' : '#fff',
-                color: viewMode === 'manage' ? '#fff' : '#374151',
-              }}
-            >
-              Manage
-            </button>
+            >Manage</button>
             <button
+              className={`perm-panel__mode-btn ${viewMode === 'compare' ? 'perm-panel__mode-btn--active' : ''}`}
               onClick={() => setViewMode('compare')}
-              style={{
-                padding: '6px 12px', fontSize: '12px', fontWeight: 500, border: 'none', borderLeft: '1px solid #d1d5db', cursor: 'pointer',
-                background: viewMode === 'compare' ? '#2563eb' : '#fff',
-                color: viewMode === 'compare' ? '#fff' : '#374151',
-              }}
-            >
-              Compare
-            </button>
+            >Compare</button>
           </div>
 
-          <select
-            value={selectedRole}
-            onChange={e => setSelectedRole(e.target.value)}
-            style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '13px', minWidth: '180px' }}
-          >
+          <select className="perm-panel__role-select" value={selectedRole} onChange={e => setSelectedRole(e.target.value)}>
             {roles.filter(r => r.IsActive).map(r => (
               <option key={r.RoleName} value={r.RoleName}>{r.RoleName}</option>
             ))}
@@ -296,31 +260,13 @@ export const PermissionsPanel: React.FC<PermissionsPanelProps> = ({ roles, token
 
           {viewMode === 'manage' && (
             <>
-              <button
-                onClick={() => setShowCloneDialog(true)}
-                style={{
-                  padding: '6px 12px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '12px',
-                  fontWeight: 500, cursor: 'pointer', background: '#fff', color: '#374151',
-                }}
-              >
-                Clone From...
-              </button>
-              <input
-                type="text"
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                placeholder="Search permissions..."
-                style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '13px', width: '200px' }}
-              />
+              <button className="perm-panel__clone-btn" onClick={() => setShowCloneDialog(true)}>Clone From...</button>
+              <input className="perm-panel__search" type="text" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search permissions..." />
             </>
           )}
 
           {viewMode === 'compare' && (
-            <select
-              value={compareRole}
-              onChange={e => setCompareRole(e.target.value)}
-              style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '13px', minWidth: '180px' }}
-            >
+            <select className="perm-panel__compare-select" value={compareRole} onChange={e => setCompareRole(e.target.value)}>
               <option value="">-- Compare with --</option>
               {roles.filter(r => r.IsActive && r.RoleName !== selectedRole).map(r => (
                 <option key={r.RoleName} value={r.RoleName}>{r.RoleName}</option>
@@ -330,237 +276,178 @@ export const PermissionsPanel: React.FC<PermissionsPanelProps> = ({ roles, token
         </div>
       </div>
 
-      {/* Overall progress bar */}
-      <div style={{ marginBottom: '16px', background: '#f3f4f6', borderRadius: '8px', padding: '12px 14px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-          <span style={{ fontSize: '13px', fontWeight: 500 }}>Overall: {totalEnabled}/{totalPermissions}</span>
-          <span style={{ fontSize: '13px', color: '#6b7280' }}>{overallPercent}%</span>
+      <div className="perm-panel__overall">
+        <div className="perm-panel__overall-header">
+          <span className="perm-panel__overall-label">Overall: {totalEnabled}/{totalPermissions}</span>
+          <span className="perm-panel__overall-pct">{overallPercent}%</span>
         </div>
-        <div style={{ height: '8px', background: '#e5e7eb', borderRadius: '4px', overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${overallPercent}%`, background: overallPercent === 100 ? '#16a34a' : '#2563eb', borderRadius: '4px', transition: 'width 0.3s' }} />
+        <div className="perm-panel__bar-track">
+          <div className={getBarClass(overallPercent)} style={{ width: `${overallPercent}%` }} />
         </div>
       </div>
 
       {error && <div className="portal-alert" style={{ marginBottom: '12px' }}>{error}</div>}
-      {success && <div style={{ marginBottom: '12px', padding: '8px 12px', background: '#d1fae5', color: '#065f46', borderRadius: '6px', fontSize: '13px' }}>{success}</div>}
-      {isSaving && <div style={{ marginBottom: '8px', fontSize: '12px', color: '#6b7280' }}>Saving...</div>}
+      {success && <div className="perm-panel__success">{success}</div>}
+      {isSaving && <div className="perm-panel__saving">Saving...</div>}
 
-      {/* Clone Dialog */}
       {showCloneDialog && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#fff', borderRadius: '12px', padding: '24px', width: '420px', maxWidth: '90vw', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
-            <h3 style={{ margin: '0 0 8px', fontSize: '16px', fontWeight: 600 }}>Clone Permissions</h3>
-            <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#6b7280' }}>
-              Copy all enabled permissions from another role to <strong>{selectedRole}</strong>.
-            </p>
-            <select
-              value={cloneSourceRole}
-              onChange={e => setCloneSourceRole(e.target.value)}
-              style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '13px', marginBottom: '16px' }}
-            >
-              <option value="">-- Select source role --</option>
-              {roles.filter(r => r.IsActive && r.RoleName !== selectedRole).map(r => (
-                <option key={r.RoleName} value={r.RoleName}>{r.RoleName}</option>
-              ))}
-            </select>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-              <button
-                onClick={() => { setShowCloneDialog(false); setCloneSourceRole(''); }}
-                style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '13px', cursor: 'pointer', background: '#fff' }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleClonePermissions}
-                disabled={!cloneSourceRole || cloneSourceRole === selectedRole || isSaving}
-                style={{
-                  padding: '8px 16px', borderRadius: '6px', border: 'none', fontSize: '13px', fontWeight: 500,
-                  cursor: !cloneSourceRole || cloneSourceRole === selectedRole || isSaving ? 'not-allowed' : 'pointer',
-                  background: !cloneSourceRole || cloneSourceRole === selectedRole ? '#d1d5db' : '#2563eb',
-                  color: '#fff',
+        <div className="portal-modal-overlay">
+          <div className="portal-modal-container" style={{ width: '420px', maxWidth: '90vw' }}>
+            <header className="portal-modal-header">
+              <h3>Clone Permissions</h3>
+              <button type="button" className="portal-modal-close" onClick={() => { setShowCloneDialog(false); setCloneSourceRole(''); setClonePreview(null); }}>&times;</button>
+            </header>
+            <div className="portal-modal-body">
+              <p style={{ margin: '0 0 16px', fontSize: '13px', color: 'var(--portal-slate)' }}>
+                Copy all enabled permissions from another role to <strong>{selectedRole}</strong>.
+              </p>
+              <select
+                className="perm-panel__role-select"
+                style={{ width: '100%', marginBottom: '16px' }}
+                value={cloneSourceRole}
+                onChange={e => {
+                  const val = e.target.value;
+                  setCloneSourceRole(val);
+                  if (val && token) {
+                    fetchRolePermissions(token, val).then(sourcePerms => {
+                      const sourceEnabled = sourcePerms.filter(rp => rp.IsEnabled);
+                      const toAdd = sourceEnabled.filter(rp => !rolePermKeys.has(rp.PermissionKey)).length;
+                      setClonePreview({ toAdd, alreadyExist: sourceEnabled.length - toAdd });
+                    }).catch(() => setClonePreview(null));
+                  } else {
+                    setClonePreview(null);
+                  }
                 }}
               >
+                <option value="">-- Select source role --</option>
+                {roles.filter(r => r.IsActive && r.RoleName !== selectedRole).map(r => (
+                  <option key={r.RoleName} value={r.RoleName}>{r.RoleName}</option>
+                ))}
+              </select>
+              {clonePreview && (
+                <div className="perm-panel__clone-preview" style={{ marginBottom: '16px', padding: '10px 12px', background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '6px', fontSize: '13px' }}>
+                  <strong>{clonePreview.toAdd}</strong> permission{clonePreview.toAdd === 1 ? '' : 's'} will be added
+                  {clonePreview.alreadyExist > 0 && <>, <strong>{clonePreview.alreadyExist}</strong> already granted</>}.
+                </div>
+              )}
+            </div>
+            <footer className="portal-modal-footer">
+              <button type="button" className="plan-button plan-button--secondary" onClick={() => { setShowCloneDialog(false); setCloneSourceRole(''); setClonePreview(null); }} disabled={isSaving}>Cancel</button>
+              <button type="button" className="plan-button" onClick={() => void handleClonePermissions()} disabled={!cloneSourceRole || cloneSourceRole === selectedRole || isSaving}>
                 {isSaving ? 'Cloning...' : 'Clone'}
               </button>
-            </div>
+            </footer>
           </div>
         </div>
       )}
 
-      {/* Permissions list */}
       {groupedPermissions.length === 0 ? (
-        <div style={{ padding: '24px', textAlign: 'center', color: '#6b7280', background: '#f9fafb', borderRadius: '8px' }}>
+        <div className="perm-panel__empty">
           {query ? 'No permissions match your search.' : 'No permissions found.'}
         </div>
       ) : (
         <>
           {viewMode === 'manage' && (
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginBottom: '8px' }}>
-              <button onClick={expandAll} style={{ padding: '4px 10px', fontSize: '12px', borderRadius: '4px', border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer' }}>Expand All</button>
-              <button onClick={collapseAll} style={{ padding: '4px 10px', fontSize: '12px', borderRadius: '4px', border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer' }}>Collapse All</button>
+            <div className="perm-panel__expand-controls">
+              <button className="perm-panel__expand-btn" onClick={expandAll}>Expand All</button>
+              <button className="perm-panel__expand-btn" onClick={collapseAll}>Collapse All</button>
             </div>
           )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div className="perm-panel__module-list">
             {groupedPermissions.map(({ module, permissions: perms, enabledCount, totalCount }) => {
               const isCollapsed = collapsedModules.has(module);
               const modulePercent = totalCount > 0 ? Math.round((enabledCount / totalCount) * 100) : 0;
 
               return (
-                <div key={module} style={{ border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden' }}>
-                  {/* Module header - clickable */}
+                <div key={module} className="perm-panel__module">
                   <div
+                    className={`perm-panel__module-header ${isCollapsed ? 'perm-panel__module-header--collapsed' : ''}`}
                     onClick={() => toggleModule(module)}
-                    style={{
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      padding: '10px 14px', background: '#f9fafb', borderBottom: isCollapsed ? 'none' : '1px solid #e5e7eb',
-                      cursor: 'pointer', userSelect: 'none',
-                    }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
-                      <span style={{ fontSize: '12px', color: '#6b7280', transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }}>
-                        &#9660;
-                      </span>
-                      <span style={{ fontWeight: 600, fontSize: '14px', textTransform: 'capitalize' }}>{module.replace(/_/g, ' ')}</span>
+                    <div className="perm-panel__module-title-group">
+                      <span className={`perm-panel__module-chevron ${isCollapsed ? 'perm-panel__module-chevron--collapsed' : ''}`}>&#9660;</span>
+                      <span className="perm-panel__module-name">{module.replace(/_/g, ' ')}</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div className="perm-panel__module-actions">
                       {viewMode === 'manage' && (
-                        <div style={{ display: 'flex', gap: '4px' }} onClick={e => e.stopPropagation()}>
+                        <div className="perm-panel__bulk-btns" onClick={e => e.stopPropagation()}>
                           <button
+                            className={`perm-panel__bulk-btn perm-panel__bulk-btn--grant ${isSaving || enabledCount === totalCount ? 'perm-panel__bulk-btn--disabled' : ''}`}
                             onClick={() => handleBulkToggle(perms, true)}
                             disabled={isSaving || enabledCount === totalCount}
-                            style={{
-                              padding: '3px 8px', borderRadius: '4px', border: '1px solid #d1d5db', fontSize: '11px',
-                              cursor: isSaving || enabledCount === totalCount ? 'not-allowed' : 'pointer',
-                              background: enabledCount === totalCount ? '#f3f4f6' : '#fff',
-                              color: enabledCount === totalCount ? '#9ca3af' : '#16a34a',
-                            }}
-                          >
-                            Grant All
-                          </button>
+                          >Grant All</button>
                           <button
+                            className={`perm-panel__bulk-btn perm-panel__bulk-btn--revoke ${isSaving || enabledCount === 0 ? 'perm-panel__bulk-btn--disabled' : ''}`}
                             onClick={() => handleBulkToggle(perms, false)}
                             disabled={isSaving || enabledCount === 0}
-                            style={{
-                              padding: '3px 8px', borderRadius: '4px', border: '1px solid #d1d5db', fontSize: '11px',
-                              cursor: isSaving || enabledCount === 0 ? 'not-allowed' : 'pointer',
-                              background: enabledCount === 0 ? '#f3f4f6' : '#fff',
-                              color: enabledCount === 0 ? '#9ca3af' : '#dc2626',
-                            }}
-                          >
-                            Revoke All
-                          </button>
+                          >Revoke All</button>
                         </div>
                       )}
-                      {/* Progress bar */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '140px' }}>
-                        <div style={{ flex: 1, height: '6px', background: '#e5e7eb', borderRadius: '3px', overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: `${modulePercent}%`, background: modulePercent === 100 ? '#16a34a' : modulePercent > 0 ? '#2563eb' : '#e5e7eb', borderRadius: '3px', transition: 'width 0.3s' }} />
+                      <div className="perm-panel__module-progress">
+                        <div className="perm-panel__module-bar-track">
+                          <div className={getBarClass(modulePercent)} style={{ width: `${modulePercent}%` }} />
                         </div>
-                        <span style={{ fontSize: '12px', color: '#6b7280', whiteSpace: 'nowrap' }}>{enabledCount}/{totalCount}</span>
+                        <span className="perm-panel__module-count">{enabledCount}/{totalCount}</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Permissions rows */}
                   {!isCollapsed && (
-                    <div style={{ padding: '4px 14px' }}>
+                    <div className="perm-panel__perm-rows">
                       {viewMode === 'manage' ? (
                         perms.map(perm => {
                           const isEnabled = rolePermKeys.has(perm.PermissionKey);
                           return (
-                            <div
-                              key={perm.PermissionKey}
-                              style={{
-                                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                padding: '8px 0', borderBottom: '1px solid #f3f4f6',
-                                opacity: isSaving ? 0.6 : 1,
-                              }}
-                            >
-                              <div style={{ flex: 1 }}>
-                                <div style={{ fontSize: '13px', fontWeight: 500 }}>
-                                  <code style={{ background: '#f3f4f6', padding: '2px 6px', borderRadius: '4px', fontSize: '12px' }}>
-                                    {perm.Action}
-                                  </code>
+                            <div key={perm.PermissionKey} className={`perm-panel__perm-row ${isSaving ? 'perm-panel__perm-row--saving' : ''}`}>
+                              <div className="perm-panel__perm-info">
+                                <div className="perm-panel__perm-action">
+                                  <code className="perm-panel__perm-code">{perm.Action}</code>
                                 </div>
-                                {perm.Description && (
-                                  <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>{perm.Description}</div>
-                                )}
+                                {perm.Description && <div className="perm-panel__perm-desc">{perm.Description}</div>}
                               </div>
                               <button
+                                className={`perm-panel__toggle-btn ${isEnabled ? 'perm-panel__toggle-btn--revoke' : 'perm-panel__toggle-btn--grant'} ${isSaving ? 'perm-panel__toggle-btn--disabled' : ''}`}
                                 onClick={() => handleToggle(perm.PermissionKey, isEnabled)}
                                 disabled={isSaving}
-                                style={{
-                                  padding: '4px 12px', borderRadius: '6px', border: 'none', fontSize: '12px', fontWeight: 500,
-                                  cursor: isSaving ? 'not-allowed' : 'pointer',
-                                  background: isEnabled ? '#dc2626' : '#16a34a', color: '#fff', minWidth: '70px',
-                                }}
-                              >
-                                {isEnabled ? 'Revoke' : 'Grant'}
-                              </button>
+                              >{isEnabled ? 'Revoke' : 'Grant'}</button>
                             </div>
                           );
                         })
                       ) : (
-                        /* Compare mode */
                         perms.map(perm => {
                           const inSelected = rolePermKeys.has(perm.PermissionKey);
                           const inCompare = comparePermKeys.has(perm.PermissionKey);
                           const isSame = inSelected === inCompare;
+                          let badgeClass = 'perm-panel__badge perm-panel__badge--same';
                           let statusLabel = 'Same';
-                          let statusColor = '#6b7280';
-                          let statusBg = '#f3f4f6';
                           if (!isSame) {
                             if (inSelected && !inCompare) {
+                              badgeClass = 'perm-panel__badge perm-panel__badge--diff';
                               statusLabel = `Only in ${selectedRole}`;
-                              statusColor = '#1d4ed8';
-                              statusBg = '#dbeafe';
                             } else {
+                              badgeClass = 'perm-panel__badge perm-panel__badge--only-compare';
                               statusLabel = `Only in ${compareRole}`;
-                              statusColor = '#9333ea';
-                              statusBg = '#f3e8ff';
                             }
                           }
                           return (
-                            <div
-                              key={perm.PermissionKey}
-                              style={{
-                                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                padding: '8px 0', borderBottom: '1px solid #f3f4f6', gap: '12px',
-                              }}
-                            >
-                              <div style={{ flex: 1 }}>
-                                <div style={{ fontSize: '13px', fontWeight: 500 }}>
-                                  <code style={{ background: '#f3f4f6', padding: '2px 6px', borderRadius: '4px', fontSize: '12px' }}>
-                                    {perm.Action}
-                                  </code>
+                            <div key={perm.PermissionKey} className="perm-panel__compare-row">
+                              <div className="perm-panel__perm-info">
+                                <div className="perm-panel__perm-action">
+                                  <code className="perm-panel__perm-code">{perm.Action}</code>
                                 </div>
-                                {perm.Description && (
-                                  <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>{perm.Description}</div>
-                                )}
+                                {perm.Description && <div className="perm-panel__perm-desc">{perm.Description}</div>}
                               </div>
-                              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                                <span style={{
-                                  fontSize: '10px', fontWeight: 500, padding: '2px 8px', borderRadius: '10px',
-                                  background: inSelected ? '#dcfce7' : '#fee2e2',
-                                  color: inSelected ? '#166534' : '#991b1b',
-                                }}>
+                              <div className="perm-panel__compare-badges">
+                                <span className={`perm-panel__badge ${inSelected ? 'perm-panel__badge--yes' : 'perm-panel__badge--no'}`}>
                                   {selectedRole}: {inSelected ? 'Yes' : 'No'}
                                 </span>
                                 {compareRole && (
-                                  <span style={{
-                                    fontSize: '10px', fontWeight: 500, padding: '2px 8px', borderRadius: '10px',
-                                    background: inCompare ? '#dcfce7' : '#fee2e2',
-                                    color: inCompare ? '#166534' : '#991b1b',
-                                  }}>
+                                  <span className={`perm-panel__badge ${inCompare ? 'perm-panel__badge--yes' : 'perm-panel__badge--no'}`}>
                                     {compareRole}: {inCompare ? 'Yes' : 'No'}
                                   </span>
                                 )}
-                                {!isSame && (
-                                  <span style={{ fontSize: '10px', fontWeight: 500, padding: '2px 8px', borderRadius: '10px', background: statusBg, color: statusColor }}>
-                                    {statusLabel}
-                                  </span>
-                                )}
+                                {!isSame && <span className={badgeClass}>{statusLabel}</span>}
                               </div>
                             </div>
                           );

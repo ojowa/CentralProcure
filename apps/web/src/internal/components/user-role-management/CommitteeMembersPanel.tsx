@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import type { InternalRoleRecord, InternalUserProfile } from '../../types/internal';
 import { resolveCanonicalRole } from '../../services/internalAuthService';
+import { ConfirmModal } from './ConfirmModal';
 import {
   fetchPlanningCommitteeRoleDefinitions,
   fetchPlanningCommitteeChairmanAssignment,
@@ -30,6 +31,7 @@ export const CommitteeMembersPanel: React.FC<CommitteeMembersPanelProps> = ({
   const [selectionByRole, setSelectionByRole] = useState<Record<string, string>>({});
   const [searchByRole, setSearchByRole] = useState<Record<string, string>>({});
   const [replacementRoleByUser, setReplacementRoleByUser] = useState<Record<string, string>>({});
+  const [confirmRemove, setConfirmRemove] = useState<{ member: InternalUserProfile; roleConfig: PlanningCommitteeRoleDefinition; replacementRole: string } | null>(null);
   const [chairmanSearchQuery, setChairmanSearchQuery] = useState('');
   const [selectedChairmanUserId, setSelectedChairmanUserId] = useState('');
   const [committeeRoles, setCommitteeRoles] = useState<PlanningCommitteeRoleDefinition[]>([]);
@@ -238,22 +240,30 @@ export const CommitteeMembersPanel: React.FC<CommitteeMembersPanelProps> = ({
                               </select>
                             </label>
                             <div>
-                              <button
-                                type="button"
-                                className="plan-button plan-button--ghost"
-                                disabled={isLoading || rolesLoading || !replacementRole}
-                                onClick={() => {
-                                  if (!replacementRole) return;
-                                  const confirmed = window.confirm(
-                                    `Remove ${member.Email} from ${roleConfig.DisplayName} and assign ${replacementRole}?`
-                                  );
-                                  if (confirmed) {
-                                    void onAssignRole(member.InternalUserId, replacementRole);
-                                  }
-                                }}
-                              >
-                                Remove Member
-                              </button>
+                              <div style={{ display: 'flex', gap: '6px', alignItems: 'end' }}>
+                                <button
+                                  type="button"
+                                  className="plan-button plan-button--ghost"
+                                  disabled={isLoading || rolesLoading}
+                                  onClick={() => {
+                                    setConfirmRemove({ member, roleConfig, replacementRole: '' });
+                                  }}
+                                >
+                                  Remove Only
+                                </button>
+                                {replacementRole && (
+                                  <button
+                                    type="button"
+                                    className="plan-button plan-button--ghost"
+                                    disabled={isLoading || rolesLoading}
+                                    onClick={() => {
+                                      setConfirmRemove({ member, roleConfig, replacementRole });
+                                    }}
+                                  >
+                                    Move &amp; Remove
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </li>
@@ -443,6 +453,26 @@ export const CommitteeMembersPanel: React.FC<CommitteeMembersPanelProps> = ({
           No planning committee roles available.
         </div>
       ) : null}
+
+      <ConfirmModal
+        isOpen={!!confirmRemove}
+        title="Remove Committee Member"
+        message={confirmRemove
+          ? confirmRemove.replacementRole
+            ? `Remove ${confirmRemove.member.Email} from ${confirmRemove.roleConfig.DisplayName} and assign to ${confirmRemove.replacementRole}?`
+            : `Remove ${confirmRemove.member.Email} from ${confirmRemove.roleConfig.DisplayName}? They will keep their current role.`
+          : ''}
+        confirmLabel={confirmRemove?.replacementRole ? 'Move & Remove' : 'Remove'}
+        variant="warning"
+        isLoading={isLoading}
+        onConfirm={async () => {
+          if (!confirmRemove) return;
+          const targetRole = confirmRemove.replacementRole || confirmRemove.member.CanonicalRoleKey || confirmRemove.member.RoleName;
+          await onAssignRole(confirmRemove.member.InternalUserId, targetRole);
+          setConfirmRemove(null);
+        }}
+        onCancel={() => setConfirmRemove(null)}
+      />
     </article>
   );
 };

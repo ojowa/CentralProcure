@@ -116,6 +116,7 @@ export interface InternalRoleRecord {
     CanonicalRoleKey?: RoleKey;
     Description?: string | null;
     IsActive: boolean;
+    Group?: string;
 }
 
 export interface InternalUserProfile {

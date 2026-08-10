@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import type { InternalUserProfile, InternalRoleRecord } from '../../types/internal';
+import type { InternalUserProfile, InternalRoleRecord, InternalOrganizationalUnitRecord } from '../../types/internal';
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100, 'all'] as const;
 
 interface UserListProps {
   users: InternalUserProfile[];
   roles: InternalRoleRecord[];
+  units: InternalOrganizationalUnitRecord[];
   isLoading: boolean;
   onRoleChange: (userId: string, newRole: string) => void | Promise<void>;
   onScheduleRole: (user: InternalUserProfile) => void;
@@ -16,11 +17,18 @@ interface UserListProps {
   onViewHistory: (user: InternalUserProfile) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
+  onExportCsv: () => void;
+  selectedUserIds: Set<string>;
+  onToggleUserSelection: (userId: string) => void;
+  onSelectAllUsers: (userIds: string[]) => void;
+  onBulkRoleChange: (roleKey: string) => void;
+  onBulkDeactivate: () => void;
 }
 
 export const UserList: React.FC<UserListProps> = ({
   users,
   roles,
+  units,
   isLoading,
   onRoleChange,
   onScheduleRole,
@@ -28,11 +36,22 @@ export const UserList: React.FC<UserListProps> = ({
   onResetPassword,
   onViewHistory,
   searchQuery,
-  onSearchChange
+  onSearchChange,
+  onExportCsv,
+  selectedUserIds,
+  onToggleUserSelection,
+  onSelectAllUsers,
+  onBulkRoleChange,
+  onBulkDeactivate
 }) => {
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZE_OPTIONS)[number]>(10);
+  const [pendingRoleChange, setPendingRoleChange] = useState<{ userId: string; newRole: string; currentRole: string } | null>(null);
+  const [filterRole, setFilterRole] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterUnit, setFilterUnit] = useState('');
+  const [showBulkActions, setShowBulkActions] = useState(false);
   const roleLabelMap = useMemo(
     () => new Map(
       roles
@@ -48,27 +67,60 @@ export const UserList: React.FC<UserListProps> = ({
     setPage(1);
   }, [searchQuery]);
 
-  const totalItems = users.length;
+  const filteredUsers = useMemo(() => {
+    return users.filter(user => {
+      if (filterRole && user.CanonicalRoleKey !== filterRole && user.RoleName !== filterRole) return false;
+      if (filterStatus && user.Status !== filterStatus) return false;
+      if (filterUnit && user.UnitId !== filterUnit) return false;
+      return true;
+    });
+  }, [users, filterRole, filterStatus, filterUnit]);
+
+  const totalItems = filteredUsers.length;
   const effectivePageSize = pageSize === 'all' ? Math.max(totalItems, 1) : pageSize;
   const totalPages = Math.max(1, Math.ceil(totalItems / effectivePageSize));
   const safePage = Math.min(page, totalPages);
   const pageStart = totalItems === 0 ? 0 : (safePage - 1) * effectivePageSize + 1;
   const pageEnd = totalItems === 0 ? 0 : Math.min(safePage * effectivePageSize, totalItems);
   const pagedUsers = useMemo(
-    () => users.slice((safePage - 1) * effectivePageSize, safePage * effectivePageSize),
-    [users, safePage, effectivePageSize]
+    () => filteredUsers.slice((safePage - 1) * effectivePageSize, safePage * effectivePageSize),
+    [filteredUsers, safePage, effectivePageSize]
   );
 
-  const handleRoleChange = async (userId: string, newRole: string) => {
-    if (isLoading) return;
-    await onRoleChange(userId, newRole);
+  const handleRoleSelect = (userId: string, newRole: string, currentRole: string) => {
+    if (newRole === currentRole) return;
+    setPendingRoleChange({ userId, newRole, currentRole });
   };
+
+  const confirmRoleChange = async () => {
+    if (!pendingRoleChange) return;
+    await onRoleChange(pendingRoleChange.userId, pendingRoleChange.newRole);
+    setPendingRoleChange(null);
+  };
+
+  const cancelRoleChange = () => {
+    setPendingRoleChange(null);
+  };
+
+  const uniqueUnits = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const u of users) {
+      if (u.UnitId && u.UnitName && !map.has(u.UnitId)) {
+        map.set(u.UnitId, u.UnitName);
+      }
+    }
+    return Array.from(map.entries()).sort((a, b) => a[1].localeCompare(b[1]));
+  }, [users]);
+
+  const allVisibleIds = pagedUsers.map(u => u.InternalUserId);
+  const allSelected = allVisibleIds.length > 0 && allVisibleIds.every(id => selectedUserIds.has(id));
+  const someSelected = allVisibleIds.some(id => selectedUserIds.has(id));
 
   return (
     <article className="portal-module-card">
       <div className="plan-toolbar" style={{ marginBottom: '20px' }}>
         <div className="plan-filters">
-          <label className="plan-field" style={{ width: '400px' }}>
+          <label className="plan-field" style={{ width: '300px' }}>
             <span>Search Directory</span>
             <input
               className="plan-input"
@@ -78,6 +130,32 @@ export const UserList: React.FC<UserListProps> = ({
             />
           </label>
           <label className="plan-field" style={{ width: '160px' }}>
+            <span>Filter by Role</span>
+            <select className="plan-input" value={filterRole} onChange={e => setFilterRole(e.target.value)}>
+              <option value="">All Roles</option>
+              {roles.filter(r => r.IsActive).map(r => (
+                <option key={r.RoleId} value={r.CanonicalRoleKey ?? r.RoleName}>{r.RoleName}</option>
+              ))}
+            </select>
+          </label>
+          <label className="plan-field" style={{ width: '130px' }}>
+            <span>Filter by Status</span>
+            <select className="plan-input" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+              <option value="">All</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          </label>
+          <label className="plan-field" style={{ width: '180px' }}>
+            <span>Filter by Unit</span>
+            <select className="plan-input" value={filterUnit} onChange={e => setFilterUnit(e.target.value)}>
+              <option value="">All Units</option>
+              {uniqueUnits.map(([id, name]) => (
+                <option key={id} value={id}>{name}</option>
+              ))}
+            </select>
+          </label>
+          <label className="plan-field" style={{ width: '130px' }}>
             <span>Rows Per Page</span>
             <select
               className="plan-input"
@@ -100,12 +178,44 @@ export const UserList: React.FC<UserListProps> = ({
             </select>
           </label>
         </div>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '8px' }}>
+          <button type="button" className="plan-button plan-button--secondary" onClick={onExportCsv} disabled={isLoading || users.length === 0}>
+            Export CSV
+          </button>
+          {selectedUserIds.size > 0 && (
+            <>
+              <span style={{ fontSize: '0.75rem', color: 'var(--portal-slate)' }}>{selectedUserIds.size} selected</span>
+              <select
+                className="plan-select"
+                style={{ fontSize: '0.75rem', padding: '4px 8px', width: '160px' }}
+                value=""
+                onChange={e => { if (e.target.value) { onBulkRoleChange(e.target.value); } }}
+              >
+                <option value="">Bulk Change Role...</option>
+                {roles.filter(r => r.IsActive).map(r => (
+                  <option key={r.RoleId} value={r.CanonicalRoleKey ?? r.RoleName}>{r.RoleName}</option>
+                ))}
+              </select>
+              <button type="button" className="plan-button" style={{ fontSize: '0.75rem' }} onClick={onBulkDeactivate} disabled={isLoading}>
+                Bulk Deactivate
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="plan-table-wrapper">
         <table className="plan-table">
           <thead>
             <tr>
+              <th style={{ width: '40px' }}>
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  ref={el => { if (el) el.indeterminate = someSelected && !allSelected; }}
+                  onChange={() => allSelected ? onSelectAllUsers([]) : onSelectAllUsers(allVisibleIds)}
+                />
+              </th>
               <th>Identity</th>
               <th>Service Info</th>
               <th>Role & Unit</th>
@@ -114,14 +224,21 @@ export const UserList: React.FC<UserListProps> = ({
             </tr>
           </thead>
           <tbody>
-            {users.length === 0 ? (
+            {filteredUsers.length === 0 ? (
               <tr>
-                <td colSpan={5} className="plan-empty">No users found.</td>
+                <td colSpan={6} className="plan-empty">No users found.</td>
               </tr>
             ) : (
               pagedUsers.map(user => (
                 <React.Fragment key={user.InternalUserId}>
                   <tr>
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={selectedUserIds.has(user.InternalUserId)}
+                        onChange={() => onToggleUserSelection(user.InternalUserId)}
+                      />
+                    </td>
                     <td>
                       <div style={{ fontWeight: 600 }}>{user.FirstName} {user.Surname}</div>
                       <div className="plan-muted">{user.Email}</div>
@@ -140,8 +257,8 @@ export const UserList: React.FC<UserListProps> = ({
                         <select
                           className="plan-select"
                           style={{ fontSize: '0.75rem', padding: '4px 8px', flex: 1 }}
-                          value={user.CanonicalRoleKey ?? ''}
-                          onChange={e => handleRoleChange(user.InternalUserId, e.target.value)}
+                          value={pendingRoleChange?.userId === user.InternalUserId ? pendingRoleChange.newRole : (user.CanonicalRoleKey ?? '')}
+                          onChange={e => handleRoleSelect(user.InternalUserId, e.target.value, user.CanonicalRoleKey ?? '')}
                           disabled={isLoading}
                         >
                           {roles.map(r => (
@@ -159,6 +276,28 @@ export const UserList: React.FC<UserListProps> = ({
                           ⚙️
                         </button>
                       </div>
+                      {pendingRoleChange?.userId === user.InternalUserId && (
+                        <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+                          <button
+                            type="button"
+                            className="plan-button"
+                            style={{ fontSize: '0.7rem', padding: '3px 10px' }}
+                            onClick={() => void confirmRoleChange()}
+                            disabled={isLoading}
+                          >
+                            Confirm
+                          </button>
+                          <button
+                            type="button"
+                            className="plan-button plan-button--secondary"
+                            style={{ fontSize: '0.7rem', padding: '3px 10px' }}
+                            onClick={cancelRoleChange}
+                            disabled={isLoading}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      )}
                       <div className="plan-muted" style={{ fontSize: '0.75rem', marginTop: '4px' }}>
                         {getRoleDisplayName(user)}
                       </div>
@@ -193,7 +332,7 @@ export const UserList: React.FC<UserListProps> = ({
                   </tr>
                   {expandedUser === user.InternalUserId && (
                     <tr>
-                      <td colSpan={5}>
+                      <td colSpan={6}>
                         <div
                           style={{
                             padding: '16px',

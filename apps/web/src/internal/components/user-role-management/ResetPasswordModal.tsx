@@ -22,6 +22,7 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
   const [confirmPassword, setConfirmPassword] = useState('');
   const [requireChange, setRequireChange] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   if (!isOpen || !user) return null;
 
@@ -97,14 +98,26 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
           <div style={{ display: 'grid', gap: '16px' }}>
             <label className="plan-field">
               <span>New Password *</span>
-              <input
-                type="password"
-                className="plan-input"
-                required
-                value={newPassword}
-                onChange={e => setNewPassword(e.target.value)}
-                placeholder="Enter new password"
-              />
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  className="plan-input"
+                  required
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  placeholder="Enter new password"
+                  style={{ flex: 1 }}
+                />
+                <button
+                  type="button"
+                  className="plan-button plan-button--secondary"
+                  onClick={() => setShowPassword(!showPassword)}
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                  style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
               <small className="plan-muted">
                 Must be at least 8 characters with uppercase, lowercase, number, and special character.
               </small>
@@ -113,7 +126,7 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
             <label className="plan-field">
               <span>Confirm Password *</span>
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 className="plan-input"
                 required
                 value={confirmPassword}

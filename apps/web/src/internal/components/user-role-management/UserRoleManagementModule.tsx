@@ -3,16 +3,17 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import type { InternalModule, InternalUserProfile, InternalRoleRecord, InternalOrganizationalUnitRecord, InternalRegistrationData } from '../../types/internal';
+import type { InternalModule, InternalUserProfile, InternalRoleRecord, InternalRegistrationData } from '../../types/internal';
 import { useUserManagement } from '../../hooks/useUserManagement';
 import { useRoleManagement } from '../../hooks/useRoleManagement';
 import { useModuleAccess } from '../../hooks/useModuleAccess';
-import { fetchInternalUnits, fetchInternalModulesCatalog, registerInternalUser, updateInternalUserRole } from '../../services/internalAuthService';
+import { useInitialData } from '../../hooks/useInitialData';
+import { registerInternalUser, updateInternalUserRole } from '../../services/internalAuthService';
 import { updatePlanningCommitteeChairmanAssignment } from '../../services/moduleService.planning';
 import {
   UserList, RoleList, ModuleAccessPanel, EditUserModal, ResetPasswordModal,
   CreateRoleModal, EditRoleModal, OnboardingForm, CommitteeMembersPanel, EvaluationCommitteeAssignmentsPanel,
-  UserRoleHistoryModal, ScheduleRoleModal, PermissionsPanel
+  UserRoleHistoryModal, ScheduleRoleModal, PermissionsPanel, ConfirmModal
 } from './index';
 import * as roleService from '../../services/roleManagementService';
 
@@ -35,8 +36,6 @@ export const UserRoleManagementModule = ({ module, token }: Props) => {
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [units, setUnits] = useState<InternalOrganizationalUnitRecord[]>([]);
-  const [moduleCatalog, setModuleCatalog] = useState<InternalModule[]>([]);
   const [editingUser, setEditingUser] = useState<InternalUserProfile | null>(null);
   const [editUserError, setEditUserError] = useState<string | null>(null);
   const [resettingUser, setResettingUser] = useState<InternalUserProfile | null>(null);
@@ -44,6 +43,8 @@ export const UserRoleManagementModule = ({ module, token }: Props) => {
   const [schedulingUser, setSchedulingUser] = useState<InternalUserProfile | null>(null);
   const [editingRole, setEditingRole] = useState<InternalRoleRecord | null>(null);
   const [isCreateRoleOpen, setIsCreateRoleOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<{ type: 'role'; data: InternalRoleRecord } | null>(null);
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
 
   const {
     users, isLoading: isLoadingUsers, filteredUsers, searchQuery, setSearchQuery,
@@ -58,7 +59,9 @@ export const UserRoleManagementModule = ({ module, token }: Props) => {
     bulkUpdateRoleGrants, bulkUpdateUserGrants, bulkResetRoleGrants, bulkResetUserGrants
   } = useModuleAccess({ token });
 
-  const isLoading = isLoadingUsers || isLoadingRoles || isLoadingModules;
+  const { units, moduleCatalog, isLoading: isLoadingInitial } = useInitialData(token);
+
+  const isLoading = isLoadingUsers || isLoadingRoles || isLoadingModules || isLoadingInitial;
 
   useEffect(() => {
     const requestedTab = searchParams.get('tab');
@@ -69,22 +72,6 @@ export const UserRoleManagementModule = ({ module, token }: Props) => {
 
     setActiveTab('users');
   }, [searchParams]);
-
-  useEffect(() => {
-    if (!token) return;
-    const loadData = async () => {
-      try {
-        const [unitsData, modulesData] = await Promise.all([
-          fetchInternalUnits(), fetchInternalModulesCatalog(token)
-        ]);
-        setUnits(unitsData);
-        setModuleCatalog(modulesData);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load initial data');
-      }
-    };
-    void loadData();
-  }, [token]);
 
   useEffect(() => { setError(null); setSuccess(null); }, [activeTab]);
   useEffect(() => { setEditUserError(null); }, [editingUser]);
@@ -132,9 +119,9 @@ export const UserRoleManagementModule = ({ module, token }: Props) => {
     }
   };
 
-  const handleResetPassword = async (userId: string, newPassword: string) => {
+  const handleResetPassword = async (userId: string, newPassword: string, requireChange: boolean) => {
     clearMessages();
-    try { await resetPassword(userId, newPassword, true); setResettingUser(null); showSuccess('Password reset successfully.'); }
+    try { await resetPassword(userId, newPassword, requireChange); setResettingUser(null); showSuccess('Password reset successfully.'); }
     catch (err) { showError(err instanceof Error ? err.message : 'Failed to reset password.'); }
   };
 
@@ -172,7 +159,6 @@ export const UserRoleManagementModule = ({ module, token }: Props) => {
   };
 
   const handleDeactivateRole = async (role: InternalRoleRecord) => {
-    if (!confirm(`Deactivate role "${role.RoleName}"?`)) return;
     clearMessages();
     try { await deactivateRole(role.RoleId); showSuccess('Role deactivated successfully.'); }
     catch (err) { showError(err instanceof Error ? err.message : 'Failed to deactivate role.'); }
@@ -211,6 +197,75 @@ export const UserRoleManagementModule = ({ module, token }: Props) => {
     clearMessages();
     await Promise.all([refreshUsers(), refreshGrants()]);
     showSuccess('Data refreshed successfully.');
+  };
+
+  const handleExportCsv = () => {
+    const headers = ['Name', 'Email', 'Username', 'Service Number', 'Role', 'Unit', 'Status', 'Last Login'];
+    const rows = users.map(u => [
+      `${u.FirstName} ${u.Surname}`,
+      u.Email,
+      u.Username,
+      u.ServiceNumber,
+      u.RoleName,
+      u.UnitName || '',
+      u.Status,
+      u.LastLogin ? new Date(u.LastLogin).toLocaleDateString() : 'Never'
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `users-export-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleToggleUserSelection = (userId: string) => {
+    setSelectedUserIds(prev => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      return next;
+    });
+  };
+
+  const handleSelectAllUsers = (userIds: string[]) => {
+    setSelectedUserIds(new Set(userIds));
+  };
+
+  const handleBulkRoleChange = async (roleKey: string) => {
+    clearMessages();
+    let successCount = 0;
+    let failCount = 0;
+    for (const userId of selectedUserIds) {
+      try {
+        await updateUserRole(userId, roleKey);
+        successCount++;
+      } catch {
+        failCount++;
+      }
+    }
+    setSelectedUserIds(new Set());
+    if (failCount === 0) showSuccess(`Updated ${successCount} user(s) successfully.`);
+    else showError(`Updated ${successCount} user(s), ${failCount} failed.`);
+  };
+
+  const handleBulkDeactivate = async () => {
+    clearMessages();
+    let successCount = 0;
+    let failCount = 0;
+    for (const userId of selectedUserIds) {
+      try {
+        await updateUser(userId, { Status: 'Inactive' } as any);
+        successCount++;
+      } catch {
+        failCount++;
+      }
+    }
+    setSelectedUserIds(new Set());
+    if (failCount === 0) showSuccess(`Deactivated ${successCount} user(s) successfully.`);
+    else showError(`Deactivated ${successCount} user(s), ${failCount} failed.`);
   };
 
   return (
@@ -254,16 +309,23 @@ export const UserRoleManagementModule = ({ module, token }: Props) => {
 
       <div className="management-viewport" style={{ marginTop: '24px' }}>
         {activeTab === 'users' && (
-          <UserList users={filteredUsers} roles={roles} isLoading={isLoading} onRoleChange={handleRoleChange}
+          <UserList users={filteredUsers} roles={roles} units={units} isLoading={isLoading}
+            onRoleChange={handleRoleChange}
             onScheduleRole={setSchedulingUser}
             onEditUser={setEditingUser} onResetPassword={setResettingUser} onViewHistory={setHistoryUser}
-            searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+            searchQuery={searchQuery} onSearchChange={setSearchQuery}
+            onExportCsv={handleExportCsv}
+            selectedUserIds={selectedUserIds}
+            onToggleUserSelection={handleToggleUserSelection}
+            onSelectAllUsers={handleSelectAllUsers}
+            onBulkRoleChange={handleBulkRoleChange}
+            onBulkDeactivate={handleBulkDeactivate} />
         )}
 
         {activeTab === 'roles' && (
           <RoleList roles={roles} users={users} isLoading={isLoading}
             onEditRole={setEditingRole} onCreateRole={() => setIsCreateRoleOpen(true)}
-            onDeactivateRole={handleDeactivateRole} />
+            onDeactivateRole={(role) => setConfirmDelete({ type: 'role', data: role })} />
         )}
 
         {activeTab === 'modules' && (
@@ -323,6 +385,22 @@ export const UserRoleManagementModule = ({ module, token }: Props) => {
       <ScheduleRoleModal user={schedulingUser} roles={roles} isOpen={!!schedulingUser}
         isLoading={isLoading} onClose={() => setSchedulingUser(null)}
         onConfirm={handleConfirmSchedule} />
+
+      <ConfirmModal
+        isOpen={confirmDelete?.type === 'role'}
+        title="Deactivate Role"
+        message={confirmDelete?.type === 'role' ? `Deactivate role "${confirmDelete.data.RoleName}"? Users with this role will need reassignment.` : ''}
+        confirmLabel="Deactivate"
+        variant="danger"
+        isLoading={isLoading}
+        onConfirm={async () => {
+          if (confirmDelete?.type === 'role') {
+            await handleDeactivateRole(confirmDelete.data);
+          }
+          setConfirmDelete(null);
+        }}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </section>
   );
 };

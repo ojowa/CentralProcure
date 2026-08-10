@@ -97,16 +97,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
         <h2 style={{ margin: '0 0 20px 0' }}>Edit User: {user.FirstName} {user.Surname}</h2>
 
         {errorMessage ? (
-          <div
-            style={{
-              marginBottom: '16px',
-              padding: '12px 14px',
-              borderRadius: '10px',
-              background: '#fef2f2',
-              border: '1px solid #fecaca',
-              color: '#991b1b'
-            }}
-          >
+          <div className="portal-alert" style={{ marginBottom: '16px' }}>
             {errorMessage}
           </div>
         ) : null}
@@ -133,7 +124,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
                 />
               </label>
               <label className="plan-field">
-                <span>Middle Name</span>
+                <span>Middle Name <small className="plan-muted">(Optional)</small></span>
                 <input
                   className="plan-input"
                   value={formData.MiddleName}
@@ -186,7 +177,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
                 >
                   <option value="">No Unit</option>
                   {units.map(u => (
-                    <option key={u.UnitId} value={u.UnitId}>{u.UnitName}</option>
+                    <option key={u.UnitId} value={u.UnitId}>{u.UnitName} ({u.UnitCode})</option>
                   ))}
                 </select>
               </label>

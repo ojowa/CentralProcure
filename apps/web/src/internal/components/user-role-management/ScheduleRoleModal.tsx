@@ -30,6 +30,7 @@ export const ScheduleRoleModal: React.FC<ScheduleRoleModalProps> = ({
   const [expiresAt, setExpiresAt] = useState('');
   const [backupRole, setBackupRole] = useState('');
   const [useScheduling, setUseScheduling] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -46,6 +47,20 @@ export const ScheduleRoleModal: React.FC<ScheduleRoleModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationError(null);
+
+    if (useScheduling && effectiveFrom && expiresAt) {
+      if (new Date(expiresAt) <= new Date(effectiveFrom)) {
+        setValidationError('Expiry date must be after the effective date.');
+        return;
+      }
+    }
+
+    if (useScheduling && backupRole && backupRole === role) {
+      setValidationError('Backup role must be different from the target role.');
+      return;
+    }
+
     onConfirm({
       Role: role,
       EffectiveFrom: useScheduling && effectiveFrom ? new Date(effectiveFrom).toISOString() : null,
@@ -64,6 +79,9 @@ export const ScheduleRoleModal: React.FC<ScheduleRoleModalProps> = ({
 
         <form onSubmit={handleSubmit}>
           <div className="portal-modal-body">
+            {validationError && (
+              <div className="portal-alert" style={{ marginBottom: '16px' }}>{validationError}</div>
+            )}
             <div style={{ marginBottom: '16px', padding: '12px', background: 'var(--portal-bg)', borderRadius: '8px' }}>
               <div style={{ fontWeight: 600 }}>{user.FirstName} {user.Surname}</div>
               <div className="plan-muted" style={{ fontSize: '0.85rem' }}>Current Role: {user.RoleName}</div>
@@ -95,6 +113,11 @@ export const ScheduleRoleModal: React.FC<ScheduleRoleModalProps> = ({
 
               {useScheduling && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {!effectiveFrom && (
+                    <div style={{ padding: '8px 12px', background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: '6px', fontSize: '0.8rem', color: '#92400e' }}>
+                      No effective date set — role change will apply immediately.
+                    </div>
+                  )}
                   <label className="plan-field">
                     <span>Effective From (Leave empty for immediate)</span>
                     <input 

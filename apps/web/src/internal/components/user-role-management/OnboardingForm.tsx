@@ -37,12 +37,11 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
     Password: '',
     Role: roles[0]?.CanonicalRoleKey ?? ''
   });
+  const [showPassword, setShowPassword] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    void onSubmit(formData);
-    // Reset form after successful submission
-    setFormData({
+    const initialData = {
       Email: '',
       Username: '',
       FirstName: '',
@@ -52,7 +51,13 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
       UnitId: '',
       Password: '',
       Role: roles[0]?.CanonicalRoleKey ?? ''
-    });
+    };
+    try {
+      await onSubmit(formData);
+      setFormData(initialData);
+    } catch {
+      // Form preserved on error so user doesn't lose input
+    }
   };
 
   const updateField = (field: keyof typeof formData, value: string) => {
@@ -155,13 +160,25 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
           </label>
           <label className="plan-field">
             <span>Initial Password *</span>
-            <input
-              type="password"
-              className="plan-input"
-              required
-              value={formData.Password}
-              onChange={e => updateField('Password', e.target.value)}
-            />
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                className="plan-input"
+                required
+                value={formData.Password}
+                onChange={e => updateField('Password', e.target.value)}
+                style={{ flex: 1 }}
+              />
+              <button
+                type="button"
+                className="plan-button plan-button--secondary"
+                onClick={() => setShowPassword(!showPassword)}
+                title={showPassword ? 'Hide password' : 'Show password'}
+                style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+              >
+                {showPassword ? 'Hide' : 'Show'}
+              </button>
+            </div>
           </label>
         </div>
 

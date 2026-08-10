@@ -46,6 +46,17 @@ export const ModuleAccessPanel: React.FC<ModuleAccessPanelProps> = ({
   const [selectedRole, setSelectedRole] = useState<string>(roles[0]?.RoleName ?? '');
   const [selectedUser, setSelectedUser] = useState<string>(users[0]?.InternalUserId ?? '');
   const [query, setQuery] = useState('');
+  const [guideDismissed, setGuideDismissed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('module-access-guide-dismissed') === 'true';
+    }
+    return false;
+  });
+
+  const dismissGuide = () => {
+    setGuideDismissed(true);
+    localStorage.setItem('module-access-guide-dismissed', 'true');
+  };
 
   // Use the dedicated audit hook
   const {
@@ -176,13 +187,23 @@ export const ModuleAccessPanel: React.FC<ModuleAccessPanelProps> = ({
 
   return (
     <article className="portal-module-card module-access">
-      <section className="module-access__guide">
-        <h4>How To Use This Page</h4>
-        <p><strong>Step 1:</strong> Choose <em>By Role</em> or <em>By User</em>.</p>
-        <p><strong>Step 2:</strong> Pick the role/user you want to edit.</p>
-        <p><strong>Step 3:</strong> For each module, click <em>Grant Access</em>, <em>Block Access</em>, or <em>Use Default</em>.</p>
-        <p className="plan-muted"><strong>Default</strong> means the system uses the normal catalog rules.</p>
-      </section>
+      {!guideDismissed && (
+        <section className="module-access__guide" style={{ position: 'relative' }}>
+          <button
+            type="button"
+            onClick={dismissGuide}
+            style={{ position: 'absolute', top: '8px', right: '8px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem', color: 'var(--portal-slate)' }}
+            title="Dismiss guide"
+          >
+            &times;
+          </button>
+          <h4>How To Use This Page</h4>
+          <p><strong>Step 1:</strong> Choose <em>By Role</em> or <em>By User</em>.</p>
+          <p><strong>Step 2:</strong> Pick the role/user you want to edit.</p>
+          <p><strong>Step 3:</strong> For each module, click <em>Grant Access</em>, <em>Block Access</em>, or <em>Use Default</em>.</p>
+          <p className="plan-muted"><strong>Default</strong> means the system uses the normal catalog rules.</p>
+        </section>
+      )}
 
       <div className="module-access__header">
         <div>

@@ -138,20 +138,30 @@ export const EvaluationCommitteeAssignmentsPanel: React.FC<EvaluationCommitteeAs
     setError(null);
     setSuccess(null);
 
+    // Optimistic update
+    const slotKey = `${tenderId}:${role}`;
+    const previousSelection = selectionBySlot[slotKey];
+    setSelectionBySlot(current => ({ ...current, [slotKey]: internalUserId ?? '' }));
+    setItems(current => current.map(item =>
+      item.TenderId === tenderId && item.AssignmentRole === role
+        ? { ...item, InternalUserId: internalUserId ?? undefined }
+        : item
+    ));
+
     try {
       await updateTenderEvaluationAssignment(token, tenderId, {
         AssignmentRole: role,
         InternalUserId: internalUserId
       });
-
-      const data = await fetchTenderEvaluationAssignments(token);
-      setItems(data);
-      setSelectionBySlot((current) => ({
-        ...current,
-        [`${tenderId}:${role}`]: internalUserId ?? ''
-      }));
       setSuccess(internalUserId ? 'Tender evaluation assignment updated.' : 'Tender evaluation assignment cleared.');
     } catch (err) {
+      // Revert on failure
+      setSelectionBySlot(current => ({ ...current, [slotKey]: previousSelection ?? '' }));
+      setItems(current => current.map(item =>
+        item.TenderId === tenderId && item.AssignmentRole === role
+          ? { ...item, InternalUserId: previousSelection || undefined }
+          : item
+      ));
       setError(err instanceof Error ? err.message : 'Failed to update tender evaluation assignment.');
     } finally {
       setIsSubmitting(false);
@@ -191,7 +201,7 @@ export const EvaluationCommitteeAssignmentsPanel: React.FC<EvaluationCommitteeAs
           <article key={tender.tenderId} className="portal-module-card" style={{ margin: 0 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'baseline' }}>
               <h3 style={{ margin: 0 }}>{tender.tenderTitle}</h3>
-              <span className="admin-status admin-status--good">{tender.tenderStatus}</span>
+              <span className={`admin-status ${tender.tenderStatus.toLowerCase().includes('active') || tender.tenderStatus.toLowerCase().includes('open') ? 'admin-status--good' : tender.tenderStatus.toLowerCase().includes('closed') || tender.tenderStatus.toLowerCase().includes('awarded') ? 'admin-status--info' : 'admin-status--warn'}`}>{tender.tenderStatus}</span>
             </div>
 
             <div style={{ marginTop: '12px', display: 'grid', gap: '12px' }}>
