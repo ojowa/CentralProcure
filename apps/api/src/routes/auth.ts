@@ -1250,7 +1250,7 @@ authRouter.get('/api/Auth/internal/permissions/check', async (req: Request, res:
 
   try {
     const result = await pool!.query(
-      `SELECT identity.role_has_permission($1, $2) as has_permission`,
+      `SELECT identity.user_has_permission($1, $2) as has_permission`,
       [auth.role, permissionKey]
     );
     const hasPermission = result.rows[0]?.has_permission ?? false;
