@@ -59,6 +59,21 @@ const MODULE_QUICK_ACTIONS: Record<string, { label: string }> = {
 
 const normalizeRole = (value: string): string => value.trim().toLowerCase();
 
+const deriveActivityType = (title: string, message: string): 'approval' | 'tender' | 'bid' | 'system' => {
+  const text = `${title} ${message}`.toLowerCase();
+  if (text.includes('approval') || text.includes('approved') || text.includes('rejected') || text.includes('endorse')) return 'approval';
+  if (text.includes('tender') || text.includes('evaluation') || text.includes('bid opening')) return 'tender';
+  if (text.includes('bid') || text.includes('submission') || text.includes('submitted')) return 'bid';
+  return 'system';
+};
+
+const deriveAlertType = (title: string, message: string, notificationType?: string): 'warning' | 'info' | 'success' => {
+  const text = `${title} ${message} ${notificationType ?? ''}`.toLowerCase();
+  if (text.includes('urgent') || text.includes('overdue') || text.includes('expir') || text.includes('warning') || text.includes('rejected')) return 'warning';
+  if (text.includes('approved') || text.includes('completed') || text.includes('success') || text.includes('resolved')) return 'success';
+  return 'info';
+};
+
 dashboardRouter.get('/api/Auth/internal/dashboard', async (req: Request, res: Response) => {
   const payload = extractPayloadFromRequest(req.headers.authorization);
   if (!payload?.sub) {
@@ -83,7 +98,9 @@ dashboardRouter.get('/api/Auth/internal/dashboard', async (req: Request, res: Re
       pool.query('SELECT * FROM identity.get_internal_notifications_sp($1)', [payload.sub]),
       pool.query(
         `SELECT threshold_name AS "ThresholdName", min_amount AS "MinAmount", max_amount AS "MaxAmount",
-                approval_authority_label AS "RequiredApprovalLevel", status AS "IsActive"
+                approval_authority_label AS "RequiredApprovalLevel", status AS "IsActive",
+                requires_bpp AS "RequiresBpp", estimated_days AS "EstimatedDays",
+                escalation_level AS "EscalationLevel"
          FROM procurement_workflow.approval_thresholds
          WHERE status = 'Active'
          ORDER BY min_amount ASC`
@@ -104,18 +121,23 @@ dashboardRouter.get('/api/Auth/internal/dashboard', async (req: Request, res: Re
 
     const quickActions = modules
       .map((module) => ({ label: MODULE_QUICK_ACTIONS[module.ModuleId]?.label ?? module.Title, moduleId: module.ModuleId }))
-      .slice(0, 5);
+      .slice(0, 8);
 
-    const recentActivity = notifications.slice(0, 5).map((n, index) => ({
-      id: `activity-${index + 1}`,
-      title: n.Title ?? 'Notification',
-      description: n.Message ?? '',
-      timestamp: n.CreatedAt ?? new Date().toISOString(),
-      status: n.IsRead ? ('completed' as const) : ('pending' as const)
-    }));
+    const recentActivity = notifications.slice(0, 10).map((n, index) => {
+      const title = n.Title ?? 'Notification';
+      const message = n.Message ?? '';
+      return {
+        id: `activity-${index + 1}`,
+        title,
+        description: message,
+        timestamp: n.CreatedAt ?? new Date().toISOString(),
+        status: n.IsRead ? ('completed' as const) : ('pending' as const),
+        type: deriveActivityType(title, message),
+        actionUrl: n.ActionUrl ?? null
+      };
+    });
 
     res.json({
-      Role: normalizeRole(payload.role || payload.CanonicalRoleKey || ''),
       Title: copy.title,
       Subtitle: copy.subtitle,
       Metrics: [
@@ -124,8 +146,8 @@ dashboardRouter.get('/api/Auth/internal/dashboard', async (req: Request, res: Re
         { label: 'Active Thresholds', value: String(thresholds.length) }
       ],
       QuickActions: quickActions,
-      Alerts: unread.slice(0, 3).map((n) => ({
-        type: 'info' as const,
+      Alerts: unread.slice(0, 5).map((n) => ({
+        type: deriveAlertType(n.Title ?? '', n.Message ?? '', n.NotificationType),
         message: n.Message ?? n.Title ?? ''
       })),
       Thresholds: thresholds.map((t) => ({
@@ -134,9 +156,9 @@ dashboardRouter.get('/api/Auth/internal/dashboard', async (req: Request, res: Re
         min: Number(t.MinAmount),
         max: t.MaxAmount == null ? Number.POSITIVE_INFINITY : Number(t.MaxAmount),
         approvalLevel: t.RequiredApprovalLevel ?? t.ThresholdName,
-        timeline: '',
-        requiresBpp: false,
-        escalation: '',
+        timeline: t.EstimatedDays ? `${t.EstimatedDays} days` : '',
+        requiresBpp: Boolean(t.RequiresBpp),
+        escalation: t.EscalationLevel ?? '',
         steps: []
       })),
       RecentActivity: recentActivity

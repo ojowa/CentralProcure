@@ -48,6 +48,8 @@ type WorkspaceContextValue = {
   token: string;
   userRole: RoleKey | null;
   userEmail: string | null;
+  userFirstName: string | null;
+  userSurname: string | null;
   modules: InternalModule[];
   modulesLoading: boolean;
   modulesError: string | null;
@@ -85,6 +87,8 @@ export const InternalWorkspaceProvider = ({ children }: { children: ReactNode })
   const [headerRoleOverride, setHeaderRoleOverride] = useState<RoleDefinition | null>(null);
   const [profileRoleKey, setProfileRoleKey] = useState<RoleKey | null>(user?.role ?? null);
   const [profileRoleNameRaw, setProfileRoleNameRaw] = useState<string | null>(null);
+  const [userFirstName, setUserFirstName] = useState<string | null>(null);
+  const [userSurname, setUserSurname] = useState<string | null>(null);
   const [modulesLoading, setModulesLoading] = useState(false);
   const [hasResolvedModules, setHasResolvedModules] = useState(false);
   const [modulesError, setModulesError] = useState<string | null>(null);
@@ -192,6 +196,8 @@ export const InternalWorkspaceProvider = ({ children }: { children: ReactNode })
         if (!isMounted) return;
 
         setProfileRoleNameRaw(profile.RoleName ?? null);
+        setUserFirstName(profile.FirstName ?? null);
+        setUserSurname(profile.Surname ?? null);
         const resolvedKey = resolveCanonicalRole(profile.CanonicalRoleKey, profile.RoleName);
         if (!resolvedKey) {
           setHeaderRoleOverride(null);
@@ -304,6 +310,8 @@ export const InternalWorkspaceProvider = ({ children }: { children: ReactNode })
       token,
       userRole: user?.role ?? null,
       userEmail,
+      userFirstName,
+      userSurname,
       modules: accessibleModules,
       modulesLoading,
       modulesError,
@@ -324,6 +332,8 @@ export const InternalWorkspaceProvider = ({ children }: { children: ReactNode })
       token,
       user?.role,
       userEmail,
+      userFirstName,
+      userSurname,
       accessibleModules,
       modulesLoading,
       modulesError,

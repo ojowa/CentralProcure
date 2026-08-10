@@ -8,6 +8,8 @@ export const InternalDashboardHome = () => {
     modules,
     selectedRole,
     userEmail,
+    userFirstName,
+    userSurname,
     recordRoleName,
     token
   } = useWorkspace();
@@ -17,6 +19,8 @@ export const InternalDashboardHome = () => {
       modules={modules}
       role={selectedRole}
       userEmail={userEmail}
+      userFirstName={userFirstName}
+      userSurname={userSurname}
       roleName={recordRoleName}
       token={token}
     />

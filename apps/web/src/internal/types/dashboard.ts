@@ -20,10 +20,11 @@ export interface InternalDashboardActivity {
   description: string;
   timestamp: string;
   status?: 'completed' | 'pending' | 'in_progress' | 'rejected';
+  type?: 'approval' | 'tender' | 'bid' | 'system';
+  actionUrl?: string | null;
 }
 
 export interface InternalDashboardResponse {
-  Role: string;
   Title: string;
   Subtitle: string;
   Metrics: InternalDashboardMetric[];
