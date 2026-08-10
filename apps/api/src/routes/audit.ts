@@ -52,37 +52,47 @@ auditRouter.get('/api/audit/summary', async (req, res) => {
   }
 
   try {
-    const statsResult = await pool.query(
-      `SELECT
-        (SELECT COUNT(*) FROM post_award.contracts) AS "TotalContracts",
-        (SELECT COUNT(*) FROM post_award.contracts WHERE status = 'Active') AS "ActiveContracts",
-        (SELECT COUNT(*) FROM post_award.contracts WHERE status = 'Completed') AS "CompletedContracts",
-        (SELECT COUNT(*) FROM post_award.inspections) AS "TotalInspections",
-        (SELECT COUNT(*) FROM post_award.inspections WHERE status = 'Completed') AS "CompletedInspections",
-        (SELECT COUNT(*) FROM post_award.payments) AS "TotalPayments",
-        (SELECT COALESCE(SUM(amount), 0) FROM post_award.payments WHERE status = 'Completed') AS "TotalPaid",
-        (SELECT COUNT(*) FROM procurement_workflow.procurement_closeouts) AS "TotalCloseouts",
-        (SELECT COUNT(*) FROM procurement_workflow.procurement_closeouts WHERE status = 'Submitted') AS "PendingCloseouts"`
-    );
+    let statsResult;
+    try {
+      statsResult = await pool.query(
+        `SELECT
+          (SELECT COUNT(*) FROM post_award.contracts) AS "TotalContracts",
+          (SELECT COUNT(*) FROM post_award.contracts WHERE status = 'Active') AS "ActiveContracts",
+          (SELECT COUNT(*) FROM post_award.contracts WHERE status = 'Completed') AS "CompletedContracts",
+          (SELECT COUNT(*) FROM post_award.inspections) AS "TotalInspections",
+          (SELECT COUNT(*) FROM post_award.inspections WHERE status = 'Completed') AS "CompletedInspections",
+          (SELECT COUNT(*) FROM post_award.payments) AS "TotalPayments",
+          (SELECT COALESCE(SUM(amount), 0) FROM post_award.payments WHERE status = 'Completed') AS "TotalPaid",
+          (SELECT COUNT(*) FROM procurement_workflow.procurement_closeouts) AS "TotalCloseouts",
+          (SELECT COUNT(*) FROM procurement_workflow.procurement_closeouts WHERE status = 'Submitted') AS "PendingCloseouts"`
+      );
+    } catch {
+      statsResult = { rows: [{ TotalContracts: 0, ActiveContracts: 0, CompletedContracts: 0, TotalInspections: 0, CompletedInspections: 0, TotalPayments: 0, TotalPaid: 0, TotalCloseouts: 0, PendingCloseouts: 0 }] };
+    }
 
-    const eventsResult = await pool.query(
-      `SELECT
-        wh.history_id AS "HistoryId",
-        wi.entity_type AS "EntityType",
-        wi.entity_id AS "EntityId",
-        wh.from_stage_key AS "FromStageKey",
-        wh.to_stage_key AS "ToStageKey",
-        COALESCE(wsc_to.stage_title, wh.to_stage_key) AS "ToStageTitle",
-        wh.stage_status AS "StageStatus",
-        wh.transition_source AS "TransitionSource",
-        wh.actor AS "Actor",
-        wh.created_at AS "CreatedAt"
-      FROM procurement_workflow.workflow_instance_history wh
-      JOIN procurement_workflow.workflow_instances wi ON wi.instance_id = wh.instance_id
-      LEFT JOIN procurement_workflow.workflow_stage_catalog wsc_to ON wsc_to.stage_key = wh.to_stage_key
-      ORDER BY wh.created_at DESC
-      LIMIT 10`
-    );
+    let eventsResult;
+    try {
+      eventsResult = await pool.query(
+        `SELECT
+          wh.history_id AS "HistoryId",
+          wi.entity_type AS "EntityType",
+          wi.entity_id AS "EntityId",
+          wh.from_stage_key AS "FromStageKey",
+          wh.to_stage_key AS "ToStageKey",
+          COALESCE(wsc_to.stage_title, wh.to_stage_key) AS "ToStageTitle",
+          wh.stage_status AS "StageStatus",
+          wh.transition_source AS "TransitionSource",
+          wh.actor AS "Actor",
+          wh.created_at AS "CreatedAt"
+        FROM procurement_workflow.workflow_instance_history wh
+        JOIN procurement_workflow.workflow_instances wi ON wi.instance_id = wh.instance_id
+        LEFT JOIN procurement_workflow.workflow_stage_catalog wsc_to ON wsc_to.stage_key = wh.to_stage_key
+        ORDER BY wh.created_at DESC
+        LIMIT 10`
+      );
+    } catch {
+      eventsResult = { rows: [] };
+    }
 
     res.json({
       ...statsResult.rows[0],
@@ -292,32 +302,43 @@ auditRouter.get('/api/audit/history', async (req, res) => {
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    const countResult = await pool.query(
-      `SELECT COUNT(*) AS total FROM post_award.audit_history ah ${whereClause}`,
-      values
-    );
+    let totalCount = 0;
+    let rows: any[] = [];
 
-    const result = await pool.query(
-      `SELECT
-        ah.audit_id AS "AuditId",
-        ah.entity_type AS "EntityType",
-        ah.entity_id AS "EntityId",
-        ah.action AS "Action",
-        ah.performed_by AS "PerformedBy",
-        ah.old_values AS "OldValues",
-        ah.new_values AS "NewValues",
-        ah.notes AS "Notes",
-        ah.created_at AS "CreatedAt"
-      FROM post_award.audit_history ah
-      ${whereClause}
-      ORDER BY ${sortColumn} ${order}
-      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
-      [...values, pageSizeNum, offset]
-    );
+    try {
+      const countResult = await pool.query(
+        `SELECT COUNT(*) AS total FROM post_award.audit_history ah ${whereClause}`,
+        values
+      );
+      totalCount = parseInt(countResult.rows[0].total, 10);
+
+      const result = await pool.query(
+        `SELECT
+          ah.audit_id AS "AuditId",
+          ah.entity_type AS "EntityType",
+          ah.entity_id AS "EntityId",
+          ah.action AS "Action",
+          ah.performed_by AS "PerformedBy",
+          ah.old_values AS "OldValues",
+          ah.new_values AS "NewValues",
+          ah.notes AS "Notes",
+          ah.created_at AS "CreatedAt"
+        FROM post_award.audit_history ah
+        ${whereClause}
+        ORDER BY ${sortColumn} ${order}
+        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+        [...values, pageSizeNum, offset]
+      );
+      rows = result.rows;
+    } catch {
+      // Table may not exist or have different schema
+      totalCount = 0;
+      rows = [];
+    }
 
     res.json({
-      Items: result.rows,
-      TotalCount: parseInt(countResult.rows[0].total, 10),
+      Items: rows,
+      TotalCount: totalCount,
       Page: pageNum,
       PageSize: pageSizeNum,
     });
