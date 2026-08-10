@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../db.js';
-import { extractPayloadFromRequest } from '../lib/jwt.js';
+import type { AuthenticatedRequest } from '../middleware/auth.js';
 
 export const dashboardRouter = Router();
 
@@ -75,8 +75,9 @@ const deriveAlertType = (title: string, message: string, notificationType?: stri
 };
 
 dashboardRouter.get('/api/Auth/internal/dashboard', async (req: Request, res: Response) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload?.sub) {
+  const authReq = req as AuthenticatedRequest;
+  const auth = authReq.auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }
@@ -86,16 +87,16 @@ dashboardRouter.get('/api/Auth/internal/dashboard', async (req: Request, res: Re
     return;
   }
 
-  const role = normalizeRole(payload.role || payload.CanonicalRoleKey || '');
+  const role = normalizeRole(auth.role || '');
   const copy = ROLE_COPY[role] ?? { title: 'Procurement Dashboard', subtitle: 'Welcome to the CentralProcure internal workspace' };
 
   try {
     const [modulesResult, notificationsResult, thresholdsResult] = await Promise.all([
       pool.query(
         'SELECT im.module_id AS "ModuleId", im.title AS "Title" FROM identity.get_role_modules($1) grm JOIN identity.internal_modules im ON im.module_id = grm.module_id ORDER BY im.title',
-        [payload.role || payload.CanonicalRoleKey || '']
+        [auth.role || '']
       ),
-      pool.query('SELECT * FROM identity.get_internal_notifications_sp($1)', [payload.sub]),
+      pool.query('SELECT * FROM identity.get_internal_notifications_sp($1)', [auth.sub]),
       pool.query(
         `SELECT threshold_name AS "ThresholdName", min_amount AS "MinAmount", max_amount AS "MaxAmount",
                 approval_authority_label AS "RequiredApprovalLevel", status AS "IsActive",
