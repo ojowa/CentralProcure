@@ -17,7 +17,7 @@ const COOKIE_OPTS = {
 };
 
 const loginSchema = z.object({
-  Email: z.string().email('Invalid email format.').max(320),
+  Email: z.string().min(1, 'Email, username, or service number is required.').max(320),
   Password: z.string().min(1, 'Password is required.').max(256),
 });
 
@@ -78,13 +78,18 @@ authRouter.post('/api/Auth/internal/login', authRateLimiter, async (req: Request
     res.status(400).json({ ErrorMessage: parsed.error.issues[0].message });
     return;
   }
-  const { Email, Password } = parsed.data;
+  const { Email: identifier, Password } = parsed.data;
   if (!requireDb(res)) return;
 
   try {
     const userQuery = await pool!.query(
-      'SELECT internal_user_id, email, password_hash, role_name, status, security_stamp, unit_id FROM identity.internal_users iu JOIN identity.roles r ON r.role_id = iu.role_id WHERE iu.email = $1',
-      [Email]
+      `SELECT internal_user_id, email, password_hash, role_name, status, security_stamp, unit_id
+       FROM identity.internal_users iu
+       JOIN identity.roles r ON r.role_id = iu.role_id
+       WHERE iu.email = $1
+          OR LOWER(iu.username) = LOWER($1)
+          OR LOWER(iu.service_number) = LOWER($1)`,
+      [identifier]
     );
     const dbUser = userQuery.rows[0];
 
@@ -96,7 +101,7 @@ authRouter.post('/api/Auth/internal/login', authRateLimiter, async (req: Request
     const isPasswordValid = await verifyPassword(Password, dbUser.password_hash);
     const spPasswordHash = isPasswordValid ? dbUser.password_hash : 'INVALID_HASH_TO_TRIGGER_SP_FAILURE';
 
-    const result = await pool!.query('SELECT * FROM identity.internal_login($1, $2)', [Email, spPasswordHash]);
+    const result = await pool!.query('SELECT * FROM identity.internal_login($1, $2)', [dbUser.email, spPasswordHash]);
     const user = result.rows[0];
 
     if (!user || user.error_message) {
