@@ -48,13 +48,7 @@ export const AssignedTendersModule = ({ module, token, role, initialData, onModu
       .finally(() => setLoading(false));
   }, [initialData, token]);
 
-  const evaluationModuleId = useMemo(() => {
-    if (role === 'financial_evaluator') {
-      return 'financial-evaluation';
-    }
-
-    return 'technical-evaluation';
-  }, [role]);
+  const evaluationModuleId = useMemo(() => 'technical-evaluation', []);
 
   const filteredItems = useMemo(() => {
     const normalized = query.trim().toLowerCase();
