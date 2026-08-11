@@ -5,7 +5,7 @@ import { pool } from './db.js';
 const app = createApp();
 
 const server = app.listen(config.port, () => {
-  console.log(`CentralProcure TypeScript API listening on port ${config.port}`);
+  console.log(`eProcurement TypeScript API listening on port ${config.port}`);
 });
 
 // Keepalive: ping DB every 5 minutes to prevent Neon idle disconnects

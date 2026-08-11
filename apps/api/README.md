@@ -1,6 +1,6 @@
-# CentralProcure API
+# eProcurement API
 
-TypeScript Express API for CentralProcure.
+TypeScript Express API for eProcurement.
 
 ## Local
 

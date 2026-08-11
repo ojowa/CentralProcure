@@ -28,7 +28,7 @@ const outfit = Outfit({
 
 export const metadata: Metadata = {
   metadataBase,
-  title: 'CentralProcure',
+  title: 'eProcurement',
   description: 'NIS procurement portals'
 };
 

@@ -7,7 +7,7 @@ export const systemRouter = Router();
 
 systemRouter.get('/', (_request, response) => {
   response.json({
-    name: 'CentralProcure API',
+    name: 'eProcurement API',
     runtime: 'typescript',
     status: 'ok'
   });

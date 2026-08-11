@@ -319,7 +319,7 @@ const RegisterPage: React.FC = () => {
                         <h2 className="auth-page__visual-title">Join Our Vendor Network</h2>
                         <p className="auth-page__visual-text">
                             Register your company to access procurement opportunities and grow your business
-                            with CentralProcure.
+                            with eProcurement.
                         </p>
                         <ul className="auth-page__visual-features">
                             <li><CheckCircle /> Access exclusive tenders</li>

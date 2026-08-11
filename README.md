@@ -1,6 +1,6 @@
-# CentralProcure
+# eProcurement
 
-CentralProcure is organized as a TypeScript npm monorepo for the web app, API, and shared JavaScript/TypeScript code.
+eProcurement is organized as a TypeScript npm monorepo for the web app, API, and shared JavaScript/TypeScript code.
 
 ## Workspaces
 
