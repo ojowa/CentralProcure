@@ -65,8 +65,7 @@ dashboardRouter.get('/api/Auth/internal/dashboard', async (req: Request, res: Re
       pool.query(
         `SELECT threshold_name AS "ThresholdName", min_amount AS "MinAmount", max_amount AS "MaxAmount",
                 approval_authority_label AS "RequiredApprovalLevel", status AS "IsActive",
-                requires_bpp AS "RequiresBpp", estimated_days AS "EstimatedDays",
-                escalation_level AS "EscalationLevel"
+                requires_bpp AS "RequiresBpp"
          FROM procurement_workflow.approval_thresholds
          WHERE status = 'Active'
          ORDER BY min_amount ASC`
@@ -117,10 +116,7 @@ dashboardRouter.get('/api/Auth/internal/dashboard', async (req: Request, res: Re
         min: Number(t.MinAmount),
         max: t.MaxAmount == null ? Number.POSITIVE_INFINITY : Number(t.MaxAmount),
         approvalLevel: t.RequiredApprovalLevel ?? t.ThresholdName,
-        timeline: t.EstimatedDays ? `${t.EstimatedDays} days` : '',
-        requiresBpp: Boolean(t.RequiresBpp),
-        escalation: t.EscalationLevel ?? '',
-        steps: []
+        requiresBpp: Boolean(t.RequiresBpp)
       })),
       RecentActivity: recentActivity
     });
