@@ -1135,28 +1135,45 @@ authRouter.get('/api/Auth/internal/user-role/audit', async (req: Request, res: R
   const { internalUserId, roleName, limit } = req.query;
 
   try {
-    let query = 'SELECT * FROM identity.role_audit';
+    let query = `
+      SELECT
+        a.audit_id AS "AuditId",
+        a.target_internal_user_id AS "TargetInternalUserId",
+        tu.email AS "TargetEmail",
+        tu.username AS "TargetUsername",
+        pr.role_name AS "PreviousRoleName",
+        nr.role_name AS "NewRoleName",
+        cu.email AS "ChangedByEmail",
+        cu.username AS "ChangedByUsername",
+        a.changed_at AS "ChangedAt",
+        a.change_reason AS "ChangeReason"
+      FROM identity.user_role_audit a
+      LEFT JOIN identity.internal_users tu ON tu.internal_user_id = a.target_internal_user_id
+      LEFT JOIN identity.roles pr ON pr.role_id = a.previous_role_id
+      LEFT JOIN identity.roles nr ON nr.role_id = a.new_role_id
+      LEFT JOIN identity.internal_users cu ON cu.internal_user_id = a.changed_by_user_id
+    `;
     const conditions: string[] = [];
     const params: unknown[] = [];
     let idx = 1;
 
     if (internalUserId) {
-      conditions.push(`lower(internal_user_id) = lower($${idx++})`);
+      conditions.push(`lower(a.target_internal_user_id::text) = lower($${idx++})`);
       params.push(internalUserId);
     }
     if (roleName) {
-      conditions.push(`lower(role_name) = lower($${idx++})`);
+      conditions.push(`lower(nr.role_name) = lower($${idx++})`);
       params.push(roleName);
     }
     if (conditions.length) query += ' WHERE ' + conditions.join(' AND ');
-    query += ' ORDER BY changed_at DESC';
+    query += ' ORDER BY a.changed_at DESC';
     if (limit) {
       query += ` LIMIT $${idx++}`;
       params.push(Number(limit));
     }
 
     const result = await pool!.query(query, params);
-    res.json(result.rows.map(mapRow));
+    res.json(result.rows);
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching role audit.' });
   }
