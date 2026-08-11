@@ -1,14 +1,14 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
-import { extractPayloadFromRequest } from '../lib/jwt.js';
+import type { AuthenticatedRequest } from '../middleware/auth.js';
 import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
 export const tendersRouter = Router();
 
 // GET /api/internal/tenders
 tendersRouter.get('/api/internal/tenders', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }
@@ -70,8 +70,8 @@ tendersRouter.get('/api/internal/tenders', async (req, res) => {
 
 // GET /api/internal/tenders/:tenderId
 tendersRouter.get('/api/internal/tenders/:tenderId', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }
@@ -277,8 +277,8 @@ tendersRouter.post('/api/internal/tenders/:tenderId/publish', async (req, res) =
 
 // GET /api/tenders/:tenderId/bids
 tendersRouter.get('/api/tenders/:tenderId/bids', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }

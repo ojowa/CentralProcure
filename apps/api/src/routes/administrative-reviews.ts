@@ -1,20 +1,16 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
-import { extractPayloadFromRequest } from '../lib/jwt.js';
+import type { AuthenticatedRequest } from '../middleware/auth.js';
 import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
 export const administrativeReviewsRouter = Router();
-
-function requireAuth(req: any) {
-  return extractPayloadFromRequest(req.headers.authorization);
-}
 
 // ─────────────────────────────────────────────
 // GET /api/administrative-reviews
 // ─────────────────────────────────────────────
 administrativeReviewsRouter.get('/api/administrative-reviews', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -64,8 +60,8 @@ administrativeReviewsRouter.get('/api/administrative-reviews', async (req, res) 
 // GET /api/administrative-reviews/filing-context
 // ─────────────────────────────────────────────
 administrativeReviewsRouter.get('/api/administrative-reviews/filing-context', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -100,8 +96,8 @@ administrativeReviewsRouter.get('/api/administrative-reviews/filing-context', as
 // GET /api/administrative-reviews/:id
 // ─────────────────────────────────────────────
 administrativeReviewsRouter.get('/api/administrative-reviews/:id', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {

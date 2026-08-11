@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
-import { extractPayloadFromRequest } from '../lib/jwt.js';
+import type { AuthenticatedRequest } from '../middleware/auth.js';
 import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
 export const bidsRouter = Router();
@@ -58,8 +58,8 @@ bidsRouter.post('/api/bids', async (req, res) => {
 
 // GET /api/vendors/:vendorId/bids
 bidsRouter.get('/api/vendors/:vendorId/bids', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }
@@ -90,8 +90,8 @@ bidsRouter.get('/api/vendors/:vendorId/bids', async (req, res) => {
 
 // GET /api/bids/:bidId/proposal-file
 bidsRouter.get('/api/bids/:bidId/proposal-file', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }
@@ -132,8 +132,8 @@ bidsRouter.get('/api/bids/:bidId/proposal-file', async (req, res) => {
 
 // GET /api/bids/:bidId
 bidsRouter.get('/api/bids/:bidId', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }

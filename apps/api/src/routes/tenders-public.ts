@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
-import { extractPayloadFromRequest } from '../lib/jwt.js';
+import type { AuthenticatedRequest } from '../middleware/auth.js';
 
 export const tendersPublicRouter = Router();
 
@@ -32,8 +32,8 @@ tendersPublicRouter.get('/api/Tender/open', async (_req, res) => {
 
 // POST /api/Tender/bid
 tendersPublicRouter.post('/api/Tender/bid', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }
@@ -53,7 +53,7 @@ tendersPublicRouter.post('/api/Tender/bid', async (req, res) => {
 
     const result = await pool.query(
       'SELECT * FROM vendor_sourcing.submit_bid($1, $2, $3, $4, $5)',
-      [payload.sub, TenderId, BidAmount, Proposal, FileName || '']
+      [auth.sub, TenderId, BidAmount, Proposal, FileName || '']
     );
 
     const bid = result.rows[0];
@@ -78,8 +78,8 @@ tendersPublicRouter.post('/api/Tender/bid', async (req, res) => {
 
 // GET /api/Tender/submitted-bids
 tendersPublicRouter.get('/api/Tender/submitted-bids', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }
@@ -90,7 +90,7 @@ tendersPublicRouter.get('/api/Tender/submitted-bids', async (req, res) => {
   }
 
   try {
-    const result = await pool.query('SELECT * FROM vendor_sourcing.get_submitted_bids($1)', [payload.sub]);
+    const result = await pool.query('SELECT * FROM vendor_sourcing.get_submitted_bids($1)', [auth.sub]);
 
     const bids = result.rows.map((b) => ({
       BidId: b.bid_id,

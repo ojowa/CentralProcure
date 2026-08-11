@@ -1,14 +1,14 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
-import { extractPayloadFromRequest } from '../lib/jwt.js';
+import type { AuthenticatedRequest } from '../middleware/auth.js';
 import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
 export const evaluationsRouter = Router();
 
 // GET /api/evaluations/assigned-tenders/default
 evaluationsRouter.get('/api/evaluations/assigned-tenders/default', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }
@@ -43,7 +43,7 @@ evaluationsRouter.get('/api/evaluations/assigned-tenders/default', async (req, r
         ON er.tender_id = tea.tender_id AND er.evaluator_id = tea.evaluator_id
       WHERE er.evaluator_id = $1
       ORDER BY er.submitted_at DESC`,
-      [payload.sub]
+      [auth.sub]
     );
 
     const assigned = result.rows.map((r) => ({
@@ -113,8 +113,8 @@ evaluationsRouter.post('/api/evaluations/actions', async (req, res) => {
 
 // GET /api/evaluations/assignments
 evaluationsRouter.get('/api/evaluations/assignments', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }

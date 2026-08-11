@@ -1,14 +1,14 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
-import { extractPayloadFromRequest } from '../lib/jwt.js';
+import type { AuthenticatedRequest } from '../middleware/auth.js';
 import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
 export const vendorAdminRouter = Router();
 
 // GET /api/admin/vendors — alias for /api/admin/vendors/registrations
 vendorAdminRouter.get('/api/admin/vendors', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }
@@ -84,8 +84,8 @@ vendorAdminRouter.get('/api/admin/vendors', async (req, res) => {
 
 // GET /api/admin/vendors/registrations
 vendorAdminRouter.get('/api/admin/vendors/registrations', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }
@@ -161,8 +161,8 @@ vendorAdminRouter.get('/api/admin/vendors/registrations', async (req, res) => {
 
 // GET /api/admin/vendors/:vendorId
 vendorAdminRouter.get('/api/admin/vendors/:vendorId', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }
@@ -257,8 +257,8 @@ vendorAdminRouter.post('/api/admin/vendors/:vendorId/decision', async (req, res)
 
 // GET /api/admin/vendors/compliance/:documentId/file
 vendorAdminRouter.get('/api/admin/vendors/compliance/:documentId/file', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }

@@ -1,13 +1,13 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
-import { extractPayloadFromRequest } from '../lib/jwt.js';
+import type { AuthenticatedRequest } from '../middleware/auth.js';
 
 export const evaluationReportsRouter = Router();
 
 // GET /api/evaluation-reports
 evaluationReportsRouter.get('/api/evaluation-reports', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }
@@ -79,8 +79,8 @@ evaluationReportsRouter.get('/api/evaluation-reports', async (req, res) => {
 
 // GET /api/evaluation-reports/:reportId
 evaluationReportsRouter.get('/api/evaluation-reports/:reportId', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }

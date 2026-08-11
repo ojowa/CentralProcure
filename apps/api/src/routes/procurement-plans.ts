@@ -1,20 +1,16 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { pool } from '../db.js';
-import { extractPayloadFromRequest } from '../lib/jwt.js';
 import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
+import type { AuthenticatedRequest } from '../middleware/auth.js';
 
 export const procurementPlansRouter = Router();
-
-function requireAuth(req: any) {
-  return extractPayloadFromRequest(req.headers.authorization);
-}
 
 // ─────────────────────────────────────────────
 // GET /api/procurement-plans
 // ─────────────────────────────────────────────
-procurementPlansRouter.get('/api/procurement-plans', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+procurementPlansRouter.get('/api/procurement-plans', async (req: Request, res: Response) => {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -142,9 +138,9 @@ procurementPlansRouter.post('/api/procurement-plans', async (req, res) => {
 // ─────────────────────────────────────────────
 // GET /api/procurement-plans/:planId
 // ─────────────────────────────────────────────
-procurementPlansRouter.get('/api/procurement-plans/:planId', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+procurementPlansRouter.get('/api/procurement-plans/:planId', async (req: Request, res: Response) => {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -193,9 +189,9 @@ procurementPlansRouter.get('/api/procurement-plans/:planId', async (req, res) =>
 // ─────────────────────────────────────────────
 // PUT /api/procurement-plans/:planId
 // ─────────────────────────────────────────────
-procurementPlansRouter.put('/api/procurement-plans/:planId', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+procurementPlansRouter.put('/api/procurement-plans/:planId', async (req: Request, res: Response) => {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -220,9 +216,9 @@ procurementPlansRouter.put('/api/procurement-plans/:planId', async (req, res) =>
 // ─────────────────────────────────────────────
 // DELETE /api/procurement-plans/:planId
 // ─────────────────────────────────────────────
-procurementPlansRouter.delete('/api/procurement-plans/:planId', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+procurementPlansRouter.delete('/api/procurement-plans/:planId', async (req: Request, res: Response) => {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -244,9 +240,9 @@ procurementPlansRouter.delete('/api/procurement-plans/:planId', async (req, res)
 // ─────────────────────────────────────────────
 // POST /api/procurement-plans/:planId/approval-decision
 // ─────────────────────────────────────────────
-procurementPlansRouter.post('/api/procurement-plans/:planId/approval-decision', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+procurementPlansRouter.post('/api/procurement-plans/:planId/approval-decision', async (req: Request, res: Response) => {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -295,9 +291,9 @@ procurementPlansRouter.post('/api/procurement-plans/:planId/approval-decision', 
 // ─────────────────────────────────────────────
 // POST /api/procurement-plans/:planId/recommend-for-approval
 // ─────────────────────────────────────────────
-procurementPlansRouter.post('/api/procurement-plans/:planId/recommend-for-approval', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+procurementPlansRouter.post('/api/procurement-plans/:planId/recommend-for-approval', async (req: Request, res: Response) => {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -338,9 +334,9 @@ procurementPlansRouter.post('/api/procurement-plans/:planId/recommend-for-approv
 // ─────────────────────────────────────────────
 // GET /api/procurement-plans/:planId/recommendation-readiness
 // ─────────────────────────────────────────────
-procurementPlansRouter.get('/api/procurement-plans/:planId/recommendation-readiness', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+procurementPlansRouter.get('/api/procurement-plans/:planId/recommendation-readiness', async (req: Request, res: Response) => {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -382,9 +378,9 @@ procurementPlansRouter.get('/api/procurement-plans/:planId/recommendation-readin
 // ─────────────────────────────────────────────
 // POST /api/procurement-plans/:planId/initiate-procurement
 // ─────────────────────────────────────────────
-procurementPlansRouter.post('/api/procurement-plans/:planId/initiate-procurement', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+procurementPlansRouter.post('/api/procurement-plans/:planId/initiate-procurement', async (req: Request, res: Response) => {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {

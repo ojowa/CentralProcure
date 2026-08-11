@@ -1,18 +1,16 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
-import { extractPayloadFromRequest } from '../lib/jwt.js';
+import type { AuthenticatedRequest } from '../middleware/auth.js';
 import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
 export const workflowConfigRouter = Router();
-
-const requireAuth = (req: any) => extractPayloadFromRequest(req.headers.authorization);
 
 // GET /api/config/workflows — already exists in workflow.ts, SKIP
 
 // GET /api/config/workflows/thresholds
 workflowConfigRouter.get('/api/config/workflows/thresholds', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
   try {
     const result = await pool.query(

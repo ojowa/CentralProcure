@@ -1,20 +1,16 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
-import { extractPayloadFromRequest } from '../lib/jwt.js';
+import type { AuthenticatedRequest } from '../middleware/auth.js';
 import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
 export const procurementPlanItemsRouter = Router();
-
-function requireAuth(req: any) {
-  return extractPayloadFromRequest(req.headers.authorization);
-}
 
 // ─────────────────────────────────────────────
 // GET /api/procurement-plans/:planId/items
 // ─────────────────────────────────────────────
 procurementPlanItemsRouter.get('/api/procurement-plans/:planId/items', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -63,8 +59,8 @@ procurementPlanItemsRouter.post('/api/procurement-plans/:planId/items', async (r
 // GET /api/procurement-plan-items/:planItemId
 // ─────────────────────────────────────────────
 procurementPlanItemsRouter.get('/api/procurement-plan-items/:planItemId', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {

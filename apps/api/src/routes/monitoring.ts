@@ -1,13 +1,13 @@
 import { Router } from 'express';
 import { pool, checkDatabase } from '../db.js';
-import { extractPayloadFromRequest } from '../lib/jwt.js';
+import type { AuthenticatedRequest } from '../middleware/auth.js';
 
 export const monitoringRouter = Router();
 
 // GET /api/monitoring
 monitoringRouter.get('/api/monitoring', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }

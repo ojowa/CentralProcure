@@ -1,14 +1,14 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
-import { extractPayloadFromRequest } from '../lib/jwt.js';
+import type { AuthenticatedRequest } from '../middleware/auth.js';
 import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
 export const budgetRouter = Router();
 
 // GET /api/budget/availability
 budgetRouter.get('/api/budget/availability', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }
@@ -75,8 +75,8 @@ budgetRouter.get('/api/budget/availability', async (req, res) => {
 
 // GET /api/budget/summary
 budgetRouter.get('/api/budget/summary', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }
@@ -133,8 +133,8 @@ budgetRouter.get('/api/budget/summary', async (req, res) => {
 
 // GET /api/budget/dashboard
 budgetRouter.get('/api/budget/dashboard', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }
@@ -165,8 +165,8 @@ budgetRouter.get('/api/budget/dashboard', async (req, res) => {
 
 // GET /api/budget/confirmations
 budgetRouter.get('/api/budget/confirmations', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }
@@ -229,8 +229,8 @@ budgetRouter.get('/api/budget/confirmations', async (req, res) => {
 
 // GET /api/budget/confirmations/:planId
 budgetRouter.get('/api/budget/confirmations/:planId', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }
@@ -324,8 +324,8 @@ budgetRouter.post('/api/budget/confirmations/:planId/decision', async (req, res)
 
 // GET /api/budget/appropriations
 budgetRouter.get('/api/budget/appropriations', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }
@@ -475,8 +475,8 @@ budgetRouter.post('/api/budget/appropriations/:id/close', async (req, res) => {
 
 // GET /api/budget/releases
 budgetRouter.get('/api/budget/releases', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }
@@ -611,8 +611,8 @@ budgetRouter.post('/api/budget/releases', async (req, res) => {
 
 // GET /api/budget/commitments
 budgetRouter.get('/api/budget/commitments', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }

@@ -1,20 +1,16 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
-import { extractPayloadFromRequest } from '../lib/jwt.js';
+import type { AuthenticatedRequest } from '../middleware/auth.js';
 import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
 export const bppNoObjectionsRouter = Router();
-
-function requireAuth(req: any) {
-  return extractPayloadFromRequest(req.headers.authorization);
-}
 
 // ─────────────────────────────────────────────
 // GET /api/bpp-no-objections
 // ─────────────────────────────────────────────
 bppNoObjectionsRouter.get('/api/bpp-no-objections', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -78,8 +74,8 @@ bppNoObjectionsRouter.get('/api/bpp-no-objections', async (req, res) => {
 // GET /api/bpp-no-objections/:id
 // ─────────────────────────────────────────────
 bppNoObjectionsRouter.get('/api/bpp-no-objections/:id', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {

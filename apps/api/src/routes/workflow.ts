@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
-import { extractPayloadFromRequest } from '../lib/jwt.js';
+import type { AuthenticatedRequest } from '../middleware/auth.js';
 import { syncAsync } from '../lib/workflow/runtime-tracker.js';
 import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
@@ -12,8 +12,8 @@ export const workflowRouter = Router();
 
 // GET /api/workflow-runtime/cgis-queue
 workflowRouter.get('/api/workflow-runtime/cgis-queue', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }
@@ -209,8 +209,8 @@ workflowRouter.get('/api/config/workflows', async (_req, res) => {
 
 // GET /api/workflow-actions/:entityType/:entityId
 workflowRouter.get('/api/workflow-actions/:entityType/:entityId', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }
@@ -331,8 +331,8 @@ workflowRouter.post('/api/workflow-runtime/:entityType/:entityId', async (req, r
 
 // GET /api/workflow-runtime/:entityType/:entityId
 workflowRouter.get('/api/workflow-runtime/:entityType/:entityId', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }
@@ -407,8 +407,8 @@ workflowRouter.get('/api/workflow-runtime/:entityType/:entityId', async (req, re
 
 // GET /api/workflow-runtime/:entityType/:entityId/history
 workflowRouter.get('/api/workflow-runtime/:entityType/:entityId/history', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }

@@ -1,14 +1,14 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
-import { extractPayloadFromRequest } from '../lib/jwt.js';
+import type { AuthenticatedRequest } from '../middleware/auth.js';
 import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
 export const contractsRouter = Router();
 
 // GET /api/contracts/awards
 contractsRouter.get('/api/contracts/awards', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }
@@ -52,8 +52,8 @@ contractsRouter.get('/api/contracts/awards', async (req, res) => {
 
 // GET /api/contracts/awards/:awardId
 contractsRouter.get('/api/contracts/awards/:awardId', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }
@@ -130,8 +130,8 @@ contractsRouter.post('/api/contracts/awards/:awardId/publish', async (req, res) 
 
 // GET /api/contracts
 contractsRouter.get('/api/contracts', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }
@@ -177,8 +177,8 @@ contractsRouter.get('/api/contracts', async (req, res) => {
 
 // GET /api/contracts/:contractId
 contractsRouter.get('/api/contracts/:contractId', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }
@@ -222,8 +222,8 @@ contractsRouter.get('/api/contracts/:contractId', async (req, res) => {
 
 // GET /api/contracts/:contractId/milestones
 contractsRouter.get('/api/contracts/:contractId/milestones', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }

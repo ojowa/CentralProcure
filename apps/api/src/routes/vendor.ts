@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
-import { extractPayloadFromRequest } from '../lib/jwt.js';
+import type { AuthenticatedRequest } from '../middleware/auth.js';
 import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
 
 export const vendorRouter = Router();
@@ -136,8 +136,8 @@ vendorRouter.put('/api/Vendor/:vendorId', async (req, res) => {
 
 // GET /api/Vendor/compliance
 vendorRouter.get('/api/Vendor/compliance', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }
@@ -150,7 +150,7 @@ vendorRouter.get('/api/Vendor/compliance', async (req, res) => {
   try {
     const result = await pool.query(
       'SELECT * FROM identity.get_vendor_compliance_documents($1)',
-      [payload.sub]
+      [auth.sub]
     );
 
     const documents = result.rows.map((d) => ({
@@ -184,8 +184,8 @@ vendorRouter.get('/api/Vendor/compliance/requirements', (_req, res) => {
 
 // GET /api/Vendor/compliance/history/:documentType
 vendorRouter.get('/api/Vendor/compliance/history/:documentType', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload || !payload.sub) {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
     res.status(401).json({ ErrorMessage: 'Unauthorized.' });
     return;
   }
@@ -199,7 +199,7 @@ vendorRouter.get('/api/Vendor/compliance/history/:documentType', async (req, res
     const { documentType } = req.params;
     const result = await pool.query(
       'SELECT * FROM identity.get_vendor_compliance_document_history($1, $2)',
-      [payload.sub, documentType]
+      [auth.sub, documentType]
     );
 
     const history = result.rows.map((h) => ({
