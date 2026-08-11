@@ -5,7 +5,7 @@ import { COOKIE_SESSION_TOKEN } from '../internal/services/internalAuthService';
 
 const CSRF_COOKIE = 'XSRF-TOKEN';
 const CSRF_HEADER = 'X-CSRF-Token';
-const PATCH_FLAG = '__centralprocureCsrfFetchPatched';
+const PATCH_FLAG = '__eprocurementCsrfFetchPatched';
 const SENTINEL_AUTH_HEADER = `Bearer ${COOKIE_SESSION_TOKEN}`;
 
 const getCookieValue = (name: string): string | null => {
@@ -53,7 +53,7 @@ export const CsrfFetchBootstrap = () => {
 
     const globalWindow = window as Window & {
       [PATCH_FLAG]?: boolean;
-      __centralprocureOriginalFetch__?: typeof window.fetch;
+      __eprocurementOriginalFetch__?: typeof window.fetch;
     };
 
     if (globalWindow[PATCH_FLAG]) {
@@ -61,7 +61,7 @@ export const CsrfFetchBootstrap = () => {
     }
 
     const originalFetch = window.fetch.bind(window);
-    globalWindow.__centralprocureOriginalFetch__ = originalFetch;
+    globalWindow.__eprocurementOriginalFetch__ = originalFetch;
     globalWindow[PATCH_FLAG] = true;
 
     window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
