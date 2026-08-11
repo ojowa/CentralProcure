@@ -16,7 +16,6 @@ export const InternalDashboardHome = () => {
 
   return (
     <DashboardPage
-      modules={modules}
       role={selectedRole}
       userEmail={userEmail}
       userFirstName={userFirstName}

@@ -1,14 +1,13 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import type { InternalModule, RoleKey } from '../../types/internal';
+import type { RoleKey } from '../../types/internal';
 import { getInternalDashboardPath } from '../../utils/internalRoutes';
 import { formatRelativeTime } from '../../utils/formatUtils';
 import { fetchInternalDashboard } from '../../services/dashboardService';
 import type { InternalDashboardResponse } from '../../types/internal';
 import {
-  LayoutDashboard,
   FileText,
   Clock,
   CheckCircle,
@@ -26,7 +25,6 @@ import {
 import './DashboardPage.css';
 
 interface DashboardProps {
-  modules: InternalModule[];
   role?: RoleKey | null;
   userEmail?: string | null;
   userFirstName?: string | null;
@@ -65,7 +63,7 @@ const getStatusColor = (status?: string) => {
   }
 };
 
-export const DashboardPage = ({ modules, role, userEmail, userFirstName, userSurname, roleName, token }: DashboardProps) => {
+export const DashboardPage = ({ role, userEmail, userFirstName, userSurname, roleName, token }: DashboardProps) => {
   const resolvedRoleName = roleName || (role ? role.replace(/_/g, ' ') : null);
 
   const [dashboard, setDashboard] = useState<InternalDashboardResponse | null>(null);
@@ -79,8 +77,9 @@ export const DashboardPage = ({ modules, role, userEmail, userFirstName, userSur
     try {
       const data = await fetchInternalDashboard(token);
       setDashboard(data);
-    } catch {
-      setDashboardError('Unable to load dashboard summary.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unable to load dashboard summary.';
+      setDashboardError(message);
     } finally {
       setIsLoading(false);
     }
@@ -103,31 +102,6 @@ export const DashboardPage = ({ modules, role, userEmail, userFirstName, userSur
       type: a.type ?? 'system' as const
     }))
   };
-  const thresholdBands = dashboard?.Thresholds ?? [];
-
-  const groupedModules = useMemo(() => {
-    const grouped = modules.reduce<Record<string, InternalModule[]>>((acc, module) => {
-      let section = module.section;
-      if (section === 'Governance & Approval' || section === 'Procurement Planning') {
-        section = 'Governance and Planning';
-      }
-      acc[section] = acc[section] || [];
-      acc[section].push(module);
-      return acc;
-    }, {});
-
-    return Object.entries(grouped).sort(([a], [b]) => {
-      const weights: Record<string, number> = {
-        'Governance and Planning': 1000,
-        'Account Management': 900
-      };
-      return (weights[b] || 0) - (weights[a] || 0);
-    });
-  }, [modules]);
-
-  const moduleCount = modules.length;
-  const sectionCount = groupedModules.length;
-
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning';
@@ -161,24 +135,6 @@ export const DashboardPage = ({ modules, role, userEmail, userFirstName, userSur
               </div>
             </div>
           ))}
-        </section>
-        <section className="dashboard-modules">
-          <div className="dashboard-skeleton dashboard-skeleton--text" style={{ width: '180px', height: '20px', marginBottom: '16px' }} />
-          <div className="dashboard-modules__sections">
-            {[1, 2].map(s => (
-              <div key={s} className="dashboard-section">
-                <div className="dashboard-skeleton dashboard-skeleton--text" style={{ width: '150px', height: '16px', marginBottom: '12px' }} />
-                <div className="dashboard-section__grid">
-                  {[1, 2, 3].map(c => (
-                    <div key={c} className="dashboard-module-card">
-                      <div className="dashboard-skeleton dashboard-skeleton--text" style={{ width: '70%', height: '16px' }} />
-                      <div className="dashboard-skeleton dashboard-skeleton--text" style={{ width: '100%', height: '12px', marginTop: '8px' }} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
         </section>
       </div>
     );
@@ -308,109 +264,6 @@ export const DashboardPage = ({ modules, role, userEmail, userFirstName, userSur
         </section>
       )}
 
-      {/* Modules Grid */}
-      <section className="dashboard-modules">
-        <div className="dashboard-modules__header">
-          <h2 className="dashboard-section-title">Accessible Modules</h2>
-          <div className="dashboard-modules__stats">
-            <span className="dashboard-modules__stat">
-              <strong>{moduleCount}</strong> modules
-            </span>
-            <span className="dashboard-modules__stat">
-              <strong>{sectionCount}</strong> sections
-            </span>
-          </div>
-        </div>
-
-        {groupedModules.length === 0 ? (
-          <div className="dashboard-empty">
-            <LayoutDashboard className="w-16 h-16" />
-            <h3>No Modules Available</h3>
-            <p>Your role currently has no accessible modules.</p>
-          </div>
-        ) : (
-          <div className="dashboard-modules__sections">
-            {groupedModules.map(([section, sectionModules]) => (
-              <div key={section} className="dashboard-section">
-                <h3 className="dashboard-section__title">{section}</h3>
-                <div className="dashboard-section__grid">
-                  {sectionModules.map((module) => (
-                    <Link
-                      key={module.id}
-                      href={getInternalDashboardPath(module.id)}
-                      className="dashboard-module-card"
-                    >
-                      <div className="dashboard-module-card__header">
-                        <h4 className="dashboard-module-card__title">{module.title}</h4>
-                        <ArrowRight className="dashboard-module-card__arrow" />
-                      </div>
-                      <p className="dashboard-module-card__description">
-                        {module.description}
-                      </p>
-                      <div className="dashboard-module-card__meta">
-                        <span className="dashboard-module-card__microservice">
-                          {module.microservice}
-                        </span>
-                        {module.actions && module.actions.length > 0 && (
-                          <span className="dashboard-module-card__actions">
-                            {module.actions.length} actions
-                          </span>
-                        )}
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Threshold Information */}
-      {thresholdBands.length > 0 && (
-        <section className="dashboard-thresholds">
-          <h2 className="dashboard-section-title">Procurement Thresholds</h2>
-          <div className="dashboard-thresholds__grid">
-            {thresholdBands.map((band) => (
-              <div key={band.id} className="dashboard-threshold-card">
-                <div className="dashboard-threshold-card__header">
-                  <h3 className="dashboard-threshold-card__label">{band.label}</h3>
-                  <span className={`dashboard-threshold-card__badge ${band.requiresBpp ? 'dashboard-threshold-card__badge--bpp' : ''}`}>
-                    {band.requiresBpp ? 'BPP Required' : 'Internal'}
-                  </span>
-                </div>
-                <div className="dashboard-threshold-card__details">
-                  <div className="dashboard-threshold-card__item">
-                    <span className="dashboard-threshold-card__item-label">Approval</span>
-                    <span className="dashboard-threshold-card__item-value">{band.approvalLevel}</span>
-                  </div>
-                  {band.timeline && (
-                    <div className="dashboard-threshold-card__item">
-                      <span className="dashboard-threshold-card__item-label">Timeline</span>
-                      <span className="dashboard-threshold-card__item-value">{band.timeline}</span>
-                    </div>
-                  )}
-                  {band.escalation && (
-                    <div className="dashboard-threshold-card__item">
-                      <span className="dashboard-threshold-card__item-label">Escalation</span>
-                      <span className="dashboard-threshold-card__item-value">{band.escalation}</span>
-                    </div>
-                  )}
-                </div>
-                {band.steps.length > 0 && (
-                  <div className="dashboard-threshold-card__steps">
-                    {band.steps.map((step, idx) => (
-                      <span key={idx} className="dashboard-threshold-card__step">
-                        {step}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
     </div>
   );
 };
