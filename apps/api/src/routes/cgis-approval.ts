@@ -1,14 +1,14 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { pool } from '../db.js';
-import { extractPayloadFromRequest } from '../lib/jwt.js';
 import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
+import type { AuthenticatedRequest } from '../middleware/auth.js';
 
 export const cgisApprovalRouter = Router();
 
 // GET /api/cgis-approval/documents/:entityType/:entityId
-cgisApprovalRouter.get('/api/cgis-approval/documents/:entityType/:entityId', async (req, res) => {
-  const payload = extractPayloadFromRequest(req.headers.authorization);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+cgisApprovalRouter.get('/api/cgis-approval/documents/:entityType/:entityId', async (req: Request, res: Response) => {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
   try {
     const { entityType, entityId } = req.params;
@@ -33,7 +33,7 @@ cgisApprovalRouter.get('/api/cgis-approval/documents/:entityType/:entityId', asy
 });
 
 // POST /api/cgis-approval/:action
-cgisApprovalRouter.post('/api/cgis-approval/:action', async (req, res) => {
+cgisApprovalRouter.post('/api/cgis-approval/:action', async (req: Request, res: Response) => {
   const auth = await requirePermission(req, 'cgis.approve');
   if (denyIfNoPermission(res, auth)) return;
 

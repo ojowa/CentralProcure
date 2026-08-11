@@ -1,20 +1,16 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { pool } from '../db.js';
-import { extractPayloadFromRequest } from '../lib/jwt.js';
 import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
+import type { AuthenticatedRequest } from '../middleware/auth.js';
 
 export const tendersBoardApprovalsRouter = Router();
-
-function requireAuth(req: any) {
-  return extractPayloadFromRequest(req.headers.authorization);
-}
 
 // ─────────────────────────────────────────────
 // GET /api/tenders-board-approvals/queue
 // ─────────────────────────────────────────────
-tendersBoardApprovalsRouter.get('/api/tenders-board-approvals/queue', async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+tendersBoardApprovalsRouter.get('/api/tenders-board-approvals/queue', async (req: Request, res: Response) => {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
@@ -68,7 +64,7 @@ tendersBoardApprovalsRouter.get('/api/tenders-board-approvals/queue', async (req
 // ─────────────────────────────────────────────
 // POST /api/tenders-board-approvals/approve
 // ─────────────────────────────────────────────
-tendersBoardApprovalsRouter.post('/api/tenders-board-approvals/approve', async (req, res) => {
+tendersBoardApprovalsRouter.post('/api/tenders-board-approvals/approve', async (req: Request, res: Response) => {
   const auth = await requirePermission(req, 'approval.decide');
   if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
@@ -130,7 +126,7 @@ tendersBoardApprovalsRouter.post('/api/tenders-board-approvals/approve', async (
 // ─────────────────────────────────────────────
 // POST /api/tenders-board-approvals/reject
 // ─────────────────────────────────────────────
-tendersBoardApprovalsRouter.post('/api/tenders-board-approvals/reject', async (req, res) => {
+tendersBoardApprovalsRouter.post('/api/tenders-board-approvals/reject', async (req: Request, res: Response) => {
   const auth = await requirePermission(req, 'approval.decide');
   if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
@@ -192,7 +188,7 @@ tendersBoardApprovalsRouter.post('/api/tenders-board-approvals/reject', async (r
 // ─────────────────────────────────────────────
 // POST /api/tenders-board-approvals/return
 // ─────────────────────────────────────────────
-tendersBoardApprovalsRouter.post('/api/tenders-board-approvals/return', async (req, res) => {
+tendersBoardApprovalsRouter.post('/api/tenders-board-approvals/return', async (req: Request, res: Response) => {
   const auth = await requirePermission(req, 'approval.decide');
   if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
