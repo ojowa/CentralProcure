@@ -6,6 +6,7 @@ import { hashPassword, verifyPassword } from '../lib/password.js';
 import { config } from '../config.js';
 import { authRateLimiter, registrationRateLimiter } from '../middleware/rate-limit.js';
 import { withModuleDataset } from '../lib/module-datasets.js';
+import type { AuthenticatedRequest } from '../middleware/auth.js';
 
 export const authRouter = Router();
 
@@ -34,6 +35,8 @@ const registerSchema = z.object({
 });
 
 function requireAuth(req: Request): TokenPayload | null {
+  const middlewareAuth = (req as AuthenticatedRequest).auth;
+  if (middlewareAuth) return middlewareAuth;
   return extractPayloadFromRequest(req.headers.authorization);
 }
 
@@ -1188,7 +1191,8 @@ authRouter.get('/api/Auth/internal/notifications', async (req: Request, res: Res
   if (!requireDb(res)) return;
 
   try {
-    const result = await pool!.query('SELECT * FROM identity.get_internal_notifications_sp($1)', [auth.sub]);
+    const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 50, 1), 100);
+    const result = await pool!.query('SELECT * FROM identity.get_internal_notifications_sp($1, $2)', [auth.sub, limit]);
     res.json(result.rows.map(mapRow));
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching notifications.' });
@@ -1203,7 +1207,8 @@ authRouter.get('/api/notifications', async (req: Request, res: Response) => {
   if (!auth) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
   if (!requireDb(res)) return;
   try {
-    const result = await pool!.query('SELECT * FROM identity.get_internal_notifications_sp($1)', [auth.sub]);
+    const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 50, 1), 100);
+    const result = await pool!.query('SELECT * FROM identity.get_internal_notifications_sp($1, $2)', [auth.sub, limit]);
     res.json(result.rows.map(mapRow));
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching notifications.' });
@@ -1222,12 +1227,70 @@ authRouter.put('/api/Auth/internal/notifications/:notificationId/read', async (r
 
   try {
     await pool!.query(
-      'UPDATE identity.internal_notifications SET is_read = true, read_at = NOW() WHERE notification_id = $1 AND recipient_user_id = $2',
+      'UPDATE identity.internal_notifications SET is_read = true WHERE notification_id = $1 AND user_id = $2',
       [notificationId, auth.sub]
     );
     res.json({ Status: 'Success' });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred marking notification as read.' });
+  }
+});
+
+// ─────────────────────────────────────────────
+// 40b. PUT /api/Auth/internal/notifications/read-all
+// ─────────────────────────────────────────────
+authRouter.put('/api/Auth/internal/notifications/read-all', async (req: Request, res: Response) => {
+  const auth = requireAuth(req);
+  if (!auth) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  if (!requireDb(res)) return;
+
+  try {
+    await pool!.query(
+      'UPDATE identity.internal_notifications SET is_read = true WHERE user_id = $1 AND is_read = false',
+      [auth.sub]
+    );
+    res.json({ Status: 'Success' });
+  } catch (error: any) {
+    res.status(500).json({ ErrorMessage: error.message || 'An error occurred marking notifications as read.' });
+  }
+});
+
+// ─────────────────────────────────────────────
+// 40c. POST /api/Auth/internal/notifications (admin create)
+// ─────────────────────────────────────────────
+authRouter.post('/api/Auth/internal/notifications', async (req: Request, res: Response) => {
+  const auth = requireAdmin(req, res);
+  if (!auth) return;
+  if (!requireDb(res)) return;
+
+  const { UserId, Title, Message, NotificationType, EntityType, EntityId } = req.body as {
+    UserId?: string; Title?: string; Message?: string; NotificationType?: string; EntityType?: string; EntityId?: string;
+  };
+
+  if (!Title || !Message) {
+    res.status(400).json({ ErrorMessage: 'Title and Message are required.' });
+    return;
+  }
+
+  try {
+    if (UserId) {
+      const result = await pool!.query(
+        'SELECT identity.create_notification($1, $2, $3, $4, $5, $6)',
+        [UserId, Title, Message, NotificationType || 'info', EntityType || null, EntityId || null]
+      );
+      res.json({ Status: 'Success', NotificationId: result.rows[0].create_notification });
+    } else {
+      const users = await pool!.query('SELECT internal_user_id FROM identity.internal_users WHERE status = $1', ['Active']);
+      for (const u of users.rows) {
+        await pool!.query(
+          'SELECT identity.create_notification($1, $2, $3, $4, $5, $6)',
+          [u.internal_user_id, Title, Message, NotificationType || 'info', EntityType || null, EntityId || null]
+        );
+      }
+      res.json({ Status: 'Success', SentTo: users.rowCount });
+    }
+  } catch (error: any) {
+    res.status(500).json({ ErrorMessage: error.message || 'An error occurred creating notification.' });
   }
 });
 

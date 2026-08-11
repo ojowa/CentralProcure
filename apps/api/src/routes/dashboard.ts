@@ -96,7 +96,7 @@ dashboardRouter.get('/api/Auth/internal/dashboard', async (req: Request, res: Re
         'SELECT im.module_id AS "ModuleId", im.title AS "Title" FROM identity.get_role_modules($1) grm JOIN identity.internal_modules im ON im.module_id = grm.module_id ORDER BY im.title',
         [auth.role || '']
       ),
-      pool.query('SELECT * FROM identity.get_internal_notifications_sp($1)', [auth.sub]),
+      pool.query('SELECT * FROM identity.get_internal_notifications_sp($1, $2)', [auth.sub, 20]),
       pool.query(
         `SELECT threshold_name AS "ThresholdName", min_amount AS "MinAmount", max_amount AS "MaxAmount",
                 approval_authority_label AS "RequiredApprovalLevel", status AS "IsActive",

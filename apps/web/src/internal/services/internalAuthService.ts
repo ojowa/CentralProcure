@@ -42,6 +42,7 @@ const API_ENDPOINTS = {
   INTERNAL_USER_ROLE_AUDIT: withBasePath('/api/Auth/internal/user-role/audit'),
   INTERNAL_NOTIFICATIONS: withBasePath('/api/Auth/internal/notifications'),
   INTERNAL_NOTIFICATION_READ: (id: string) => withBasePath(`/api/Auth/internal/notifications/${id}/read`),
+  INTERNAL_NOTIFICATION_READ_ALL: withBasePath('/api/Auth/internal/notifications/read-all'),
   CSRF_INIT: withBasePath('/api/Auth/csrf'),
 };
 
@@ -625,6 +626,28 @@ export const markInternalNotificationAsRead = async (
   });
 
   await parseResponse<void>(response, 'Unable to mark notification as read.');
+};
+
+export const markAllNotificationsAsRead = async (token: string): Promise<void> => {
+  const response = await fetch(API_ENDPOINTS.INTERNAL_NOTIFICATION_READ_ALL, {
+    method: 'PUT',
+    headers: buildAuthHeaders(token),
+    credentials: 'include'
+  });
+  await parseResponse<void>(response, 'Unable to mark all notifications as read.');
+};
+
+export const createInternalNotification = async (
+  token: string,
+  data: { UserId?: string; Title: string; Message: string; NotificationType?: string; EntityType?: string; EntityId?: string }
+): Promise<{ Status: string; NotificationId?: string; SentTo?: number }> => {
+  const response = await fetch(API_ENDPOINTS.INTERNAL_NOTIFICATIONS, {
+    method: 'POST',
+    headers: { ...buildAuthHeaders(token), 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(data)
+  });
+  return parseResponse(response, 'Unable to create notification.');
 };
 
 export const fetchInternalUserProfile = async (
