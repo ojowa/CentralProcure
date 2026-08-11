@@ -22,6 +22,41 @@ const ROLE_COPY: Record<string, { title: string; subtitle: string }> = {
   vendor: { title: 'Vendor Portal', subtitle: 'Manage bids, documents, and submissions' }
 };
 
+const MODULE_QUICK_ACTIONS: Record<string, { label: string }> = {
+  'needs-collection': { label: 'Needs Assessment' },
+  'needs-submission': { label: 'Submit Needs' },
+  'annual-procurement-plan': { label: 'Annual Procurement Plan' },
+  'procurement-method-determination': { label: 'Method Determination' },
+  'create-tender': { label: 'Tender Management' },
+  'bid-opening-session': { label: 'Bid Opening' },
+  'technical-evaluation': { label: 'Technical Evaluation' },
+  'financial-evaluation': { label: 'Financial Evaluation' },
+  'evaluation-report': { label: 'Evaluation Report' },
+  'assigned-tenders': { label: 'Assigned Tenders' },
+  'tender-review': { label: 'Tender Review' },
+  'approval-rejection': { label: 'Approval Decisions' },
+  'high-value-tenders': { label: 'High-Value Tenders' },
+  'cgis-approval': { label: 'CGIS Approvals' },
+  'tenders-board-approval': { label: 'Board Approvals' },
+  'bpp-escalation': { label: 'BPP Escalations' },
+  'administrative-review': { label: 'Complaint Handling' },
+  'contract-award': { label: 'Contract Award' },
+  'contract-management': { label: 'Contract Management' },
+  'inspection-acceptance': { label: 'Inspections' },
+  'payment-tracking': { label: 'Payment Tracking' },
+  'budget-workspace': { label: 'Budget Workspace' },
+  'audit-dashboard': { label: 'Audit Dashboard' },
+  'audit-trail-viewer': { label: 'Audit Trail' },
+  'compliance-reports': { label: 'Compliance Reports' },
+  'user-role-management': { label: 'User Management' },
+  'vendor-registration-approval': { label: 'Vendor Approval' },
+  'threshold-configuration': { label: 'Threshold Configuration' },
+  'system-monitoring': { label: 'System Monitoring' },
+  'workflow-configuration': { label: 'Workflow Configuration' },
+  'user-profile': { label: 'My Profile' },
+  'organization-management': { label: 'Organization Management' }
+};
+
 const normalizeRole = (value: string): string => value.trim().toLowerCase();
 
 const deriveActivityType = (title: string, message: string): 'approval' | 'tender' | 'bid' | 'system' => {
@@ -84,6 +119,10 @@ dashboardRouter.get('/api/Auth/internal/dashboard', async (req: Request, res: Re
     const unread = notifications.filter((n) => !n.IsRead);
     const thresholds = thresholdsResult.rows;
 
+    const quickActions = modules
+      .map((module) => ({ label: MODULE_QUICK_ACTIONS[module.ModuleId]?.label ?? module.Title, moduleId: module.ModuleId }))
+      .slice(0, 8);
+
     const recentActivity = notifications.slice(0, 10).map((n, index) => {
       const title = n.Title ?? 'Notification';
       const message = n.Message ?? '';
@@ -106,6 +145,7 @@ dashboardRouter.get('/api/Auth/internal/dashboard', async (req: Request, res: Re
         { label: 'Unread Notifications', value: String(unread.length) },
         { label: 'Active Thresholds', value: String(thresholds.length) }
       ],
+      QuickActions: quickActions,
       Alerts: unread.slice(0, 5).map((n) => ({
         type: deriveAlertType(n.Title ?? '', n.Message ?? '', n.NotificationType),
         message: n.Message ?? n.Title ?? ''

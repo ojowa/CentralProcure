@@ -63,6 +63,15 @@ const getStatusColor = (status?: string) => {
   }
 };
 
+const getQuickActionIcon = (moduleId: string): React.ReactNode => {
+  if (moduleId.includes('budget')) return <Briefcase className="w-5 h-5" />;
+  if (moduleId.includes('audit') || moduleId.includes('compliance')) return <Shield className="w-5 h-5" />;
+  if (moduleId.includes('tender') || moduleId.includes('evaluation')) return <TrendingUp className="w-5 h-5" />;
+  if (moduleId.includes('approval') || moduleId.includes('cgis') || moduleId.includes('board')) return <CheckCircle className="w-5 h-5" />;
+  if (moduleId.includes('profile') || moduleId.includes('user')) return <User className="w-5 h-5" />;
+  return <FileText className="w-5 h-5" />;
+};
+
 export const DashboardPage = ({ role, userEmail, userFirstName, userSurname, roleName, token }: DashboardProps) => {
   const resolvedRoleName = roleName || (role ? role.replace(/_/g, ' ') : null);
 
@@ -95,6 +104,11 @@ export const DashboardPage = ({ role, userEmail, userFirstName, userSurname, rol
       value: metric.value,
       trend: metric.trend,
       icon: getMetricIcon(metric.label)
+    })),
+    quickActions: (dashboard?.QuickActions ?? []).map((action) => ({
+      label: action.label,
+      moduleId: action.moduleId,
+      icon: getQuickActionIcon(action.moduleId)
     })),
     alerts: (dashboard?.Alerts ?? []) as { type: 'warning' | 'info' | 'success'; message: string }[],
     activities: (dashboard?.RecentActivity ?? []).map((a) => ({
@@ -259,6 +273,26 @@ export const DashboardPage = ({ role, userEmail, userFirstName, userSurname, rol
                   </span>
                 )}
               </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Quick Actions */}
+      {config.quickActions.length > 0 && (
+        <section className="dashboard-quick-actions">
+          <h2 className="dashboard-section-title">Quick Actions</h2>
+          <div className="dashboard-quick-actions__grid">
+            {config.quickActions.map((action, index) => (
+              <Link
+                key={index}
+                href={getInternalDashboardPath(action.moduleId)}
+                className="dashboard-quick-action"
+              >
+                <span className="dashboard-quick-action__icon">{action.icon}</span>
+                <span className="dashboard-quick-action__label">{action.label}</span>
+                <ArrowRight className="dashboard-quick-action__arrow" />
+              </Link>
             ))}
           </div>
         </section>

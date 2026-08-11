@@ -4,6 +4,11 @@ export interface InternalDashboardMetric {
   trend?: string;
 }
 
+export interface InternalDashboardQuickAction {
+  label: string;
+  moduleId: string;
+}
+
 export interface InternalDashboardAlert {
   type: 'warning' | 'info' | 'success';
   message: string;
@@ -23,8 +28,8 @@ export interface InternalDashboardResponse {
   Title: string;
   Subtitle: string;
   Metrics: InternalDashboardMetric[];
+  QuickActions: InternalDashboardQuickAction[];
   Alerts: InternalDashboardAlert[];
-  Thresholds: ThresholdBandData[];
   RecentActivity: InternalDashboardActivity[];
 }
 
