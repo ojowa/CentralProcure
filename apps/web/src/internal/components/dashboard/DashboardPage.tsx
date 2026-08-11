@@ -90,7 +90,7 @@ export const DashboardPage = ({ modules, role, userEmail, userFirstName, userSur
 
   const config = {
     title: dashboard?.Title ?? 'Procurement Dashboard',
-    subtitle: dashboard?.Subtitle ?? 'Welcome to the CentralProcure internal workspace',
+    subtitle: dashboard?.Subtitle ?? 'Welcome to NIS eProcurement Portal',
     primaryMetrics: (dashboard?.Metrics ?? []).map((metric) => ({
       label: metric.label,
       value: metric.value,

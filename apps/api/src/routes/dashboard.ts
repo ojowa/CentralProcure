@@ -53,7 +53,7 @@ dashboardRouter.get('/api/Auth/internal/dashboard', async (req: Request, res: Re
   }
 
   const role = normalizeRole(auth.role || '');
-  const copy = ROLE_COPY[role] ?? { title: 'Procurement Dashboard', subtitle: 'Welcome to the CentralProcure internal workspace' };
+  const copy = ROLE_COPY[role] ?? { title: 'Procurement Dashboard', subtitle: 'Welcome to NIS eProcurement Portal' };
 
   try {
     const [modulesResult, notificationsResult, thresholdsResult] = await Promise.all([
