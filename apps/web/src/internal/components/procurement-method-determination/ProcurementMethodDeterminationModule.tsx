@@ -37,7 +37,7 @@ type Detail = {
   RequiresBpp: boolean;
   CurrentDecision?: {
     SelectedMethod: string;
-    DecisionReason: string;
+    Justification: string;
     DeterminedBy?: string | null;
     DeterminedAt: string;
     IsExceptionDecision: boolean;
@@ -70,8 +70,8 @@ export const ProcurementMethodDeterminationModule = ({ module, token }: { module
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchModuleData('procurement-method-determination', token) as QueueItem[];
-      setQueue(data || []);
+      const data = await fetchModuleData('procurement-method-determination', token) as { Items?: QueueItem[] };
+      setQueue(data?.Items || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load low-value method queue.');
     } finally {
@@ -118,16 +118,19 @@ export const ProcurementMethodDeterminationModule = ({ module, token }: { module
         await requestProcurementMethodException({
           EntityType: selected.EntityType,
           EntityId: selected.EntityId,
+          EntityTitle: selected.RecordTitle || '',
           RequestedMethod: method,
-          Rationale: note.trim()
+          Justification: note.trim(),
+          Reason: note.trim()
         }, token);
         setFeedback('Late method-change exception submitted to CGIS.');
       } else {
         await recordProcurementMethodDecision({
           EntityType: selected.EntityType,
           EntityId: selected.EntityId,
-          SelectedMethod: method,
-          Rationale: note.trim()
+          EntityTitle: selected.RecordTitle || '',
+          MethodDetermined: method,
+          Justification: note.trim()
         }, token);
         setFeedback('Procurement method recorded.');
       }
@@ -161,11 +164,11 @@ export const ProcurementMethodDeterminationModule = ({ module, token }: { module
       <div className="app-grid app-grid--2col" style={{ alignItems: 'start' }}>
         <div className="app-card">
           <div className="app-card__header">
-            <h3 className="app-card__title">Low-Value Queue</h3>
+            <h3 className="app-card__title">Pending Method Queue</h3>
           </div>
           <div className="app-card__body">
             {queue.length === 0 && !loading ? (
-              <div className="app-empty-state app-empty-state--small">No low-value cases require method action.</div>
+              <div className="app-empty-state app-empty-state--small">All cases have a determined procurement method.</div>
             ) : (
               <div className="app-table-wrapper">
                 <table className="app-table app-table--compact">

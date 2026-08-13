@@ -14,6 +14,20 @@ procurementMethodsRouter.get('/api/procurement-methods/queue', async (req, res) 
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
+    const { Page, PageSize } = req.query;
+    const pageNum = Math.max(1, parseInt(Page as string, 10) || 1);
+    const pageSizeNum = Math.min(100, Math.max(1, parseInt(PageSize as string, 10) || 50));
+    const offset = (pageNum - 1) * pageSizeNum;
+
+    const countResult = await pool.query(
+      `SELECT COUNT(*) AS total
+       FROM procurement_workflow.workflow_instances wi
+       LEFT JOIN procurement_workflow.procurement_methods pm
+         ON pm.entity_type = wi.entity_type AND pm.entity_id = wi.entity_id
+       WHERE pm.method_id IS NULL`
+    );
+    const totalCount = parseInt(countResult.rows[0]?.total || '0', 10);
+
     const result = await pool.query(
       `SELECT
         wi.entity_type AS "EntityType",
@@ -41,10 +55,17 @@ procurementMethodsRouter.get('/api/procurement-methods/queue', async (req, res) 
        LEFT JOIN procurement_workflow.method_exceptions me
          ON me.entity_type = wi.entity_type AND me.entity_id = wi.entity_id AND me.status = 'Pending'
        WHERE pm.method_id IS NULL
-       ORDER BY wi.amount DESC NULLS LAST`
+       ORDER BY wi.amount DESC NULLS LAST
+       LIMIT $1 OFFSET $2`,
+      [pageSizeNum, offset]
     );
 
-    res.json({ Items: result.rows });
+    res.json({
+      Items: result.rows,
+      TotalCount: totalCount,
+      Page: pageNum,
+      PageSize: pageSizeNum,
+    });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching procurement methods queue.' });
   }
@@ -135,6 +156,10 @@ procurementMethodsRouter.get('/api/procurement-methods/:entityType/:entityId', a
   try {
     const { entityType, entityId } = req.params;
 
+    if (!entityType || !entityId) {
+      res.status(400).json({ ErrorMessage: 'EntityType and EntityId are required.' }); return;
+    }
+
     const instResult = await pool.query(
       `SELECT
         wi.entity_type AS "EntityType",
@@ -178,7 +203,7 @@ procurementMethodsRouter.get('/api/procurement-methods/:entityType/:entityId', a
     const methodResult = await pool.query(
       `SELECT
         method_determined AS "SelectedMethod",
-        justification AS "DecisionReason",
+        justification AS "Justification",
         determined_by AS "DeterminedBy",
         determined_at AS "DeterminedAt",
         CASE WHEN status = 'Overridden' THEN true ELSE false END AS "IsExceptionDecision"
@@ -242,6 +267,7 @@ procurementMethodsRouter.post('/api/procurement-methods/determine', async (req, 
        VALUES ($1, $2, $3, $4, $5, $6, 'Determined', $7, NOW(), NOW(), NOW())
        ON CONFLICT (entity_type, entity_id)
        DO UPDATE SET
+        entity_title = CASE WHEN $3 = '' THEN procurement_methods.entity_title ELSE $3 END,
         method_determined = $4,
         estimated_value = $5,
         justification = $6,
@@ -292,7 +318,7 @@ procurementMethodsRouter.post('/api/procurement-methods/request-exception', asyn
         requested_method AS "RequestedMethod",
         status AS "Status",
         requested_at AS "RequestedAt"`,
-      [EntityType, EntityId, EntityTitle || '', RequestedMethod, Justification, Reason || '', auth!.sub]
+      [EntityType, EntityId, EntityTitle || '', RequestedMethod, Justification, Reason || Justification, auth!.sub]
     );
 
     res.status(201).json(result.rows[0]);
@@ -307,6 +333,7 @@ procurementMethodsRouter.post('/api/procurement-methods/exceptions/:action', asy
   if (denyIfNoPermission(res, auth)) return;
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
+  const client = await pool.connect();
   try {
     const { action } = req.params;
     const { ExceptionId, Note } = req.body;
@@ -323,7 +350,9 @@ procurementMethodsRouter.post('/api/procurement-methods/exceptions/:action', asy
       res.status(400).json({ ErrorMessage: 'Action must be approve, reject, or return.' }); return;
     }
 
-    const result = await pool.query(
+    await client.query('BEGIN');
+
+    const result = await client.query(
       `UPDATE procurement_workflow.method_exceptions
        SET status = $1, decided_by = $2, decided_at = NOW(), decision_comments = $3
        WHERE exception_id = $4 AND status = 'Pending'
@@ -331,6 +360,7 @@ procurementMethodsRouter.post('/api/procurement-methods/exceptions/:action', asy
         exception_id AS "ExceptionId",
         entity_type AS "EntityType",
         entity_id AS "EntityId",
+        entity_title AS "EntityTitle",
         requested_method AS "RequestedMethod",
         status AS "Status",
         decided_at AS "DecidedAt"`,
@@ -338,23 +368,35 @@ procurementMethodsRouter.post('/api/procurement-methods/exceptions/:action', asy
     );
 
     if (result.rows.length === 0) {
+      await client.query('ROLLBACK');
       res.status(404).json({ ErrorMessage: 'Exception not found or already decided.' }); return;
     }
 
     if (newStatus === 'Approved') {
       const exc = result.rows[0];
-      await pool.query(
+      await client.query(
         `INSERT INTO procurement_workflow.procurement_methods
-          (entity_type, entity_id, entity_title, method_determined, status, determined_by, determined_at, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, 'Determined', $5, NOW(), NOW(), NOW())
+          (entity_type, entity_id, entity_title, method_determined, justification, status, determined_by, determined_at, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, 'Determined', $6, NOW(), NOW(), NOW())
          ON CONFLICT (entity_type, entity_id)
-         DO UPDATE SET method_determined = $4, status = 'Determined', determined_by = $5, determined_at = NOW(), updated_at = NOW()`,
-        [exc.EntityType, exc.EntityId, exc.EntityTitle || '', exc.RequestedMethod, auth!.sub]
+         DO UPDATE SET
+          entity_title = CASE WHEN $3 = '' THEN procurement_methods.entity_title ELSE $3 END,
+          method_determined = $4,
+          justification = $5,
+          status = 'Determined',
+          determined_by = $6,
+          determined_at = NOW(),
+          updated_at = NOW()`,
+        [exc.EntityType, exc.EntityId, exc.EntityTitle || '', exc.RequestedMethod, Note || 'Approved via exception', auth!.sub]
       );
     }
 
+    await client.query('COMMIT');
     res.json(result.rows[0]);
   } catch (error: any) {
+    await client.query('ROLLBACK');
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred processing the exception decision.' });
+  } finally {
+    client.release();
   }
 });
