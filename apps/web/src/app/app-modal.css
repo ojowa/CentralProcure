@@ -1,0 +1,165 @@
+/* ============================================================================
+   APP MODAL STYLES
+   ============================================================================ */
+
+.app-modal {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  min-height: 100vh;
+  min-height: 100dvh;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.app-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(11, 18, 33, 0.6);
+  backdrop-filter: blur(4px);
+  transition: opacity 0.2s ease;
+}
+
+.app-modal__content {
+  position: relative;
+  background: var(--portal-card, #ffffff);
+  border-radius: 16px;
+  box-shadow: var(--portal-shadow, 0 24px 48px rgba(10, 20, 34, 0.12));
+  width: 100%;
+  max-width: 520px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  animation: modal-slide-up 0.3s ease;
+}
+
+.app-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--portal-border, #dbe3ee);
+}
+
+.app-modal__title {
+  font-family: "Fraunces", "Times New Roman", serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--portal-ink, #0b1221);
+  margin: 0;
+}
+
+.app-modal__close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--portal-slate, #435169);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+}
+
+.app-modal__close:hover:not(:disabled) {
+  background: var(--portal-mist, #edf2f7);
+  color: var(--portal-ink, #0b1221);
+}
+
+.app-modal__close:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.app-modal form {
+  padding: 24px;
+}
+
+.app-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px 24px;
+  border-top: 1px solid var(--portal-border, #dbe3ee);
+  background: var(--portal-mist, #edf2f7);
+  border-radius: 0 0 16px 16px;
+}
+
+/* Form styles for modal */
+.app-form__group {
+  margin-bottom: 20px;
+}
+
+.app-form__label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--portal-ink, #0b1221);
+  margin-bottom: 6px;
+}
+
+.app-form__required {
+  color: #dc2626;
+}
+
+.app-form__input,
+.app-form__select,
+.app-form__textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--portal-border, #dbe3ee);
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  color: var(--portal-ink, #0b1221);
+  background: #fff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.app-form__input:focus,
+.app-form__select:focus,
+.app-form__textarea:focus {
+  outline: none;
+  border-color: var(--portal-forest, #0b5d3b);
+  box-shadow: 0 0 0 3px rgba(11, 93, 59, 0.1);
+}
+
+.app-form__input--error,
+.app-form__select--error {
+  border-color: #dc2626;
+}
+
+.app-form__input--error:focus,
+.app-form__select--error:focus {
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.app-form__error {
+  display: block;
+  font-size: 0.8125rem;
+  color: #dc2626;
+  margin-top: 4px;
+}
+
+.app-form__hint {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--portal-slate, #435169);
+  margin-top: 4px;
+}
+
+.app-form__textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.app-form__select:disabled {
+  background: var(--portal-mist, #edf2f7);
+  color: var(--portal-slate, #435169);
+  cursor: not-allowed;
+}

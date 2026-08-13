@@ -1,0 +1,653 @@
+.portal-dashboard,
+.portal-module,
+.admin-hub {
+  min-width: 0;
+  background: var(--portal-card);
+  border: 1px solid var(--portal-border);
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: var(--portal-shadow);
+  animation: rise-in 0.6s ease both;
+}
+
+.portal-module--tracking {
+  padding: 16px;
+}
+
+.portal-dashboard h2,
+.portal-module h2,
+.admin-hero h2 {
+  font-family: "Fraunces", "Times New Roman", serif;
+  margin: 0 0 8px;
+  font-size: 24px;
+}
+
+.portal-dashboard p,
+.portal-module p,
+.admin-hero p {
+  color: var(--portal-slate);
+  margin: 0 0 12px;
+}
+
+.portal-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.portal-stat {
+  border: 1px solid var(--portal-border);
+  border-radius: 16px;
+  padding: 16px;
+  background: #f8fafc;
+}
+
+.portal-stat strong {
+  display: block;
+  font-size: 22px;
+  color: var(--portal-forest);
+}
+
+.portal-stat span {
+  color: var(--portal-slate);
+  font-size: 13px;
+}
+
+.portal-module-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.portal-module-card {
+  border: 1px solid var(--portal-border);
+  border-radius: 16px;
+  padding: 16px;
+  background: #f9fbff;
+}
+
+.portal-module-card h3 {
+  margin: 0 0 6px;
+  font-size: 14px;
+}
+
+.portal-module-card p {
+  margin: 0;
+  color: var(--portal-slate);
+  font-size: 13px;
+}
+
+.portal-alert {
+  border: 1px solid #f7c1b5;
+  background: #fff3f0;
+  color: #9f2f1a;
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-size: 13px;
+}
+
+.admin-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  gap: 18px;
+  border-radius: 20px;
+  padding: 20px;
+  background: linear-gradient(140deg, rgba(11, 93, 59, 0.08), rgba(11, 93, 59, 0.02));
+  border: 1px solid rgba(11, 93, 59, 0.18);
+}
+
+.admin-kicker {
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 11px;
+  color: var(--portal-forest);
+  font-weight: 700;
+}
+
+.admin-tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.admin-tag {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(11, 93, 59, 0.2);
+  color: var(--portal-forest);
+  background: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.admin-metrics {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-metric {
+  border-radius: 14px;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid var(--portal-border);
+}
+
+.admin-metric strong {
+  display: block;
+  font-size: 18px;
+  color: var(--portal-forest);
+}
+
+.admin-metric span {
+  font-size: 12px;
+  color: var(--portal-slate);
+}
+
+.admin-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.admin-action {
+  border-radius: 16px;
+  border: 1px solid var(--portal-border);
+  padding: 14px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-action h4 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.admin-action p {
+  margin: 0;
+  color: var(--portal-slate);
+  font-size: 12px;
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.admin-card {
+  border: 1px solid var(--portal-border);
+  border-radius: 18px;
+  padding: 16px;
+  background: #ffffff;
+  box-shadow: 0 12px 24px rgba(10, 20, 34, 0.06);
+}
+
+.admin-card h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+.admin-card p {
+  margin: 0;
+  color: var(--portal-slate);
+  font-size: 13px;
+}
+
+.admin-card--wide {
+  grid-column: span 7;
+}
+
+.admin-card--mid {
+  grid-column: span 5;
+}
+
+.admin-card--full {
+  grid-column: span 12;
+}
+
+.workflow-config-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+  align-items: center;
+}
+
+.workflow-config-tabs button,
+.workflow-config-tabs a {
+  border: 1px solid var(--portal-border);
+  background: #fff;
+  color: var(--portal-slate);
+  border-radius: 999px;
+  padding: 9px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.workflow-config-tabs button.active,
+.workflow-config-tabs a.active {
+  background: rgba(11, 93, 59, 0.12);
+  color: var(--portal-forest);
+  border-color: rgba(11, 93, 59, 0.26);
+}
+
+.workflow-config-refresh {
+  margin-left: auto;
+}
+
+.plan-field--checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+}
+
+.plan-field--checkbox input {
+  width: 16px;
+  height: 16px;
+}
+
+.plan-row--selected {
+  background: rgba(11, 93, 59, 0.08);
+}
+
+.plan-success {
+  border: 1px solid rgba(11, 93, 59, 0.2);
+  background: rgba(11, 93, 59, 0.08);
+  color: var(--portal-forest);
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-size: 13px;
+}
+
+.admin-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.admin-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #f7fafc;
+  border: 1px solid var(--portal-border);
+  font-size: 13px;
+}
+
+.admin-list span {
+  color: var(--portal-slate);
+}
+
+.admin-status {
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.admin-status--good {
+  background: rgba(11, 93, 59, 0.12);
+  color: var(--portal-forest);
+}
+
+.admin-status--warn {
+  background: rgba(194, 138, 44, 0.2);
+  color: #8a5a17;
+}
+
+.admin-status--alert {
+  background: rgba(210, 76, 54, 0.18);
+  color: #a12a1b;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.admin-table th,
+.admin-table td {
+  text-align: left;
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--portal-border);
+}
+
+.admin-table th {
+  color: var(--portal-slate);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.admin-response {
+  margin-top: 14px;
+  background: #0b1221;
+  color: #e2e8f0;
+  border-radius: 14px;
+  padding: 12px;
+  font-size: 12px;
+  overflow: auto;
+  max-height: 220px;
+  white-space: pre-wrap;
+  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+}
+
+.plan-toolbar {
+  display: grid;
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.plan-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.plan-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--portal-slate);
+}
+
+.plan-field span {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 10px;
+}
+
+.plan-input,
+.plan-select,
+.plan-textarea {
+  border: 1px solid var(--portal-border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 13px;
+  background: #fff;
+  color: var(--portal-ink);
+}
+
+.plan-textarea {
+  resize: vertical;
+}
+
+.plan-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.plan-button {
+  border: none;
+  border-radius: 10px;
+  padding: 8px 14px;
+  min-height: 38px;
+  background: var(--portal-forest);
+  color: #fff;
+  font-size: 13px;
+  line-height: 1.1;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 10px 18px rgba(11, 93, 59, 0.2);
+}
+
+.plan-button--sm {
+  padding: 6px 10px;
+  min-height: 32px;
+  border-radius: 9px;
+  font-size: 12px;
+  box-shadow: 0 8px 14px rgba(11, 93, 59, 0.16);
+}
+
+.plan-button--large {
+  padding: 11px 18px;
+  min-height: 42px;
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+.plan-button--secondary {
+  background: #fff;
+  color: var(--portal-forest);
+  border: 1px solid rgba(11, 93, 59, 0.3);
+  box-shadow: none;
+}
+
+.plan-button--danger {
+  background: #a12a1b;
+  box-shadow: 0 10px 18px rgba(161, 42, 27, 0.2);
+}
+
+.plan-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+  font-size: 13px;
+}
+
+.plan-table th,
+.plan-table td {
+  text-align: left;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--portal-border);
+}
+
+.plan-table th {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+  color: var(--portal-slate);
+}
+
+.plan-table tr.plan-table-row--active td {
+  background: rgba(11, 93, 59, 0.05);
+}
+
+/* ── portal-table-container: scrollable table wrapper ── */
+.portal-table-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── portal-table: generic styled table ── */
+.portal-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.portal-table th,
+.portal-table td {
+  text-align: left;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--portal-border);
+}
+
+.portal-table th {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+  color: var(--portal-slate);
+}
+
+.portal-table tr:hover td {
+  background: rgba(11, 93, 59, 0.03);
+}
+
+/* ── app-card__body: card interior padding ── */
+.app-card__body {
+  padding: 16px;
+}
+
+/* ── app-table--compact: compact table variant ── */
+.app-table--compact th,
+.app-table--compact td {
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+/* ── admin-status--bad: alias for admin-status--alert ── */
+.admin-status--bad {
+  background: rgba(210, 76, 54, 0.18);
+  color: #a12a1b;
+}
+
+.plan-link {
+  border: none;
+  background: none;
+  color: var(--portal-forest);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.eval-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.eval-actions .plan-link {
+  padding: 0;
+}
+
+.plan-link--danger {
+  color: #a12a1b;
+  margin-left: 10px;
+}
+
+.plan-muted {
+  color: var(--portal-slate);
+  font-size: 12px;
+}
+
+.plan-empty {
+  text-align: center;
+  color: var(--portal-slate);
+  padding: 18px 0;
+}
+
+.plan-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--portal-slate);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.plan-pagination__controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.plan-pagination__meta {
+  font-weight: 600;
+  color: var(--portal-ink);
+}
+
+.plan-form {
+  margin-top: 20px;
+  border: 1px solid var(--portal-border);
+  border-radius: 18px;
+  padding: 18px;
+  background: #f9fbff;
+}
+
+.plan-form--edit {
+  background: #fff;
+}
+
+.plan-modal {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  min-height: 100vh;
+  min-height: 100dvh;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+}
+
+.plan-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(11, 18, 33, 0.55);
+  backdrop-filter: blur(3px);
+}
+
+.plan-modal__content {
+  position: relative;
+  width: min(720px, 92vw);
+  max-height: 90vh;
+  overflow: auto;
+  background: #fff;
+  border-radius: 20px;
+  border: 1px solid var(--portal-border);
+  padding: 20px;
+  box-shadow: var(--portal-shadow);
+}
+
+.plan-form__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.plan-form__header h3 {
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+
+.plan-form__header p {
+  margin: 0;
+  color: var(--portal-slate);
+  font-size: 12px;
+}
+
+.plan-fieldset {
+  border: none;
+  margin: 0;
+  padding: 0;
+  min-inline-size: 0;
+}
+
+.plan-loading {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(11, 93, 59, 0.08);
+  border: 1px dashed rgba(11, 93, 59, 0.25);
+  color: var(--portal-slate);
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+.plan-form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.plan-field--span {
+  grid-column: span 3;
+}

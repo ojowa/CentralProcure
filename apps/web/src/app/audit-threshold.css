@@ -1,0 +1,534 @@
+.audit-trail__hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.audit-trail__hero-meta {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.audit-trail.portal-module {
+  padding: 18px;
+}
+
+.audit-trail__metrics {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.audit-trail__metric {
+  border: 1px solid rgba(11, 93, 59, 0.12);
+  border-radius: 16px;
+  padding: 12px 14px;
+  background: linear-gradient(180deg, rgba(11, 93, 59, 0.04), #ffffff);
+}
+
+.audit-trail__metric span {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--portal-slate);
+}
+
+.audit-trail__metric strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--portal-ink);
+}
+
+.audit-trail__toolbar {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid var(--portal-border);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at top right, rgba(11, 93, 59, 0.08), transparent 34%),
+    linear-gradient(180deg, #fbfdfd, #f4f8f6);
+}
+
+.audit-trail__surface {
+  margin-top: 14px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  border: 1px solid var(--portal-border);
+  border-radius: 20px;
+  padding: 16px;
+  background:
+    linear-gradient(180deg, rgba(11, 93, 59, 0.03), rgba(255, 255, 255, 0)),
+    #fff;
+}
+
+.audit-trail__surface-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.audit-trail__surface-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.audit-trail__surface-header p {
+  margin: 6px 0 0;
+}
+
+.audit-trail__surface-meta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.audit-trail__grid-shell {
+  margin-top: 18px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 4px;
+}
+
+.audit-trail__grid {
+  --rdg-color-scheme: light;
+  --rdg-background-color: #ffffff;
+  --rdg-header-background-color: #f5f8fb;
+  --rdg-row-hover-background-color: rgba(11, 93, 59, 0.05);
+  --rdg-selection-color: rgba(11, 93, 59, 0.14);
+  --rdg-border-color: var(--portal-border);
+  --rdg-font-size: 12px;
+  min-width: 1680px;
+  border: 1px solid var(--portal-border);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.audit-trail__grid .rdg-header-row {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--portal-slate);
+}
+
+.audit-trail__grid-record {
+  display: grid;
+  gap: 2px;
+}
+
+.audit-trail__grid-record strong {
+  color: var(--portal-ink);
+  font-size: 13px;
+}
+
+.audit-trail__grid-record span {
+  color: var(--portal-slate);
+  font-size: 11px;
+}
+
+.audit-trail__grid-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 64px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(11, 93, 59, 0.1);
+  color: var(--portal-forest);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.audit-trail__list {
+  margin-top: 18px;
+  display: grid;
+  gap: 14px;
+}
+
+.audit-trail__event-card {
+  position: relative;
+  border: 1px solid rgba(11, 93, 59, 0.12);
+  border-radius: 18px;
+  padding: 14px;
+  background:
+    linear-gradient(180deg, rgba(11, 93, 59, 0.05), rgba(255, 255, 255, 0)),
+    #ffffff;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
+}
+
+.audit-trail__event-card::before {
+  content: "";
+  position: absolute;
+  inset: 14px auto 14px 14px;
+  width: 4px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--portal-forest), rgba(11, 93, 59, 0.18));
+}
+
+.audit-trail__event-topline,
+.audit-trail__event-grid,
+.audit-trail__event-reason,
+.audit-trail__event-actions {
+  margin-left: 16px;
+}
+
+.audit-trail__event-topline {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.audit-trail__event-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--portal-ink);
+}
+
+.audit-trail__event-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.audit-trail__event-grid {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.audit-trail__event-grid strong,
+.audit-trail__event-lane strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--portal-ink);
+}
+
+.audit-trail__event-lane {
+  display: grid;
+  gap: 2px;
+}
+
+.audit-trail__event-arrow {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(11, 93, 59, 0.08);
+  color: var(--portal-forest);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.audit-trail__event-reason {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.03);
+}
+
+.audit-trail__event-reason p {
+  margin: 6px 0 0;
+  color: var(--portal-ink);
+}
+
+.audit-trail__event-actions {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ============================================================================
+   THRESHOLD CONFIGURATION MODULE STYLES
+   ============================================================================ */
+
+.threshold-bands-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.threshold-band-card {
+  background: var(--app-card-bg, #ffffff);
+  border: 1px solid var(--app-border, #e2e8f0);
+  border-radius: var(--app-radius-lg, 12px);
+  padding: 20px;
+  transition: all 0.2s ease;
+}
+
+.threshold-band-card--inactive {
+  opacity: 0.7;
+  background: var(--app-bg, #f1f5f9);
+}
+
+.threshold-band__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--app-border-light, #f1f5f9);
+}
+
+.threshold-band__title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.threshold-band__title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--app-text, #1e293b);
+  margin: 0;
+}
+
+.threshold-band__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.threshold-band__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.threshold-band__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.threshold-band__stat-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--app-text-muted, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.threshold-band__stat-value {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--app-text, #1e293b);
+}
+
+.threshold-band__steps {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 12px;
+  background: var(--app-bg, #f1f5f9);
+  border-radius: var(--app-radius, 6px);
+}
+
+.threshold-band__steps-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--app-text-secondary, #475569);
+  white-space: nowrap;
+}
+
+.threshold-band__steps-list {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 0.8125rem;
+  color: var(--app-text-secondary, #475569);
+}
+
+.threshold-band__steps-list li {
+  margin-bottom: 4px;
+}
+
+.threshold-band__escalation {
+  font-size: 0.8125rem;
+  color: var(--app-text-muted, #64748b);
+  margin: 0;
+  padding: 12px;
+  background: rgba(11, 93, 59, 0.03);
+  border-left: 3px solid var(--app-primary, #0b5d3b);
+  border-radius: 0 var(--app-radius-sm, 4px) var(--app-radius-sm, 4px) 0;
+}
+
+/* Threshold Band Form */
+.threshold-band-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.app-form__row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.app-form__group--checkbox {
+  display: flex;
+  align-items: center;
+}
+
+.app-form__group--checkbox label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.app-form__group--checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+.threshold-steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.threshold-step-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.threshold-step-number {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--app-primary, #0b5d3b);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.threshold-step-input .app-form__input {
+  flex: 1;
+}
+
+.threshold-band-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--app-border, #e2e8f0);
+}
+
+/* ============================================================================
+   TENDER CREATE SINGLE PAGE STYLES
+   ============================================================================ */
+
+.requisition-seed {
+  background: #f8fafc;
+  padding: 16px;
+  border-radius: 8px;
+  margin-top: 16px;
+  border: 1px solid #e2e8f0;
+}
+
+.requisition-seed h4 {
+  margin: 0 0 10px 0;
+  font-size: 13px;
+  color: var(--portal-ink);
+}
+
+.requisition-seed ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 13px;
+  color: var(--portal-slate);
+}
+
+.requisition-seed li {
+  margin-bottom: 6px;
+}
+
+.ppa-checklist {
+  background: #f8fafc;
+  padding: 16px;
+  border-radius: 8px;
+  margin-top: 16px;
+  border: 1px solid #e2e8f0;
+}
+
+.ppa-checklist h4 {
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  color: var(--portal-ink);
+}
+
+.ppa-checklist label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--portal-slate);
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+
+.ppa-checklist label.valid {
+  color: var(--portal-forest);
+}
+
+.ppa-checklist label.invalid {
+  color: #dc2626;
+}
+
+.ppa-checklist input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--portal-forest);
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.detail-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--portal-ink);
+}
+
+.workflow-section {
+  margin: 20px 0;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 12px;
+}

@@ -7,6 +7,7 @@ interface SidebarProps {
   modules: InternalModule[];
   activeModuleId: string;
   onModuleChange: (moduleId: string) => void;
+  className?: string;
 }
 
 interface GroupedNav {
@@ -51,7 +52,7 @@ const SUBSECTION_LABELS: Record<string, string> = {
 
 const normalizeSubSectionLabel = (value: string): string => SUBSECTION_LABELS[value] ?? value;
 
-export const SidebarNav = ({ modules, activeModuleId, onModuleChange }: SidebarProps) => {
+export const SidebarNav = ({ modules, activeModuleId, onModuleChange, className }: SidebarProps) => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredModules = useMemo(() => {
@@ -112,7 +113,7 @@ export const SidebarNav = ({ modules, activeModuleId, onModuleChange }: SidebarP
   }, [filteredModules]);
 
   return (
-    <aside className="portal-sidebar">
+    <aside className={`portal-sidebar${className ? ` ${className}` : ''}`}>
       <div className="portal-sidebar__title">Workflow Modules</div>
       <label className="plan-field">
         <span>Search Modules</span>

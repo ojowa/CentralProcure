@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../internal/hooks/useAuth';
 import { InternalWorkspaceProvider, useWorkspace } from '../../../internal/components/shell/InternalWorkspaceContext';
@@ -19,15 +19,41 @@ const WorkspaceShell = ({ children }: { children: React.ReactNode }) => {
     headerRoleDefinition
   } = useWorkspace();
 
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const toggleSidebar = useCallback(() => {
+    setSidebarOpen((prev) => !prev);
+  }, []);
+
+  const closeSidebar = useCallback(() => {
+    setSidebarOpen(false);
+  }, []);
+
+  useEffect(() => {
+    if (sidebarOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [sidebarOpen]);
+
   return (
     <div className="portal-shell">
-      <InternalHeader role={headerRoleDefinition} token={token} onSignOut={handleSignOut} />
+      <InternalHeader role={headerRoleDefinition} token={token} onSignOut={handleSignOut} onToggleSidebar={toggleSidebar} />
       <div className="portal-flagband" aria-hidden="true" />
       <div className="portal-content">
+        {sidebarOpen && <div className="portal-sidebar-overlay" onClick={closeSidebar} />}
         <SidebarNav
           modules={modules}
           activeModuleId={activeModuleId ?? 'dashboard'}
-          onModuleChange={handleModuleChange}
+          onModuleChange={(id) => {
+            handleModuleChange(id);
+            closeSidebar();
+          }}
+          className={sidebarOpen ? 'is-open' : undefined}
         />
         <main className="portal-main">
           {modulesError ? <div className="portal-alert">{modulesError}</div> : null}
