@@ -4,8 +4,8 @@ eProcurement is organized as a TypeScript npm monorepo for the web app, API, and
 
 ## Workspaces
 
-- `Frontend` - Next.js web application published as `@centralprocure/web`.
-- `apps/api` - TypeScript Express API published as `@centralprocure/api`.
+- `Frontend` - Next.js web application published as `@eprocurement/web`.
+- `apps/api` - TypeScript Express API published as `@eprocurement/api`.
 - `packages/shared` - Shared TypeScript package for reusable types and utilities.
 - `Backend` - Legacy .NET backend kept for reference while business logic is ported to `apps/api`.
 
@@ -28,8 +28,8 @@ The root `package-lock.json` is the workspace lockfile. Do not run separate inst
 
 Use the root `render.yaml` to deploy both active TypeScript services:
 
-- `centralprocure-api` - Docker service built from `apps/api/Dockerfile`.
-- `centralprocure-web` - Node service built with `npm ci && npm run build:web`.
+- `eprocurement-api` - Docker service built from `apps/api/Dockerfile`.
+- `eprocurement-web` - Node service built with `npm ci && npm run build:web`.
 
 Required production environment variables:
 

@@ -1,10 +1,10 @@
 services:
   - type: web
-    name: centralprocure-web
+    name: eprocurement-web
     runtime: node
     plan: free
     buildCommand: npm ci && npm run build:web
-    startCommand: npm run start -w @centralprocure/web
+    startCommand: npm run start -w @eprocurement/web
     envVars:
       - key: NEXT_PUBLIC_API_URL
         sync: false

@@ -19,7 +19,7 @@ This application will be built using Next.js 16 (React + TypeScript) and will pr
 
 ## Render
 
-This app is part of the root npm monorepo. Prefer deploying from the root `render.yaml`, which defines both `centralprocure-web` and `centralprocure-api`.
+This app is part of the root npm monorepo. Prefer deploying from the root `render.yaml`, which defines both `eprocurement-web` and `eprocurement-api`.
 
 Deploy flow:
 
@@ -31,7 +31,7 @@ Deploy flow:
 Render notes:
 
 -   Build command: `npm ci && npm run build:web`
--   Start command: `npm run start -w @centralprocure/web`
+-   Start command: `npm run start -w @eprocurement/web`
 -   The production start script uses `next start`, which lets Render provide the port via the `PORT` environment variable.
 -   `NEXT_PUBLIC_*` variables are compiled into the frontend bundle at build time, so changing them requires a new deploy.
 
