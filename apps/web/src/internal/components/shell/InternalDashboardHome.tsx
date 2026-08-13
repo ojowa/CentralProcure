@@ -5,7 +5,6 @@ import { DashboardPage } from '../dashboard/DashboardPage';
 
 export const InternalDashboardHome = () => {
   const {
-    modules,
     selectedRole,
     userEmail,
     userFirstName,
