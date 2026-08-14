@@ -58,6 +58,21 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ token }) => 
     }
   };
 
+  const handleMarkAllAsRead = async () => {
+    if (!token) return;
+    const unreadIds = notifications.filter(n => !n.IsRead).map(n => n.NotificationId);
+    if (unreadIds.length === 0) return;
+    try {
+      for (const id of unreadIds) {
+        await markInternalNotificationAsRead(token, id);
+      }
+      setNotifications(prev => prev.map(n => ({ ...n, IsRead: true })));
+      window.dispatchEvent(new CustomEvent('notification:read'));
+    } catch (error) {
+      console.error('Failed to mark all notifications as read:', error);
+    }
+  };
+
   const getIcon = (type: string) => {
     switch (type) {
       case 'RoleUpdate': return <Shield size={16} className="text-emerald-500" />;
@@ -132,7 +147,25 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ token }) => 
             background: 'var(--portal-bg)'
           }}>
             <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600 }}>Notifications</h4>
-            {loading && <RefreshCcw size={14} className="animate-spin text-slate-400" />}
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              {unreadCount > 0 && (
+                <button
+                  onClick={handleMarkAllAsRead}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    fontSize: '0.7rem',
+                    color: 'var(--portal-accent)',
+                    cursor: 'pointer',
+                    fontWeight: 500,
+                    padding: 0
+                  }}
+                >
+                  Mark all read
+                </button>
+              )}
+              {loading && <RefreshCcw size={14} className="animate-spin text-slate-400" />}
+            </div>
           </header>
 
           <div style={{ maxHeight: '300px', overflowY: 'auto' }}>

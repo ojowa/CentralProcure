@@ -97,9 +97,18 @@ export const DashboardPage = ({ role, userEmail, userFirstName, userSurname, rol
   useEffect(() => { void loadDashboard(); }, [loadDashboard]);
 
   useEffect(() => {
-    const handler = () => loadDashboard();
+    const handler = () => {
+      void loadDashboard();
+    };
     window.addEventListener('notification:read', handler);
     return () => window.removeEventListener('notification:read', handler);
+  }, [loadDashboard]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      void loadDashboard();
+    }, 30000);
+    return () => clearInterval(interval);
   }, [loadDashboard]);
 
   const config = {
