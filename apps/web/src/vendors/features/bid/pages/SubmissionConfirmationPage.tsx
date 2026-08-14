@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getBidById, getSubmittedBids, type BidDetailResponse } from '../services/bidService';
+import { getTenderDetails } from '../../tender/services/tenderService';
 import { withAppBasePath } from '../../../utils/basePath';
 
 const SubmissionConfirmationPage: React.FC = () => {
@@ -50,10 +51,18 @@ const SubmissionConfirmationPage: React.FC = () => {
             throw err;
           }
 
+          let tenderTitle = '';
+          try {
+            const tenderDetails = await getTenderDetails(matchedBid.TenderId);
+            tenderTitle = tenderDetails.Title ?? '';
+          } catch {
+            // Tender details unavailable — continue without title
+          }
+
           const fallbackBid: BidDetailResponse = {
             BidId: matchedBid.BidId,
             TenderId: matchedBid.TenderId,
-            TenderTitle: matchedBid.TenderTitle ?? 'Tender details unavailable',
+            TenderTitle: tenderTitle,
             VendorId: vendorId,
             BidAmount: matchedBid.BidAmount,
             Proposal: matchedBid.Proposal,

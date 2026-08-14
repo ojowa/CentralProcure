@@ -190,9 +190,12 @@ vendorRouter.get('/api/Vendor/compliance/requirements', async (_req, res) => {
   try {
     const result = await pool.query('SELECT * FROM identity.get_compliance_document_types()');
     const items = result.rows.map((r) => ({
-      DocumentType: r.document_type,
+      Id: r.document_type,
+      Name: r.document_type,
+      Required: r.is_mandatory,
+      Frequency: 'Annual',
+      Expirable: false,
       Description: r.description,
-      IsMandatory: r.is_mandatory,
     }));
     res.json({ Items: items });
   } catch (error: any) {

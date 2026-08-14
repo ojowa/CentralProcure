@@ -16,34 +16,8 @@ const API_ENDPOINTS = {
  */
 export const getOpenTenders = async (): Promise<TenderSummary[]> => {
     try {
-        // Next.js rewrites route '/api/Tender/open' to the Tender Service.
         const response = await apiClient.get(API_ENDPOINTS.TENDERS_OPEN);
-        
-        // Handle different response formats to ensure we always return an array
-        let tenderData = response.data;
-        
-        // If response.data is an object with a data property, use that
-        if (tenderData && typeof tenderData === 'object' && !Array.isArray(tenderData)) {
-            if (Array.isArray(tenderData.data)) {
-                tenderData = tenderData.data;
-            } else if (Array.isArray(tenderData.tenders)) {
-                tenderData = tenderData.tenders;
-            } else if (Array.isArray(tenderData.items)) {
-                tenderData = tenderData.items;
-            } else {
-                // If no array property found, return empty array
-                console.warn("Unexpected response format from tenders API:", tenderData);
-                return [];
-            }
-        }
-        
-        // Ensure we return an array
-        if (!Array.isArray(tenderData)) {
-            console.warn("Tender data is not an array:", tenderData);
-            return [];
-        }
-        
-        return tenderData;
+        return response.data.Items ?? [];
     } catch (error) {
         console.error("Failed to fetch open tenders:", error);
         throw new Error("Could not load open tenders. Please try again later.");
@@ -104,31 +78,8 @@ export const submitBid = async (bid: BidSubmission): Promise<BidSubmissionRespon
  */
 export const getSubmittedBids = async (): Promise<SubmittedBid[]> => {
     try {
-        // Next.js rewrites route '/api/Tender/submitted-bids' to the Tender Service.
         const response = await apiClient.get(API_ENDPOINTS.TENDERS_SUBMITTED_BIDS);
-        
-        // Handle different response formats to ensure we always return an array
-        let bidsData = response.data;
-        
-        if (bidsData && typeof bidsData === 'object' && !Array.isArray(bidsData)) {
-            if (Array.isArray(bidsData.data)) {
-                bidsData = bidsData.data;
-            } else if (Array.isArray(bidsData.bids)) {
-                bidsData = bidsData.bids;
-            } else if (Array.isArray(bidsData.items)) {
-                bidsData = bidsData.items;
-            } else {
-                console.warn("Unexpected response format from submitted bids API:", bidsData);
-                return [];
-            }
-        }
-        
-        if (!Array.isArray(bidsData)) {
-            console.warn("Bids data is not an array:", bidsData);
-            return [];
-        }
-        
-        return bidsData;
+        return response.data.Items ?? [];
     } catch (error) {
         console.error("Failed to fetch submitted bids:", error);
         throw new Error("Could not load submitted bids. Please try again later.");

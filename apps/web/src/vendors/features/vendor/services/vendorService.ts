@@ -201,11 +201,7 @@ export interface ComplianceHistoryResponse {
 export const getVendorComplianceDocuments = async (): Promise<ComplianceDocumentResponse[]> => {
     try {
         const response = await apiClient.get(API_ENDPOINTS.VENDOR_COMPLIANCE_LIST);
-        if (!Array.isArray(response.data)) {
-            console.warn("Compliance documents response is not an array:", response.data);
-            return [];
-        }
-        return response.data as ComplianceDocumentResponse[];
+        return response.data.Items ?? [];
     } catch (error: any) {
         console.error("Failed to fetch compliance documents:", error);
         if (error.response?.data?.message) {
@@ -218,11 +214,7 @@ export const getVendorComplianceDocuments = async (): Promise<ComplianceDocument
 export const getComplianceRequirements = async (): Promise<ComplianceRequirementResponse[]> => {
     try {
         const response = await apiClient.get(API_ENDPOINTS.VENDOR_COMPLIANCE_REQUIREMENTS);
-        if (!Array.isArray(response.data)) {
-            console.warn("Compliance requirements response is not an array:", response.data);
-            return [];
-        }
-        return response.data as ComplianceRequirementResponse[];
+        return response.data.Items ?? [];
     } catch (error: any) {
         console.error("Failed to fetch compliance requirements:", error);
         if (error.response?.data?.message) {
@@ -235,11 +227,7 @@ export const getComplianceRequirements = async (): Promise<ComplianceRequirement
 export const getComplianceHistory = async (documentType: string): Promise<ComplianceHistoryResponse[]> => {
     try {
         const response = await apiClient.get(API_ENDPOINTS.VENDOR_COMPLIANCE_HISTORY(documentType));
-        if (!Array.isArray(response.data)) {
-            console.warn("Compliance history response is not an array:", response.data);
-            return [];
-        }
-        return response.data as ComplianceHistoryResponse[];
+        return response.data.Items ?? [];
     } catch (error: any) {
         console.error("Failed to fetch compliance history:", error);
         if (error.response?.data?.message) {

@@ -95,10 +95,11 @@ tendersPublicRouter.get('/api/Tender/submitted-bids', async (req, res) => {
     const bids = result.rows.map((b) => ({
       BidId: b.bid_id,
       TenderId: b.tender_id,
-      TenderTitle: b.tender_title,
       BidAmount: b.bid_amount,
+      Proposal: b.technical_proposal_url || '',
+      ValidityPeriodDays: b.validity_period_days,
+      SubmittedAt: b.submission_date,
       Status: b.status,
-      SubmittedAt: b.submitted_at,
     }));
 
     res.json({ Items: bids });
