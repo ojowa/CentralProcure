@@ -174,6 +174,7 @@ export const registerInternalUser = async (
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...buildAuthHeaders(),
       ...buildCsrfHeaders()
     },
     credentials: 'include',
