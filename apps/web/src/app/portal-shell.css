@@ -66,6 +66,7 @@
   color: #fff;
   background: linear-gradient(140deg, var(--portal-forest), var(--portal-forest-dark));
   box-shadow: 0 12px 20px rgba(11, 93, 59, 0.22);
+  object-fit: contain;
 }
 
 .portal-title {

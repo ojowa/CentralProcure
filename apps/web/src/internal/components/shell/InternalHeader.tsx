@@ -35,7 +35,7 @@ export const InternalHeader = ({ role, token, onSignOut, onToggleSidebar }: Head
         </button>
       )}
       <div className="portal-brand">
-        <div className="portal-emblem">NIS</div>
+        <img src="/nis-logo.png" alt="NIS Logo" className="portal-emblem" />
         <div>
           <div className="portal-title">NIS e-Procurement</div>
           <div className="portal-subtitle">Internal Control Center</div>
