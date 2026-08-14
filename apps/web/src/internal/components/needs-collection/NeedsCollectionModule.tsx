@@ -733,11 +733,11 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
       {success && <div className="app-alert app-alert--success mb-4">{success}</div>}
 
       {activeTab === 'collections' && (
-        <div className="app-stats-row">
-          <div className="app-stat-card"><div className="app-stat-card__value">{statusCounts.total}</div><div className="app-stat-card__label">Total Collections</div></div>
-          <div className="app-stat-card"><div className="app-stat-card__value">{statusCounts.draft}</div><div className="app-stat-card__label">Draft</div></div>
-          <div className="app-stat-card app-stat-card--info"><div className="app-stat-card__value">{statusCounts.submitted}</div><div className="app-stat-card__label">Submitted</div></div>
-          <div className="app-stat-card app-stat-card--success"><div className="app-stat-card__value">{statusCounts.endorsed}</div><div className="app-stat-card__label">Endorsed</div></div>
+        <div className="app-stats-row" style={{ display: 'flex', gap: '1rem', flexWrap: 'nowrap' }}>
+          <div className="app-stat-card" style={{ flex: 1 }}><div className="app-stat-card__value">{statusCounts.total}</div><div className="app-stat-card__label">Total Collections</div></div>
+          <div className="app-stat-card" style={{ flex: 1 }}><div className="app-stat-card__value">{statusCounts.draft}</div><div className="app-stat-card__label">Draft</div></div>
+          <div className="app-stat-card app-stat-card--info" style={{ flex: 1 }}><div className="app-stat-card__value">{statusCounts.submitted}</div><div className="app-stat-card__label">Submitted</div></div>
+          <div className="app-stat-card app-stat-card--success" style={{ flex: 1 }}><div className="app-stat-card__value">{statusCounts.endorsed}</div><div className="app-stat-card__label">Endorsed</div></div>
         </div>
       )}
 
