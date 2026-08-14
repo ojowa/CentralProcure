@@ -87,8 +87,9 @@ vendorRouter.get('/api/Vendor/:vendorId', async (req, res) => {
       CompanyAddress: v.company_address,
       ContactPerson: v.contact_person,
       PhoneNumber: v.phone_number,
-      Status: v.vendor_status,
-      CreatedAt: v.created_at,
+      VendorStatus: v.vendor_status,
+      LastLogin: v.last_login,
+      RegistrationDate: v.registration_date,
     });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching vendor profile.' });
@@ -135,7 +136,9 @@ vendorRouter.put('/api/Vendor/:vendorId', async (req, res) => {
       CompanyAddress: v.company_address,
       ContactPerson: v.contact_person,
       PhoneNumber: v.phone_number,
-      Status: v.vendor_status,
+      VendorStatus: v.vendor_status,
+      LastLogin: v.last_login,
+      RegistrationDate: v.registration_date,
     });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred updating vendor profile.' });
