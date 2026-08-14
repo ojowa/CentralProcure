@@ -22,6 +22,8 @@ const loginSchema = z.object({
   Password: z.string().min(1, 'Password is required.').max(256),
 });
 
+const PASSWORD_COMPLEXITY = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,256}$/;
+
 const registerSchema = z.object({
   Email: z.string().email('Invalid email format.').max(320),
   Username: z.string().min(3, 'Username must be at least 3 characters.').max(64),
@@ -29,7 +31,7 @@ const registerSchema = z.object({
   MiddleName: z.string().max(128).optional().default(''),
   Surname: z.string().min(1, 'Surname is required.').max(128),
   ServiceNumber: z.string().max(64).optional().default(''),
-  Password: z.string().min(8, 'Password must be at least 8 characters.').max(256),
+  Password: z.string().regex(PASSWORD_COMPLEXITY, 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (!@#$%^&* etc.).'),
   Role: z.string().min(1, 'Role is required.').max(64),
   UnitId: z.string().uuid().optional(),
 });
@@ -169,7 +171,7 @@ authRouter.post('/api/Auth/internal/register', registrationRateLimiter, async (r
     res.json({
       InternalUserId: user.internal_user_id,
       Email: user.email,
-      RoleName: user.role_name,
+      RoleName: user.role,
       UnitId: user.unit_id || null
     });
   } catch (error: any) {
@@ -1200,22 +1202,6 @@ authRouter.get('/api/Auth/internal/notifications', async (req: Request, res: Res
 });
 
 // ─────────────────────────────────────────────
-// 39b. GET /api/notifications
-// ─────────────────────────────────────────────
-authRouter.get('/api/notifications', async (req: Request, res: Response) => {
-  const auth = requireAuth(req);
-  if (!auth) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
-  if (!requireDb(res)) return;
-  try {
-    const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 50, 1), 100);
-    const result = await pool!.query('SELECT * FROM identity.get_internal_notifications_sp($1, $2)', [auth.sub, limit]);
-    res.json(result.rows.map(mapRow));
-  } catch (error: any) {
-    res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching notifications.' });
-  }
-});
-
-// ─────────────────────────────────────────────
 // 40. PUT /api/Auth/internal/notifications/:notificationId/read
 // ─────────────────────────────────────────────
 authRouter.put('/api/Auth/internal/notifications/:notificationId/read', async (req: Request, res: Response) => {
@@ -1227,7 +1213,7 @@ authRouter.put('/api/Auth/internal/notifications/:notificationId/read', async (r
 
   try {
     await pool!.query(
-      'UPDATE identity.internal_notifications SET is_read = true WHERE notification_id = $1 AND user_id = $2',
+      'UPDATE identity.internal_notifications SET is_read = true, read_at = NOW() WHERE notification_id = $1 AND user_id = $2',
       [notificationId, auth.sub]
     );
     res.json({ Status: 'Success' });
@@ -1246,7 +1232,7 @@ authRouter.put('/api/Auth/internal/notifications/read-all', async (req: Request,
 
   try {
     await pool!.query(
-      'UPDATE identity.internal_notifications SET is_read = true WHERE user_id = $1 AND is_read = false',
+      'UPDATE identity.internal_notifications SET is_read = true, read_at = NOW() WHERE user_id = $1 AND is_read = false',
       [auth.sub]
     );
     res.json({ Status: 'Success' });
@@ -1280,14 +1266,13 @@ authRouter.post('/api/Auth/internal/notifications', async (req: Request, res: Re
       );
       res.json({ Status: 'Success', NotificationId: result.rows[0].create_notification });
     } else {
-      const users = await pool!.query('SELECT internal_user_id FROM identity.internal_users WHERE status = $1', ['Active']);
-      for (const u of users.rows) {
-        await pool!.query(
-          'SELECT identity.create_notification($1, $2, $3, $4, $5, $6)',
-          [u.internal_user_id, Title, Message, NotificationType || 'info', EntityType || null, EntityId || null]
-        );
-      }
-      res.json({ Status: 'Success', SentTo: users.rowCount });
+      const result = await pool!.query(
+        `INSERT INTO identity.internal_notifications (user_id, title, message, notification_type, entity_type, entity_id)
+         SELECT internal_user_id, $1, $2, $3, $4, $5
+         FROM identity.internal_users WHERE status = 'Active'`,
+        [Title, Message, NotificationType || 'info', EntityType || null, EntityId || null]
+      );
+      res.json({ Status: 'Success', SentTo: result.rowCount });
     }
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred creating notification.' });

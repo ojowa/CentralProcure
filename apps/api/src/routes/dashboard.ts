@@ -4,6 +4,18 @@ import type { AuthenticatedRequest } from '../middleware/auth.js';
 
 export const dashboardRouter = Router();
 
+function toPascal(key: string): string {
+  return key.replace(/_([a-z])/g, (_, c) => c.toUpperCase()).replace(/^./, c => c.toUpperCase());
+}
+
+function mapRow(row: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(row)) {
+    out[toPascal(k)] = v;
+  }
+  return out;
+}
+
 const ROLE_COPY: Record<string, { title: string; subtitle: string }> = {
   admin: { title: 'Administrator Dashboard', subtitle: 'Platform-wide administration and oversight' },
   department_head: { title: 'Department Head Dashboard', subtitle: 'Review and endorse departmental procurement needs' },
@@ -107,7 +119,7 @@ dashboardRouter.get('/api/Auth/internal/dashboard', async (req: Request, res: Re
     ]);
 
     const modules = modulesResult.rows as Array<{ ModuleId: string; Title: string }>;
-    const notifications = (notificationsResult.rows ?? []) as Array<{
+    const notifications = (notificationsResult.rows ?? []).map(mapRow) as Array<{
       Title?: string;
       Message?: string;
       NotificationType?: string;

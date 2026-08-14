@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { Bell, Mail, Info, Shield, CheckCircle, RefreshCcw } from 'lucide-react';
-import { fetchInternalNotifications, markInternalNotificationAsRead } from '../../services/internalAuthService';
+import { fetchInternalNotifications, markInternalNotificationAsRead, markAllNotificationsAsRead } from '../../services/internalAuthService';
 import type { InternalNotificationResult } from '../../types/internal';
 
 interface NotificationBellProps {
@@ -60,12 +60,10 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ token }) => 
 
   const handleMarkAllAsRead = async () => {
     if (!token) return;
-    const unreadIds = notifications.filter(n => !n.IsRead).map(n => n.NotificationId);
-    if (unreadIds.length === 0) return;
+    const unreadCount = notifications.filter(n => !n.IsRead).length;
+    if (unreadCount === 0) return;
     try {
-      for (const id of unreadIds) {
-        await markInternalNotificationAsRead(token, id);
-      }
+      await markAllNotificationsAsRead(token);
       setNotifications(prev => prev.map(n => ({ ...n, IsRead: true })));
       window.dispatchEvent(new CustomEvent('notification:read'));
     } catch (error) {

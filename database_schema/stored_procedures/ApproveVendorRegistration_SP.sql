@@ -1,4 +1,5 @@
 -- Vendor Registration Approval Stored Procedure (PL/pgSQL)
+-- Updated to persist review notes in the vendors table
 CREATE OR REPLACE FUNCTION identity.approve_vendor_registration(
     p_vendor_id UUID,
     p_vendor_status VARCHAR(50),
@@ -15,7 +16,12 @@ BEGIN
         updated_at = NOW()
     WHERE vendor_id = p_vendor_id;
 
-    -- Review notes are accepted for API compatibility and future audit persistence.
-    PERFORM p_notes;
+    -- Persist review notes if the column exists
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'identity' AND table_name = 'vendors' AND column_name = 'review_notes'
+    ) THEN
+        UPDATE identity.vendors SET review_notes = p_notes WHERE vendor_id = p_vendor_id;
+    END IF;
 END;
 $$ LANGUAGE plpgsql;
