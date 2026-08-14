@@ -165,18 +165,13 @@ vendorRouter.get('/api/Vendor/compliance/checklist', async (_req, res) => {
 
   try {
     const result = await pool.query('SELECT * FROM identity.get_compliance_document_types()');
-    const lines: string[] = ['COMPLIANCE DOCUMENT CHECKLIST', '==============================', ''];
-    for (const r of result.rows) {
-      const marker = r.is_mandatory ? '[Required]' : '[Optional]';
-      lines.push(`${marker} ${r.document_type}`);
-      lines.push(`  ${r.description}`);
-      lines.push('');
-    }
-    lines.push('==============================');
-    lines.push(`Generated: ${new Date().toISOString()}`);
+    const items = result.rows.map((r) => ({
+      DocumentType: r.document_type,
+      Description: r.description,
+      IsMandatory: r.is_mandatory,
+    }));
 
-    res.setHeader('Content-Type', 'text/plain');
-    res.status(200).send(lines.join('\n'));
+    res.json({ Items: items, GeneratedAt: new Date().toISOString() });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred generating the checklist.' });
   }

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { jsPDF } from 'jspdf';
 import {
   downloadComplianceChecklist,
   getComplianceHistory,
@@ -319,15 +320,74 @@ const ComplianceDocumentsPage: React.FC = () => {
   const handleDownloadChecklist = async () => {
     setDownloadError(null);
     try {
-      const blob = await downloadComplianceChecklist();
-      const url = window.URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = 'compliance-checklist.txt';
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      window.URL.revokeObjectURL(url);
+      const data = await downloadComplianceChecklist();
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const margin = 20;
+      let y = 20;
+
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Compliance Document Checklist', pageWidth / 2, y, { align: 'center' });
+      y += 10;
+
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100);
+      doc.text(`Generated: ${new Date(data.GeneratedAt).toLocaleDateString()}`, pageWidth / 2, y, { align: 'center' });
+      y += 5;
+      doc.setDrawColor(0);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 10;
+
+      doc.setTextColor(0);
+      const required = data.Items.filter(i => i.IsMandatory);
+      const optional = data.Items.filter(i => !i.IsMandatory);
+
+      if (required.length > 0) {
+        doc.setFontSize(13);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Required Documents', margin, y);
+        y += 8;
+
+        for (const item of required) {
+          if (y > 270) { doc.addPage(); y = 20; }
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'bold');
+          doc.text(`\u2713  ${item.DocumentType}`, margin + 4, y);
+          y += 5;
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(80);
+          const descLines = doc.splitTextToSize(item.Description, pageWidth - margin * 2 - 8);
+          doc.text(descLines, margin + 10, y);
+          y += descLines.length * 4.5 + 4;
+          doc.setTextColor(0);
+        }
+      }
+
+      if (optional.length > 0) {
+        if (y > 250) { doc.addPage(); y = 20; }
+        doc.setFontSize(13);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Optional Documents', margin, y);
+        y += 8;
+
+        for (const item of optional) {
+          if (y > 270) { doc.addPage(); y = 20; }
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'bold');
+          doc.text(`\u25CB  ${item.DocumentType}`, margin + 4, y);
+          y += 5;
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(80);
+          const descLines = doc.splitTextToSize(item.Description, pageWidth - margin * 2 - 8);
+          doc.text(descLines, margin + 10, y);
+          y += descLines.length * 4.5 + 4;
+          doc.setTextColor(0);
+        }
+      }
+
+      doc.save('compliance-checklist.pdf');
     } catch (err: any) {
       setDownloadError(err.message || 'Unable to download checklist.');
     }

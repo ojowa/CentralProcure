@@ -231,18 +231,20 @@ export const getComplianceHistory = async (documentType: string): Promise<Compli
     }
 };
 
-export const downloadComplianceChecklist = async (): Promise<Blob> => {
+export interface ComplianceChecklistItem {
+    DocumentType: string;
+    Description: string;
+    IsMandatory: boolean;
+}
+
+export const downloadComplianceChecklist = async (): Promise<{ Items: ComplianceChecklistItem[]; GeneratedAt: string }> => {
     try {
-        const response = await apiClient.get(API_ENDPOINTS.VENDOR_COMPLIANCE_CHECKLIST, {
-            responseType: 'blob'
-        });
-        return response.data as Blob;
+        const response = await apiClient.get(API_ENDPOINTS.VENDOR_COMPLIANCE_CHECKLIST);
+        return response.data;
     } catch (error: any) {
         console.error("Failed to download compliance checklist:", error);
-        if (error.response?.data?.message) {
-            throw new Error(error.response.data.message);
-        }
-        throw new Error("Unable to download checklist right now.");
+        const msg = error.response?.data?.ErrorMessage || error.response?.data?.message;
+        throw new Error(msg || "Unable to download checklist right now.");
     }
 };
 
