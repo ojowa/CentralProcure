@@ -7,16 +7,16 @@ BEGIN;
 
 -- Deactivate approval-rejection (duplicate of tenders-board-approval)
 UPDATE identity.internal_modules
-SET status = 'Inactive'
+SET is_active = false, updated_at = NOW()
 WHERE module_id = 'approval-rejection';
 
 -- Deactivate final-approval (duplicate of cgis-approval)
 UPDATE identity.internal_modules
-SET status = 'Inactive'
+SET is_active = false, updated_at = NOW()
 WHERE module_id = 'final-approval';
 
 -- Remove module access grants for deactivated modules
-DELETE FROM identity.role_modules
+DELETE FROM identity.internal_module_grants
 WHERE module_id IN ('approval-rejection', 'final-approval');
 
 COMMIT;
