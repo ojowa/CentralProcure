@@ -52,6 +52,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ token }) => 
     try {
       await markInternalNotificationAsRead(token, id);
       setNotifications(prev => prev.map(n => n.NotificationId === id ? { ...n, IsRead: true } : n));
+      window.dispatchEvent(new CustomEvent('notification:read'));
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
     }

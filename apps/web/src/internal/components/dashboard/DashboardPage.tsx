@@ -96,6 +96,12 @@ export const DashboardPage = ({ role, userEmail, userFirstName, userSurname, rol
 
   useEffect(() => { void loadDashboard(); }, [loadDashboard]);
 
+  useEffect(() => {
+    const handler = () => loadDashboard();
+    window.addEventListener('notification:read', handler);
+    return () => window.removeEventListener('notification:read', handler);
+  }, [loadDashboard]);
+
   const config = {
     title: dashboard?.Title ?? 'Procurement Dashboard',
     subtitle: dashboard?.Subtitle ?? 'Welcome to NIS eProcurement Portal',
