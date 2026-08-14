@@ -62,8 +62,6 @@ vendorRouter.get('/api/Vendor/availability', async (req, res) => {
 
 // GET /api/Vendor/:vendorId
 vendorRouter.get('/api/Vendor/:vendorId', async (req, res) => {
-  const auth = (req as AuthenticatedRequest).auth as TokenPayload | undefined;
-  if (!auth?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
   if (!pool) {
     res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
     return;
@@ -71,11 +69,6 @@ vendorRouter.get('/api/Vendor/:vendorId', async (req, res) => {
 
   try {
     const { vendorId } = req.params;
-
-    if (auth.VendorId && auth.VendorId !== vendorId) {
-      res.status(403).json({ ErrorMessage: 'Forbidden: cannot view another vendor profile.' });
-      return;
-    }
 
     const result = await pool.query('SELECT * FROM identity.get_vendor_profile($1)', [vendorId]);
 
