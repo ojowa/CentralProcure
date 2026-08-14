@@ -47,9 +47,8 @@ export const submitBid = async (bid: BidSubmission, technicalProposalFile?: File
  */
 export const getSubmittedBids = async (vendorId: string): Promise<SubmittedBid[]> => {
     try {
-        // Use the new vendor-specific endpoint for fetching bids
         const response = await apiClient.get(API_ENDPOINTS.BIDS_VENDOR(vendorId));
-        return response.data;
+        return response.data.Items ?? [];
     } catch (error: any) {
         console.error("Failed to fetch submitted bids:", error);
         const errorMessage = error.response?.data?.message || "Could not load submitted bids. Please try again later.";

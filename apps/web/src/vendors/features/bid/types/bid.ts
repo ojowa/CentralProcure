@@ -8,9 +8,9 @@ export interface BidSubmission {
 export interface SubmittedBid {
     BidId: string;
     TenderId: string;
-    TenderTitle: string; 
     BidAmount: number;
     Proposal: string;
+    ValidityPeriodDays?: number;
     Status: string;
     SubmittedAt: string;
 }
