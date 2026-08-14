@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { pool } from '../db.js';
 import type { AuthenticatedRequest } from '../middleware/auth.js';
 import type { TokenPayload } from '../lib/jwt.js';
@@ -254,6 +255,12 @@ vendorRouter.get('/api/Vendor/compliance/:documentId/file', async (req, res) => 
 
 // GET /api/Vendor/:vendorId
 vendorRouter.get('/api/Vendor/:vendorId', async (req, res) => {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
+    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
+    return;
+  }
+
   if (!pool) {
     res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
     return;
@@ -261,6 +268,11 @@ vendorRouter.get('/api/Vendor/:vendorId', async (req, res) => {
 
   try {
     const { vendorId } = req.params;
+
+    if (auth.sub !== vendorId && auth.VendorId !== vendorId) {
+      res.status(403).json({ ErrorMessage: 'Forbidden: cannot view another vendor profile.' });
+      return;
+    }
 
     const result = await pool.query('SELECT * FROM identity.get_vendor_profile($1)', [vendorId]);
 
@@ -288,6 +300,14 @@ vendorRouter.get('/api/Vendor/:vendorId', async (req, res) => {
   }
 });
 
+const vendorProfileUpdateSchema = z.object({
+  CompanyName: z.string().min(1, 'Company name is required.').max(256).optional(),
+  CompanyAddress: z.string().max(512).optional(),
+  ContactPerson: z.string().max(128).optional(),
+  PhoneNumber: z.string().regex(/^\+?[0-9 ()-]{7,20}$/, 'Invalid phone number format.').optional().or(z.literal('')),
+  Email: z.string().email('Invalid email address.').max(256).optional(),
+});
+
 // PUT /api/Vendor/:vendorId
 vendorRouter.put('/api/Vendor/:vendorId', async (req, res) => {
   const auth = await requirePermission(req, 'vendor.update');
@@ -301,16 +321,41 @@ vendorRouter.put('/api/Vendor/:vendorId', async (req, res) => {
   try {
     const { vendorId } = req.params;
 
-    if (auth!.VendorId && auth!.VendorId !== vendorId) {
+    if (auth!.sub !== vendorId && auth!.VendorId !== vendorId) {
       res.status(403).json({ ErrorMessage: 'Forbidden: cannot update another vendor profile.' });
       return;
     }
 
-    const { CompanyName, CompanyAddress, ContactPerson, PhoneNumber, Email } = req.body;
+    const parsed = vendorProfileUpdateSchema.safeParse(req.body);
+    if (!parsed.success) {
+      const message = parsed.error.issues.map(i => i.message).join('; ');
+      res.status(400).json({ ErrorMessage: message });
+      return;
+    }
+
+    const { CompanyName, CompanyAddress, ContactPerson, PhoneNumber, Email } = parsed.data;
+
+    if (Email) {
+      const existing = await pool.query(
+        'SELECT vendor_id FROM identity.vendors WHERE lower(email) = lower($1) AND vendor_id != $2',
+        [Email, vendorId]
+      );
+      if (existing.rows.length > 0) {
+        res.status(409).json({ ErrorMessage: 'Email address is already registered.' });
+        return;
+      }
+    }
 
     const result = await pool.query(
       'SELECT * FROM identity.update_vendor_profile($1, $2, $3, $4, $5, $6)',
-      [vendorId, CompanyName || '', CompanyAddress || '', ContactPerson || '', PhoneNumber || '', Email || '']
+      [
+        vendorId,
+        CompanyName ?? null,
+        CompanyAddress ?? null,
+        ContactPerson ?? null,
+        PhoneNumber ?? null,
+        Email ?? null
+      ]
     );
 
     if (result.rows.length === 0) {
@@ -333,6 +378,75 @@ vendorRouter.put('/api/Vendor/:vendorId', async (req, res) => {
       RegistrationDate: v.registration_date,
     });
   } catch (error: any) {
+    if (error.code === '23505') {
+      res.status(409).json({ ErrorMessage: 'Email address is already registered.' });
+      return;
+    }
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred updating vendor profile.' });
+  }
+});
+
+const changePasswordSchema = z.object({
+  CurrentPassword: z.string().min(1, 'Current password is required.'),
+  NewPassword: z.string().min(8, 'New password must be at least 8 characters.').max(128),
+});
+
+// PUT /api/Vendor/:vendorId/password
+vendorRouter.put('/api/Vendor/:vendorId/password', async (req, res) => {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
+    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
+    return;
+  }
+
+  if (!pool) {
+    res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
+    return;
+  }
+
+  try {
+    const { vendorId } = req.params;
+
+    if (auth.sub !== vendorId && auth.VendorId !== vendorId) {
+      res.status(403).json({ ErrorMessage: 'Forbidden: cannot change another vendor password.' });
+      return;
+    }
+
+    const parsed = changePasswordSchema.safeParse(req.body);
+    if (!parsed.success) {
+      const message = parsed.error.issues.map(i => i.message).join('; ');
+      res.status(400).json({ ErrorMessage: message });
+      return;
+    }
+
+    const { CurrentPassword, NewPassword } = parsed.data;
+
+    const vendorResult = await pool.query(
+      'SELECT vendor_id, password_hash FROM identity.vendors WHERE vendor_id = $1',
+      [vendorId]
+    );
+
+    if (vendorResult.rows.length === 0) {
+      res.status(404).json({ ErrorMessage: 'Vendor not found.' });
+      return;
+    }
+
+    const vendor = vendorResult.rows[0];
+    const bcrypt = await import('bcryptjs');
+    const isValid = await bcrypt.default.compare(CurrentPassword, vendor.password_hash);
+    if (!isValid) {
+      res.status(401).json({ ErrorMessage: 'Current password is incorrect.' });
+      return;
+    }
+
+    const newHash = await bcrypt.default.hash(NewPassword, 10);
+    await pool.query(
+      'UPDATE identity.vendors SET password_hash = $1 WHERE vendor_id = $2',
+      [newHash, vendorId]
+    );
+
+    res.json({ Message: 'Password updated successfully.' });
+  } catch (error: any) {
+    res.status(500).json({ ErrorMessage: error.message || 'An error occurred changing password.' });
   }
 });

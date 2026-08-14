@@ -287,10 +287,8 @@ export const getVendorProfile = async (vendorId: string): Promise<VendorProfile>
         return response.data as VendorProfile;
     } catch (error: any) {
         console.error("Failed to fetch vendor profile:", error);
-        if (error.response?.data?.message) {
-            throw new Error(error.response.data.message);
-        }
-        throw new Error("Unable to load vendor profile right now.");
+        const msg = error.response?.data?.ErrorMessage || error.response?.data?.message;
+        throw new Error(msg || "Unable to load vendor profile right now.");
     }
 };
 
@@ -303,10 +301,25 @@ export const updateVendorProfile = async (
         return response.data as VendorProfile;
     } catch (error: any) {
         console.error("Failed to update vendor profile:", error);
-        if (error.response?.data?.message) {
-            throw new Error(error.response.data.message);
-        }
-        throw new Error("Unable to update vendor profile right now.");
+        const msg = error.response?.data?.ErrorMessage || error.response?.data?.message;
+        throw new Error(msg || "Unable to update vendor profile right now.");
+    }
+};
+
+export const changeVendorPassword = async (
+    vendorId: string,
+    currentPassword: string,
+    newPassword: string
+): Promise<void> => {
+    try {
+        await apiClient.put(`${API_ENDPOINTS.VENDOR_PROFILE(vendorId)}/password`, {
+            CurrentPassword: currentPassword,
+            NewPassword: newPassword
+        });
+    } catch (error: any) {
+        console.error("Failed to change password:", error);
+        const msg = error.response?.data?.ErrorMessage || error.response?.data?.message;
+        throw new Error(msg || "Unable to change password right now.");
     }
 };
 

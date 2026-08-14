@@ -7,6 +7,8 @@ export interface AuthenticatedRequest extends Request {
     email: string;
     role: string;
     SecurityStamp?: string;
+    VendorId?: string;
+    InternalUserId?: string;
   };
 }
 
@@ -48,7 +50,9 @@ export const authMiddleware = (req: AuthenticatedRequest, res: Response, next: N
     sub: payload.sub,
     email: payload.email,
     role: payload.role,
-    SecurityStamp: payload.SecurityStamp
+    SecurityStamp: payload.SecurityStamp,
+    VendorId: payload.VendorId,
+    InternalUserId: payload.InternalUserId
   };
 
   next();
