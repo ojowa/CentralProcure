@@ -167,10 +167,10 @@ vendorRouter.get('/api/Vendor/compliance', async (req, res) => {
     const documents = result.rows.map((d) => ({
       DocumentId: d.document_id,
       DocumentType: d.document_type,
-      FileName: d.document_url,
+      FileUrl: d.document_url,
       Status: d.verification_status,
-      UploadedAt: d.created_at,
-      ReviewedAt: d.verified_at,
+      ExpiryDate: d.expiry_date,
+      CreatedAt: d.created_at,
       RejectionReason: null,
     }));
 
@@ -224,13 +224,14 @@ vendorRouter.get('/api/Vendor/compliance/history/:documentType', async (req, res
     );
 
     const history = result.rows.map((h) => ({
+      HistoryId: h.history_id,
       DocumentId: h.document_id,
       DocumentType: h.document_type,
-      FileName: h.document_url,
+      DocumentUrl: h.document_url,
+      FileUrl: h.document_url,
+      ExpiryDate: h.expiry_date,
       Status: h.verification_status,
-      UploadedAt: h.created_at,
-      ReviewedAt: h.verified_at,
-      RejectionReason: null,
+      CreatedAt: h.created_at,
     }));
 
     res.json({ Items: history });

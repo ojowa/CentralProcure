@@ -204,10 +204,8 @@ export const getVendorComplianceDocuments = async (): Promise<ComplianceDocument
         return response.data.Items ?? [];
     } catch (error: any) {
         console.error("Failed to fetch compliance documents:", error);
-        if (error.response?.data?.message) {
-            throw new Error(error.response.data.message);
-        }
-        throw new Error("Unable to load compliance documents right now.");
+        const msg = error.response?.data?.ErrorMessage || error.response?.data?.message;
+        throw new Error(msg || "Unable to load compliance documents right now.");
     }
 };
 
@@ -217,10 +215,8 @@ export const getComplianceRequirements = async (): Promise<ComplianceRequirement
         return response.data.Items ?? [];
     } catch (error: any) {
         console.error("Failed to fetch compliance requirements:", error);
-        if (error.response?.data?.message) {
-            throw new Error(error.response.data.message);
-        }
-        throw new Error("Unable to load compliance requirements right now.");
+        const msg = error.response?.data?.ErrorMessage || error.response?.data?.message;
+        throw new Error(msg || "Unable to load compliance requirements right now.");
     }
 };
 
@@ -230,10 +226,8 @@ export const getComplianceHistory = async (documentType: string): Promise<Compli
         return response.data.Items ?? [];
     } catch (error: any) {
         console.error("Failed to fetch compliance history:", error);
-        if (error.response?.data?.message) {
-            throw new Error(error.response.data.message);
-        }
-        throw new Error("Unable to load compliance history right now.");
+        const msg = error.response?.data?.ErrorMessage || error.response?.data?.message;
+        throw new Error(msg || "Unable to load compliance history right now.");
     }
 };
 
