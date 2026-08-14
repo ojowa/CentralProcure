@@ -178,16 +178,23 @@ vendorRouter.get('/api/Vendor/compliance', async (req, res) => {
 });
 
 // GET /api/Vendor/compliance/requirements
-vendorRouter.get('/api/Vendor/compliance/requirements', (_req, res) => {
-  res.json({ Items: [
-    { DocumentType: 'CAC Certificate', Description: 'Certificate of Incorporation from the Corporate Affairs Commission', IsMandatory: true },
-    { DocumentType: 'Tax Clearance', Description: 'Tax clearance certificate from the Federal Inland Revenue Service', IsMandatory: true },
-    { DocumentType: 'PENCOM', Description: 'Pension clearance certificate from the National Pension Commission', IsMandatory: true },
-    { DocumentType: 'ITF', Description: 'Industrial Training Fund compliance certificate', IsMandatory: true },
-    { DocumentType: 'Company Profile', Description: 'Company profile with details of directors and organizational structure', IsMandatory: true },
-    { DocumentType: 'Bank Reference', Description: 'Bank reference letter from the company\'s bank', IsMandatory: true },
-    { DocumentType: 'Insurance Certificate', Description: 'Insurance certificate covering the company\'s operations', IsMandatory: true },
-  ] });
+vendorRouter.get('/api/Vendor/compliance/requirements', async (_req, res) => {
+  if (!pool) {
+    res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
+    return;
+  }
+
+  try {
+    const result = await pool.query('SELECT * FROM identity.get_compliance_document_types()');
+    const items = result.rows.map((r) => ({
+      DocumentType: r.document_type,
+      Description: r.description,
+      IsMandatory: r.is_mandatory,
+    }));
+    res.json({ Items: items });
+  } catch (error: any) {
+    res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching compliance requirements.' });
+  }
 });
 
 // GET /api/Vendor/compliance/history/:documentType
@@ -227,9 +234,29 @@ vendorRouter.get('/api/Vendor/compliance/history/:documentType', async (req, res
 });
 
 // GET /api/Vendor/compliance/checklist
-vendorRouter.get('/api/Vendor/compliance/checklist', (_req, res) => {
-  res.setHeader('Content-Type', 'application/pdf');
-  res.status(200).send(Buffer.from('PDF_PLACEHOLDER'));
+vendorRouter.get('/api/Vendor/compliance/checklist', async (_req, res) => {
+  if (!pool) {
+    res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
+    return;
+  }
+
+  try {
+    const result = await pool.query('SELECT * FROM identity.get_compliance_document_types()');
+    const lines: string[] = ['COMPLIANCE DOCUMENT CHECKLIST', '==============================', ''];
+    for (const r of result.rows) {
+      const marker = r.is_mandatory ? '[Required]' : '[Optional]';
+      lines.push(`${marker} ${r.document_type}`);
+      lines.push(`  ${r.description}`);
+      lines.push('');
+    }
+    lines.push('==============================');
+    lines.push(`Generated: ${new Date().toISOString()}`);
+
+    res.setHeader('Content-Type', 'text/plain');
+    res.status(200).send(lines.join('\n'));
+  } catch (error: any) {
+    res.status(500).json({ ErrorMessage: error.message || 'An error occurred generating the checklist.' });
+  }
 });
 
 // POST /api/Vendor/compliance/upload

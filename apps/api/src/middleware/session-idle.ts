@@ -16,17 +16,25 @@ export const sessionIdleTimeoutMiddleware = async (req: AuthenticatedRequest, re
   }
 
   try {
-    const result = await pool.query(
+    let lastLogin: Date | string | null = null;
+
+    const internalResult = await pool.query(
       'SELECT last_login FROM identity.internal_users WHERE internal_user_id = $1',
       [req.auth.sub]
     );
 
-    if (result.rows.length === 0) {
-      next();
-      return;
+    if (internalResult.rows.length > 0) {
+      lastLogin = internalResult.rows[0].last_login;
+    } else {
+      const vendorResult = await pool.query(
+        'SELECT last_login FROM identity.vendors WHERE vendor_id = $1',
+        [req.auth.sub]
+      );
+      if (vendorResult.rows.length > 0) {
+        lastLogin = vendorResult.rows[0].last_login;
+      }
     }
 
-    const lastLogin = result.rows[0].last_login;
     if (lastLogin) {
       const lastLoginTime = new Date(lastLogin).getTime();
       if (Date.now() - lastLoginTime > IDLE_TIMEOUT_MS) {
