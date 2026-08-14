@@ -1605,3 +1605,56 @@
   color: var(--app-text-muted);
   margin-left: auto;
 }
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+.app-tabs {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.25rem;
+  background: var(--app-surface-alt, #f1f5f9);
+  border-radius: 10px;
+  border: 1px solid var(--app-border, #e2e8f0);
+}
+
+.app-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--app-text-muted, #64748b);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex: 1;
+  justify-content: center;
+}
+
+.app-tab:hover {
+  background: var(--app-surface, #ffffff);
+  color: var(--app-text, #1e293b);
+  border-color: var(--app-border, #e2e8f0);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.app-tab--active {
+  background: var(--app-surface, #ffffff);
+  color: var(--app-primary, #0b5d3b);
+  border-color: var(--app-primary, #0b5d3b);
+  box-shadow: 0 1px 4px rgba(11, 93, 59, 0.12);
+}
+
+.app-tab--active:hover {
+  background: var(--app-surface, #ffffff);
+  color: var(--app-primary, #0b5d3b);
+}
+
+.app-tab__icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
