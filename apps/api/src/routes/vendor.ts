@@ -60,91 +60,6 @@ vendorRouter.get('/api/Vendor/availability', async (req, res) => {
   }
 });
 
-// GET /api/Vendor/:vendorId
-vendorRouter.get('/api/Vendor/:vendorId', async (req, res) => {
-  if (!pool) {
-    res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
-    return;
-  }
-
-  try {
-    const { vendorId } = req.params;
-
-    const result = await pool.query('SELECT * FROM identity.get_vendor_profile($1)', [vendorId]);
-
-    if (result.rows.length === 0) {
-      res.status(404).json({ ErrorMessage: 'Vendor not found.' });
-      return;
-    }
-
-    const v = result.rows[0];
-    res.json({
-      VendorId: v.vendor_id,
-      CompanyName: v.company_name,
-      Email: v.email,
-      RegistrationNumber: v.registration_number,
-      TaxId: v.tax_id,
-      CompanyAddress: v.company_address,
-      ContactPerson: v.contact_person,
-      PhoneNumber: v.phone_number,
-      VendorStatus: v.vendor_status,
-      LastLogin: v.last_login,
-      RegistrationDate: v.registration_date,
-    });
-  } catch (error: any) {
-    res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching vendor profile.' });
-  }
-});
-
-// PUT /api/Vendor/:vendorId
-vendorRouter.put('/api/Vendor/:vendorId', async (req, res) => {
-  const auth = await requirePermission(req, 'vendor.update');
-  if (denyIfNoPermission(res, auth)) return;
-
-  if (!pool) {
-    res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
-    return;
-  }
-
-  try {
-    const { vendorId } = req.params;
-
-    if (auth!.VendorId && auth!.VendorId !== vendorId) {
-      res.status(403).json({ ErrorMessage: 'Forbidden: cannot update another vendor profile.' });
-      return;
-    }
-
-    const { CompanyName, CompanyAddress, ContactPerson, PhoneNumber, Email } = req.body;
-
-    const result = await pool.query(
-      'SELECT * FROM identity.update_vendor_profile($1, $2, $3, $4, $5, $6)',
-      [vendorId, CompanyName || '', CompanyAddress || '', ContactPerson || '', PhoneNumber || '', Email || '']
-    );
-
-    if (result.rows.length === 0) {
-      res.status(404).json({ ErrorMessage: 'Vendor not found or update failed.' });
-      return;
-    }
-
-    const v = result.rows[0];
-    res.json({
-      VendorId: v.vendor_id,
-      CompanyName: v.company_name,
-      Email: v.email,
-      RegistrationNumber: v.registration_number,
-      TaxId: v.tax_id,
-      CompanyAddress: v.company_address,
-      ContactPerson: v.contact_person,
-      PhoneNumber: v.phone_number,
-      VendorStatus: v.vendor_status,
-      LastLogin: v.last_login,
-      RegistrationDate: v.registration_date,
-    });
-  } catch (error: any) {
-    res.status(500).json({ ErrorMessage: error.message || 'An error occurred updating vendor profile.' });
-  }
-});
-
 // GET /api/Vendor/compliance
 vendorRouter.get('/api/Vendor/compliance', async (req, res) => {
   const auth = (req as AuthenticatedRequest).auth;
@@ -299,9 +214,9 @@ vendorRouter.post('/api/Vendor/compliance/upload', async (req, res) => {
     res.json({
       DocumentId: doc.document_id,
       DocumentType: doc.document_type,
-      FileName: doc.document_url,
+      FileUrl: doc.document_url,
       Status: doc.verification_status,
-      UploadedAt: doc.created_at,
+      CreatedAt: doc.created_at,
     });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred uploading document.' });
@@ -334,5 +249,90 @@ vendorRouter.get('/api/Vendor/compliance/:documentId/file', async (req, res) => 
     });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching document file.' });
+  }
+});
+
+// GET /api/Vendor/:vendorId
+vendorRouter.get('/api/Vendor/:vendorId', async (req, res) => {
+  if (!pool) {
+    res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
+    return;
+  }
+
+  try {
+    const { vendorId } = req.params;
+
+    const result = await pool.query('SELECT * FROM identity.get_vendor_profile($1)', [vendorId]);
+
+    if (result.rows.length === 0) {
+      res.status(404).json({ ErrorMessage: 'Vendor not found.' });
+      return;
+    }
+
+    const v = result.rows[0];
+    res.json({
+      VendorId: v.vendor_id,
+      CompanyName: v.company_name,
+      Email: v.email,
+      RegistrationNumber: v.registration_number,
+      TaxId: v.tax_id,
+      CompanyAddress: v.company_address,
+      ContactPerson: v.contact_person,
+      PhoneNumber: v.phone_number,
+      VendorStatus: v.vendor_status,
+      LastLogin: v.last_login,
+      RegistrationDate: v.registration_date,
+    });
+  } catch (error: any) {
+    res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching vendor profile.' });
+  }
+});
+
+// PUT /api/Vendor/:vendorId
+vendorRouter.put('/api/Vendor/:vendorId', async (req, res) => {
+  const auth = await requirePermission(req, 'vendor.update');
+  if (denyIfNoPermission(res, auth)) return;
+
+  if (!pool) {
+    res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
+    return;
+  }
+
+  try {
+    const { vendorId } = req.params;
+
+    if (auth!.VendorId && auth!.VendorId !== vendorId) {
+      res.status(403).json({ ErrorMessage: 'Forbidden: cannot update another vendor profile.' });
+      return;
+    }
+
+    const { CompanyName, CompanyAddress, ContactPerson, PhoneNumber, Email } = req.body;
+
+    const result = await pool.query(
+      'SELECT * FROM identity.update_vendor_profile($1, $2, $3, $4, $5, $6)',
+      [vendorId, CompanyName || '', CompanyAddress || '', ContactPerson || '', PhoneNumber || '', Email || '']
+    );
+
+    if (result.rows.length === 0) {
+      res.status(404).json({ ErrorMessage: 'Vendor not found or update failed.' });
+      return;
+    }
+
+    const v = result.rows[0];
+    res.json({
+      VendorId: v.vendor_id,
+      CompanyName: v.company_name,
+      Email: v.email,
+      RegistrationNumber: v.registration_number,
+      TaxId: v.tax_id,
+      CompanyAddress: v.company_address,
+      ContactPerson: v.contact_person,
+      PhoneNumber: v.phone_number,
+      VendorStatus: v.vendor_status,
+      LastLogin: v.last_login,
+      RegistrationDate: v.registration_date,
+    });
+  } catch (error: any) {
+    res.status(500).json({ ErrorMessage: error.message || 'An error occurred updating vendor profile.' });
   }
 });
