@@ -11,6 +11,10 @@ export default function GlobalError({
 }) {
   const [showDetails, setShowDetails] = useState(false);
 
+  const dashboardPath = typeof window !== 'undefined' && window.location.pathname.startsWith('/vendors')
+    ? '/vendors/dashboard'
+    : '/internal/dashboard';
+
   useEffect(() => {
     console.error('[GlobalError]', error);
   }, [error]);
@@ -38,7 +42,7 @@ export default function GlobalError({
               </button>
               <button
                 onClick={() => {
-                  window.location.href = '/internal/dashboard';
+                  window.location.href = dashboardPath;
                 }}
                 style={{
                   padding: '10px 20px', borderRadius: '8px', border: '1px solid #e2e8f0', cursor: 'pointer',
