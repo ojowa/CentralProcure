@@ -57,7 +57,7 @@ const SubmittedBidsStatusPage: React.FC = () => {
             {bids.length === 0 ? (
                 <div className="bg-white p-6 rounded-lg shadow-md text-center">
                     <p className="text-gray-600">You have not submitted any bids yet.</p>
-                    <Link href="/tenders" className="text-blue-600 hover:underline mt-4 inline-block">
+                    <Link href="/vendors/tenders" className="text-blue-600 hover:underline mt-4 inline-block">
                         Browse Open Tenders
                     </Link>
                 </div>
