@@ -34,7 +34,6 @@ const MODULE_QUICK_ACTIONS: Record<string, { label: string }> = {
   'evaluation-report': { label: 'Evaluation Report' },
   'assigned-tenders': { label: 'Assigned Tenders' },
   'tender-review': { label: 'Tender Review' },
-  'approval-rejection': { label: 'Approval Decisions' },
   'high-value-tenders': { label: 'High-Value Tenders' },
   'cgis-approval': { label: 'CGIS Approvals' },
   'tenders-board-approval': { label: 'Board Approvals' },
