@@ -734,10 +734,10 @@ export const NeedsCollectionModule: React.FC<NeedsCollectionModuleProps> = ({ mo
 
       {activeTab === 'collections' && (
         <div className="app-stats-row" style={{ display: 'flex', gap: '1rem', flexWrap: 'nowrap' }}>
-          <div className="app-stat-card" style={{ flex: 1 }}><div className="app-stat-card__value">{statusCounts.total}</div><div className="app-stat-card__label">Total Collections</div></div>
-          <div className="app-stat-card" style={{ flex: 1 }}><div className="app-stat-card__value">{statusCounts.draft}</div><div className="app-stat-card__label">Draft</div></div>
-          <div className="app-stat-card app-stat-card--info" style={{ flex: 1 }}><div className="app-stat-card__value">{statusCounts.submitted}</div><div className="app-stat-card__label">Submitted</div></div>
-          <div className="app-stat-card app-stat-card--success" style={{ flex: 1 }}><div className="app-stat-card__value">{statusCounts.endorsed}</div><div className="app-stat-card__label">Endorsed</div></div>
+          <div className="app-stat-card" style={{ flex: '1 1 0', minWidth: 0 }}><div className="app-stat-card__value">{statusCounts.total}</div><div className="app-stat-card__label">Total Collections</div></div>
+          <div className="app-stat-card" style={{ flex: '1 1 0', minWidth: 0 }}><div className="app-stat-card__value">{statusCounts.draft}</div><div className="app-stat-card__label">Draft</div></div>
+          <div className="app-stat-card app-stat-card--info" style={{ flex: '1 1 0', minWidth: 0 }}><div className="app-stat-card__value">{statusCounts.submitted}</div><div className="app-stat-card__label">Submitted</div></div>
+          <div className="app-stat-card app-stat-card--success" style={{ flex: '1 1 0', minWidth: 0 }}><div className="app-stat-card__value">{statusCounts.endorsed}</div><div className="app-stat-card__label">Endorsed</div></div>
         </div>
       )}
 
@@ -933,7 +933,7 @@ const AnalysisContent: React.FC<AnalysisContentProps> = ({
   if (view === 'overview') {
     return (
       <>
-        <div className="app-stats-row" style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+        <div className="app-stats-row" style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
           <div className="app-stat-card"><div className="app-stat-card__value">{analysis.length}</div><div className="app-stat-card__label">Unique Items</div></div>
           <div className="app-stat-card app-stat-card--info"><div className="app-stat-card__value">{analysisYear}</div><div className="app-stat-card__label">Fiscal Year</div></div>
           <div className="app-stat-card"><div className="app-stat-card__value">{analysis.reduce((s, r) => s + r.occurrence_count, 0)}</div><div className="app-stat-card__label">Total Sources</div></div>
@@ -965,7 +965,7 @@ const AnalysisContent: React.FC<AnalysisContentProps> = ({
   if (view === 'category') {
     return (
       <>
-        <div className="app-stats-row" style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: `repeat(${Math.min(categoryData.length, 4)}, 1fr)`, gap: '1rem' }}>
+        <div className="app-stats-row" style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
           {categoryData.map(c => (
             <div key={c.procurement_type} className="app-stat-card">
               <div className="app-stat-card__value">{fmt(c.total_quantity)}</div>
@@ -1029,7 +1029,7 @@ const AnalysisContent: React.FC<AnalysisContentProps> = ({
   if (view === 'weighted') {
     return (
       <>
-        <div className="app-stats-row" style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+        <div className="app-stats-row" style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
           <div className="app-stat-card"><div className="app-stat-card__value">{weightedData.length}</div><div className="app-stat-card__label">Unique Items</div></div>
           <div className="app-stat-card app-stat-card--info"><div className="app-stat-card__value">{weightedData[0]?.weighted_score ? fmt(weightedData[0].weighted_score) : '0'}</div><div className="app-stat-card__label">Top Score</div></div>
           <div className="app-stat-card"><div className="app-stat-card__value">{weightedData.reduce((s, r) => s + r.occurrence_count, 0)}</div><div className="app-stat-card__label">Total Sources</div></div>
@@ -1091,7 +1091,7 @@ const AnalysisContent: React.FC<AnalysisContentProps> = ({
     const notInPlan = planGapData.filter(p => !p.in_plan);
     return (
       <>
-        <div className="app-stats-row" style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+        <div className="app-stats-row" style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
           <div className="app-stat-card"><div className="app-stat-card__value">{planGapData.length}</div><div className="app-stat-card__label">Total Items</div></div>
           <div className="app-stat-card"><div className="app-stat-card__value text-emerald-700">{inPlan.length}</div><div className="app-stat-card__label">In Plan</div></div>
           <div className="app-stat-card app-stat-card--info"><div className="app-stat-card__value text-amber-700">{notInPlan.length}</div><div className="app-stat-card__label">Not In Plan</div></div>
@@ -1163,7 +1163,7 @@ const AnalysisContent: React.FC<AnalysisContentProps> = ({
     const notStarted = nonSubData.filter(n => !n.has_draft && !n.has_submission);
     return (
       <>
-        <div className="app-stats-row" style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+        <div className="app-stats-row" style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
           <div className="app-stat-card"><div className="app-stat-card__value">{submitted.length}</div><div className="app-stat-card__label">Submitted</div></div>
           <div className="app-stat-card app-stat-card--info"><div className="app-stat-card__value">{drafts.length}</div><div className="app-stat-card__label">Draft Only</div></div>
           <div className="app-stat-card"><div className="app-stat-card__value text-red-600">{notStarted.length}</div><div className="app-stat-card__label">Not Started</div></div>

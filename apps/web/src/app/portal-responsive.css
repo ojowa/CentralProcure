@@ -362,6 +362,24 @@ input, select, textarea {
   .dh-req-info__grid {
     grid-template-columns: 1fr;
   }
+
+  .app-stat-card {
+    padding: 14px;
+  }
+
+  .app-stat-card__value {
+    font-size: 1.5rem;
+  }
+
+  .app-stat-card__label {
+    font-size: 0.75rem;
+  }
+
+  .app-tab {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+    min-width: 0;
+  }
 }
 
 /* Audit trail v2 responsive */
