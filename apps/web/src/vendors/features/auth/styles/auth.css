@@ -229,6 +229,63 @@
   justify-content: flex-end;
 }
 
+.vendor-login__remember-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.vendor-login__remember {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #374151;
+  cursor: pointer;
+}
+
+.vendor-login__remember-check {
+  width: 1rem;
+  height: 1rem;
+  accent-color: #0b5d3b;
+}
+
+/* Success State */
+.vendor-login__success {
+  text-align: center;
+  padding: 1.5rem 0 0.5rem;
+}
+
+.vendor-login__success-icon-wrap {
+  width: 4rem;
+  height: 4rem;
+  margin: 0 auto 1rem;
+  background: #f0fdf4;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vendor-login__success-icon {
+  width: 2rem;
+  height: 2rem;
+  color: #16a34a;
+}
+
+.vendor-login__success-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0b1221;
+  margin-bottom: 0.5rem;
+}
+
+.vendor-login__success-text {
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
 .vendor-login__link {
   font-size: 0.875rem;
   color: #0b5d3b;
