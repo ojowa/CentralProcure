@@ -891,65 +891,6 @@ authRouter.delete('/api/Auth/internal/module-access/roles', async (req: Request,
 });
 
 // ─────────────────────────────────────────────
-// 30. PUT /api/Auth/internal/module-access/roles/bulk
-// ─────────────────────────────────────────────
-authRouter.put('/api/Auth/internal/module-access/roles/bulk', async (req: Request, res: Response) => {
-  const auth = requireAdmin(req, res);
-  if (!auth) return;
-  if (!requireDb(res)) return;
-
-  const { RoleName, Grants } = req.body;
-  if (!RoleName || !Array.isArray(Grants)) {
-    res.status(400).json({ ErrorMessage: 'RoleName and Grants array are required.' });
-    return;
-  }
-
-  try {
-    const results = [];
-    for (const grant of Grants) {
-      const result = await pool!.query(
-        'SELECT * FROM identity.upsert_role_module_grant($1, $2, $3, $4)',
-        [RoleName, grant.ModuleId, grant.IsEnabled !== undefined ? grant.IsEnabled : true, auth.sub]
-      );
-      results.push(mapRow(result.rows[0]));
-    }
-    res.json(results);
-  } catch (error: any) {
-    res.status(500).json({ ErrorMessage: error.message || 'An error occurred in bulk upsert.' });
-  }
-});
-
-// ─────────────────────────────────────────────
-// 31. DELETE /api/Auth/internal/module-access/roles/bulk
-// ─────────────────────────────────────────────
-authRouter.delete('/api/Auth/internal/module-access/roles/bulk', async (req: Request, res: Response) => {
-  const auth = requireAdmin(req, res);
-  if (!auth) return;
-  if (!requireDb(res)) return;
-
-  const { RoleName } = req.body;
-  if (!RoleName) {
-    res.status(400).json({ ErrorMessage: 'RoleName is required.' });
-    return;
-  }
-
-  try {
-    const grants = await pool!.query('SELECT * FROM identity.get_role_module_grants() WHERE lower(role_name) = lower($1)', [RoleName]);
-    const results = [];
-    for (const grant of grants.rows) {
-      const result = await pool!.query(
-        'SELECT * FROM identity.upsert_role_module_grant($1, $2, $3, $4)',
-        [RoleName, grant.module_id, false, auth.sub]
-      );
-      results.push(mapRow(result.rows[0]));
-    }
-    res.json(results);
-  } catch (error: any) {
-    res.status(500).json({ ErrorMessage: error.message || 'An error occurred disabling all role module grants.' });
-  }
-});
-
-// ─────────────────────────────────────────────
 // 32. GET /api/Auth/internal/module-access/users
 // ─────────────────────────────────────────────
 authRouter.get('/api/Auth/internal/module-access/users', async (req: Request, res: Response) => {
@@ -1419,6 +1360,11 @@ authRouter.put('/api/Auth/internal/role-permissions', async (req: Request, res: 
     if (result.rowCount === 0) {
       res.status(404).json({ ErrorMessage: 'Role or permission not found.' });
     } else {
+      await pool!.query('SELECT identity.sync_module_from_permission($1, $2, $3)', [
+        roleName,
+        permissionKey,
+        isEnabled,
+      ]);
       res.json({ Message: 'Permission updated.' });
     }
   } catch (err: any) {
@@ -1455,6 +1401,10 @@ authRouter.delete('/api/Auth/internal/role-permissions', async (req: Request, re
     if (result.rowCount === 0) {
       res.status(404).json({ ErrorMessage: 'Role or permission not found.' });
     } else {
+      await pool!.query('SELECT identity.sync_module_from_permission($1, $2, FALSE)', [
+        roleName,
+        permissionKey,
+      ]);
       res.json({ Message: 'Permission removed.' });
     }
   } catch (err: any) {

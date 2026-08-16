@@ -434,41 +434,6 @@ export const deleteRoleModuleAccessGrant = async (
   await parseResponse<unknown>(response, 'Unable to reset role module access.');
 };
 
-export const bulkUpdateRoleModuleAccessGrants = async (
-  token: string,
-  data: { RoleName: string; Grants: Array<{ ModuleId: string; IsEnabled: boolean }> }
-): Promise<void> => {
-  const response = await fetch(`${API_ENDPOINTS.INTERNAL_MODULE_ACCESS_ROLES}/bulk`, {
-    method: 'PUT',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...buildAuthHeaders(token),
-      ...buildCsrfHeaders()
-    },
-    body: JSON.stringify(data)
-  });
-
-  await parseResponse<unknown>(response, 'Unable to bulk update role module access.');
-};
-
-export const bulkResetRoleModuleAccessGrants = async (
-  token: string,
-  params: { RoleName: string }
-): Promise<void> => {
-  const query = new URLSearchParams({
-    roleName: params.RoleName
-  });
-
-  const response = await fetch(`${API_ENDPOINTS.INTERNAL_MODULE_ACCESS_ROLES}/bulk?${query.toString()}`, {
-    method: 'DELETE',
-    credentials: 'include',
-    headers: buildAuthHeaders(token)
-  });
-
-  await parseResponse<unknown>(response, 'Unable to reset role module access.');
-};
-
 export const updateUserModuleAccessGrant = async (
   token: string,
   data: { InternalUserId: string; ModuleId: string; IsEnabled: boolean }

@@ -26,10 +26,6 @@ export interface UseModuleAccessReturn {
   updateUserGrant: (userId: string, moduleId: string, isEnabled: boolean) => Promise<void>;
   deleteRoleGrant: (roleName: string, moduleId: string) => Promise<void>;
   deleteUserGrant: (userId: string, moduleId: string) => Promise<void>;
-  bulkUpdateRoleGrants: (roleName: string, grants: ModuleGrant[]) => Promise<void>;
-  bulkUpdateUserGrants: (userId: string, grants: ModuleGrant[]) => Promise<void>;
-  bulkResetRoleGrants: (roleName: string) => Promise<void>;
-  bulkResetUserGrants: (userId: string) => Promise<void>;
   getGrantForModule: (moduleId: string, mode: ModuleAccessMode, targetId: string) => userService.RoleModuleAccessGrant | userService.UserModuleAccessGrant | undefined;
 }
 
@@ -109,50 +105,6 @@ export function useModuleAccess(options: UseModuleAccessOptions = {}): UseModule
     }
   }, [token, fetchGrants]);
 
-  const bulkUpdateRoleGrants = useCallback(async (roleName: string, grants: ModuleGrant[]) => {
-    if (!token) throw new Error('No token available');
-    setIsLoading(true);
-    try {
-      await userService.bulkUpdateRoleModuleAccessGrants(token, { RoleName: roleName, Grants: grants });
-      await fetchGrants();
-    } finally {
-      setIsLoading(false);
-    }
-  }, [token, fetchGrants]);
-
-  const bulkUpdateUserGrants = useCallback(async (userId: string, grants: ModuleGrant[]) => {
-    if (!token) throw new Error('No token available');
-    setIsLoading(true);
-    try {
-      await userService.bulkUpdateUserModuleAccessGrants(token, { InternalUserId: userId, Grants: grants });
-      await fetchGrants();
-    } finally {
-      setIsLoading(false);
-    }
-  }, [token, fetchGrants]);
-
-  const bulkResetRoleGrants = useCallback(async (roleName: string) => {
-    if (!token) throw new Error('No token available');
-    setIsLoading(true);
-    try {
-      await userService.bulkResetRoleModuleAccessGrants(token, { RoleName: roleName });
-      await fetchGrants();
-    } finally {
-      setIsLoading(false);
-    }
-  }, [token, fetchGrants]);
-
-  const bulkResetUserGrants = useCallback(async (userId: string) => {
-    if (!token) throw new Error('No token available');
-    setIsLoading(true);
-    try {
-      await userService.bulkResetUserModuleAccessGrants(token, { InternalUserId: userId });
-      await fetchGrants();
-    } finally {
-      setIsLoading(false);
-    }
-  }, [token, fetchGrants]);
-
   const getGrantForModule = useCallback((moduleId: string, mode: ModuleAccessMode, targetId: string) => {
     if (mode === 'role') {
       return roleModuleGrants.find(g => g.RoleName === targetId && g.ModuleId === moduleId);
@@ -171,10 +123,6 @@ export function useModuleAccess(options: UseModuleAccessOptions = {}): UseModule
     updateUserGrant,
     deleteRoleGrant,
     deleteUserGrant,
-    bulkUpdateRoleGrants,
-    bulkUpdateUserGrants,
-    bulkResetRoleGrants,
-    bulkResetUserGrants,
     getGrantForModule
   };
 }

@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 import type { InternalModule, InternalUserProfile, InternalRoleRecord } from '../../types/internal';
-import type { ModuleAccessMode, ModuleGrant } from '../../hooks/useModuleAccess';
+import type { ModuleAccessMode } from '../../hooks/useModuleAccess';
 import type { RoleModuleAccessGrant, UserModuleAccessGrant } from '../../services/internalAuthService';
 import { AccessAuditPanel } from './AccessAuditPanel';
 import { useAccessAuditWithTarget } from '../../hooks/useAccessAudit';
@@ -17,8 +17,6 @@ interface ModuleAccessPanelProps {
   isLoading: boolean;
   onUpdateRoleGrant: (roleName: string, moduleId: string, isEnabled: boolean) => void | Promise<void>;
   onUpdateUserGrant: (userId: string, moduleId: string, isEnabled: boolean) => void | Promise<void>;
-  onBulkUpdateRoleGrants: (roleName: string, grants: ModuleGrant[]) => void | Promise<void>;
-  onBulkUpdateUserGrants: (userId: string, grants: ModuleGrant[]) => void | Promise<void>;
 }
 
 type GrantState = 'allowed' | 'blocked';
@@ -35,8 +33,6 @@ export const ModuleAccessPanel: React.FC<ModuleAccessPanelProps> = ({
   isLoading,
   onUpdateRoleGrant,
   onUpdateUserGrant,
-  onBulkUpdateRoleGrants,
-  onBulkUpdateUserGrants
 }) => {
   const [mode, setMode] = useState<ModuleAccessMode>('role');
   const [selectedRole, setSelectedRole] = useState<string>(roles[0]?.RoleName ?? '');
@@ -149,12 +145,6 @@ export const ModuleAccessPanel: React.FC<ModuleAccessPanelProps> = ({
     }
   };
 
-  const handleBulk = async (state: 'allow' | 'block') => {
-    const grants = modules.map(m => ({ ModuleId: m.id, IsEnabled: state === 'allow' }));
-    if (mode === 'role') await onBulkUpdateRoleGrants(effectiveRole, grants);
-    else await onBulkUpdateUserGrants(effectiveUser, grants);
-  };
-
   const toggleSection = (section: string) => {
     setCollapsedSections(prev => {
       const next = new Set(prev);
@@ -244,14 +234,6 @@ export const ModuleAccessPanel: React.FC<ModuleAccessPanelProps> = ({
         <p className="plan-muted" style={{ margin: 0, fontSize: '0.8125rem' }}>
           Editing access for <strong>{targetLabel}</strong> &middot; choose Allow or Block per module.
         </p>
-        <div className="urm-toolbar__bulk">
-          <button type="button" className="plan-button plan-button--secondary" onClick={() => void handleBulk('allow')} disabled={effectiveLoading}>
-            Allow All
-          </button>
-          <button type="button" className="plan-button" onClick={() => void handleBulk('block')} disabled={effectiveLoading}>
-            Block All
-          </button>
-        </div>
       </div>
 
       <div className="urm-groups">
