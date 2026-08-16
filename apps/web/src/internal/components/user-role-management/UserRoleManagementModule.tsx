@@ -269,42 +269,54 @@ export const UserRoleManagementModule = ({ module, token }: Props) => {
 
   return (
     <section className="admin-hub animate-fade-up">
-      <header className="admin-hero">
-        <div>
-          <div className="admin-kicker">{module.controlPurpose}</div>
-          <h2>{module.title}</h2>
-          <p>{module.description}</p>
-          <div className="admin-tags">
-            <span className="admin-tag">{users.length} Active Users</span>
-            <span className="admin-tag">{roles.length} Defined Roles</span>
-            <span className="admin-tag">{units.length} Organizational Units</span>
+      <header className="urm-header">
+        <div className="urm-header__top">
+          <div className="urm-header__title-group">
+            <div className="urm-kicker">{module.controlPurpose}</div>
+            <h2 className="urm-header__title">{module.title}</h2>
+            <p className="urm-header__desc">{module.description}</p>
           </div>
-        </div>
-        <div className="urm-hero__metrics">
-          <div className="urm-hero__metric"><strong>{activeCount}</strong><span>Active</span></div>
-          <div className="urm-hero__metric"><strong>{pendingCount}</strong><span>Pending</span></div>
+          <div className="urm-header__stats">
+            <div className="urm-stat urm-stat--primary">
+              <strong>{activeCount}</strong>
+              <span>Active Users</span>
+            </div>
+            <div className="urm-stat urm-stat--muted">
+              <strong>{pendingCount}</strong>
+              <span>Pending</span>
+            </div>
+            <div className="urm-stat urm-stat--accent">
+              <strong>{roles.length}</strong>
+              <span>Roles</span>
+            </div>
+            <div className="urm-stat urm-stat--accent">
+              <strong>{units.length}</strong>
+              <span>Units</span>
+            </div>
+          </div>
         </div>
       </header>
 
       {error && <div className="portal-alert animate-shake">{error}</div>}
       {success && <div className="plan-success">{success}</div>}
 
-      <div className="urm-tabs">
-        {TABS.map(tab => (
-          <Link
-            key={tab}
-            href={`${pathname}?tab=${tab}`}
-            className={`urm-tabs__link ${activeTab === tab ? 'urm-tabs__link--active' : ''}`}
-            onClick={() => setTab(tab)}
-          >
-            {TAB_LABELS[tab]}
-          </Link>
-        ))}
-        <span className="urm-tabs__spacer" />
-        <button type="button" className="workflow-config-refresh" onClick={refreshAll} disabled={isLoading}>
+      <nav className="urm-nav">
+        <div className="urm-nav__tabs">
+          {TABS.map(tab => (
+            <Link
+              key={tab}
+              href={`${pathname}?tab=${tab}`}
+              className={`urm-nav__tab ${activeTab === tab ? 'urm-nav__tab--active' : ''}`}
+              onClick={() => setTab(tab)}
+            >
+              {TAB_LABELS[tab]}
+            </Link>
+          ))}
+        </div>
+        <button type="button" className="urm-nav__refresh" onClick={refreshAll} disabled={isLoading}>
           {isLoading ? 'Syncing...' : 'Refresh Directory'}
         </button>
-      </div>
+      </nav>
 
       <div className="management-viewport" style={{ marginTop: '24px' }}>
         {activeTab === 'users' && (
