@@ -439,11 +439,11 @@
 }
 
 .urm-stat--accent {
-  background: rgba(59, 130, 246, 0.06);
+  background: rgba(11, 93, 59, 0.05);
 }
 
 .urm-stat--accent strong {
-  color: #2563eb;
+  color: var(--portal-forest, #0b5d3b);
 }
 
 .urm-stat strong {
