@@ -16,7 +16,6 @@ import {
   AlertCircle,
   Loader2,
   CheckCircle2,
-  ArrowLeft,
 } from 'lucide-react';
 
 type LoginForm = {
@@ -129,14 +128,6 @@ export default function LoginPage() {
 
       {/* Content */}
       <div className="vendor-login__content">
-        {/* Header */}
-        <div className="vendor-login__header">
-          <Link href="/internal" className="vendor-login__back">
-            <ArrowLeft className="vendor-login__back-icon" />
-            Back to Home
-          </Link>
-        </div>
-
         {/* Card */}
         <div className="vendor-login__card">
           {/* Logo */}
