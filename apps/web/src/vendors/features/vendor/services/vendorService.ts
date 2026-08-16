@@ -63,12 +63,22 @@ export const uploadComplianceDocument = async (
     expiryDate?: string
 ): Promise<ComplianceDocumentResponse> => {
     try {
-        const fileContent = await file.text();
+        const fileContent = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                const result = typeof reader.result === 'string' ? reader.result : '';
+                const base64 = result.includes(',') ? result.split(',')[1] : result;
+                resolve(base64);
+            };
+            reader.onerror = () => reject(new Error('Failed to read file.'));
+            reader.readAsDataURL(file);
+        });
 
         const response = await apiClient.post(API_ENDPOINTS.VENDOR_COMPLIANCE_UPLOAD, {
             DocumentType: documentType,
             FileName: file.name,
-            FileContent: fileContent
+            FileContent: fileContent,
+            ExpiryDate: expiryDate || null
         });
         return response.data as ComplianceDocumentResponse;
     } catch (error) {

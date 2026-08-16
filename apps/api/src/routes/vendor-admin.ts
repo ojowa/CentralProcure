@@ -7,11 +7,8 @@ export const vendorAdminRouter = Router();
 
 // GET /api/admin/vendors — alias for /api/admin/vendors/registrations
 vendorAdminRouter.get('/api/admin/vendors', async (req, res) => {
-  const auth = (req as AuthenticatedRequest).auth;
-  if (!auth?.sub) {
-    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
-    return;
-  }
+  const auth = await requirePermission(req, 'admin.vendor_approval');
+  if (denyIfNoPermission(res, auth)) return;
 
   if (!pool) {
     res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
@@ -59,11 +56,15 @@ vendorAdminRouter.get('/api/admin/vendors', async (req, res) => {
         v.company_address AS "CompanyAddress",
         v.contact_person AS "ContactPerson",
         v.phone_number AS "PhoneNumber",
-        v.vendor_status AS "Status",
-        v.created_at AS "CreatedAt",
-        (SELECT COUNT(*) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id) AS "TotalDocuments",
-        (SELECT COUNT(*) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id AND cd.verification_status = 'Approved') AS "ApprovedDocuments",
-        (SELECT COUNT(*) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id AND cd.verification_status = 'Pending') AS "PendingDocuments"
+        v.vendor_status AS "VendorStatus",
+        v.is_active AS "IsActive",
+        v.created_at AS "RegistrationDate",
+        v.updated_at AS "UpdatedAt",
+        (SELECT MAX(cd.updated_at) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id) AS "LastComplianceUpdateAt",
+        (SELECT COUNT(*) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id) AS "ComplianceDocumentsCount",
+        (SELECT COUNT(*) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id AND cd.verification_status = 'Approved') AS "ApprovedDocumentsCount",
+        (SELECT COUNT(*) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id AND cd.verification_status = 'Pending') AS "PendingDocumentsCount",
+        (SELECT COUNT(*) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id AND cd.verification_status = 'Rejected') AS "RejectedDocumentsCount"
       FROM identity.vendors v
       ${whereClause}
       ORDER BY v.created_at DESC
@@ -84,11 +85,8 @@ vendorAdminRouter.get('/api/admin/vendors', async (req, res) => {
 
 // GET /api/admin/vendors/registrations
 vendorAdminRouter.get('/api/admin/vendors/registrations', async (req, res) => {
-  const auth = (req as AuthenticatedRequest).auth;
-  if (!auth?.sub) {
-    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
-    return;
-  }
+  const auth = await requirePermission(req, 'admin.vendor_approval');
+  if (denyIfNoPermission(res, auth)) return;
 
   if (!pool) {
     res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
@@ -136,11 +134,15 @@ vendorAdminRouter.get('/api/admin/vendors/registrations', async (req, res) => {
         v.company_address AS "CompanyAddress",
         v.contact_person AS "ContactPerson",
         v.phone_number AS "PhoneNumber",
-        v.vendor_status AS "Status",
-        v.created_at AS "CreatedAt",
-        (SELECT COUNT(*) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id) AS "TotalDocuments",
-        (SELECT COUNT(*) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id AND cd.verification_status = 'Approved') AS "ApprovedDocuments",
-        (SELECT COUNT(*) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id AND cd.verification_status = 'Pending') AS "PendingDocuments"
+        v.vendor_status AS "VendorStatus",
+        v.is_active AS "IsActive",
+        v.created_at AS "RegistrationDate",
+        v.updated_at AS "UpdatedAt",
+        (SELECT MAX(cd.updated_at) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id) AS "LastComplianceUpdateAt",
+        (SELECT COUNT(*) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id) AS "ComplianceDocumentsCount",
+        (SELECT COUNT(*) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id AND cd.verification_status = 'Approved') AS "ApprovedDocumentsCount",
+        (SELECT COUNT(*) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id AND cd.verification_status = 'Pending') AS "PendingDocumentsCount",
+        (SELECT COUNT(*) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id AND cd.verification_status = 'Rejected') AS "RejectedDocumentsCount"
       FROM identity.vendors v
       ${whereClause}
       ORDER BY v.created_at DESC
@@ -161,11 +163,8 @@ vendorAdminRouter.get('/api/admin/vendors/registrations', async (req, res) => {
 
 // GET /api/admin/vendors/:vendorId
 vendorAdminRouter.get('/api/admin/vendors/:vendorId', async (req, res) => {
-  const auth = (req as AuthenticatedRequest).auth;
-  if (!auth?.sub) {
-    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
-    return;
-  }
+  const auth = await requirePermission(req, 'admin.vendor_approval');
+  if (denyIfNoPermission(res, auth)) return;
 
   if (!pool) {
     res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
@@ -185,12 +184,17 @@ vendorAdminRouter.get('/api/admin/vendors/:vendorId', async (req, res) => {
         v.company_address AS "CompanyAddress",
         v.contact_person AS "ContactPerson",
         v.phone_number AS "PhoneNumber",
-        v.vendor_status AS "Status",
-        v.created_at AS "CreatedAt",
-        (SELECT COUNT(*) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id) AS "TotalDocuments",
-        (SELECT COUNT(*) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id AND cd.verification_status = 'Approved') AS "ApprovedDocuments",
-        (SELECT COUNT(*) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id AND cd.verification_status = 'Pending') AS "PendingDocuments",
-        (SELECT COUNT(*) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id AND cd.verification_status = 'Rejected') AS "RejectedDocuments"
+        v.vendor_status AS "VendorStatus",
+        v.is_active AS "IsActive",
+        v.created_at AS "RegistrationDate",
+        v.last_login AS "LastLogin",
+        v.updated_at AS "UpdatedAt",
+        v.review_notes AS "ReviewNotes",
+        (SELECT MAX(cd.updated_at) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id) AS "LastComplianceUpdateAt",
+        (SELECT COUNT(*) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id) AS "ComplianceDocumentsCount",
+        (SELECT COUNT(*) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id AND cd.verification_status = 'Approved') AS "ApprovedDocumentsCount",
+        (SELECT COUNT(*) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id AND cd.verification_status = 'Pending') AS "PendingDocumentsCount",
+        (SELECT COUNT(*) FROM identity.compliance_documents cd WHERE cd.vendor_id = v.vendor_id AND cd.verification_status = 'Rejected') AS "RejectedDocumentsCount"
       FROM identity.vendors v
       WHERE v.vendor_id = $1`,
       [vendorId]
@@ -201,7 +205,25 @@ vendorAdminRouter.get('/api/admin/vendors/:vendorId', async (req, res) => {
       return;
     }
 
-    res.json(result.rows[0]);
+    const documentsResult = await pool.query(
+      `SELECT
+        cd.document_id AS "DocumentId",
+        cd.document_type AS "DocumentType",
+        cd.verification_status AS "VerificationStatus",
+        cd.expiry_date AS "ExpiryDate",
+        cd.created_at AS "CreatedAt",
+        cd.updated_at AS "UpdatedAt",
+        cd.verified_by AS "VerifiedBy",
+        cd.verified_at AS "VerifiedAt",
+        cd.file_name AS "FileName",
+        cd.document_url AS "FileUrl"
+      FROM identity.compliance_documents cd
+      WHERE cd.vendor_id = $1
+      ORDER BY cd.created_at DESC`,
+      [vendorId]
+    );
+
+    res.json({ ...result.rows[0], ComplianceDocuments: documentsResult.rows });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching vendor details.' });
   }
@@ -219,20 +241,30 @@ vendorAdminRouter.post('/api/admin/vendors/:vendorId/decision', async (req, res)
 
   try {
     const { vendorId } = req.params;
-    const { Decision, RejectionReason } = req.body;
+    const { Decision, Notes, RejectionReason } = req.body;
 
     if (!Decision) {
       res.status(400).json({ ErrorMessage: 'Decision is required (Approved or Rejected).' });
       return;
     }
 
-    const result = await pool.query(
+    const normalizedDecision =
+      typeof Decision === 'string' ? Decision.trim() : Decision;
+    const allowed = ['Pending Approval', 'Active', 'Rejected'];
+    if (!allowed.includes(normalizedDecision)) {
+      res.status(400).json({ ErrorMessage: 'Decision must be one of: Pending Approval, Active, Rejected.' });
+      return;
+    }
+
+    const reviewNotes = (Notes ?? RejectionReason ?? '') as string;
+
+    await pool.query(
       'SELECT * FROM identity.approve_vendor_registration($1, $2, $3, $4)',
-      [vendorId, Decision, auth!.sub, RejectionReason || '']
+      [vendorId, normalizedDecision, auth!.sub, reviewNotes]
     );
 
     const updatedVendor = await pool.query(
-      `SELECT vendor_id, company_name, vendor_status, updated_at
+      `SELECT vendor_id, company_name, vendor_status, is_active, updated_at, review_notes
        FROM identity.vendors WHERE vendor_id = $1`,
       [vendorId]
     );
@@ -246,9 +278,11 @@ vendorAdminRouter.post('/api/admin/vendors/:vendorId/decision', async (req, res)
 
     res.json({
       VendorId: v.vendor_id,
-      Status: v.vendor_status,
-      Decision: Decision,
+      VendorStatus: v.vendor_status,
+      IsActive: v.is_active,
+      Decision: normalizedDecision,
       ReviewedAt: v.updated_at,
+      ReviewNotes: v.review_notes,
     });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred processing the decision.' });
@@ -257,11 +291,8 @@ vendorAdminRouter.post('/api/admin/vendors/:vendorId/decision', async (req, res)
 
 // GET /api/admin/vendors/compliance/:documentId/file
 vendorAdminRouter.get('/api/admin/vendors/compliance/:documentId/file', async (req, res) => {
-  const auth = (req as AuthenticatedRequest).auth;
-  if (!auth?.sub) {
-    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
-    return;
-  }
+  const auth = await requirePermission(req, 'admin.vendor_approval');
+  if (denyIfNoPermission(res, auth)) return;
 
   if (!pool) {
     res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
@@ -271,7 +302,7 @@ vendorAdminRouter.get('/api/admin/vendors/compliance/:documentId/file', async (r
   try {
     const { documentId } = req.params;
     const result = await pool.query(
-      'SELECT document_url, file_name FROM identity.compliance_documents WHERE document_id = $1',
+      'SELECT document_url, file_name, document_content FROM identity.compliance_documents WHERE document_id = $1',
       [documentId]
     );
 
@@ -281,9 +312,19 @@ vendorAdminRouter.get('/api/admin/vendors/compliance/:documentId/file', async (r
     }
 
     const doc = result.rows[0];
+    const fileName = doc.file_name || doc.document_url?.split('/').pop() || 'compliance-document';
+
+    if (doc.document_content) {
+      const buffer = Buffer.from(doc.document_content, 'base64');
+      res.setHeader('Content-Type', 'application/octet-stream');
+      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
+      res.send(buffer);
+      return;
+    }
+
     res.json({
       DocumentUrl: doc.document_url,
-      FileName: doc.file_name,
+      FileName: fileName,
     });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching document file.' });

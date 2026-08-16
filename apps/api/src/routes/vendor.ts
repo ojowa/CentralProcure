@@ -188,16 +188,18 @@ vendorRouter.post('/api/Vendor/compliance/upload', async (req, res) => {
   }
 
   try {
-    const { DocumentType, FileName, FileContent } = req.body;
+    const { DocumentType, FileName, FileContent, ExpiryDate } = req.body;
 
     if (!DocumentType || !FileName) {
       res.status(400).json({ ErrorMessage: 'DocumentType and FileName are required.' });
       return;
     }
 
+    const documentUrl = `uploads/compliance/${auth!.sub}_${Date.now()}_${FileName.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+
     const result = await pool.query(
-      'SELECT * FROM identity.upload_compliance_document($1, $2, $3, $4)',
-      [auth!.sub, DocumentType, FileName, FileContent || '']
+      'SELECT * FROM identity.upload_compliance_document($1, $2, $3, $4, $5, $6)',
+      [auth!.sub, DocumentType, documentUrl, ExpiryDate || null, FileName, FileContent || null]
     );
 
     const doc = result.rows[0];
@@ -211,6 +213,7 @@ vendorRouter.post('/api/Vendor/compliance/upload', async (req, res) => {
       DocumentId: doc.document_id,
       DocumentType: doc.document_type,
       FileUrl: doc.document_url,
+      FileName: doc.file_name,
       Status: doc.verification_status,
       CreatedAt: doc.created_at,
     });
@@ -229,7 +232,7 @@ vendorRouter.get('/api/Vendor/compliance/:documentId/file', async (req, res) => 
   try {
     const { documentId } = req.params;
     const result = await pool.query(
-      'SELECT document_url, file_name FROM identity.compliance_documents WHERE document_id = $1',
+      'SELECT document_url, file_name, document_content FROM identity.compliance_documents WHERE document_id = $1',
       [documentId]
     );
 
@@ -239,9 +242,19 @@ vendorRouter.get('/api/Vendor/compliance/:documentId/file', async (req, res) => 
     }
 
     const doc = result.rows[0];
+    const fileName = doc.file_name || doc.document_url?.split('/').pop() || 'compliance-document';
+
+    if (doc.document_content) {
+      const buffer = Buffer.from(doc.document_content, 'base64');
+      res.setHeader('Content-Type', 'application/octet-stream');
+      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
+      res.send(buffer);
+      return;
+    }
+
     res.json({
       DocumentUrl: doc.document_url,
-      FileName: doc.file_name,
+      FileName: fileName,
     });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching document file.' });

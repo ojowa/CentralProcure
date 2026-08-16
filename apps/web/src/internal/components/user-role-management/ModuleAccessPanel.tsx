@@ -17,17 +17,13 @@ interface ModuleAccessPanelProps {
   isLoading: boolean;
   onUpdateRoleGrant: (roleName: string, moduleId: string, isEnabled: boolean) => void | Promise<void>;
   onUpdateUserGrant: (userId: string, moduleId: string, isEnabled: boolean) => void | Promise<void>;
-  onDeleteRoleGrant: (roleName: string, moduleId: string) => void | Promise<void>;
-  onDeleteUserGrant: (userId: string, moduleId: string) => void | Promise<void>;
   onBulkUpdateRoleGrants: (roleName: string, grants: ModuleGrant[]) => void | Promise<void>;
   onBulkUpdateUserGrants: (userId: string, grants: ModuleGrant[]) => void | Promise<void>;
-  onBulkResetRoleGrants: (roleName: string) => void | Promise<void>;
-  onBulkResetUserGrants: (userId: string) => void | Promise<void>;
 }
 
-type GrantState = 'allowed' | 'blocked' | 'default';
+type GrantState = 'allowed' | 'blocked';
 
-const GRANT_ORDER: GrantState[] = ['allowed', 'default', 'blocked'];
+const GRANT_ORDER: GrantState[] = ['allowed', 'blocked'];
 
 export const ModuleAccessPanel: React.FC<ModuleAccessPanelProps> = ({
   modules,
@@ -39,12 +35,8 @@ export const ModuleAccessPanel: React.FC<ModuleAccessPanelProps> = ({
   isLoading,
   onUpdateRoleGrant,
   onUpdateUserGrant,
-  onDeleteRoleGrant,
-  onDeleteUserGrant,
   onBulkUpdateRoleGrants,
-  onBulkUpdateUserGrants,
-  onBulkResetRoleGrants,
-  onBulkResetUserGrants
+  onBulkUpdateUserGrants
 }) => {
   const [mode, setMode] = useState<ModuleAccessMode>('role');
   const [selectedRole, setSelectedRole] = useState<string>(roles[0]?.RoleName ?? '');
@@ -95,7 +87,7 @@ export const ModuleAccessPanel: React.FC<ModuleAccessPanelProps> = ({
 
   const getGrantState = useCallback((moduleId: string): GrantState => {
     const grant = activeGrantMap.get(moduleId);
-    if (!grant) return 'default';
+    if (!grant) return 'blocked';
     return grant.IsEnabled ? 'allowed' : 'blocked';
   }, [activeGrantMap]);
 
@@ -127,13 +119,12 @@ export const ModuleAccessPanel: React.FC<ModuleAccessPanelProps> = ({
     for (const mod of modules) {
       const state = getGrantState(mod.id);
       if (state === 'allowed') allowed += 1;
-      else if (state === 'blocked') blocked += 1;
+      else blocked += 1;
     }
     return {
       total: modules.length,
       allowed,
-      blocked,
-      default: Math.max(0, modules.length - allowed - blocked)
+      blocked
     };
   }, [modules, getGrantState]);
 
@@ -151,27 +142,14 @@ export const ModuleAccessPanel: React.FC<ModuleAccessPanelProps> = ({
   };
 
   const handleSetState = (moduleId: string, state: GrantState) => {
-    if (state === 'allowed') {
-      void runBusy(moduleId, () => mode === 'role'
-        ? onUpdateRoleGrant(effectiveRole, moduleId, true)
-        : onUpdateUserGrant(effectiveUser, moduleId, true));
-    } else if (state === 'blocked') {
-      void runBusy(moduleId, () => mode === 'role'
-        ? onUpdateRoleGrant(effectiveRole, moduleId, false)
-        : onUpdateUserGrant(effectiveUser, moduleId, false));
+    if (mode === 'role') {
+      void runBusy(moduleId, () => onUpdateRoleGrant(effectiveRole, moduleId, state === 'allowed'));
     } else {
-      void runBusy(moduleId, () => mode === 'role'
-        ? onDeleteRoleGrant(effectiveRole, moduleId)
-        : onDeleteUserGrant(effectiveUser, moduleId));
+      void runBusy(moduleId, () => onUpdateUserGrant(effectiveUser, moduleId, state === 'allowed'));
     }
   };
 
-  const handleBulk = async (state: 'allow' | 'block' | 'reset') => {
-    if (state === 'reset') {
-      if (mode === 'role') await onBulkResetRoleGrants(effectiveRole);
-      else await onBulkResetUserGrants(effectiveUser);
-      return;
-    }
+  const handleBulk = async (state: 'allow' | 'block') => {
     const grants = modules.map(m => ({ ModuleId: m.id, IsEnabled: state === 'allow' }));
     if (mode === 'role') await onBulkUpdateRoleGrants(effectiveRole, grants);
     else await onBulkUpdateUserGrants(effectiveUser, grants);
@@ -260,22 +238,15 @@ export const ModuleAccessPanel: React.FC<ModuleAccessPanelProps> = ({
           <strong className="urm-summary__value">{summary.blocked}</strong>
           <span className="urm-summary__label">Blocked</span>
         </div>
-        <div className="urm-summary__card">
-          <strong className="urm-summary__value">{summary.default}</strong>
-          <span className="urm-summary__label">Default</span>
-        </div>
       </div>
 
       <div className="urm-toolbar">
         <p className="plan-muted" style={{ margin: 0, fontSize: '0.8125rem' }}>
-          Editing access for <strong>{targetLabel}</strong> &middot; choose Allow, Default, or Block per module.
+          Editing access for <strong>{targetLabel}</strong> &middot; choose Allow or Block per module.
         </p>
         <div className="urm-toolbar__bulk">
           <button type="button" className="plan-button plan-button--secondary" onClick={() => void handleBulk('allow')} disabled={effectiveLoading}>
             Allow All
-          </button>
-          <button type="button" className="plan-button plan-button--secondary" onClick={() => void handleBulk('reset')} disabled={effectiveLoading}>
-            Reset All
           </button>
           <button type="button" className="plan-button" onClick={() => void handleBulk('block')} disabled={effectiveLoading}>
             Block All
@@ -317,7 +288,7 @@ export const ModuleAccessPanel: React.FC<ModuleAccessPanelProps> = ({
 
                       <div className="urm-module-row__status">
                         <span className={`urm-status-pill urm-status-pill--${state}`}>
-                          {state === 'allowed' ? 'Allowed' : state === 'blocked' ? 'Blocked' : 'Default'}
+                          {state === 'allowed' ? 'Allowed' : 'Blocked'}
                         </span>
                       </div>
 
@@ -330,16 +301,14 @@ export const ModuleAccessPanel: React.FC<ModuleAccessPanelProps> = ({
                               state === option
                                 ? option === 'allowed'
                                   ? 'urm-module-actions__btn--active-grant'
-                                  : option === 'blocked'
-                                    ? 'urm-module-actions__btn--active-block'
-                                    : 'urm-module-actions__btn--active-default'
+                                  : 'urm-module-actions__btn--active-block'
                                 : ''
                             }`}
                             onClick={() => handleSetState(module.id, option)}
                             disabled={effectiveLoading || isBusy || state === option}
                             aria-pressed={state === option}
                           >
-                            {option === 'allowed' ? 'Allow' : option === 'blocked' ? 'Block' : 'Default'}
+                            {option === 'allowed' ? 'Allow' : 'Block'}
                           </button>
                         ))}
                       </div>

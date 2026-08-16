@@ -898,9 +898,9 @@ authRouter.put('/api/Auth/internal/module-access/roles/bulk', async (req: Reques
   if (!auth) return;
   if (!requireDb(res)) return;
 
-  const { Grants } = req.body;
-  if (!Array.isArray(Grants)) {
-    res.status(400).json({ ErrorMessage: 'Grants array is required.' });
+  const { RoleName, Grants } = req.body;
+  if (!RoleName || !Array.isArray(Grants)) {
+    res.status(400).json({ ErrorMessage: 'RoleName and Grants array are required.' });
     return;
   }
 
@@ -909,7 +909,7 @@ authRouter.put('/api/Auth/internal/module-access/roles/bulk', async (req: Reques
     for (const grant of Grants) {
       const result = await pool!.query(
         'SELECT * FROM identity.upsert_role_module_grant($1, $2, $3, $4)',
-        [grant.RoleName, grant.ModuleId, grant.IsEnabled !== undefined ? grant.IsEnabled : true, auth.sub]
+        [RoleName, grant.ModuleId, grant.IsEnabled !== undefined ? grant.IsEnabled : true, auth.sub]
       );
       results.push(mapRow(result.rows[0]));
     }
@@ -1028,9 +1028,9 @@ authRouter.put('/api/Auth/internal/module-access/users/bulk', async (req: Reques
   if (!auth) return;
   if (!requireDb(res)) return;
 
-  const { Grants } = req.body;
-  if (!Array.isArray(Grants)) {
-    res.status(400).json({ ErrorMessage: 'Grants array is required.' });
+  const { InternalUserId, Grants } = req.body;
+  if (!InternalUserId || !Array.isArray(Grants)) {
+    res.status(400).json({ ErrorMessage: 'InternalUserId and Grants array are required.' });
     return;
   }
 
@@ -1040,7 +1040,7 @@ authRouter.put('/api/Auth/internal/module-access/users/bulk', async (req: Reques
       const result = await pool!.query(
         'SELECT * FROM identity.upsert_user_module_grant($1, $2, $3, $4)',
         [
-          grant.InternalUserId,
+          InternalUserId,
           grant.ModuleId,
           grant.IsEnabled !== undefined ? grant.IsEnabled : true,
           auth.sub

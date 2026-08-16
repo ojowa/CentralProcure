@@ -55,8 +55,8 @@ export const UserRoleManagementModule = ({ module, token }: Props) => {
 
   const {
     roleModuleGrants, userModuleGrants, isLoading: isLoadingModules,
-    refreshGrants, updateRoleGrant, updateUserGrant, deleteRoleGrant, deleteUserGrant,
-    bulkUpdateRoleGrants, bulkUpdateUserGrants, bulkResetRoleGrants, bulkResetUserGrants
+    refreshGrants, updateRoleGrant, updateUserGrant,
+    bulkUpdateRoleGrants, bulkUpdateUserGrants
   } = useModuleAccess({ token });
 
   const { units, moduleCatalog, isLoading: isLoadingInitial } = useInitialData(token);
@@ -333,9 +333,7 @@ export const UserRoleManagementModule = ({ module, token }: Props) => {
             roleModuleGrants={roleModuleGrants} userModuleGrants={userModuleGrants}
             isLoading={isLoading}
             onUpdateRoleGrant={updateRoleGrant} onUpdateUserGrant={updateUserGrant}
-            onDeleteRoleGrant={deleteRoleGrant} onDeleteUserGrant={deleteUserGrant}
-            onBulkUpdateRoleGrants={bulkUpdateRoleGrants} onBulkUpdateUserGrants={bulkUpdateUserGrants}
-            onBulkResetRoleGrants={bulkResetRoleGrants} onBulkResetUserGrants={bulkResetUserGrants} />
+            onBulkUpdateRoleGrants={bulkUpdateRoleGrants} onBulkUpdateUserGrants={bulkUpdateUserGrants} />
         )}
 
         {activeTab === 'permissions' && (
