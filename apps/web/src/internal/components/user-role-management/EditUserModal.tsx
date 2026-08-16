@@ -70,32 +70,14 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
   };
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000
-      }}
-      onClick={onClose}
-    >
-      <div
-        style={{
-          background: 'white',
-          borderRadius: '12px',
-          padding: '24px',
-          width: '100%',
-          maxWidth: '600px',
-          maxHeight: '90vh',
-          overflow: 'auto'
-        }}
-        onClick={e => e.stopPropagation()}
-      >
-        <h2 style={{ margin: '0 0 20px 0' }}>Edit User: {user.FirstName} {user.Surname}</h2>
+    <div className="portal-modal-overlay" onClick={onClose}>
+      <div className="portal-modal-container" style={{ maxWidth: '600px' }} onClick={e => e.stopPropagation()}>
+        <header className="portal-modal-header">
+          <h3>Edit User: {user.FirstName} {user.Surname}</h3>
+          <button type="button" className="portal-modal-close" onClick={onClose} aria-label="Close">&times;</button>
+        </header>
 
+        <div className="portal-modal-body">
         {errorMessage ? (
           <div className="portal-alert" style={{ marginBottom: '16px' }}>
             {errorMessage}
@@ -104,7 +86,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
 
         <form onSubmit={handleSubmit}>
           <div style={{ display: 'grid', gap: '16px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+            <div className="urm-form-grid">
               <label className="plan-field">
                 <span>Surname *</span>
                 <input
@@ -133,7 +115,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
               </label>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div className="urm-form-grid urm-form-grid--2">
               <label className="plan-field">
                 <span>Email Address *</span>
                 <input
@@ -155,7 +137,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
               </label>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div className="urm-form-grid urm-form-grid--2">
               <label className="plan-field">
                 <span>Service Number *</span>
                 <input
@@ -165,9 +147,10 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
                   onChange={e => setFormData(p => ({ ...p, ServiceNumber: e.target.value }))}
                 />
               </label>
+              <div />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div className="urm-form-grid urm-form-grid--2">
               <label className="plan-field">
                 <span>Organizational Unit</span>
                 <select
@@ -213,6 +196,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
             </div>
           </div>
         </form>
+        </div>
       </div>
     </div>
   );

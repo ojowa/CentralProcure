@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import type { InternalModule, InternalUserProfile, InternalRoleRecord } from '../../types/internal';
 import type { ModuleAccessMode, ModuleGrant } from '../../hooks/useModuleAccess';
 import type { RoleModuleAccessGrant, UserModuleAccessGrant } from '../../services/internalAuthService';
@@ -25,6 +25,10 @@ interface ModuleAccessPanelProps {
   onBulkResetUserGrants: (userId: string) => void | Promise<void>;
 }
 
+type GrantState = 'allowed' | 'blocked' | 'default';
+
+const GRANT_ORDER: GrantState[] = ['allowed', 'default', 'blocked'];
+
 export const ModuleAccessPanel: React.FC<ModuleAccessPanelProps> = ({
   modules,
   roles,
@@ -46,19 +50,12 @@ export const ModuleAccessPanel: React.FC<ModuleAccessPanelProps> = ({
   const [selectedRole, setSelectedRole] = useState<string>(roles[0]?.RoleName ?? '');
   const [selectedUser, setSelectedUser] = useState<string>(users[0]?.InternalUserId ?? '');
   const [query, setQuery] = useState('');
-  const [guideDismissed, setGuideDismissed] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('module-access-guide-dismissed') === 'true';
-    }
-    return false;
-  });
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const [busyModules, setBusyModules] = useState<Set<string>>(new Set());
 
-  const dismissGuide = () => {
-    setGuideDismissed(true);
-    localStorage.setItem('module-access-guide-dismissed', 'true');
-  };
+  const effectiveRole = selectedRole || roles[0]?.RoleName || '';
+  const effectiveUser = selectedUser || users[0]?.InternalUserId || '';
 
-  // Use the dedicated audit hook
   const {
     entries: auditEntries,
     isLoading: isLoadingAudit,
@@ -67,178 +64,137 @@ export const ModuleAccessPanel: React.FC<ModuleAccessPanelProps> = ({
   } = useAccessAuditWithTarget(
     token,
     mode,
-    mode === 'role' ? selectedRole : selectedUser
+    mode === 'role' ? effectiveRole : effectiveUser
   );
 
   const roleGrantMap = useMemo(() => {
     const map = new Map<string, RoleModuleAccessGrant>();
     for (const grant of roleModuleGrants) {
-      if (grant.RoleName === selectedRole) {
+      if (grant.RoleName === effectiveRole) {
         map.set(grant.ModuleId, grant);
       }
     }
     return map;
-  }, [roleModuleGrants, selectedRole]);
+  }, [roleModuleGrants, effectiveRole]);
 
   const userGrantMap = useMemo(() => {
     const map = new Map<string, UserModuleAccessGrant>();
     for (const grant of userModuleGrants) {
-      if (grant.InternalUserId === selectedUser) {
+      if (grant.InternalUserId === effectiveUser) {
         map.set(grant.ModuleId, grant);
       }
     }
     return map;
-  }, [userModuleGrants, selectedUser]);
+  }, [userModuleGrants, effectiveUser]);
 
-  const handleModeChange = useCallback((newMode: ModuleAccessMode) => {
-    setMode(newMode);
-  }, []);
-
-  const handleRoleChange = useCallback((roleName: string) => {
-    setSelectedRole(roleName);
-  }, []);
-
-  const handleUserChange = useCallback((userId: string) => {
-    setSelectedUser(userId);
-  }, []);
-
-  useEffect(() => {
-    if (!selectedRole && roles.length > 0) {
-      setSelectedRole(roles[0].RoleName);
-    }
-  }, [roles, selectedRole]);
-
-  useEffect(() => {
-    if (!selectedUser && users.length > 0) {
-      setSelectedUser(users[0].InternalUserId);
-    }
-  }, [users, selectedUser]);
-
-  const handleAllowAll = async () => {
-    const grants = modules.map(m => ({ ModuleId: m.id, IsEnabled: true }));
-    if (mode === 'role') {
-      await onBulkUpdateRoleGrants(selectedRole, grants);
-    } else {
-      await onBulkUpdateUserGrants(selectedUser, grants);
-    }
-  };
-
-  const handleDenyAll = async () => {
-    const grants = modules.map(m => ({ ModuleId: m.id, IsEnabled: false }));
-    if (mode === 'role') {
-      await onBulkUpdateRoleGrants(selectedRole, grants);
-    } else {
-      await onBulkUpdateUserGrants(selectedUser, grants);
-    }
-  };
-
-  const handleResetAll = async () => {
-    if (mode === 'role') {
-      await onBulkResetRoleGrants(selectedRole);
-    } else {
-      await onBulkResetUserGrants(selectedUser);
-    }
-  };
-
-  const effectiveLoading = isLoading || isLoadingAudit;
   const activeGrantMap = mode === 'role' ? roleGrantMap : userGrantMap;
-  const selectedUserRecord = users.find((user) => user.InternalUserId === selectedUser) ?? null;
+  const selectedUserRecord = users.find((user) => user.InternalUserId === effectiveUser) ?? null;
   const targetLabel = mode === 'role'
-    ? (selectedRole || 'No role selected')
+    ? (effectiveRole || 'No role selected')
     : (selectedUserRecord ? `${selectedUserRecord.Email} (${selectedUserRecord.RoleName})` : 'No user selected');
+
+  const getGrantState = useCallback((moduleId: string): GrantState => {
+    const grant = activeGrantMap.get(moduleId);
+    if (!grant) return 'default';
+    return grant.IsEnabled ? 'allowed' : 'blocked';
+  }, [activeGrantMap]);
 
   const normalizedQuery = query.trim().toLowerCase();
   const filteredModules = useMemo(() => {
     if (!normalizedQuery) {
       return modules;
     }
-
-    return modules.filter((module) => {
-      return module.title.toLowerCase().includes(normalizedQuery) ||
-        module.section.toLowerCase().includes(normalizedQuery) ||
-        module.id.toLowerCase().includes(normalizedQuery);
+    return modules.filter((mod) => {
+      return mod.title.toLowerCase().includes(normalizedQuery) ||
+        mod.section.toLowerCase().includes(normalizedQuery) ||
+        mod.id.toLowerCase().includes(normalizedQuery);
     });
   }, [modules, normalizedQuery]);
 
+  const groupedBySection = useMemo(() => {
+    const sections = new Map<string, InternalModule[]>();
+    for (const mod of filteredModules) {
+      const key = mod.section?.trim() || mod.group || 'Other';
+      if (!sections.has(key)) sections.set(key, []);
+      sections.get(key)!.push(mod);
+    }
+    return Array.from(sections.entries()).sort(([a], [b]) => a.localeCompare(b));
+  }, [filteredModules]);
+
   const summary = useMemo(() => {
     let allowed = 0;
-    let denied = 0;
-
+    let blocked = 0;
     for (const mod of modules) {
-      const grant = activeGrantMap.get(mod.id);
-      if (!grant) {
-        continue;
-      }
-
-      if (grant.IsEnabled) {
-        allowed += 1;
-      } else {
-        denied += 1;
-      }
+      const state = getGrantState(mod.id);
+      if (state === 'allowed') allowed += 1;
+      else if (state === 'blocked') blocked += 1;
     }
-
     return {
       total: modules.length,
       allowed,
-      denied,
-      default: Math.max(0, modules.length - allowed - denied)
+      blocked,
+      default: Math.max(0, modules.length - allowed - blocked)
     };
-  }, [modules, activeGrantMap]);
+  }, [modules, getGrantState]);
+
+  const runBusy = async (moduleId: string, action: () => void | Promise<void>) => {
+    setBusyModules(prev => new Set(prev).add(moduleId));
+    try {
+      await action();
+    } finally {
+      setBusyModules(prev => {
+        const next = new Set(prev);
+        next.delete(moduleId);
+        return next;
+      });
+    }
+  };
+
+  const handleSetState = (moduleId: string, state: GrantState) => {
+    if (state === 'allowed') {
+      void runBusy(moduleId, () => mode === 'role'
+        ? onUpdateRoleGrant(effectiveRole, moduleId, true)
+        : onUpdateUserGrant(effectiveUser, moduleId, true));
+    } else if (state === 'blocked') {
+      void runBusy(moduleId, () => mode === 'role'
+        ? onUpdateRoleGrant(effectiveRole, moduleId, false)
+        : onUpdateUserGrant(effectiveUser, moduleId, false));
+    } else {
+      void runBusy(moduleId, () => mode === 'role'
+        ? onDeleteRoleGrant(effectiveRole, moduleId)
+        : onDeleteUserGrant(effectiveUser, moduleId));
+    }
+  };
+
+  const handleBulk = async (state: 'allow' | 'block' | 'reset') => {
+    if (state === 'reset') {
+      if (mode === 'role') await onBulkResetRoleGrants(effectiveRole);
+      else await onBulkResetUserGrants(effectiveUser);
+      return;
+    }
+    const grants = modules.map(m => ({ ModuleId: m.id, IsEnabled: state === 'allow' }));
+    if (mode === 'role') await onBulkUpdateRoleGrants(effectiveRole, grants);
+    else await onBulkUpdateUserGrants(effectiveUser, grants);
+  };
+
+  const toggleSection = (section: string) => {
+    setCollapsedSections(prev => {
+      const next = new Set(prev);
+      if (next.has(section)) next.delete(section);
+      else next.add(section);
+      return next;
+    });
+  };
+
+  const effectiveLoading = isLoading || isLoadingAudit;
 
   return (
-    <article className="portal-module-card module-access">
-      {!guideDismissed && (
-        <section className="module-access__guide" style={{ position: 'relative' }}>
-          <button
-            type="button"
-            onClick={dismissGuide}
-            style={{ position: 'absolute', top: '8px', right: '8px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem', color: 'var(--portal-slate)' }}
-            title="Dismiss guide"
-          >
-            &times;
-          </button>
-          <h4>How To Use This Page</h4>
-          <p><strong>Step 1:</strong> Choose <em>By Role</em> or <em>By User</em>.</p>
-          <p><strong>Step 2:</strong> Pick the role/user you want to edit.</p>
-          <p><strong>Step 3:</strong> For each module, click <em>Grant Access</em>, <em>Block Access</em>, or <em>Use Default</em>.</p>
-          <p className="plan-muted"><strong>Default</strong> means the system uses the normal catalog rules.</p>
-        </section>
-      )}
-
-      <div className="module-access__header">
-        <div>
-          <h3>Module Access Control</h3>
-          <p className="plan-muted">Currently editing: {targetLabel}</p>
-        </div>
-        <div className="module-access__mode-toggle">
-          <button
-            type="button"
-            className={`plan-button ${mode === 'role' ? '' : 'plan-button--secondary'}`}
-            onClick={() => handleModeChange('role')}
-            disabled={effectiveLoading}
-          >
-            By Role
-          </button>
-          <button
-            type="button"
-            className={`plan-button ${mode === 'user' ? '' : 'plan-button--secondary'}`}
-            onClick={() => handleModeChange('user')}
-            disabled={effectiveLoading}
-          >
-            By User
-          </button>
-        </div>
-      </div>
-
-      <div className="module-access__toolbar">
+    <article className="portal-module-card urm-workspace">
+      <div className="urm-contextbar">
         {mode === 'role' ? (
           <label className="plan-field">
-            <span>Step 1: Select Role</span>
-            <select
-              className="plan-input"
-              value={selectedRole}
-              onChange={(e) => handleRoleChange(e.target.value)}
-            >
+            <span>Select Role</span>
+            <select className="plan-input" value={effectiveRole} onChange={(e) => setSelectedRole(e.target.value)}>
               {roles.map((role) => (
                 <option key={role.RoleId} value={role.RoleName}>{role.RoleName}</option>
               ))}
@@ -246,12 +202,8 @@ export const ModuleAccessPanel: React.FC<ModuleAccessPanelProps> = ({
           </label>
         ) : (
           <label className="plan-field">
-            <span>Step 1: Select User</span>
-            <select
-              className="plan-input"
-              value={selectedUser}
-              onChange={(e) => handleUserChange(e.target.value)}
-            >
+            <span>Select User</span>
+            <select className="plan-input" value={effectiveUser} onChange={(e) => setSelectedUser(e.target.value)}>
               {users.map((user) => (
                 <option key={user.InternalUserId} value={user.InternalUserId}>
                   {user.Email} ({user.RoleName})
@@ -262,107 +214,143 @@ export const ModuleAccessPanel: React.FC<ModuleAccessPanelProps> = ({
         )}
 
         <label className="plan-field">
-          <span>Step 2: Search Modules (Optional)</span>
+          <span>Search Modules</span>
           <input
             className="plan-input"
-            placeholder="Filter by module, section, or id"
+            placeholder="Filter by title, section, or id"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
         </label>
 
-        <div className="module-access__bulk-actions">
-          <button type="button" className="plan-button plan-button--secondary" onClick={handleAllowAll} disabled={effectiveLoading}>
-            Grant All
+        <div className="urm-segmented" role="tablist" aria-label="Edit mode">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === 'role'}
+            className={`urm-segmented__btn ${mode === 'role' ? 'urm-segmented__btn--active' : ''}`}
+            onClick={() => setMode('role')}
+            disabled={effectiveLoading}
+          >
+            By Role
           </button>
-          <button type="button" className="plan-button plan-button--secondary" onClick={handleDenyAll} disabled={effectiveLoading}>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === 'user'}
+            className={`urm-segmented__btn ${mode === 'user' ? 'urm-segmented__btn--active' : ''}`}
+            onClick={() => setMode('user')}
+            disabled={effectiveLoading}
+          >
+            By User
+          </button>
+        </div>
+      </div>
+
+      <div className="urm-summary">
+        <div className="urm-summary__card">
+          <strong className="urm-summary__value">{summary.total}</strong>
+          <span className="urm-summary__label">Total Modules</span>
+        </div>
+        <div className="urm-summary__card urm-summary__card--good">
+          <strong className="urm-summary__value">{summary.allowed}</strong>
+          <span className="urm-summary__label">Allowed</span>
+        </div>
+        <div className="urm-summary__card urm-summary__card--warn">
+          <strong className="urm-summary__value">{summary.blocked}</strong>
+          <span className="urm-summary__label">Blocked</span>
+        </div>
+        <div className="urm-summary__card">
+          <strong className="urm-summary__value">{summary.default}</strong>
+          <span className="urm-summary__label">Default</span>
+        </div>
+      </div>
+
+      <div className="urm-toolbar">
+        <p className="plan-muted" style={{ margin: 0, fontSize: '0.8125rem' }}>
+          Editing access for <strong>{targetLabel}</strong> &middot; choose Allow, Default, or Block per module.
+        </p>
+        <div className="urm-toolbar__bulk">
+          <button type="button" className="plan-button plan-button--secondary" onClick={() => void handleBulk('allow')} disabled={effectiveLoading}>
+            Allow All
+          </button>
+          <button type="button" className="plan-button plan-button--secondary" onClick={() => void handleBulk('reset')} disabled={effectiveLoading}>
+            Reset All
+          </button>
+          <button type="button" className="plan-button" onClick={() => void handleBulk('block')} disabled={effectiveLoading}>
             Block All
           </button>
-          <button type="button" className="plan-button" onClick={handleResetAll} disabled={effectiveLoading}>
-            Use Default For All
-          </button>
         </div>
       </div>
 
-      <div className="module-access__summary">
-        <div className="module-access__metric">
-          <strong>{summary.total}</strong>
-          <span>Total Modules</span>
-        </div>
-        <div className="module-access__metric module-access__metric--good">
-          <strong>{summary.allowed}</strong>
-          <span>Explicitly Allowed</span>
-        </div>
-        <div className="module-access__metric module-access__metric--warn">
-          <strong>{summary.denied}</strong>
-          <span>Explicitly Blocked</span>
-        </div>
-        <div className="module-access__metric">
-          <strong>{summary.default}</strong>
-          <span>Using Default Rule</span>
-        </div>
+      <div className="urm-groups">
+        {groupedBySection.length === 0 ? (
+          <p className="urm-empty">No modules match your search.</p>
+        ) : (
+          groupedBySection.map(([section, sectionModules]) => {
+            const isCollapsed = collapsedSections.has(section);
+            return (
+              <section key={section} className="urm-group">
+                <button
+                  type="button"
+                  className="urm-group__header"
+                  onClick={() => toggleSection(section)}
+                >
+                  <span className="urm-group__title">
+                    <span className={`urm-group__chevron ${isCollapsed ? 'urm-group__chevron--collapsed' : ''}`}>&#9660;</span>
+                    {section}
+                  </span>
+                  <span className="urm-group__count">
+                    {sectionModules.length} module{sectionModules.length === 1 ? '' : 's'}
+                  </span>
+                </button>
+
+                {!isCollapsed && sectionModules.map((module) => {
+                  const state = getGrantState(module.id);
+                  const isBusy = busyModules.has(module.id);
+                  return (
+                    <div key={module.id} className="urm-module-row">
+                      <div className="urm-module-row__info">
+                        <div className="urm-module-row__title">{module.title}</div>
+                        <div className="urm-module-row__id">{module.id}</div>
+                      </div>
+
+                      <div className="urm-module-row__status">
+                        <span className={`urm-status-pill urm-status-pill--${state}`}>
+                          {state === 'allowed' ? 'Allowed' : state === 'blocked' ? 'Blocked' : 'Default'}
+                        </span>
+                      </div>
+
+                      <div className="urm-module-actions" role="group" aria-label={`Access for ${module.title}`}>
+                        {GRANT_ORDER.map((option) => (
+                          <button
+                            key={option}
+                            type="button"
+                            className={`urm-module-actions__btn ${
+                              state === option
+                                ? option === 'allowed'
+                                  ? 'urm-module-actions__btn--active-grant'
+                                  : option === 'blocked'
+                                    ? 'urm-module-actions__btn--active-block'
+                                    : 'urm-module-actions__btn--active-default'
+                                : ''
+                            }`}
+                            onClick={() => handleSetState(module.id, option)}
+                            disabled={effectiveLoading || isBusy || state === option}
+                            aria-pressed={state === option}
+                          >
+                            {option === 'allowed' ? 'Allow' : option === 'blocked' ? 'Block' : 'Default'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </section>
+            );
+          })
+        )}
       </div>
-
-      <div className="module-access__grid">
-        {filteredModules.map((module) => {
-          const grant = activeGrantMap.get(module.id);
-          const statusLabel = grant ? (grant.IsEnabled ? 'Allowed' : 'Denied') : 'Default';
-          const statusClass = grant ? (grant.IsEnabled ? 'admin-status--good' : 'admin-status--warn') : '';
-
-          return (
-            <article key={module.id} className="module-access__card">
-              <header className="module-access__card-head">
-                <div>
-                  <h4>{module.title}</h4>
-                  <p>{module.section}</p>
-                </div>
-                <span className={`admin-status ${statusClass}`}>{statusLabel}</span>
-              </header>
-
-              <div className="module-access__card-meta">{module.id}</div>
-              <p className="module-access__hint">Step 3: choose one action for this module.</p>
-
-              <div className="module-access__card-actions">
-                <button
-                  type="button"
-                  className="plan-button plan-button--secondary"
-                  onClick={() => mode === 'role'
-                    ? onUpdateRoleGrant(selectedRole, module.id, true)
-                    : onUpdateUserGrant(selectedUser, module.id, true)
-                  }
-                  disabled={effectiveLoading}
-                >
-                  Grant Access
-                </button>
-                <button
-                  type="button"
-                  className="plan-button plan-button--secondary"
-                  onClick={() => mode === 'role'
-                    ? onUpdateRoleGrant(selectedRole, module.id, false)
-                    : onUpdateUserGrant(selectedUser, module.id, false)
-                  }
-                  disabled={effectiveLoading}
-                >
-                  Block Access
-                </button>
-                <button
-                  type="button"
-                  className="plan-button"
-                  onClick={() => mode === 'role'
-                    ? onDeleteRoleGrant(selectedRole, module.id)
-                    : onDeleteUserGrant(selectedUser, module.id)
-                  }
-                  disabled={effectiveLoading || !grant}
-                >
-                  Use Default
-                </button>
-              </div>
-            </article>
-          );
-        })}
-      </div>
-
-      {!filteredModules.length ? <p className="plan-empty">No modules match your filter.</p> : null}
 
       <AccessAuditPanel
         entries={auditEntries}

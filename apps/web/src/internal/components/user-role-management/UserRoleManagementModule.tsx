@@ -281,27 +281,27 @@ export const UserRoleManagementModule = ({ module, token }: Props) => {
             <span className="admin-tag">{units.length} Organizational Units</span>
           </div>
         </div>
-        <div className="admin-metrics">
-          <div className="admin-metric"><strong>{activeCount}</strong><span>Active</span></div>
-          <div className="admin-metric"><strong>{pendingCount}</strong><span>Pending</span></div>
+        <div className="urm-hero__metrics">
+          <div className="urm-hero__metric"><strong>{activeCount}</strong><span>Active</span></div>
+          <div className="urm-hero__metric"><strong>{pendingCount}</strong><span>Pending</span></div>
         </div>
       </header>
 
       {error && <div className="portal-alert animate-shake">{error}</div>}
       {success && <div className="plan-success">{success}</div>}
 
-      <div className="workflow-config-tabs">
+      <div className="urm-tabs">
         {TABS.map(tab => (
           <Link
             key={tab}
             href={`${pathname}?tab=${tab}`}
-            className={activeTab === tab ? 'active' : ''}
+            className={`urm-tabs__link ${activeTab === tab ? 'urm-tabs__link--active' : ''}`}
             onClick={() => setTab(tab)}
           >
             {TAB_LABELS[tab]}
           </Link>
         ))}
-        <div style={{ flex: 1 }} />
+        <span className="urm-tabs__spacer" />
         <button type="button" className="workflow-config-refresh" onClick={refreshAll} disabled={isLoading}>
           {isLoading ? 'Syncing...' : 'Refresh Directory'}
         </button>

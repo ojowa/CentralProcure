@@ -9,6 +9,7 @@ VALUES
     ('DepartmentHead', 'department_head', 'Reviews and endorses departmental procurement needs'),
     ('FormationHead', 'formation_head', 'Head of the NIS formation responsible for endorsing needs'),
     ('FormationOfficer', 'formation_officer', 'Officer responsible for procurement needs at the formation level'),
+    ('Department Officer', 'department_officer', 'Department-level procurement operations and needs submission'),
     ('CGIS', 'accounting_officer', 'Comptroller General approval authority'),
     ('AuditOfficer', 'audit_oversight', 'Read-only audit and compliance access'),
     ('Evaluator', 'evaluator', 'Performs technical and financial evaluation'),

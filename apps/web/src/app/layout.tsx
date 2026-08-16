@@ -13,6 +13,7 @@ import './routing-timeline.css';
 import './audit-threshold.css';
 import './audit-trail-v2.css';
 import './permissions-panel.css';
+import './user-role-management.css';
 import './portal-responsive.css';
 import { metadataBase } from './seo';
 import { CsrfFetchBootstrap } from './CsrfFetchBootstrap';

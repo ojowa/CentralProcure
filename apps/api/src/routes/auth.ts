@@ -981,14 +981,12 @@ authRouter.put('/api/Auth/internal/module-access/users', async (req: Request, re
 
   try {
     const result = await pool!.query(
-      'SELECT * FROM identity.upsert_user_module_grant($1, $2, $3, $4, $5, $6)',
+      'SELECT * FROM identity.upsert_user_module_grant($1, $2, $3, $4)',
       [
         InternalUserId,
         ModuleId,
         IsEnabled !== undefined ? IsEnabled : true,
-        GrantedBy || auth.sub,
-        Reason || '',
-        OverrideExpiry || null
+        GrantedBy || auth.sub
       ]
     );
     res.json(mapRow(result.rows[0]));
@@ -1013,8 +1011,8 @@ authRouter.delete('/api/Auth/internal/module-access/users', async (req: Request,
 
   try {
     const result = await pool!.query(
-      'SELECT * FROM identity.upsert_user_module_grant($1, $2, $3, $4, $5, $6)',
-      [internalUserId, moduleId, false, auth.sub, '', null]
+      'SELECT * FROM identity.upsert_user_module_grant($1, $2, $3, $4)',
+      [internalUserId, moduleId, false, auth.sub]
     );
     res.json(mapRow(result.rows[0]));
   } catch (error: any) {
@@ -1040,14 +1038,12 @@ authRouter.put('/api/Auth/internal/module-access/users/bulk', async (req: Reques
     const results = [];
     for (const grant of Grants) {
       const result = await pool!.query(
-        'SELECT * FROM identity.upsert_user_module_grant($1, $2, $3, $4, $5, $6)',
+        'SELECT * FROM identity.upsert_user_module_grant($1, $2, $3, $4)',
         [
           grant.InternalUserId,
           grant.ModuleId,
           grant.IsEnabled !== undefined ? grant.IsEnabled : true,
-          auth.sub,
-          grant.Reason || '',
-          grant.OverrideExpiry || null
+          auth.sub
         ]
       );
       results.push(mapRow(result.rows[0]));
@@ -1080,8 +1076,8 @@ authRouter.delete('/api/Auth/internal/module-access/users/bulk', async (req: Req
     const results = [];
     for (const grant of grants.rows) {
       const result = await pool!.query(
-        'SELECT * FROM identity.upsert_user_module_grant($1, $2, $3, $4, $5, $6)',
-        [InternalUserId, grant.module_id, false, auth.sub, '', null]
+        'SELECT * FROM identity.upsert_user_module_grant($1, $2, $3, $4)',
+        [InternalUserId, grant.module_id, false, auth.sub]
       );
       results.push(mapRow(result.rows[0]));
     }

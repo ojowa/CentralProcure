@@ -64,12 +64,10 @@ export const RoleList: React.FC<RoleListProps> = ({
     const isExpanded = expandedRole === role.RoleId;
 
     return (
-      <article key={role.RoleId} className="portal-module-card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <article key={role.RoleId} className="portal-module-card" style={{ minWidth: 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', flexWrap: 'wrap' }}>
           <h3 style={{ margin: 0 }}>{getRoleDisplayName(role)}</h3>
-          <span
-            className={`admin-status ${role.IsActive ? 'admin-status--good' : ''}`}
-          >
+          <span className={`admin-status ${role.IsActive ? 'admin-status--good' : ''}`}>
             {role.IsActive ? 'Active' : 'Disabled'}
           </span>
         </div>
@@ -195,7 +193,7 @@ export const RoleList: React.FC<RoleListProps> = ({
                   <div
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
                       gap: '20px',
                       marginTop: '12px'
                     }}

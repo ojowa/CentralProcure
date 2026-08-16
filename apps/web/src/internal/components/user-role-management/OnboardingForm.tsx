@@ -112,7 +112,7 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
       <p className="plan-muted">Create a new internal identity and assign initial statutory permissions.</p>
 
       <form onSubmit={handleSubmit} style={{ marginTop: '24px', display: 'grid', gap: '20px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px' }}>
+        <div className="urm-form-grid">
           <label className="plan-field">
             <span>Surname *</span>
             <input
@@ -144,7 +144,7 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
           </label>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+        <div className="urm-form-grid urm-form-grid--2">
           <label className="plan-field">
             <span>Email Address *</span>
             <input
@@ -169,7 +169,7 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
           </label>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+        <div className="urm-form-grid urm-form-grid--2">
           <label className="plan-field">
             <span>Service Number *</span>
             <input
@@ -192,7 +192,7 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
           </label>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+        <div className="urm-form-grid urm-form-grid--2">
           <label className="plan-field">
             <span>Organizational Unit *</span>
             <select
@@ -234,7 +234,7 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
           </label>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+        <div className="urm-form-grid urm-form-grid--2">
           <label className="plan-field">
             <span>Confirm Password *</span>
             <input

@@ -119,8 +119,8 @@ export const UserList: React.FC<UserListProps> = ({
   return (
     <article className="portal-module-card">
       <div className="plan-toolbar" style={{ marginBottom: '20px' }}>
-        <div className="plan-filters">
-          <label className="plan-field" style={{ width: '300px' }}>
+        <div className="plan-filters urm-user-filters" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
+          <label className="plan-field" style={{ gridColumn: 'span 2' }}>
             <span>Search Directory</span>
             <input
               className="plan-input"
@@ -129,7 +129,7 @@ export const UserList: React.FC<UserListProps> = ({
               onChange={e => onSearchChange(e.target.value)}
             />
           </label>
-          <label className="plan-field" style={{ width: '160px' }}>
+          <label className="plan-field">
             <span>Filter by Role</span>
             <select className="plan-input" value={filterRole} onChange={e => setFilterRole(e.target.value)}>
               <option value="">All Roles</option>
@@ -138,7 +138,7 @@ export const UserList: React.FC<UserListProps> = ({
               ))}
             </select>
           </label>
-          <label className="plan-field" style={{ width: '130px' }}>
+          <label className="plan-field">
             <span>Filter by Status</span>
             <select className="plan-input" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
               <option value="">All</option>
@@ -146,7 +146,7 @@ export const UserList: React.FC<UserListProps> = ({
               <option value="Inactive">Inactive</option>
             </select>
           </label>
-          <label className="plan-field" style={{ width: '180px' }}>
+          <label className="plan-field">
             <span>Filter by Unit</span>
             <select className="plan-input" value={filterUnit} onChange={e => setFilterUnit(e.target.value)}>
               <option value="">All Units</option>
@@ -155,7 +155,7 @@ export const UserList: React.FC<UserListProps> = ({
               ))}
             </select>
           </label>
-          <label className="plan-field" style={{ width: '130px' }}>
+          <label className="plan-field">
             <span>Rows Per Page</span>
             <select
               className="plan-input"

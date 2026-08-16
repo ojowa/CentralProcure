@@ -63,106 +63,93 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
   };
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000
-      }}
-      onClick={handleClose}
-    >
-      <div
-        style={{
-          background: 'white',
-          borderRadius: '12px',
-          padding: '24px',
-          width: '100%',
-          maxWidth: '500px'
-        }}
-        onClick={e => e.stopPropagation()}
-      >
-        <h2 style={{ margin: '0 0 8px 0' }}>Reset Password</h2>
-        <p className="plan-muted" style={{ margin: '0 0 20px 0' }}>
-          Resetting password for <strong>{user.FirstName} {user.Surname}</strong> ({user.Email})
-        </p>
+    <div className="portal-modal-overlay" onClick={handleClose}>
+      <div className="portal-modal-container" style={{ maxWidth: '500px' }} onClick={e => e.stopPropagation()}>
+        <header className="portal-modal-header">
+          <h3>Reset Password</h3>
+          <button type="button" className="portal-modal-close" onClick={handleClose} aria-label="Close">&times;</button>
+        </header>
 
-        {error && (
-          <div className="portal-alert animate-shake" style={{ marginBottom: '16px' }}>{error}</div>
-        )}
+        <div className="portal-modal-body">
+          <p className="plan-muted" style={{ margin: '0 0 16px 0' }}>
+            Resetting password for <strong>{user.FirstName} {user.Surname}</strong> ({user.Email})
+          </p>
 
-        <form onSubmit={handleSubmit}>
-          <div style={{ display: 'grid', gap: '16px' }}>
-            <label className="plan-field">
-              <span>New Password *</span>
-              <div style={{ display: 'flex', gap: '6px' }}>
+          {error && (
+            <div className="portal-alert animate-shake" style={{ marginBottom: '16px' }}>{error}</div>
+          )}
+
+          <form id="reset-password-form" onSubmit={handleSubmit}>
+            <div style={{ display: 'grid', gap: '16px' }}>
+              <label className="plan-field">
+                <span>New Password *</span>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    className="plan-input"
+                    required
+                    value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)}
+                    placeholder="Enter new password"
+                    style={{ flex: 1 }}
+                  />
+                  <button
+                    type="button"
+                    className="plan-button plan-button--secondary"
+                    onClick={() => setShowPassword(!showPassword)}
+                    title={showPassword ? 'Hide password' : 'Show password'}
+                    style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                  >
+                    {showPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+                <small className="plan-muted">
+                  Must be at least 8 characters with uppercase, lowercase, number, and special character.
+                </small>
+              </label>
+
+              <label className="plan-field">
+                <span>Confirm Password *</span>
                 <input
                   type={showPassword ? 'text' : 'password'}
                   className="plan-input"
                   required
-                  value={newPassword}
-                  onChange={e => setNewPassword(e.target.value)}
-                  placeholder="Enter new password"
-                  style={{ flex: 1 }}
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm new password"
                 />
-                <button
-                  type="button"
-                  className="plan-button plan-button--secondary"
-                  onClick={() => setShowPassword(!showPassword)}
-                  title={showPassword ? 'Hide password' : 'Show password'}
-                  style={{ padding: '4px 10px', fontSize: '0.75rem' }}
-                >
-                  {showPassword ? 'Hide' : 'Show'}
-                </button>
-              </div>
-              <small className="plan-muted">
-                Must be at least 8 characters with uppercase, lowercase, number, and special character.
-              </small>
-            </label>
+              </label>
 
-            <label className="plan-field">
-              <span>Confirm Password *</span>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                className="plan-input"
-                required
-                value={confirmPassword}
-                onChange={e => setConfirmPassword(e.target.value)}
-                placeholder="Confirm new password"
-              />
-            </label>
-
-            <label className="plan-field" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <input
-                type="checkbox"
-                checked={requireChange}
-                onChange={e => setRequireChange(e.target.checked)}
-              />
-              <span>Require password change on next login</span>
-            </label>
-
-            <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
-              <button
-                type="submit"
-                className="plan-button"
-                disabled={isLoading}
-              >
-                {isLoading ? 'Resetting...' : 'Reset Password'}
-              </button>
-              <button
-                type="button"
-                className="plan-button plan-button--secondary"
-                onClick={handleClose}
-                disabled={isLoading}
-              >
-                Cancel
-              </button>
+              <label className="plan-field" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  type="checkbox"
+                  checked={requireChange}
+                  onChange={e => setRequireChange(e.target.checked)}
+                />
+                <span>Require password change on next login</span>
+              </label>
             </div>
-          </div>
-        </form>
+          </form>
+        </div>
+
+        <footer className="portal-modal-footer">
+          <button
+            type="button"
+            className="plan-button plan-button--secondary"
+            onClick={handleClose}
+            disabled={isLoading}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="reset-password-form"
+            className="plan-button"
+            disabled={isLoading}
+          >
+            {isLoading ? 'Resetting...' : 'Reset Password'}
+          </button>
+        </footer>
       </div>
     </div>
   );
