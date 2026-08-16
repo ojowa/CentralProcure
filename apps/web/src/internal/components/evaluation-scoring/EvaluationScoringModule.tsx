@@ -35,7 +35,10 @@ export const EvaluationScoringModule = ({ module, token, role, initialData }: Pr
     Notes: '',
     Justification: '',
     Recommendation: 'Qualified',
-    ThresholdNote: ''
+    ThresholdNote: '',
+    ScorePercentage: '',
+    FinancialRank: '',
+    TechnicalPass: 'true'
   });
 
   useEffect(() => {
@@ -106,9 +109,17 @@ export const EvaluationScoringModule = ({ module, token, role, initialData }: Pr
     setLoading(true);
     try {
       await logEvaluationAction({
-        ...actionForm,
+        ActionType: actionForm.ActionType,
         TenderId: selectedTender.TenderId,
-        ReportCode: selectedTender.ReportCode
+        ReportCode: selectedTender.ReportCode,
+        Reason: actionForm.Reason || undefined,
+        Notes: actionForm.Notes || undefined,
+        Justification: actionForm.Justification || undefined,
+        Recommendation: actionForm.Recommendation || undefined,
+        ThresholdNote: actionForm.ThresholdNote || undefined,
+        ScorePercentage: actionForm.ScorePercentage ? Number(actionForm.ScorePercentage) : undefined,
+        FinancialRank: actionForm.FinancialRank ? Number(actionForm.FinancialRank) : undefined,
+        TechnicalPass: actionForm.ActionType === 'StartEvaluation' || actionForm.ActionType === 'RecommendAward' ? actionForm.TechnicalPass === 'true' : undefined
       }, token);
       setError(null);
       setSuccess('Action logged successfully');
@@ -257,6 +268,33 @@ export const EvaluationScoringModule = ({ module, token, role, initialData }: Pr
                     <label className="plan-field">
                       <span>Justification Summary</span>
                       <textarea className="plan-input" required value={actionForm.Justification} onChange={e => setActionForm({...actionForm, Justification: e.target.value})} />
+                    </label>
+                  </>
+                )}
+
+                {(actionForm.ActionType === 'StartEvaluation' || actionForm.ActionType === 'RecommendAward') && (
+                  <>
+                    <label className="plan-field">
+                      <span>Financial Score (%)</span>
+                      <input type="number" className="plan-input" min="0" max="100" placeholder="0-100" value={actionForm.ScorePercentage} onChange={e => setActionForm({...actionForm, ScorePercentage: e.target.value})} />
+                    </label>
+                    <label className="plan-field">
+                      <span>Financial Ranking</span>
+                      <select className="plan-input" value={actionForm.FinancialRank} onChange={e => setActionForm({...actionForm, FinancialRank: e.target.value})}>
+                        <option value="">Select ranking</option>
+                        <option value="1">1st - Most Competitive</option>
+                        <option value="2">2nd</option>
+                        <option value="3">3rd</option>
+                        <option value="4">4th</option>
+                        <option value="5">5th - Least Competitive</option>
+                      </select>
+                    </label>
+                    <label className="plan-field">
+                      <span>Technical Compliance</span>
+                      <select className="plan-input" value={actionForm.TechnicalPass} onChange={e => setActionForm({...actionForm, TechnicalPass: e.target.value})}>
+                        <option value="true">Pass</option>
+                        <option value="false">Fail</option>
+                      </select>
                     </label>
                   </>
                 )}

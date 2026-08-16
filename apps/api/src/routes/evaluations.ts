@@ -7,11 +7,9 @@ export const evaluationsRouter = Router();
 
 // GET /api/evaluations/assigned-tenders/default
 evaluationsRouter.get('/api/evaluations/assigned-tenders/default', async (req, res) => {
-  const auth = (req as AuthenticatedRequest).auth;
-  if (!auth?.sub) {
-    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
-    return;
-  }
+  const auth = await requirePermission(req, 'evaluation.submit');
+  if (denyIfNoPermission(res, auth)) return;
+  if (!auth) return;
 
   if (!pool) {
     res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
@@ -82,27 +80,30 @@ evaluationsRouter.post('/api/evaluations/actions', async (req, res) => {
   }
 
   try {
-    const { TenderId, ReportId, Action, Comments, Score } = req.body;
+    const { TenderId, ReportCode, ActionType, Reason, Notes, Justification, Recommendation, ThresholdNote, ScorePercentage, FinancialRank, TechnicalPass } = req.body;
 
-    if (!TenderId || !Action) {
-      res.status(400).json({ ErrorMessage: 'TenderId and Action are required.' });
+    if (!TenderId || !ActionType) {
+      res.status(400).json({ ErrorMessage: 'TenderId and ActionType are required.' });
       return;
     }
 
     const result = await pool.query(
       `INSERT INTO procurement_workflow.evaluation_actions
-        (bid_id, report_id, vendor_name, recommendation, action_notes, score_percentage, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, NOW())
+        (action_type, tender_id, report_code, reason, notes, justification, recommendation, threshold_note, requested_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING
         action_id AS "ActionId",
-        bid_id AS "TenderId",
-        report_id AS "ReportId",
-        vendor_name AS "EvaluatorId",
-        recommendation AS "Action",
-        action_notes AS "Comments",
-        score_percentage AS "Score",
+        action_type AS "ActionType",
+        tender_id AS "TenderId",
+        report_code AS "ReportCode",
+        reason AS "Reason",
+        notes AS "Notes",
+        justification AS "Justification",
+        recommendation AS "Recommendation",
+        threshold_note AS "ThresholdNote",
+        requested_by AS "RequestedBy",
         created_at AS "CreatedAt"`,
-      [TenderId, ReportId || null, auth!.sub, Action, Comments || '', Score || null]
+      [ActionType, TenderId, ReportCode || null, Reason || null, Notes || null, Justification || null, Recommendation || null, ThresholdNote || null, auth!.sub]
     );
 
     res.status(201).json(result.rows[0]);

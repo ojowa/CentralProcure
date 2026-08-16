@@ -135,7 +135,8 @@ export const fetchAssignedTenders = async (token: string) => {
     credentials: 'include'
   });
   if (!response.ok) throw new Error('Failed to fetch assigned tenders');
-  return response.json();
+  const data = await response.json();
+  return data.Items || data;
 };
 
 export const logEvaluationAction = async (data: any, token: string) => {
