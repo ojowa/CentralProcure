@@ -549,16 +549,35 @@
     flex-direction: column;
   }
 
+  .urm-header__title-group {
+    min-width: 0;
+  }
+
   .urm-header__stats {
     width: 100%;
   }
 
   .urm-stat {
     flex: 1;
+    min-width: 0;
+    padding: 8px 10px;
+  }
+
+  .urm-stat strong {
+    font-size: 1.05rem;
+  }
+
+  .urm-nav {
+    padding: 4px;
   }
 
   .urm-nav__tab {
-    padding: 8px 14px;
+    padding: 8px 12px;
+    font-size: 0.75rem;
+  }
+
+  .urm-nav__refresh {
+    padding: 6px 12px;
     font-size: 0.75rem;
   }
 }
