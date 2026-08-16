@@ -467,7 +467,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 6px;
-  background: var(--portal-ink, #0b1221);
+  background: var(--portal-forest, #0b5d3b);
   border-radius: 12px;
 }
 
