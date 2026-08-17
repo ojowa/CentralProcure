@@ -1,12 +1,15 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import type { InternalRoleRecord, InternalUserProfile } from '../../types/internal';
-import { resolveCanonicalRole } from '../../services/internalAuthService';
 import { ConfirmModal } from './ConfirmModal';
 import {
   fetchPlanningCommitteeRoleDefinitions,
   fetchPlanningCommitteeChairmanAssignment,
+  fetchCommitteeMembers,
+  addCommitteeMember,
+  removeCommitteeMember,
+  type CommitteeMember,
   type PlanningCommitteeChairmanAssignment,
   type PlanningCommitteeRoleDefinition
 } from '../../services/moduleService.planning';
@@ -16,7 +19,6 @@ interface CommitteeMembersPanelProps {
   users: InternalUserProfile[];
   token?: string | null;
   isLoading: boolean;
-  onAssignRole: (userId: string, roleKey: string) => void | Promise<void>;
   onAssignChairman: (userId: string | null) => void | Promise<void>;
 }
 
@@ -25,46 +27,51 @@ export const CommitteeMembersPanel: React.FC<CommitteeMembersPanelProps> = ({
   users,
   token,
   isLoading,
-  onAssignRole,
   onAssignChairman
 }) => {
-  const [selectionByRole, setSelectionByRole] = useState<Record<string, string>>({});
-  const [searchByRole, setSearchByRole] = useState<Record<string, string>>({});
-  const [replacementRoleByUser, setReplacementRoleByUser] = useState<Record<string, string>>({});
-  const [confirmRemove, setConfirmRemove] = useState<{ member: InternalUserProfile; roleConfig: PlanningCommitteeRoleDefinition; replacementRole: string } | null>(null);
-  const [chairmanSearchQuery, setChairmanSearchQuery] = useState('');
-  const [selectedChairmanUserId, setSelectedChairmanUserId] = useState('');
   const [committeeRoles, setCommitteeRoles] = useState<PlanningCommitteeRoleDefinition[]>([]);
   const [chairmanAssignment, setChairmanAssignment] = useState<PlanningCommitteeChairmanAssignment | null>(null);
+  const [planningMembers, setPlanningMembers] = useState<CommitteeMember[]>([]);
+  const [evaluationMembers, setEvaluationMembers] = useState<CommitteeMember[]>([]);
   const [rolesLoading, setRolesLoading] = useState(false);
   const [rolesError, setRolesError] = useState<string | null>(null);
 
-  React.useEffect(() => {
-    if (!token) {
-      setCommitteeRoles([]);
-      return;
+  const [selectionByRole, setSelectionByRole] = useState<Record<string, string>>({});
+  const [searchByRole, setSearchByRole] = useState<Record<string, string>>({});
+  const [chairmanSearchQuery, setChairmanSearchQuery] = useState('');
+  const [selectedChairmanUserId, setSelectedChairmanUserId] = useState('');
+  const [confirmRemove, setConfirmRemove] = useState<{ member: CommitteeMember; committeeType: string; roleConfig: PlanningCommitteeRoleDefinition } | null>(null);
+
+  const loadMembers = useCallback(async () => {
+    if (!token) return;
+    try {
+      const [planning, evaluation] = await Promise.all([
+        fetchCommitteeMembers('planning', token),
+        fetchCommitteeMembers('evaluation', token)
+      ]);
+      setPlanningMembers(planning);
+      setEvaluationMembers(evaluation);
+    } catch {
+      // silent — members just stay empty
     }
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) return;
 
     let isMounted = true;
     setRolesLoading(true);
     setRolesError(null);
+
     fetchPlanningCommitteeRoleDefinitions(token)
-      .then((data) => {
-        if (isMounted) {
-          setCommitteeRoles(data);
-        }
-      })
+      .then((data) => { if (isMounted) setCommitteeRoles(data); })
       .catch((err: unknown) => {
         if (isMounted) {
           setCommitteeRoles([]);
-          setRolesError(err instanceof Error ? err.message : 'Unable to load committee role definitions from the API.');
+          setRolesError(err instanceof Error ? err.message : 'Unable to load committee roles.');
         }
       })
-      .finally(() => {
-        if (isMounted) {
-          setRolesLoading(false);
-        }
-      });
+      .finally(() => { if (isMounted) setRolesLoading(false); });
 
     fetchPlanningCommitteeChairmanAssignment(token)
       .then((data) => {
@@ -80,105 +87,59 @@ export const CommitteeMembersPanel: React.FC<CommitteeMembersPanelProps> = ({
         }
       });
 
-    return () => {
-      isMounted = false;
-    };
-  }, [token]);
+    loadMembers();
 
-  const getUserRoleKey = React.useCallback(
-    (user: InternalUserProfile) => resolveCanonicalRole(user.CanonicalRoleKey, user.RoleName),
-    []
-  );
-
-  const fallbackCommitteeRoles = useMemo(() => {
-    const mapped: PlanningCommitteeRoleDefinition[] = [];
-    for (const role of roles) {
-      const roleKey = resolveCanonicalRole(role.CanonicalRoleKey, role.RoleName);
-      if (!roleKey) continue;
-
-      if (mapped.some((entry) => entry.RoleKey === roleKey)) continue;
-
-      mapped.push({
-        RoleKey: roleKey,
-        RoleName: role.RoleName,
-        DisplayName: role.RoleName,
-        Description: role.Description ?? '',
-        IsChair: false
-      });
-    }
-
-    return mapped;
-  }, [roles]);
-
-  const fallbackEvaluationRoles = useMemo(() => {
-    const mapped: PlanningCommitteeRoleDefinition[] = [];
-    for (const role of roles) {
-      const roleKey = resolveCanonicalRole(role.CanonicalRoleKey, role.RoleName);
-      if (!roleKey) continue;
-
-      if (mapped.some((entry) => entry.RoleKey === roleKey)) continue;
-
-      mapped.push({
-        RoleKey: roleKey,
-        RoleName: role.RoleName,
-        DisplayName: role.RoleName.replace(/_/g, ' '),
-        Description: role.Description ?? '',
-        IsChair: false
-      });
-    }
-
-    return mapped;
-  }, [roles]);
-
-  const effectiveCommitteeRoles = (committeeRoles.length ? committeeRoles : fallbackCommitteeRoles)
-    .filter((role) => !role.IsChair);
-  const evaluationRoles = fallbackEvaluationRoles;
-  const showRolesError = Boolean(rolesError) && effectiveCommitteeRoles.length === 0;
-  const managedRoleNames = useMemo(
-    () => new Set([...effectiveCommitteeRoles, ...evaluationRoles].map((role) => role.RoleName)),
-    [effectiveCommitteeRoles, evaluationRoles]
-  );
+    return () => { isMounted = false; };
+  }, [token, loadMembers]);
 
   const assignableUsers = useMemo(
-    () => users.filter((user) => user.Status?.toLowerCase() !== 'inactive'),
+    () => users.filter((u) => u.Status?.toLowerCase() !== 'inactive'),
     [users]
   );
 
-  const filteredChairmanUsers = useMemo(() => {
-    return filterUsers(assignableUsers, chairmanSearchQuery);
-  }, [assignableUsers, chairmanSearchQuery]);
+  const filteredChairmanUsers = useMemo(() => filterUsers(assignableUsers, chairmanSearchQuery), [assignableUsers, chairmanSearchQuery]);
 
-  const getFilteredRoleUsers = (roleKey: string) =>
-    filterUsers(assignableUsers, searchByRole[roleKey] ?? '');
-
-  function filterUsers(candidateUsers: InternalUserProfile[], queryValue: string) {
-    const query = queryValue.trim().toLowerCase();
-    if (!query) {
-      return candidateUsers;
-    }
-
-    return candidateUsers.filter((user) => {
-      const haystacks = [
-        user.Email,
-        user.Username,
-        user.FirstName,
-        user.MiddleName ?? '',
-        user.Surname,
-        user.RoleName,
-        user.UnitName
-      ];
-
-      return haystacks.some((value) => value?.toLowerCase().includes(query));
-    });
+  function filterUsers(candidates: InternalUserProfile[], q: string) {
+    const query = q.trim().toLowerCase();
+    if (!query) return candidates;
+    return candidates.filter((u) =>
+      [u.Email, u.Username, u.FirstName, u.MiddleName ?? '', u.Surname, u.RoleName, u.UnitName]
+        .some((v) => v?.toLowerCase().includes(query))
+    );
   }
 
-  const removableToRoles = useMemo(
-    () =>
-      roles.filter((role) => role.IsActive && !managedRoleNames.has(role.RoleName)),
-    [managedRoleNames, roles]
-  );
+  const effectiveCommitteeRoles = useMemo(() => {
+    const nonChair = committeeRoles.filter((r) => !r.IsChair);
+    if (nonChair.length) return nonChair;
+    return roles.map((r) => ({
+      RoleKey: r.CanonicalRoleKey ?? r.RoleName,
+      RoleName: r.RoleName,
+      DisplayName: r.RoleName,
+      Description: r.Description ?? '',
+      IsChair: false
+    }));
+  }, [committeeRoles, roles]);
 
-  const renderRoleCards = (roleConfigs: PlanningCommitteeRoleDefinition[], heading: string, description: string) => (
+  const handleAddMember = useCallback(async (committeeType: string, userId: string, roleKey: string) => {
+    if (!token) return;
+    await addCommitteeMember(committeeType, userId, roleKey, token);
+    await loadMembers();
+  }, [token, loadMembers]);
+
+  const handleRemoveMember = useCallback(async (membershipId: string) => {
+    if (!token) return;
+    const type = planningMembers.some((m) => m.membership_id === membershipId) ? 'planning' : 'evaluation';
+    await removeCommitteeMember(type, membershipId, token);
+    await loadMembers();
+  }, [token, planningMembers, loadMembers]);
+
+  const renderRoleCards = (
+    roleConfigs: PlanningCommitteeRoleDefinition[],
+    members: CommitteeMember[],
+    committeeType: string,
+    heading: string,
+    description: string
+  ) => (
     <>
       <div style={{ marginTop: '24px' }}>
         <h3 style={{ marginBottom: '6px' }}>{heading}</h3>
@@ -186,89 +147,41 @@ export const CommitteeMembersPanel: React.FC<CommitteeMembersPanelProps> = ({
       </div>
       <div className="roles-grid" style={{ marginTop: '16px' }}>
         {roleConfigs.map((roleConfig) => {
-          const members = users.filter((user) => getUserRoleKey(user) === roleConfig.RoleKey);
-          const selectedUserId = selectionByRole[roleConfig.RoleKey] ?? '';
-          const roleSearchQuery = searchByRole[roleConfig.RoleKey] ?? '';
-          const filteredRoleUsers = getFilteredRoleUsers(roleConfig.RoleKey);
+          const roleMembers = members.filter((m) => m.role_key === roleConfig.RoleKey);
+          const selectedUserId = selectionByRole[`${committeeType}:${roleConfig.RoleKey}`] ?? '';
+          const searchValue = searchByRole[`${committeeType}:${roleConfig.RoleKey}`] ?? '';
+          const filtered = filterUsers(assignableUsers, searchValue);
 
           return (
-            <article key={roleConfig.RoleKey} className="portal-module-card" style={{ margin: 0 }}>
+            <article key={`${committeeType}:${roleConfig.RoleKey}`} className="portal-module-card" style={{ margin: 0 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'baseline' }}>
                 <h3 style={{ margin: 0 }}>{roleConfig.DisplayName}</h3>
-                <span className={`admin-status ${members.length ? 'admin-status--good' : 'admin-status--warn'}`}>
-                  {members.length} member{members.length === 1 ? '' : 's'}
+                <span className={`admin-status ${roleMembers.length ? 'admin-status--good' : 'admin-status--warn'}`}>
+                  {roleMembers.length} member{roleMembers.length === 1 ? '' : 's'}
                 </span>
               </div>
-              <p className="plan-muted" style={{ marginTop: '6px' }}>
-                {roleConfig.Description || 'Role configured from API.'}
-              </p>
-              <p className="plan-muted" style={{ marginTop: '4px' }}>
-                API role: <strong>{roleConfig.RoleName}</strong>
-              </p>
+              <p className="plan-muted" style={{ marginTop: '6px' }}>{roleConfig.Description || 'Role configured from API.'}</p>
 
               <div style={{ marginTop: '10px' }}>
-                {members.length ? (
+                {roleMembers.length ? (
                   <ul style={{ margin: 0, paddingLeft: '18px' }}>
-                    {members.map((member) => {
-                      const replacementRole = replacementRoleByUser[member.InternalUserId] ?? '';
-
-                      return (
-                        <li key={member.InternalUserId} style={{ marginBottom: '12px' }}>
-                          <div>
-                            {member.Email} ({member.Username})
-                          </div>
-                          <div className="plan-toolbar" style={{ marginTop: '8px' }}>
-                            <label className="plan-field">
-                              <span>Move To Role</span>
-                              <select
-                                className="plan-input"
-                                value={replacementRole}
-                                onChange={(event) =>
-                                  setReplacementRoleByUser((current) => ({
-                                    ...current,
-                                    [member.InternalUserId]: event.target.value
-                                  }))
-                                }
-                                disabled={isLoading || rolesLoading}
-                              >
-                                <option value="">Select replacement role</option>
-                                {removableToRoles.map((role) => (
-                                  <option key={role.RoleId} value={role.CanonicalRoleKey ?? role.RoleName}>
-                                    {role.RoleName}
-                                  </option>
-                                ))}
-                              </select>
-                            </label>
-                            <div>
-                              <div style={{ display: 'flex', gap: '6px', alignItems: 'end' }}>
-                                <button
-                                  type="button"
-                                  className="plan-button plan-button--ghost"
-                                  disabled={isLoading || rolesLoading}
-                                  onClick={() => {
-                                    setConfirmRemove({ member, roleConfig, replacementRole: '' });
-                                  }}
-                                >
-                                  Remove Only
-                                </button>
-                                {replacementRole && (
-                                  <button
-                                    type="button"
-                                    className="plan-button plan-button--ghost"
-                                    disabled={isLoading || rolesLoading}
-                                    onClick={() => {
-                                      setConfirmRemove({ member, roleConfig, replacementRole });
-                                    }}
-                                  >
-                                    Move &amp; Remove
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </li>
-                      );
-                    })}
+                    {roleMembers.map((member) => (
+                      <li key={member.membership_id} style={{ marginBottom: '10px' }}>
+                        <div>
+                          <strong>{member.email}</strong> ({member.username})
+                          {member.unit_name ? ` \u2022 ${member.unit_name}` : ''}
+                        </div>
+                        <button
+                          type="button"
+                          className="plan-button plan-button--ghost plan-button--sm"
+                          style={{ marginTop: '4px' }}
+                          disabled={isLoading || rolesLoading}
+                          onClick={() => setConfirmRemove({ member, committeeType, roleConfig })}
+                        >
+                          Remove
+                        </button>
+                      </li>
+                    ))}
                   </ul>
                 ) : (
                   <div className="plan-empty" style={{ textAlign: 'left', padding: '6px 0' }}>
@@ -282,40 +195,30 @@ export const CommitteeMembersPanel: React.FC<CommitteeMembersPanelProps> = ({
                   <span>Search User</span>
                   <input
                     className="plan-input"
-                    value={roleSearchQuery}
-                    onChange={(event) =>
-                      setSearchByRole((current) => ({
-                        ...current,
-                        [roleConfig.RoleKey]: event.target.value
-                      }))
-                    }
-                    placeholder="Search by email, username, role, unit"
+                    value={searchValue}
+                    onChange={(e) => setSearchByRole((c) => ({ ...c, [`${committeeType}:${roleConfig.RoleKey}`]: e.target.value }))}
+                    placeholder="Search by email, username"
                     disabled={isLoading || rolesLoading}
                   />
                 </label>
                 <label className="plan-field">
-                  <span>Select User To Assign</span>
+                  <span>Select User</span>
                   <select
                     className="plan-input"
                     value={selectedUserId}
-                    onChange={(event) =>
-                      setSelectionByRole((current) => ({
-                        ...current,
-                        [roleConfig.RoleKey]: event.target.value
-                      }))
-                    }
+                    onChange={(e) => setSelectionByRole((c) => ({ ...c, [`${committeeType}:${roleConfig.RoleKey}`]: e.target.value }))}
                     disabled={isLoading || rolesLoading}
                   >
                     <option value="">Select user</option>
-                    {filteredRoleUsers.map((user) => (
-                      <option key={user.InternalUserId} value={user.InternalUserId}>
-                        {user.Email} ({user.RoleName})
+                    {filtered.map((u) => (
+                      <option key={u.InternalUserId} value={u.InternalUserId}>
+                        {u.Email} ({u.RoleName})
                       </option>
                     ))}
                   </select>
-                  {roleSearchQuery.trim() ? (
+                  {searchValue.trim() ? (
                     <small className="plan-muted" style={{ marginTop: '6px', display: 'block' }}>
-                      {filteredRoleUsers.length} match{filteredRoleUsers.length === 1 ? '' : 'es'} found
+                      {filtered.length} match{filtered.length === 1 ? '' : 'es'}
                     </small>
                   ) : null}
                 </label>
@@ -324,7 +227,12 @@ export const CommitteeMembersPanel: React.FC<CommitteeMembersPanelProps> = ({
                     type="button"
                     className="plan-button"
                     disabled={isLoading || rolesLoading || !selectedUserId}
-                    onClick={() => selectedUserId && onAssignRole(selectedUserId, roleConfig.RoleKey)}
+                    onClick={() => {
+                      if (selectedUserId) {
+                        void handleAddMember(committeeType, selectedUserId, roleConfig.RoleKey);
+                        setSelectionByRole((c) => ({ ...c, [`${committeeType}:${roleConfig.RoleKey}`]: '' }));
+                      }
+                    }}
                   >
                     Assign Member
                   </button>
@@ -339,17 +247,12 @@ export const CommitteeMembersPanel: React.FC<CommitteeMembersPanelProps> = ({
 
   return (
     <article className="portal-module-card">
-      <h3>Planning Committee Members</h3>
+      <h3>Committee Members</h3>
       <p className="plan-muted">
-        Manage committee composition with named roles instead of manual role keys.
-      </p>
-      <p className="plan-muted" style={{ marginTop: '6px' }}>
-        To remove someone from the committee, move them to another non-committee role.
-      </p>
-      <p className="plan-muted" style={{ marginTop: '6px' }}>
-        Use the chairman card below to assign Planning Committee Chairman to any active user.
+        Committee membership is tracked separately from system roles. Users keep their main role while serving on committees.
       </p>
 
+      {/* Chairman Card */}
       <article className="portal-module-card" style={{ marginTop: '16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'baseline' }}>
           <h3 style={{ margin: 0 }}>Planning Committee Chairman</h3>
@@ -365,12 +268,10 @@ export const CommitteeMembersPanel: React.FC<CommitteeMembersPanelProps> = ({
             <div className="plan-empty" style={{ textAlign: 'left' }}>
               <strong>{chairmanAssignment.Email || chairmanAssignment.Username || 'Assigned user'}</strong>
               {chairmanAssignment.RoleName ? ` (${chairmanAssignment.RoleName})` : ''}
-              {chairmanAssignment.UnitName ? ` • ${chairmanAssignment.UnitName}` : ''}
+              {chairmanAssignment.UnitName ? ` \u2022 ${chairmanAssignment.UnitName}` : ''}
             </div>
           ) : (
-            <div className="plan-empty" style={{ textAlign: 'left' }}>
-              No chairman assigned.
-            </div>
+            <div className="plan-empty" style={{ textAlign: 'left' }}>No chairman assigned.</div>
           )}
         </div>
         <div className="plan-toolbar" style={{ marginTop: '12px' }}>
@@ -379,8 +280,8 @@ export const CommitteeMembersPanel: React.FC<CommitteeMembersPanelProps> = ({
             <input
               className="plan-input"
               value={chairmanSearchQuery}
-              onChange={(event) => setChairmanSearchQuery(event.target.value)}
-              placeholder="Search by email, username, role, unit"
+              onChange={(e) => setChairmanSearchQuery(e.target.value)}
+              placeholder="Search by email, username"
               disabled={isLoading || rolesLoading}
             />
           </label>
@@ -389,21 +290,16 @@ export const CommitteeMembersPanel: React.FC<CommitteeMembersPanelProps> = ({
             <select
               className="plan-input"
               value={selectedChairmanUserId}
-              onChange={(event) => setSelectedChairmanUserId(event.target.value)}
+              onChange={(e) => setSelectedChairmanUserId(e.target.value)}
               disabled={isLoading || rolesLoading}
             >
               <option value="">Select user</option>
-              {filteredChairmanUsers.map((user) => (
-                <option key={user.InternalUserId} value={user.InternalUserId}>
-                  {user.Email} ({user.RoleName})
+              {filteredChairmanUsers.map((u) => (
+                <option key={u.InternalUserId} value={u.InternalUserId}>
+                  {u.Email} ({u.RoleName})
                 </option>
               ))}
             </select>
-            {chairmanSearchQuery.trim() ? (
-              <small className="plan-muted" style={{ marginTop: '6px', display: 'block' }}>
-                {filteredChairmanUsers.length} match{filteredChairmanUsers.length === 1 ? '' : 'es'} found
-              </small>
-            ) : null}
           </label>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'end' }}>
             <button
@@ -437,38 +333,22 @@ export const CommitteeMembersPanel: React.FC<CommitteeMembersPanelProps> = ({
         </div>
       </article>
 
-      {renderRoleCards(
-        effectiveCommitteeRoles,
-        'Planning Committee Members',
-        'Assign planning-side committee roles without editing records manually.'
-      )}
-      {renderRoleCards(
-        evaluationRoles,
-        'Evaluation Committee Members',
-        'Assign the technical, financial, and consolidated evaluation roles used by the live evaluation workflow.'
-      )}
-      {showRolesError ? <div className="portal-alert">{rolesError}</div> : null}
-      {!effectiveCommitteeRoles.length && !rolesLoading ? (
-        <div className="plan-empty" style={{ textAlign: 'left' }}>
-          No planning committee roles available.
-        </div>
-      ) : null}
+      {renderRoleCards(effectiveCommitteeRoles, planningMembers, 'planning', 'Planning Committee Members', 'Assign planning-side committee roles. Members keep their system role.')}
+      {renderRoleCards(effectiveCommitteeRoles, evaluationMembers, 'evaluation', 'Evaluation Committee Members', 'Assign evaluation committee roles used by the live evaluation workflow.')}
+
+      {rolesError && <div className="portal-alert" style={{ marginTop: '12px' }}>{rolesError}</div>}
 
       <ConfirmModal
         isOpen={!!confirmRemove}
         title="Remove Committee Member"
-        message={confirmRemove
-          ? confirmRemove.replacementRole
-            ? `Remove ${confirmRemove.member.Email} from ${confirmRemove.roleConfig.DisplayName} and assign to ${confirmRemove.replacementRole}?`
-            : `Remove ${confirmRemove.member.Email} from ${confirmRemove.roleConfig.DisplayName}? They will keep their current role.`
-          : ''}
-        confirmLabel={confirmRemove?.replacementRole ? 'Move & Remove' : 'Remove'}
+        message={confirmRemove ? `Remove ${confirmRemove.member.email} from ${confirmRemove.roleConfig.DisplayName}?` : ''}
+        confirmLabel="Remove"
         variant="warning"
         isLoading={isLoading}
         onConfirm={async () => {
-          if (!confirmRemove) return;
-          const targetRole = confirmRemove.replacementRole || confirmRemove.member.CanonicalRoleKey || confirmRemove.member.RoleName;
-          await onAssignRole(confirmRemove.member.InternalUserId, targetRole);
+          if (confirmRemove) {
+            await handleRemoveMember(confirmRemove.member.membership_id);
+          }
           setConfirmRemove(null);
         }}
         onCancel={() => setConfirmRemove(null)}

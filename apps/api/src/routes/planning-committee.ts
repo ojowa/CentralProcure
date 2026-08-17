@@ -239,10 +239,17 @@ planningCommitteeRouter.get('/api/planning-committee/chairman', async (req, res)
         iu.internal_user_id AS "InternalUserId",
         iu.first_name || ' ' || iu.surname AS "MemberName",
         iu.email AS "Email",
+        iu.username AS "Username",
+        r.role_name AS "RoleName",
+        iu.unit_id AS "UnitId",
+        ou.unit_name AS "UnitName",
+        iu.status AS "Status",
         cfg.assigned_by AS "AssignedBy",
         cfg.assigned_at AS "AssignedAt"
        FROM procurement_workflow.planning_committee_configuration cfg
        LEFT JOIN identity.internal_users iu ON cfg.chairman_internal_user_id = iu.internal_user_id
+       LEFT JOIN identity.roles r ON r.role_id = iu.role_id
+       LEFT JOIN identity.organizational_units ou ON ou.unit_id = iu.unit_id
        ORDER BY cfg.assigned_at DESC
        LIMIT 1`
     );
@@ -277,5 +284,79 @@ planningCommitteeRouter.put('/api/planning-committee/chairman', async (req, res)
     res.json(result.rows[0]);
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred upserting chairman.' });
+  }
+});
+
+// ─────────────────────────────────────────────
+// GET /api/planning-committee/members/:committeeType
+// ─────────────────────────────────────────────
+planningCommitteeRouter.get('/api/planning-committee/members/:committeeType', async (req, res) => {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) { res.status(401).json({ ErrorMessage: 'Unauthorized.' }); return; }
+  if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
+
+  try {
+    const { committeeType } = req.params;
+    const result = await pool.query('SELECT * FROM identity.get_committee_members($1)', [committeeType]);
+    res.json(result.rows);
+  } catch (error: any) {
+    res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching committee members.' });
+  }
+});
+
+// ─────────────────────────────────────────────
+// PUT /api/planning-committee/members/:committeeType
+// ─────────────────────────────────────────────
+planningCommitteeRouter.put('/api/planning-committee/members/:committeeType', async (req, res) => {
+  const auth = await requirePermission(req, 'planning_committee.manage');
+  if (denyIfNoPermission(res, auth)) return;
+  if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
+
+  try {
+    const { committeeType } = req.params;
+    const { UserId, RoleKey } = req.body;
+
+    if (!UserId || !RoleKey) {
+      res.status(400).json({ ErrorMessage: 'UserId and RoleKey are required.' });
+      return;
+    }
+
+    const result = await pool.query(
+      `INSERT INTO identity.committee_memberships (user_id, committee_type, role_key, assigned_by)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (user_id, committee_type, role_key) DO NOTHING
+       RETURNING membership_id AS "MembershipId", user_id AS "UserId", role_key AS "RoleKey", assigned_at AS "AssignedAt"`,
+      [UserId, committeeType, RoleKey, auth!.sub]
+    );
+
+    res.status(201).json(result.rows[0] || { Message: 'Member already assigned to this role.' });
+  } catch (error: any) {
+    res.status(500).json({ ErrorMessage: error.message || 'An error occurred adding committee member.' });
+  }
+});
+
+// ─────────────────────────────────────────────
+// DELETE /api/planning-committee/members/:committeeType/:membershipId
+// ─────────────────────────────────────────────
+planningCommitteeRouter.delete('/api/planning-committee/members/:committeeType/:membershipId', async (req, res) => {
+  const auth = await requirePermission(req, 'planning_committee.manage');
+  if (denyIfNoPermission(res, auth)) return;
+  if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
+
+  try {
+    const { membershipId } = req.params;
+    const result = await pool.query(
+      'DELETE FROM identity.committee_memberships WHERE membership_id = $1 RETURNING membership_id AS "MembershipId"',
+      [membershipId]
+    );
+
+    if (result.rows.length === 0) {
+      res.status(404).json({ ErrorMessage: 'Membership not found.' });
+      return;
+    }
+
+    res.json({ Message: 'Member removed from committee.' });
+  } catch (error: any) {
+    res.status(500).json({ ErrorMessage: error.message || 'An error occurred removing committee member.' });
   }
 });

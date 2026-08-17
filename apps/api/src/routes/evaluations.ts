@@ -134,46 +134,61 @@ evaluationsRouter.get('/api/evaluations/assignments', async (req, res) => {
         `SELECT
           tea.tender_id AS "TenderId",
           t.title AS "TenderTitle",
-          tea.evaluator_id AS "EvaluatorId",
-          iu.first_name || ' ' || iu.surname AS "EvaluatorName",
-          tea.assignment_date AS "AssignmentDate",
-          tea.role AS "Role",
-          tea.status AS "Status"
+          t.status AS "TenderStatus",
+          tea.assignment_role AS "AssignmentRole",
+          tea.internal_user_id AS "InternalUserId",
+          iu.email AS "Email",
+          iu.username AS "Username",
+          r.role_name AS "RoleName",
+          ou.unit_name AS "UnitName",
+          tea.assigned_by AS "AssignedBy",
+          tea.assigned_at AS "AssignedAt"
         FROM procurement_workflow.tender_evaluation_assignments tea
         LEFT JOIN vendor_sourcing.tenders t ON tea.tender_id = t.tender_id
-        LEFT JOIN identity.internal_users iu ON tea.evaluator_id = iu.internal_user_id
+        LEFT JOIN identity.internal_users iu ON tea.internal_user_id = iu.internal_user_id
+        LEFT JOIN identity.roles r ON r.role_id = iu.role_id
+        LEFT JOIN identity.organizational_units ou ON ou.unit_id = iu.unit_id
         WHERE tea.tender_id = $1
-        ORDER BY tea.assignment_date DESC`,
-        [TenderId]
+        ORDER BY tea.assignment_role`, [TenderId]
       );
     } else {
       result = await pool.query(
         `SELECT
           tea.tender_id AS "TenderId",
           t.title AS "TenderTitle",
-          tea.evaluator_id AS "EvaluatorId",
-          iu.first_name || ' ' || iu.surname AS "EvaluatorName",
-          tea.assignment_date AS "AssignmentDate",
-          tea.role AS "Role",
-          tea.status AS "Status"
+          t.status AS "TenderStatus",
+          tea.assignment_role AS "AssignmentRole",
+          tea.internal_user_id AS "InternalUserId",
+          iu.email AS "Email",
+          iu.username AS "Username",
+          r.role_name AS "RoleName",
+          ou.unit_name AS "UnitName",
+          tea.assigned_by AS "AssignedBy",
+          tea.assigned_at AS "AssignedAt"
         FROM procurement_workflow.tender_evaluation_assignments tea
         LEFT JOIN vendor_sourcing.tenders t ON tea.tender_id = t.tender_id
-        LEFT JOIN identity.internal_users iu ON tea.evaluator_id = iu.internal_user_id
-        ORDER BY tea.assignment_date DESC`
+        LEFT JOIN identity.internal_users iu ON tea.internal_user_id = iu.internal_user_id
+        LEFT JOIN identity.roles r ON r.role_id = iu.role_id
+        LEFT JOIN identity.organizational_units ou ON ou.unit_id = iu.unit_id
+        ORDER BY t.title, tea.assignment_role`
       );
     }
 
     const assignments = result.rows.map((r) => ({
       TenderId: r.TenderId,
       TenderTitle: r.TenderTitle,
-      EvaluatorId: r.EvaluatorId,
-      EvaluatorName: r.EvaluatorName,
-      AssignmentDate: r.AssignmentDate,
-      Role: r.Role,
-      Status: r.Status,
+      TenderStatus: r.TenderStatus || 'Unknown',
+      AssignmentRole: r.AssignmentRole,
+      InternalUserId: r.InternalUserId,
+      Email: r.Email,
+      Username: r.Username,
+      RoleName: r.RoleName,
+      UnitName: r.UnitName,
+      AssignedBy: r.AssignedBy,
+      AssignedAt: r.AssignedAt,
     }));
 
-    res.json({ Items: assignments });
+    res.json(assignments);
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching assignments.' });
   }
@@ -191,28 +206,31 @@ evaluationsRouter.put('/api/evaluations/assignments/:tenderId', async (req, res)
 
   try {
     const { tenderId } = req.params;
-    const { EvaluatorId, Role, Status } = req.body;
+    const { AssignmentRole, InternalUserId } = req.body;
 
-    const result = await pool.query(
-      `UPDATE procurement_workflow.tender_evaluation_assignments
-       SET
-        evaluator_id = COALESCE($1, evaluator_id),
-        role = COALESCE($2, role),
-        status = COALESCE($3, status)
-       WHERE tender_id = $4
-       RETURNING
-        tender_id AS "TenderId",
-        evaluator_id AS "EvaluatorId",
-        role AS "Role",
-        status AS "Status",
-        assignment_date AS "AssignmentDate"`,
-      [EvaluatorId || null, Role || null, Status || null, tenderId]
-    );
-
-    if (result.rows.length === 0) {
-      res.status(404).json({ ErrorMessage: 'Assignment not found or update failed.' });
+    if (!AssignmentRole) {
+      res.status(400).json({ ErrorMessage: 'AssignmentRole is required.' });
       return;
     }
+
+    const result = await pool.query(
+      `INSERT INTO procurement_workflow.tender_evaluation_assignments
+        (tender_id, assignment_role, internal_user_id, assigned_by, status)
+       VALUES ($1, $2, $3, $4, CASE WHEN $3 IS NOT NULL THEN 'Assigned' ELSE 'Unassigned' END)
+       ON CONFLICT (tender_id, assignment_role)
+       DO UPDATE SET
+        internal_user_id = $3,
+        assigned_by = $4,
+        status = CASE WHEN $3 IS NOT NULL THEN 'Assigned' ELSE 'Unassigned' END,
+        updated_at = now()
+       RETURNING
+        tender_id AS "TenderId",
+        assignment_role AS "AssignmentRole",
+        internal_user_id AS "InternalUserId",
+        status AS "Status",
+        assigned_at AS "AssignedAt"`,
+      [tenderId, AssignmentRole, InternalUserId || null, auth!.sub]
+    );
 
     res.json(result.rows[0]);
   } catch (error: any) {

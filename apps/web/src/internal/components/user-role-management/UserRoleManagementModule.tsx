@@ -357,7 +357,6 @@ export const UserRoleManagementModule = ({ module, token }: Props) => {
               users={users}
               token={token}
               isLoading={isLoading}
-              onAssignRole={handleAssignCommitteeMember}
               onAssignChairman={handleAssignCommitteeChairman}
             />
             <EvaluationCommitteeAssignmentsPanel

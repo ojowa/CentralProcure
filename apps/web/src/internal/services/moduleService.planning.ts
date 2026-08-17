@@ -184,3 +184,54 @@ export const fetchNeedsAnalysis = async (
   }
   return response.json();
 };
+
+export interface CommitteeMember {
+  membership_id: string;
+  user_id: string;
+  email: string;
+  username: string;
+  first_name: string;
+  surname: string;
+  role_key: string;
+  role_name: string;
+  unit_name: string;
+  assigned_by: string;
+  assigned_at: string;
+}
+
+export const fetchCommitteeMembers = async (committeeType: string, token: string): Promise<CommitteeMember[]> => {
+  const url = `${serviceBaseUrls.workflow}/api/planning-committee/members/${committeeType}`;
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+    credentials: 'include'
+  });
+  if (!response.ok) throw new Error('Failed to fetch committee members');
+  return response.json();
+};
+
+export const addCommitteeMember = async (committeeType: string, userId: string, roleKey: string, token: string) => {
+  const url = `${serviceBaseUrls.workflow}/api/planning-committee/members/${committeeType}`;
+  const response = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      ...buildCsrfHeaders()
+    },
+    credentials: 'include',
+    body: JSON.stringify({ UserId: userId, RoleKey: roleKey })
+  });
+  if (!response.ok) throw new Error('Failed to add committee member');
+  return response.json();
+};
+
+export const removeCommitteeMember = async (committeeType: string, membershipId: string, token: string) => {
+  const url = `${serviceBaseUrls.workflow}/api/planning-committee/members/${committeeType}/${membershipId}`;
+  const response = await fetch(url, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+    credentials: 'include'
+  });
+  if (!response.ok) throw new Error('Failed to remove committee member');
+  return response.json();
+};
