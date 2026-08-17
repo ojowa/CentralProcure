@@ -18,6 +18,10 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .portal-module-grid--4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   .admin-hero {
     grid-template-columns: 1fr;
   }
@@ -120,6 +124,10 @@
   .portal-module-grid,
   .portal-stats,
   .admin-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .portal-module-grid--4 {
     grid-template-columns: 1fr;
   }
 

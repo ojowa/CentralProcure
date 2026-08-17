@@ -59,6 +59,10 @@
   gap: 14px;
 }
 
+.portal-module-grid--4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
 .portal-module-card {
   border: 1px solid var(--portal-border);
   border-radius: 16px;
