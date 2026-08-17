@@ -428,12 +428,12 @@ authRouter.put('/api/Auth/internal/users/:internalUserId', async (req: Request, 
   if (!requireDb(res)) return;
 
   const { internalUserId } = req.params;
-  const { Username, FirstName, MiddleName, Surname, ServiceNumber, Email, Role, UnitId, Status } = req.body;
+  const { Username, FirstName, MiddleName, Surname, ServiceNumber, Email, UnitId, Status } = req.body;
 
   try {
     const isActive = Status === 'Active';
     const result = await pool!.query(
-      'SELECT * FROM identity.update_internal_user($1, $2, $3, $4, $5, $6, $7, $8, $9)',
+      'SELECT * FROM identity.update_internal_user($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
       [
         internalUserId,
         Email || '',
@@ -443,7 +443,8 @@ authRouter.put('/api/Auth/internal/users/:internalUserId', async (req: Request, 
         Surname || '',
         ServiceNumber || '',
         UnitId || null,
-        isActive
+        isActive,
+        auth.sub
       ]
     );
     const user = result.rows[0];
@@ -475,7 +476,7 @@ authRouter.put('/api/Auth/internal/users/:internalUserId/role', async (req: Requ
   if (!requireDb(res)) return;
 
   const { internalUserId } = req.params;
-  const { RoleKey } = req.body;
+  const { RoleKey, ChangeReason } = req.body;
 
   if (!RoleKey) {
     res.status(400).json({ ErrorMessage: 'RoleKey is required.' });
@@ -484,8 +485,8 @@ authRouter.put('/api/Auth/internal/users/:internalUserId/role', async (req: Requ
 
   try {
     const result = await pool!.query(
-      'SELECT * FROM identity.update_internal_user_role($1, $2)',
-      [internalUserId, RoleKey]
+      'SELECT * FROM identity.update_internal_user_role($1, $2, $3, $4)',
+      [internalUserId, RoleKey, auth.sub, ChangeReason || null]
     );
     res.json(mapRow(result.rows[0]));
   } catch (error: any) {

@@ -14,6 +14,7 @@ interface ScheduleRoleModalProps {
     EffectiveFrom?: string | null;
     ExpiresAt?: string | null;
     BackupRole?: string | null;
+    Reason?: string | null;
   }) => void;
 }
 
@@ -29,6 +30,7 @@ export const ScheduleRoleModal: React.FC<ScheduleRoleModalProps> = ({
   const [effectiveFrom, setEffectiveFrom] = useState('');
   const [expiresAt, setExpiresAt] = useState('');
   const [backupRole, setBackupRole] = useState('');
+  const [reason, setReason] = useState('');
   const [useScheduling, setUseScheduling] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
 
@@ -65,7 +67,8 @@ export const ScheduleRoleModal: React.FC<ScheduleRoleModalProps> = ({
       Role: role,
       EffectiveFrom: useScheduling && effectiveFrom ? new Date(effectiveFrom).toISOString() : null,
       ExpiresAt: useScheduling && expiresAt ? new Date(expiresAt).toISOString() : null,
-      BackupRole: useScheduling && backupRole ? backupRole : null
+      BackupRole: useScheduling && backupRole ? backupRole : null,
+      Reason: reason.trim() || null
     });
   };
 
@@ -99,6 +102,17 @@ export const ScheduleRoleModal: React.FC<ScheduleRoleModalProps> = ({
                   <option key={r.RoleId} value={r.CanonicalRoleKey ?? r.RoleName}>{r.RoleName}</option>
                 ))}
               </select>
+            </label>
+
+            <label className="plan-field">
+              <span>Reason <small className="plan-muted">(Optional)</small></span>
+              <textarea
+                className="plan-input"
+                rows={2}
+                value={reason}
+                onChange={e => setReason(e.target.value)}
+                placeholder="Reason for role change..."
+              />
             </label>
 
             <div style={{ marginTop: '20px', padding: '16px', border: '1px solid var(--portal-border)', borderRadius: '8px' }}>

@@ -129,6 +129,7 @@ export const UserRoleManagementModule = ({ module, token }: Props) => {
     EffectiveFrom?: string | null;
     ExpiresAt?: string | null;
     BackupRole?: string | null;
+    Reason?: string | null;
   }) => {
     if (!schedulingUser || !token) return;
     clearMessages();

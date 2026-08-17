@@ -673,9 +673,10 @@ export const updateInternalUserRole = async (
     EffectiveFrom?: string | null;
     ExpiresAt?: string | null;
     BackupRole?: string | null;
+    Reason?: string | null;
   }
 ): Promise<any> => {
-  const { InternalUserId, Role, ...rest } = data;
+  const { InternalUserId, Role, Reason, ...rest } = data;
   const response = await fetch(withBasePath(`/api/Auth/internal/users/${InternalUserId}/role`), {
     method: 'PUT',
     headers: {
@@ -684,7 +685,7 @@ export const updateInternalUserRole = async (
       ...buildCsrfHeaders()
     },
     credentials: 'include',
-    body: JSON.stringify({ RoleKey: Role, ...rest })
+    body: JSON.stringify({ RoleKey: Role, ChangeReason: Reason, ...rest })
   });
 
   return parseResponse<any>(response, 'Unable to update user role.');
