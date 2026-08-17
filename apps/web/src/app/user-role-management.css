@@ -817,3 +817,323 @@
     width: 100%;
   }
 }
+
+/* ============================================================================
+   COMMITTEE MEMBERS PANEL
+   ============================================================================ */
+
+.committee-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.committee-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.committee-panel__title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--portal-ink, #0b1221);
+  margin: 0;
+}
+
+.committee-panel__subtitle {
+  font-size: 0.875rem;
+  color: var(--portal-slate, #435169);
+  margin: 4px 0 0;
+  line-height: 1.4;
+}
+
+/* ── Chairman card ──────────────────────────────────────────────────────── */
+.committee-chairman {
+  background: var(--portal-card, #ffffff);
+  border: 1px solid var(--portal-border, #dbe3ee);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.committee-chairman__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.committee-chairman__label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.committee-chairman__icon {
+  font-size: 1.5rem;
+  color: var(--portal-forest, #0b5d3b);
+  line-height: 1;
+}
+
+.committee-chairman__name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--portal-ink, #0b1221);
+  margin: 0;
+}
+
+.committee-chairman__hint {
+  font-size: 0.75rem;
+  color: var(--portal-slate, #435169);
+  margin: 2px 0 0;
+}
+
+.committee-chairman__current {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: rgba(11, 93, 59, 0.05);
+  border-radius: 8px;
+  font-size: 0.875rem;
+}
+
+.committee-chairman__current strong {
+  color: var(--portal-ink, #0b1221);
+}
+
+.committee-chairman__meta {
+  color: var(--portal-slate, #435169);
+  font-size: 0.8125rem;
+}
+
+.committee-chairman__empty {
+  margin-top: 12px;
+  font-size: 0.8125rem;
+  color: var(--portal-slate, #435169);
+  font-style: italic;
+}
+
+.committee-chairman__form {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--portal-border, #dbe3ee);
+}
+
+.committee-chairman__search {
+  flex: 1 1 180px;
+  min-width: 140px;
+}
+
+.committee-chairman__select {
+  flex: 1 1 220px;
+  min-width: 180px;
+}
+
+.committee-chairman__actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ── Badge ──────────────────────────────────────────────────────────────── */
+.committee-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 12px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.committee-badge--assigned {
+  background: rgba(11, 93, 59, 0.1);
+  color: var(--portal-forest, #0b5d3b);
+}
+
+.committee-badge--empty {
+  background: var(--portal-mist, #edf2f7);
+  color: var(--portal-slate, #435169);
+}
+
+/* ── Section (Planning / Evaluation) ────────────────────────────────────── */
+.committee-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.committee-section__title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--portal-ink, #0b1221);
+  margin: 0;
+}
+
+.committee-section__desc {
+  font-size: 0.8125rem;
+  color: var(--portal-slate, #435169);
+  margin: 2px 0 0;
+}
+
+.committee-section__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+}
+
+/* ── Role card ──────────────────────────────────────────────────────────── */
+.committee-role-card {
+  background: var(--portal-card, #ffffff);
+  border: 1px solid var(--portal-border, #dbe3ee);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.committee-role-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.committee-role-card__name {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--portal-ink, #0b1221);
+  margin: 0;
+}
+
+.committee-role-card__desc {
+  font-size: 0.75rem;
+  color: var(--portal-slate, #435169);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.committee-role-card__members {
+  min-height: 40px;
+}
+
+.committee-role-card__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.committee-role-card__member {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--portal-mist, #edf2f7);
+  border-radius: 8px;
+}
+
+.committee-role-card__member-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.committee-role-card__member-info strong {
+  font-size: 0.8125rem;
+  color: var(--portal-ink, #0b1221);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.committee-role-card__member-info span {
+  font-size: 0.6875rem;
+  color: var(--portal-slate, #435169);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.committee-role-card__empty {
+  font-size: 0.8125rem;
+  color: var(--portal-slate, #435169);
+  font-style: italic;
+  margin: 0;
+}
+
+.committee-role-card__assign {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 12px;
+  border-top: 1px solid var(--portal-border, #dbe3ee);
+}
+
+.committee-role-card__assign .plan-field {
+  flex: 1 1 140px;
+  min-width: 120px;
+}
+
+.committee-role-card__assign .plan-button {
+  flex-shrink: 0;
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .committee-section__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .committee-chairman__form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .committee-chairman__search,
+  .committee-chairman__select {
+    flex: 1 1 100%;
+  }
+
+  .committee-role-card__assign {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .committee-role-card__assign .plan-field {
+    flex: 1 1 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .committee-panel__header {
+    flex-direction: column;
+  }
+
+  .committee-chairman {
+    padding: 16px;
+  }
+
+  .committee-chairman__top {
+    flex-direction: column;
+  }
+
+  .committee-role-card {
+    padding: 14px;
+  }
+}
