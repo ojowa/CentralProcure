@@ -27,6 +27,7 @@ export interface VendorComplianceReviewItem {
   UpdatedAt: string;
   VerifiedBy?: string | null;
   VerifiedAt?: string | null;
+  RejectionReason?: string | null;
   FileUrl: string;
 }
 

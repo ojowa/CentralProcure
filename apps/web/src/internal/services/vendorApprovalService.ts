@@ -152,3 +152,23 @@ export const deleteVendor = async (
 
   return parseResponse<{ VendorId: string; Message: string }>(response);
 };
+
+export const verifyComplianceDocument = async (
+  token: string,
+  documentId: string,
+  status: 'Approved' | 'Rejected',
+  rejectionReason?: string
+): Promise<{ DocumentId: string; VerificationStatus: string }> => {
+  const response = await fetch(`${baseUrl}/compliance/${documentId}/verify`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      ...buildCsrfHeaders()
+    },
+    credentials: 'include',
+    body: JSON.stringify({ Status: status, RejectionReason: rejectionReason || null })
+  });
+
+  return parseResponse<{ DocumentId: string; VerificationStatus: string }>(response);
+};

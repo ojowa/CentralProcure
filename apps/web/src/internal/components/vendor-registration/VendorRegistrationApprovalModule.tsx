@@ -6,7 +6,8 @@ import {
   deleteVendor,
   downloadVendorApprovalDocument,
   fetchVendorApprovalDetail,
-  fetchVendorApprovals
+  fetchVendorApprovals,
+  verifyComplianceDocument
 } from '../../services/vendorApprovalService';
 import type {
   InternalModule,
@@ -67,6 +68,9 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
   const [isSaving, setIsSaving] = useState(false);
   const [pendingDecision, setPendingDecision] = useState<VendorApprovalStatus | null>(null);
   const [downloadingDocumentId, setDownloadingDocumentId] = useState<string | null>(null);
+  const [verifyingDocumentId, setVerifyingDocumentId] = useState<string | null>(null);
+  const [rejectDocId, setRejectDocId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteReason, setDeleteReason] = useState('');
@@ -202,6 +206,27 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
       setError(deleteError instanceof Error ? deleteError.message : 'Unable to delete vendor account.');
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleVerifyDocument = async (documentId: string, status: 'Approved' | 'Rejected') => {
+    if (!token || !detail) return;
+    if (!canReview) { setError('Your current role does not have vendor approval authority.'); return; }
+
+    setVerifyingDocumentId(documentId);
+    setError('');
+    setFeedback('');
+
+    try {
+      await verifyComplianceDocument(token, documentId, status, status === 'Rejected' ? rejectReason.trim() || undefined : undefined);
+      setFeedback(`Document has been ${status.toLowerCase()}.`);
+      setRejectDocId(null);
+      setRejectReason('');
+      await openDetail(detail.VendorId);
+    } catch (verifyError) {
+      setError(verifyError instanceof Error ? verifyError.message : 'Unable to verify document.');
+    } finally {
+      setVerifyingDocumentId(null);
     }
   };
 
@@ -401,7 +426,7 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
                               <th>Status</th>
                               <th>Expiry</th>
                               <th>Updated</th>
-                              <th>Action</th>
+                              <th>Actions</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -410,18 +435,77 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
                                 <td>{item.DocumentType}</td>
                                 <td>
                                   <span className={`admin-status ${statusTone(item.VerificationStatus)}`}>{item.VerificationStatus}</span>
+                                  {item.VerificationStatus === 'Rejected' && item.RejectionReason ? (
+                                    <div style={{ fontSize: '0.75rem', color: 'var(--portal-slate)', marginTop: '4px' }}>
+                                      Reason: {item.RejectionReason}
+                                    </div>
+                                  ) : null}
                                 </td>
                                 <td>{formatDateTimeShort(item.ExpiryDate)}</td>
                                 <td>{formatDateTimeShort(item.UpdatedAt)}</td>
                                 <td>
-                                  <button
-                                    type="button"
-                                    className="plan-link"
-                                    onClick={() => void handleDownload(item)}
-                                    disabled={downloadingDocumentId === item.DocumentId}
-                                  >
-                                    {downloadingDocumentId === item.DocumentId ? 'Downloading...' : 'Download'}
-                                  </button>
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                    <button
+                                      type="button"
+                                      className="plan-link"
+                                      onClick={() => void handleDownload(item)}
+                                      disabled={downloadingDocumentId === item.DocumentId}
+                                    >
+                                      {downloadingDocumentId === item.DocumentId ? 'Downloading...' : 'Download'}
+                                    </button>
+                                    {canReview && item.VerificationStatus !== 'Approved' ? (
+                                      <button
+                                        type="button"
+                                        className="plan-button plan-button--small"
+                                        style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+                                        onClick={() => void handleVerifyDocument(item.DocumentId, 'Approved')}
+                                        disabled={verifyingDocumentId === item.DocumentId}
+                                      >
+                                        {verifyingDocumentId === item.DocumentId ? 'Approving...' : 'Approve'}
+                                      </button>
+                                    ) : null}
+                                    {canReview && item.VerificationStatus !== 'Rejected' ? (
+                                      <button
+                                        type="button"
+                                        className="plan-button plan-button--danger plan-button--small"
+                                        style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+                                        onClick={() => setRejectDocId(rejectDocId === item.DocumentId ? null : item.DocumentId)}
+                                        disabled={verifyingDocumentId === item.DocumentId}
+                                      >
+                                        Reject
+                                      </button>
+                                    ) : null}
+                                  </div>
+                                  {rejectDocId === item.DocumentId ? (
+                                    <div style={{ marginTop: '8px' }}>
+                                      <input
+                                        className="plan-input"
+                                        value={rejectReason}
+                                        onChange={(e) => setRejectReason(e.target.value)}
+                                        placeholder="Rejection reason..."
+                                        style={{ fontSize: '0.75rem', marginBottom: '6px' }}
+                                      />
+                                      <div style={{ display: 'flex', gap: '6px' }}>
+                                        <button
+                                          type="button"
+                                          className="plan-button plan-button--danger plan-button--small"
+                                          style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+                                          onClick={() => void handleVerifyDocument(item.DocumentId, 'Rejected')}
+                                          disabled={verifyingDocumentId === item.DocumentId}
+                                        >
+                                          {verifyingDocumentId === item.DocumentId ? 'Rejecting...' : 'Confirm Reject'}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          className="plan-button plan-button--secondary plan-button--small"
+                                          style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+                                          onClick={() => { setRejectDocId(null); setRejectReason(''); }}
+                                        >
+                                          Cancel
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ) : null}
                                 </td>
                               </tr>
                             ))}
