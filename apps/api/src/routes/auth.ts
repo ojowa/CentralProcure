@@ -215,6 +215,9 @@ authRouter.get('/api/Auth/internal/profile', async (req: Request, res: Response)
       RoleKey: profile.role_key,
       CanonicalRoleKey: profile.role_key,
       Group: profile.Group,
+      Status: profile.status,
+      CreatedAt: profile.created_at,
+      LastLogin: profile.last_login,
       IsActive: profile.status === 'Active'
     });
   } catch (error: any) {
@@ -257,6 +260,9 @@ authRouter.put('/api/Auth/internal/profile', async (req: Request, res: Response)
       RoleName: profile.role_name,
       RoleKey: profile.role_key,
       CanonicalRoleKey: profile.role_key,
+      Status: profile.status,
+      CreatedAt: profile.created_at,
+      LastLogin: profile.last_login,
       IsActive: profile.status === 'Active'
     });
   } catch (error: any) {
