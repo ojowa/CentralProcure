@@ -87,7 +87,7 @@ vendorRouter.get('/api/Vendor/compliance', async (req, res) => {
       Status: d.verification_status,
       ExpiryDate: d.expiry_date,
       CreatedAt: d.created_at,
-      RejectionReason: null,
+      RejectionReason: d.rejection_reason || null,
     }));
 
     res.json({ Items: documents });
@@ -106,11 +106,11 @@ vendorRouter.get('/api/Vendor/compliance/requirements', async (_req, res) => {
   try {
     const result = await pool.query('SELECT * FROM identity.get_compliance_document_types()');
     const items = result.rows.map((r) => ({
-      Id: r.document_type,
+      Id: r.document_type_key,
       Name: r.document_type,
       Required: r.is_mandatory,
-      Frequency: 'Annual',
-      Expirable: false,
+      Frequency: r.frequency,
+      Expirable: r.expirable,
       Description: r.description,
     }));
     res.json({ Items: items });
@@ -224,6 +224,12 @@ vendorRouter.post('/api/Vendor/compliance/upload', async (req, res) => {
 
 // GET /api/Vendor/compliance/:documentId/file
 vendorRouter.get('/api/Vendor/compliance/:documentId/file', async (req, res) => {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
+    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
+    return;
+  }
+
   if (!pool) {
     res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
     return;
@@ -232,7 +238,7 @@ vendorRouter.get('/api/Vendor/compliance/:documentId/file', async (req, res) => 
   try {
     const { documentId } = req.params;
     const result = await pool.query(
-      'SELECT document_url, file_name, document_content FROM identity.compliance_documents WHERE document_id = $1',
+      'SELECT document_url, file_name, document_content, vendor_id FROM identity.compliance_documents WHERE document_id = $1',
       [documentId]
     );
 
@@ -242,6 +248,11 @@ vendorRouter.get('/api/Vendor/compliance/:documentId/file', async (req, res) => 
     }
 
     const doc = result.rows[0];
+    if (doc.vendor_id !== auth.sub) {
+      res.status(403).json({ ErrorMessage: 'Access denied.' });
+      return;
+    }
+
     const fileName = doc.file_name || doc.document_url?.split('/').pop() || 'compliance-document';
 
     if (doc.document_content) {

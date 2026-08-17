@@ -216,7 +216,8 @@ vendorAdminRouter.get('/api/admin/vendors/:vendorId', async (req, res) => {
         cd.verified_by AS "VerifiedBy",
         cd.verified_at AS "VerifiedAt",
         cd.file_name AS "FileName",
-        cd.document_url AS "FileUrl"
+        cd.document_url AS "FileUrl",
+        cd.rejection_reason AS "RejectionReason"
       FROM identity.compliance_documents cd
       WHERE cd.vendor_id = $1
       ORDER BY cd.created_at DESC`,
@@ -286,6 +287,47 @@ vendorAdminRouter.post('/api/admin/vendors/:vendorId/decision', async (req, res)
     });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred processing the decision.' });
+  }
+});
+
+// POST /api/admin/vendors/compliance/:documentId/verify
+vendorAdminRouter.post('/api/admin/vendors/compliance/:documentId/verify', async (req, res) => {
+  const auth = await requirePermission(req, 'admin.vendor_approval');
+  if (denyIfNoPermission(res, auth)) return;
+
+  if (!pool) {
+    res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
+    return;
+  }
+
+  try {
+    const { documentId } = req.params;
+    const { Status, RejectionReason } = req.body;
+
+    if (!Status || !['Approved', 'Rejected'].includes(Status)) {
+      res.status(400).json({ ErrorMessage: 'Status must be Approved or Rejected.' });
+      return;
+    }
+
+    if (Status === 'Rejected' && !RejectionReason) {
+      res.status(400).json({ ErrorMessage: 'RejectionReason is required when rejecting a document.' });
+      return;
+    }
+
+    await pool.query(
+      'SELECT * FROM identity.verify_compliance_document($1, $2, $3, $4)',
+      [documentId, Status, auth!.sub, RejectionReason || null]
+    );
+
+    res.json({
+      DocumentId: documentId,
+      VerificationStatus: Status,
+      VerifiedBy: auth!.sub,
+      VerifiedAt: new Date().toISOString(),
+      RejectionReason: Status === 'Rejected' ? RejectionReason : null,
+    });
+  } catch (error: any) {
+    res.status(500).json({ ErrorMessage: error.message || 'An error occurred verifying the document.' });
   }
 });
 
