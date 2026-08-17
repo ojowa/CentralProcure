@@ -7,6 +7,8 @@
 -- ─────────────────────────────────────────────
 -- 1. Update get_role_modules to also check user-level grants
 -- ─────────────────────────────────────────────
+DROP FUNCTION IF EXISTS identity.get_role_modules(character varying);
+
 CREATE OR REPLACE FUNCTION identity.get_role_modules(
     p_role_key character varying,
     p_user_id uuid DEFAULT NULL
