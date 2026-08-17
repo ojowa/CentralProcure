@@ -369,28 +369,6 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
           </table>
           </div>
         </article>
-
-        <article className="admin-card admin-card--mid">
-          <h3>Review Guidance</h3>
-          <ul className="admin-list">
-            <li>
-              <strong>Pending Approval</strong>
-              <span>Use when documentation is incomplete or still being validated.</span>
-            </li>
-            <li>
-              <strong>Active</strong>
-              <span>Only approve vendors whose uploaded records are satisfactory.</span>
-            </li>
-            <li>
-              <strong>Rejected</strong>
-              <span>Reject vendors that fail compliance checks or submit invalid records.</span>
-            </li>
-            <li>
-              <strong>Reviewer</strong>
-              <span>{userEmail || 'Signed-in admin user'}</span>
-            </li>
-          </ul>
-        </article>
       </div>
 
       {selectedId ? (
