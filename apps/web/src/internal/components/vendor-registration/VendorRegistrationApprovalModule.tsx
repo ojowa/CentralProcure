@@ -222,7 +222,7 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
       <h2>{module.title}</h2>
       <p>{module.description}</p>
 
-      <div className="portal-module-grid" style={{ marginTop: '16px' }}>
+      <div className="portal-module-grid" style={{ marginTop: '16px', gridTemplateColumns: 'repeat(4, 1fr)' }}>
         <article className="portal-module-card">
           <h3>Total Vendors</h3>
           <p>{summary.total}</p>
