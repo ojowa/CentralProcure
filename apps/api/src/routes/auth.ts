@@ -656,8 +656,8 @@ authRouter.get('/api/Auth/internal/modules', async (req: Request, res: Response)
 
   try {
     const result = await pool!.query(
-      'SELECT grm.*, im."group" AS "Group", im.sub_section AS "SubSection" FROM identity.get_role_modules($1) grm JOIN identity.internal_modules im ON im.module_id = grm.module_id',
-      [auth.role]
+      'SELECT grm.*, im."group" AS "Group", im.sub_section AS "SubSection" FROM identity.get_role_modules($1, $2) grm JOIN identity.internal_modules im ON im.module_id = grm.module_id',
+      [auth.role, auth.sub]
     );
     res.json(result.rows.map((row) => withModuleDataset(mapRow(row))));
   } catch (error: any) {

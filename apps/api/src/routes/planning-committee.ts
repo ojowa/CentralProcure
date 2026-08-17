@@ -329,6 +329,13 @@ planningCommitteeRouter.put('/api/planning-committee/members/:committeeType', as
       [UserId, committeeType, RoleKey, auth!.sub]
     );
 
+    // Auto-grant module access for committee members
+    try {
+      await pool.query('SELECT identity.grant_committee_access($1, $2, $3)', [UserId, committeeType, auth!.sub]);
+    } catch {
+      // Non-fatal: membership is recorded even if grant fails
+    }
+
     res.status(201).json(result.rows[0] || { Message: 'Member already assigned to this role.' });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred adding committee member.' });
@@ -344,7 +351,14 @@ planningCommitteeRouter.delete('/api/planning-committee/members/:committeeType/:
   if (!pool) { res.status(500).json({ ErrorMessage: 'Database connection is not configured.' }); return; }
 
   try {
-    const { membershipId } = req.params;
+    const { membershipId, committeeType } = req.params;
+
+    // Look up user_id and committee_type before deleting
+    const lookup = await pool.query(
+      'SELECT user_id, committee_type FROM identity.committee_memberships WHERE membership_id = $1',
+      [membershipId]
+    );
+
     const result = await pool.query(
       'DELETE FROM identity.committee_memberships WHERE membership_id = $1 RETURNING membership_id AS "MembershipId"',
       [membershipId]
@@ -353,6 +367,16 @@ planningCommitteeRouter.delete('/api/planning-committee/members/:committeeType/:
     if (result.rows.length === 0) {
       res.status(404).json({ ErrorMessage: 'Membership not found.' });
       return;
+    }
+
+    // Auto-revoke module access if user has no remaining memberships of this type
+    if (lookup.rows.length > 0) {
+      const { user_id, committee_type } = lookup.rows[0];
+      try {
+        await pool.query('SELECT identity.revoke_committee_access($1, $2)', [user_id, committee_type]);
+      } catch {
+        // Non-fatal: membership is removed even if revoke fails
+      }
     }
 
     res.json({ Message: 'Member removed from committee.' });
