@@ -1,0 +1,518 @@
+/* ============================================================================
+   VENDOR REGISTRATION APPROVAL - REDESIGNED MODULE
+   ============================================================================ */
+
+/* ── Summary strip ───────────────────────────────────────────────────────── */
+.va-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.va-summary__card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px;
+  border: 1px solid var(--portal-border, #dbe3ee);
+  border-radius: 12px;
+  background: #f9fcfa;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.va-summary__card:hover {
+  border-color: rgba(11, 93, 59, 0.3);
+  box-shadow: 0 2px 8px rgba(11, 93, 59, 0.08);
+}
+
+.va-summary__value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--portal-ink, #0b1221);
+  line-height: 1;
+}
+
+.va-summary__label {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--portal-slate, #435169);
+  font-weight: 600;
+}
+
+.va-summary__card--good {
+  border-color: rgba(11, 93, 59, 0.25);
+  background: #f0fdf5;
+}
+
+.va-summary__card--good .va-summary__value {
+  color: var(--portal-forest, #0b5d3b);
+}
+
+.va-summary__card--warn {
+  border-color: rgba(176, 94, 0, 0.25);
+  background: #fff7eb;
+}
+
+.va-summary__card--warn .va-summary__value {
+  color: #b05e00;
+}
+
+.va-summary__card--alert {
+  border-color: rgba(185, 48, 48, 0.25);
+  background: #fef2f2;
+}
+
+.va-summary__card--alert .va-summary__value {
+  color: #b93030;
+}
+
+/* ── Toolbar ─────────────────────────────────────────────────────────────── */
+.va-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+  padding: 14px 16px;
+  border: 1px solid var(--portal-border, #dbe3ee);
+  border-radius: 12px;
+  background: var(--portal-card, #ffffff);
+  margin-bottom: 14px;
+}
+
+.va-toolbar .plan-field {
+  flex: 1 1 180px;
+  min-width: 160px;
+}
+
+.va-toolbar .plan-field:first-child {
+  min-width: 140px;
+}
+
+.va-toolbar .plan-field:last-of-type {
+  flex: 2 1 280px;
+}
+
+/* ── Table card ──────────────────────────────────────────────────────────── */
+.va-table-card {
+  border: 1px solid var(--portal-border, #dbe3ee);
+  border-radius: 14px;
+  background: var(--portal-card, #ffffff);
+  box-shadow: 0 4px 16px rgba(10, 20, 34, 0.05);
+  overflow: hidden;
+}
+
+.va-table-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--portal-mist, #f3f6f9);
+}
+
+.va-table-card__header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--portal-ink, #0b1221);
+}
+
+.va-table-card__count {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--portal-slate, #435169);
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--portal-mist, #edf2f7);
+}
+
+.va-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.va-table-scroll .plan-table {
+  margin-top: 0;
+  min-width: 700px;
+}
+
+.va-table-scroll .plan-table td {
+  vertical-align: middle;
+}
+
+/* ── Company cell ────────────────────────────────────────────────────────── */
+.va-company {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.va-company__name {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--portal-ink, #0b1221);
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  text-decoration: none;
+  color: var(--portal-forest, #0b5d3b);
+  transition: opacity 0.15s ease;
+}
+
+.va-company__name:hover {
+  opacity: 0.75;
+}
+
+.va-company__reg {
+  font-size: 0.75rem;
+  color: var(--portal-slate, #435169);
+}
+
+/* ── Doc badges ──────────────────────────────────────────────────────────── */
+.va-docs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.va-docs__total {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--portal-ink, #0b1221);
+}
+
+.va-docs__breakdown {
+  font-size: 0.6875rem;
+  color: var(--portal-slate, #435169);
+}
+
+/* ── Contact cell ────────────────────────────────────────────────────────── */
+.va-contact {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.va-contact__name {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--portal-ink, #0b1221);
+}
+
+.va-contact__email {
+  font-size: 0.75rem;
+  color: var(--portal-slate, #435169);
+}
+
+/* ── Detail modal ────────────────────────────────────────────────────────── */
+.va-modal__content {
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.va-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--portal-mist, #f3f6f9);
+  position: sticky;
+  top: 0;
+  background: var(--portal-card, #ffffff);
+  z-index: 2;
+}
+
+.va-modal__header-text h3 {
+  margin: 0 0 4px;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--portal-ink, #0b1221);
+}
+
+.va-modal__header-text p {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--portal-slate, #435169);
+}
+
+.va-modal__close {
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--portal-border, #dbe3ee);
+  background: var(--portal-card, #ffffff);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--portal-slate, #435169);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.va-modal__close:hover {
+  background: var(--portal-mist, #edf2f7);
+  color: var(--portal-ink, #0b1221);
+}
+
+.va-modal__body {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Detail meta grid ────────────────────────────────────────────────────── */
+.va-meta {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.va-meta__item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1px solid var(--portal-border, #dbe3ee);
+  border-radius: 10px;
+  background: #f9fcfa;
+}
+
+.va-meta__label {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  color: var(--portal-slate, #435169);
+}
+
+.va-meta__value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--portal-ink, #0b1221);
+}
+
+/* ── Contact card ────────────────────────────────────────────────────────── */
+.va-contact-card {
+  padding: 14px 16px;
+  border: 1px solid var(--portal-border, #dbe3ee);
+  border-radius: 10px;
+  background: #f9fcfa;
+}
+
+.va-contact-card h4 {
+  margin: 0 0 8px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--portal-ink, #0b1221);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.va-contact-card p {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--portal-slate, #435169);
+  line-height: 1.5;
+}
+
+/* ── Section wrapper ─────────────────────────────────────────────────────── */
+.va-section {
+  border: 1px solid var(--portal-border, #dbe3ee);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--portal-card, #ffffff);
+}
+
+.va-section__header {
+  padding: 12px 16px;
+  background: var(--portal-mist, #edf2f7);
+  border-bottom: 1px solid var(--portal-border, #dbe3ee);
+}
+
+.va-section__header h4 {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--portal-ink, #0b1221);
+}
+
+.va-section__body {
+  padding: 16px;
+}
+
+.va-section__body .plan-table {
+  margin-top: 0;
+}
+
+/* ── Decision panel ──────────────────────────────────────────────────────── */
+.va-decision {
+  border: 1px solid var(--portal-border, #dbe3ee);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.va-decision__header {
+  padding: 14px 18px;
+  background: var(--portal-mist, #edf2f7);
+  border-bottom: 1px solid var(--portal-border, #dbe3ee);
+}
+
+.va-decision__header h4 {
+  margin: 0 0 2px;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--portal-ink, #0b1221);
+}
+
+.va-decision__header p {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--portal-slate, #435169);
+}
+
+.va-decision__body {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.va-decision__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.va-decision__divider {
+  border: none;
+  border-top: 1px solid var(--portal-border, #dbe3ee);
+  margin: 0;
+}
+
+.va-danger-zone {
+  padding: 16px 18px;
+  background: #fef2f2;
+  border: 1px solid rgba(185, 48, 48, 0.2);
+  border-radius: 12px;
+}
+
+.va-danger-zone__text {
+  font-size: 0.8125rem;
+  color: var(--portal-slate, #435169);
+  margin: 0 0 12px;
+}
+
+.va-danger-zone .plan-textarea {
+  border-color: rgba(185, 48, 48, 0.3);
+}
+
+.va-danger-zone .plan-textarea:focus {
+  border-color: rgba(185, 48, 48, 0.5);
+  box-shadow: 0 0 0 3px rgba(185, 48, 48, 0.1);
+}
+
+.va-danger-zone__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ── Empty state ─────────────────────────────────────────────────────────── */
+.va-empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--portal-slate, #435169);
+  font-size: 0.875rem;
+}
+
+/* ============================================================================
+   RESPONSIVE BREAKPOINTS
+   ============================================================================ */
+
+@media (max-width: 1100px) {
+  .va-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .va-meta {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .va-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .va-toolbar .plan-field {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .va-modal__header {
+    flex-direction: column;
+    padding: 16px 18px 14px;
+  }
+
+  .va-modal__body {
+    padding: 16px 18px;
+  }
+
+  .va-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .va-decision__actions {
+    flex-direction: column;
+  }
+
+  .va-decision__actions .plan-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .va-danger-zone__actions {
+    flex-direction: column;
+  }
+
+  .va-danger-zone__actions .plan-button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .va-summary {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .va-summary__card {
+    padding: 10px 12px;
+  }
+
+  .va-summary__value {
+    font-size: 1.25rem;
+  }
+
+  .va-table-card__header {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 12px 14px;
+  }
+
+  .va-contact-card {
+    padding: 12px;
+  }
+
+  .va-danger-zone {
+    padding: 14px;
+  }
+}
