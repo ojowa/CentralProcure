@@ -1,4 +1,4 @@
-export type VendorApprovalStatus = 'Pending Approval' | 'Active' | 'Rejected';
+export type VendorApprovalStatus = 'Pending Approval' | 'Active' | 'Rejected' | 'Deleted';
 
 export interface VendorApprovalSummary {
   VendorId: string;

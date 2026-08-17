@@ -289,6 +289,53 @@ vendorAdminRouter.post('/api/admin/vendors/:vendorId/decision', async (req, res)
   }
 });
 
+// DELETE /api/admin/vendors/:vendorId
+vendorAdminRouter.delete('/api/admin/vendors/:vendorId', async (req, res) => {
+  const auth = await requirePermission(req, 'admin.vendor_approval');
+  if (denyIfNoPermission(res, auth)) return;
+
+  if (!pool) {
+    res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
+    return;
+  }
+
+  try {
+    const { vendorId } = req.params;
+    const { Reason } = req.body;
+
+    const existing = await pool.query(
+      'SELECT vendor_id, company_name, vendor_status FROM identity.vendors WHERE vendor_id = $1',
+      [vendorId]
+    );
+
+    if (existing.rows.length === 0) {
+      res.status(404).json({ ErrorMessage: 'Vendor not found.' });
+      return;
+    }
+
+    const vendor = existing.rows[0];
+    if (vendor.vendor_status === 'Deleted') {
+      res.status(400).json({ ErrorMessage: 'Vendor is already deleted.' });
+      return;
+    }
+
+    await pool.query(
+      'SELECT * FROM identity.delete_vendor($1, $2, $3)',
+      [vendorId, auth!.sub, Reason || null]
+    );
+
+    res.json({
+      VendorId: vendorId,
+      CompanyName: vendor.company_name,
+      VendorStatus: 'Deleted',
+      IsActive: false,
+      Message: `${vendor.company_name} has been deleted.`
+    });
+  } catch (error: any) {
+    res.status(500).json({ ErrorMessage: error.message || 'An error occurred deleting the vendor.' });
+  }
+});
+
 // GET /api/admin/vendors/compliance/:documentId/file
 vendorAdminRouter.get('/api/admin/vendors/compliance/:documentId/file', async (req, res) => {
   const auth = await requirePermission(req, 'admin.vendor_approval');

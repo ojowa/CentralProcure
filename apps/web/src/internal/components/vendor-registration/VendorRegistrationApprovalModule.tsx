@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   decideVendorApproval,
+  deleteVendor,
   downloadVendorApprovalDocument,
   fetchVendorApprovalDetail,
   fetchVendorApprovals
@@ -17,7 +18,7 @@ import type {
 } from '../../types/internal';
 import { usePermission } from '../../hooks/usePermission';
 
-const REVIEW_STATUSES: VendorApprovalStatus[] = ['Pending Approval', 'Active', 'Rejected'];
+const REVIEW_STATUSES: VendorApprovalStatus[] = ['Pending Approval', 'Active', 'Rejected', 'Deleted'];
 
 const formatDateTimeShort = (value?: string | null) => {
   if (!value) {
@@ -43,6 +44,7 @@ const statusTone = (status?: string | null) => {
     case 'active':
       return 'admin-status--good';
     case 'rejected':
+    case 'deleted':
       return 'admin-status--alert';
     default:
       return 'admin-status--warn';
@@ -73,6 +75,9 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
   const [isSaving, setIsSaving] = useState(false);
   const [pendingDecision, setPendingDecision] = useState<VendorApprovalStatus | null>(null);
   const [downloadingDocumentId, setDownloadingDocumentId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteReason, setDeleteReason] = useState('');
   const [error, setError] = useState('');
   const [feedback, setFeedback] = useState('');
 
@@ -92,7 +97,8 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
       total: records.length,
       pending: counts['Pending Approval'] ?? 0,
       active: counts.Active ?? 0,
-      rejected: counts.Rejected ?? 0
+      rejected: counts.Rejected ?? 0,
+      deleted: counts.Deleted ?? 0
     };
   }, [records]);
 
@@ -214,6 +220,35 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
       setError(downloadError instanceof Error ? downloadError.message : 'Unable to download compliance document.');
     } finally {
       setDownloadingDocumentId(null);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!token || !detail) {
+      setError('Select a vendor record before deleting.');
+      return;
+    }
+
+    if (!canReview) {
+      setError('Your current role does not have vendor approval authority.');
+      return;
+    }
+
+    setIsDeleting(true);
+    setError('');
+    setFeedback('');
+
+    try {
+      const result = await deleteVendor(token, detail.VendorId, deleteReason.trim() || undefined);
+      setFeedback(result.Message || `${detail.CompanyName} has been deleted.`);
+      setShowDeleteConfirm(false);
+      setDeleteReason('');
+      closeDetail();
+      await loadRecords();
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : 'Unable to delete vendor account.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -488,6 +523,38 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
                     <button type="button" className="plan-button plan-button--danger" onClick={() => void handleDecision('Rejected')} disabled={!canReview || isSaving}>
                       {pendingDecision === 'Rejected' ? 'Saving...' : 'Reject Vendor'}
                     </button>
+                  </div>
+
+                  <div style={{ borderTop: '1px solid var(--portal-border)', marginTop: '20px', paddingTop: '16px' }}>
+                    <p style={{ fontSize: '13px', color: 'var(--portal-slate)', marginBottom: '12px' }}>
+                      Permanently remove this vendor account. This action cannot be undone.
+                    </p>
+                    {!showDeleteConfirm ? (
+                      <button type="button" className="plan-button plan-button--danger" onClick={() => setShowDeleteConfirm(true)} disabled={!canReview || isSaving || isDeleting}>
+                        Delete Vendor Account
+                      </button>
+                    ) : (
+                      <div>
+                        <label className="plan-field" style={{ marginBottom: '12px' }}>
+                          <span>Reason for deletion (optional)</span>
+                          <textarea
+                            className="plan-textarea"
+                            rows={2}
+                            value={deleteReason}
+                            onChange={(event) => setDeleteReason(event.target.value)}
+                            placeholder="Enter reason for deleting this vendor account..."
+                          />
+                        </label>
+                        <div className="plan-actions">
+                          <button type="button" className="plan-button plan-button--secondary" onClick={() => { setShowDeleteConfirm(false); setDeleteReason(''); }} disabled={isDeleting}>
+                            Cancel
+                          </button>
+                          <button type="button" className="plan-button plan-button--danger" onClick={() => void handleDelete()} disabled={isDeleting}>
+                            {isDeleting ? 'Deleting...' : 'Confirm Delete'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </>

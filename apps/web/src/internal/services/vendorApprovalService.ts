@@ -133,3 +133,22 @@ export const downloadVendorApprovalDocument = async (
 
   return response.blob();
 };
+
+export const deleteVendor = async (
+  token: string,
+  vendorId: string,
+  reason?: string
+): Promise<{ VendorId: string; Message: string }> => {
+  const response = await fetch(`${baseUrl}/${vendorId}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      ...buildCsrfHeaders()
+    },
+    credentials: 'include',
+    body: JSON.stringify({ Reason: reason || null })
+  });
+
+  return parseResponse<{ VendorId: string; Message: string }>(response);
+};
