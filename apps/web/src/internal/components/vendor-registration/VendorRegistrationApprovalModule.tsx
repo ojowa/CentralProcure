@@ -181,7 +181,7 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
       const objectUrl = window.URL.createObjectURL(blob);
       const anchor = document.createElement('a');
       anchor.href = objectUrl;
-      anchor.download = sanitizeFileName(`${detail.CompanyName}-${complianceDocument.DocumentType}-${complianceDocument.DocumentId}.bin`);
+      anchor.download = sanitizeFileName(`${detail.CompanyName}-${complianceDocument.DocumentType}-${complianceDocument.DocumentId}.pdf`);
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();

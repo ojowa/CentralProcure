@@ -254,7 +254,10 @@ vendorRouter.get('/api/Vendor/compliance/:documentId/file', async (req, res) => 
       return;
     }
 
-    const fileName = doc.file_name || doc.document_url?.split('/').pop() || 'compliance-document';
+    let fileName = doc.file_name || doc.document_url?.split('/').pop() || 'compliance-document';
+    if (!fileName.endsWith('.pdf')) {
+      fileName = `${fileName}.pdf`;
+    }
 
     if (doc.document_content) {
       const buffer = Buffer.from(doc.document_content, 'base64');
