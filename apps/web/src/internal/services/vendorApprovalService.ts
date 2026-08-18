@@ -1,4 +1,4 @@
-import { apiServiceBaseUrl, serviceBaseUrls } from './moduleService';
+import { serviceBaseUrls } from './moduleService';
 import { buildCsrfHeaders } from './moduleService.shared';
 import type {
   VendorApprovalDecisionRequest,
@@ -111,9 +111,9 @@ export const decideVendorApproval = async (
 
 export const downloadVendorApprovalDocument = async (
   token: string,
-  fileUrl: string
+  documentId: string
 ): Promise<Blob> => {
-  const targetUrl = fileUrl.startsWith('http') ? fileUrl : `${apiServiceBaseUrl}${fileUrl}`;
+  const targetUrl = `${baseUrl}/compliance/${documentId}/file`;
   const response = await fetch(targetUrl, {
     headers: {
       Authorization: `Bearer ${token}`

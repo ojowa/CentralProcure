@@ -177,7 +177,7 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
     setDownloadingDocumentId(complianceDocument.DocumentId);
     setModalError('');
     try {
-      const blob = await downloadVendorApprovalDocument(token, complianceDocument.FileUrl);
+      const blob = await downloadVendorApprovalDocument(token, complianceDocument.DocumentId);
       const objectUrl = window.URL.createObjectURL(blob);
       const anchor = document.createElement('a');
       anchor.href = objectUrl;
@@ -428,9 +428,11 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
                           <thead>
                             <tr>
                               <th>Document Type</th>
+                              <th>File</th>
                               <th>Status</th>
+                              <th>Uploaded</th>
                               <th>Expiry</th>
-                              <th>Updated</th>
+                              <th>Reviewed By</th>
                               <th>Actions</th>
                             </tr>
                           </thead>
@@ -438,16 +440,33 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
                             {detail.ComplianceDocuments.map((item) => (
                               <tr key={item.DocumentId}>
                                 <td>{item.DocumentType}</td>
+                                <td style={{ maxWidth: '160px' }}>
+                                  <span style={{ fontSize: '0.75rem', wordBreak: 'break-all', color: 'var(--portal-slate)' }}>
+                                    {item.FileName || 'No file'}
+                                  </span>
+                                </td>
                                 <td>
                                   <span className={`admin-status ${statusTone(item.VerificationStatus)}`}>{item.VerificationStatus}</span>
                                   {item.VerificationStatus === 'Rejected' && item.RejectionReason ? (
-                                    <div style={{ fontSize: '0.75rem', color: 'var(--portal-slate)', marginTop: '4px' }}>
-                                      Reason: {item.RejectionReason}
+                                    <div style={{ fontSize: '0.75rem', color: '#b93030', marginTop: '4px' }}>
+                                      {item.RejectionReason}
                                     </div>
                                   ) : null}
                                 </td>
-                                <td>{formatDateTimeShort(item.ExpiryDate)}</td>
-                                <td>{formatDateTimeShort(item.UpdatedAt)}</td>
+                                <td>{formatDateTimeShort(item.CreatedAt)}</td>
+                                <td>{item.ExpiryDate ? formatDateTimeShort(item.ExpiryDate) : 'N/A'}</td>
+                                <td>
+                                  {item.VerifiedBy ? (
+                                    <div style={{ fontSize: '0.75rem' }}>
+                                      <div>{item.VerifiedBy}</div>
+                                      {item.VerifiedAt ? (
+                                        <div style={{ color: 'var(--portal-slate)' }}>{formatDateTimeShort(item.VerifiedAt)}</div>
+                                      ) : null}
+                                    </div>
+                                  ) : (
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--portal-slate)' }}>Pending review</span>
+                                  )}
+                                </td>
                                 <td>
                                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                                     <button
@@ -516,7 +535,7 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
                             ))}
                             {!detail.ComplianceDocuments.length ? (
                               <tr>
-                                <td colSpan={5} className="va-empty">
+                                <td colSpan={7} className="va-empty">
                                   No compliance documents were uploaded for this vendor.
                                 </td>
                               </tr>

@@ -84,6 +84,7 @@ vendorRouter.get('/api/Vendor/compliance', async (req, res) => {
       DocumentId: d.document_id,
       DocumentType: d.document_type,
       FileUrl: d.document_url,
+      FileName: d.file_name || null,
       Status: d.verification_status,
       ExpiryDate: d.expiry_date,
       CreatedAt: d.created_at,
