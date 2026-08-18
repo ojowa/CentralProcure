@@ -76,6 +76,8 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
   const [deleteReason, setDeleteReason] = useState('');
   const [error, setError] = useState('');
   const [feedback, setFeedback] = useState('');
+  const [modalError, setModalError] = useState('');
+  const [modalFeedback, setModalFeedback] = useState('');
 
   const grantedActions = useMemo(() => new Set(module.actions ?? []), [module.actions]);
   const canReview = Boolean(token) && (
@@ -139,6 +141,8 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
     setDeleteReason('');
     setFeedback('');
     setError('');
+    setModalError('');
+    setModalFeedback('');
   };
 
   const refreshSelection = async (vendorId: string) => {
@@ -146,22 +150,22 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
   };
 
   const handleDecision = async (decision: VendorApprovalStatus) => {
-    if (!token || !detail) { setError('Select a vendor record before applying a decision.'); return; }
-    if (!canReview) { setError('Your current role does not have vendor approval authority.'); return; }
+    if (!token || !detail) { setModalError('Select a vendor record before applying a decision.'); return; }
+    if (!canReview) { setModalError('Your current role does not have vendor approval authority.'); return; }
     setIsSaving(true);
     setPendingDecision(decision);
-    setError('');
-    setFeedback('');
+    setModalError('');
+    setModalFeedback('');
     try {
       await decideVendorApproval(token, detail.VendorId, { Decision: decision, Notes: reviewNote.trim() || undefined });
       await refreshSelection(detail.VendorId);
-      setFeedback(
+      setModalFeedback(
         decision === 'Active' ? `${detail.CompanyName} has been approved and activated.`
           : decision === 'Rejected' ? `${detail.CompanyName} has been rejected.`
             : `${detail.CompanyName} has been returned to pending approval.`
       );
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : 'Unable to update vendor approval status.');
+      setModalError(saveError instanceof Error ? saveError.message : 'Unable to update vendor approval status.');
     } finally {
       setIsSaving(false);
       setPendingDecision(null);
@@ -169,9 +173,9 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
   };
 
   const handleDownload = async (complianceDocument: VendorComplianceReviewItem) => {
-    if (!token || !detail) { setError('Open a vendor record before downloading compliance documents.'); return; }
+    if (!token || !detail) { setModalError('Open a vendor record before downloading compliance documents.'); return; }
     setDownloadingDocumentId(complianceDocument.DocumentId);
-    setError('');
+    setModalError('');
     try {
       const blob = await downloadVendorApprovalDocument(token, complianceDocument.FileUrl);
       const objectUrl = window.URL.createObjectURL(blob);
@@ -183,27 +187,27 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
       anchor.remove();
       window.URL.revokeObjectURL(objectUrl);
     } catch (downloadError) {
-      setError(downloadError instanceof Error ? downloadError.message : 'Unable to download compliance document.');
+      setModalError(downloadError instanceof Error ? downloadError.message : 'Unable to download compliance document.');
     } finally {
       setDownloadingDocumentId(null);
     }
   };
 
   const handleDelete = async () => {
-    if (!token || !detail) { setError('Select a vendor record before deleting.'); return; }
-    if (!canReview) { setError('Your current role does not have vendor approval authority.'); return; }
+    if (!token || !detail) { setModalError('Select a vendor record before deleting.'); return; }
+    if (!canReview) { setModalError('Your current role does not have vendor approval authority.'); return; }
     setIsDeleting(true);
-    setError('');
-    setFeedback('');
+    setModalError('');
+    setModalFeedback('');
     try {
       const result = await deleteVendor(token, detail.VendorId, deleteReason.trim() || undefined);
-      setFeedback(result.Message || `${detail.CompanyName} has been deleted.`);
+      setModalFeedback(result.Message || `${detail.CompanyName} has been deleted.`);
       setShowDeleteConfirm(false);
       setDeleteReason('');
       closeDetail();
       await loadRecords();
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : 'Unable to delete vendor account.');
+      setModalError(deleteError instanceof Error ? deleteError.message : 'Unable to delete vendor account.');
     } finally {
       setIsDeleting(false);
     }
@@ -211,20 +215,20 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
 
   const handleVerifyDocument = async (documentId: string, status: 'Approved' | 'Rejected') => {
     if (!token || !detail) return;
-    if (!canReview) { setError('Your current role does not have vendor approval authority.'); return; }
+    if (!canReview) { setModalError('Your current role does not have vendor approval authority.'); return; }
 
     setVerifyingDocumentId(documentId);
-    setError('');
-    setFeedback('');
+    setModalError('');
+    setModalFeedback('');
 
     try {
       await verifyComplianceDocument(token, documentId, status, status === 'Rejected' ? rejectReason.trim() || undefined : undefined);
-      setFeedback(`Document has been ${status.toLowerCase()}.`);
+      setModalFeedback(`Document has been ${status.toLowerCase()}.`);
       setRejectDocId(null);
       setRejectReason('');
       await openDetail(detail.VendorId);
     } catch (verifyError) {
-      setError(verifyError instanceof Error ? verifyError.message : 'Unable to verify document.');
+      setModalError(verifyError instanceof Error ? verifyError.message : 'Unable to verify document.');
     } finally {
       setVerifyingDocumentId(null);
     }
@@ -371,7 +375,8 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
 
             <div className="va-modal__body">
               {isDetailLoading ? <div className="plan-loading">Loading vendor registration detail...</div> : null}
-              {error && selectedId ? <div className="portal-alert animate-shake">{error}</div> : null}
+              {modalError ? <div className="portal-alert animate-shake">{modalError}</div> : null}
+              {modalFeedback ? <div className="plan-success">{modalFeedback}</div> : null}
 
               {detail ? (
                 <>

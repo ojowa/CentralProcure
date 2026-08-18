@@ -94,6 +94,7 @@ export const AuditTrailWorkspace = ({ module, token }: Props) => {
   const [events, setEvents] = useState<AuditHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [diagnosticsError, setDiagnosticsError] = useState('');
 
   const load = async () => {
     if (!token) {
@@ -154,17 +155,18 @@ export const AuditTrailWorkspace = ({ module, token }: Props) => {
     if (!token) return;
     setSelectedEvent(event);
     setIsDiagnosticsLoading(true);
+    setDiagnosticsError('');
     try {
       const next = await fetchAuditWorkflowDiagnostics(token, event.EntityType, event.EntityId);
       setDiagnostics(next);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load diagnostics');
+      setDiagnosticsError(err instanceof Error ? err.message : 'Failed to load diagnostics');
     } finally {
       setIsDiagnosticsLoading(false);
     }
   };
 
-  const closeDiagnostics = () => { setSelectedEvent(null); setDiagnostics(null); };
+  const closeDiagnostics = () => { setSelectedEvent(null); setDiagnostics(null); setDiagnosticsError(''); };
   const toggleEventExpand = (id: string) => { setExpandedEvent((prev) => prev === id ? null : id); };
 
   const uniqueEntities = useMemo(() => new Set(events.map((e) => `${e.EntityType}:${e.EntityId}`)).size, [events]);
@@ -400,6 +402,8 @@ export const AuditTrailWorkspace = ({ module, token }: Props) => {
             <div className="app-modal__body audit-trail__modal-body">
               {isDiagnosticsLoading ? (
                 <div className="app-loading">Loading...</div>
+              ) : diagnosticsError ? (
+                <div className="app-alert app-alert--error" style={{ margin: '16px 0' }}>{diagnosticsError}</div>
               ) : diagnostics ? (
                 <div className="audit-trail__details">
                   <div className="audit-trail__info-grid">

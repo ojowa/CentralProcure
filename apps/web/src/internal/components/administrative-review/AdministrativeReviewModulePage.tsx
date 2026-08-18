@@ -88,6 +88,7 @@ export const AdministrativeReviewModulePage = ({ module, token, role, userEmail 
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [actionError, setActionError] = useState('');
+  const [modalError, setModalError] = useState('');
   const [filters, setFilters] = useState({
     status: '',
     entityType: '',
@@ -177,7 +178,7 @@ export const AdministrativeReviewModulePage = ({ module, token, role, userEmail 
 
     setSelectedId(complaintId);
     setIsDetailLoading(true);
-    setActionError('');
+    setModalError('');
     try {
       const next = await fetchAdministrativeReviewDetail(token, complaintId);
       setDetail(next);
@@ -190,7 +191,7 @@ export const AdministrativeReviewModulePage = ({ module, token, role, userEmail 
         resolutionNotes: next.ResolutionNotes ?? ''
       });
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : 'Unable to load administrative review detail.');
+      setModalError(error instanceof Error ? error.message : 'Unable to load administrative review detail.');
     } finally {
       setIsDetailLoading(false);
     }
@@ -199,7 +200,7 @@ export const AdministrativeReviewModulePage = ({ module, token, role, userEmail 
   const closeDetail = () => {
     setSelectedId(null);
     setDetail(null);
-    setActionError('');
+    setModalError('');
   };
 
   const handleCreate = async () => {
@@ -243,12 +244,12 @@ export const AdministrativeReviewModulePage = ({ module, token, role, userEmail 
 
   const handleUpdate = async () => {
     if (!token || !selectedId) {
-      setActionError('Select a complaint before saving updates.');
+      setModalError('Select a complaint before saving updates.');
       return;
     }
 
     if (!canMutate) {
-      setActionError('You do not have a granted action to update this review branch.');
+      setModalError('You do not have a granted action to update this review branch.');
       return;
     }
 
@@ -260,12 +261,12 @@ export const AdministrativeReviewModulePage = ({ module, token, role, userEmail 
       isResolutionStatus;
 
     if (isResolutionEdit && !canResolve) {
-      setActionError('Your current workflow actions do not allow complaint resolution.');
+      setModalError('Your current workflow actions do not allow complaint resolution.');
       return;
     }
 
     setIsSaving(true);
-    setActionError('');
+    setModalError('');
     try {
       const updated = await updateAdministrativeReview(token, selectedId, {
         Status: updateForm.status || undefined,
@@ -278,7 +279,7 @@ export const AdministrativeReviewModulePage = ({ module, token, role, userEmail 
       setDetail(updated);
       await loadRecords();
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : 'Unable to update administrative review.');
+      setModalError(error instanceof Error ? error.message : 'Unable to update administrative review.');
     } finally {
       setIsSaving(false);
     }
@@ -490,6 +491,7 @@ export const AdministrativeReviewModulePage = ({ module, token, role, userEmail 
               </button>
             </div>
             {isDetailLoading ? <div className="plan-loading">Loading administrative review...</div> : null}
+            {modalError ? <div className="portal-alert animate-shake" style={{ margin: '16px 0' }}>{modalError}</div> : null}
             {detail ? (
               <>
                 <div className="requisition-detail-grid">
