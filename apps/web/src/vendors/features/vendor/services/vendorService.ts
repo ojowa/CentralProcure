@@ -258,6 +258,27 @@ export const downloadComplianceChecklist = async (): Promise<{ Items: Compliance
     }
 };
 
+export const downloadComplianceDocument = async (documentId: string, fileName: string): Promise<void> => {
+    try {
+        const response = await apiClient.get(`/api/Vendor/compliance/${documentId}/file`, {
+            responseType: 'blob'
+        });
+        const blob = new Blob([response.data], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`;
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+        window.URL.revokeObjectURL(url);
+    } catch (error: any) {
+        console.error("Failed to download compliance document:", error);
+        const msg = error.response?.data?.ErrorMessage || error.response?.data?.message;
+        throw new Error(msg || "Unable to download document right now.");
+    }
+};
+
 export type CheckVendorAvailabilityFunction = (
     params: {
         email?: string;

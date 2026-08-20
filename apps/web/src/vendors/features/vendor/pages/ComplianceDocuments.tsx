@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { jsPDF } from 'jspdf';
 import {
   downloadComplianceChecklist,
+  downloadComplianceDocument,
   getComplianceHistory,
   getComplianceRequirements,
   getVendorComplianceDocuments,
@@ -139,6 +140,7 @@ const ComplianceDocumentsPage: React.FC = () => {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [historyDoc, setHistoryDoc] = useState<Requirement | null>(null);
+  const [downloadingDocId, setDownloadingDocId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isReady) {
@@ -393,6 +395,17 @@ const ComplianceDocumentsPage: React.FC = () => {
     }
   };
 
+  const handleDownloadDocument = async (documentId: string, documentType: string) => {
+    setDownloadingDocId(documentId);
+    try {
+      await downloadComplianceDocument(documentId, `${documentType}.pdf`);
+    } catch (err: any) {
+      setDownloadError(err.message || 'Unable to download document.');
+    } finally {
+      setDownloadingDocId(null);
+    }
+  };
+
   const openHistory = async (req: Requirement) => {
     setHistoryDoc(req);
     setHistoryOpen(true);
@@ -574,14 +587,14 @@ const ComplianceDocumentsPage: React.FC = () => {
                             {doc?.Status && doc.Status !== 'Missing' ? 'Replace' : 'Upload'}
                           </button>
                           {doc?.FileUrl && (
-                            <a
-                              href={doc.FileUrl}
-                              target="_blank"
-                              rel="noreferrer"
+                            <button
+                              type="button"
+                              onClick={() => void handleDownloadDocument(doc.Id, requirement.name)}
+                              disabled={downloadingDocId === doc.Id}
                               className="rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
                             >
-                              View
-                            </a>
+                              {downloadingDocId === doc.Id ? 'Downloading...' : 'View'}
+                            </button>
                           )}
                           <button
                             type="button"
@@ -780,21 +793,22 @@ const ComplianceDocumentsPage: React.FC = () => {
                     </div>
                     {item.FileUrl && (
                       <div className="mt-3 flex flex-wrap gap-2">
-                        <a
-                          href={item.FileUrl}
-                          target="_blank"
-                          rel="noreferrer"
+                        <button
+                          type="button"
+                          onClick={() => void handleDownloadDocument(item.DocumentId, item.DocumentType)}
+                          disabled={downloadingDocId === item.DocumentId}
                           className="rounded-md border border-emerald-200 px-2.5 py-1 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50"
                         >
-                          View
-                        </a>
-                        <a
-                          href={item.FileUrl}
-                          download
+                          {downloadingDocId === item.DocumentId ? 'Downloading...' : 'View'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleDownloadDocument(item.DocumentId, item.DocumentType)}
+                          disabled={downloadingDocId === item.DocumentId}
                           className="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
                         >
-                          Download
-                        </a>
+                          {downloadingDocId === item.DocumentId ? 'Downloading...' : 'Download'}
+                        </button>
                       </div>
                     )}
                   </div>
