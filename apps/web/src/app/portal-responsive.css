@@ -249,12 +249,28 @@ input, select, textarea {
     position: relative;
     top: 0;
   }
+
+  .budget-workspace__layout {
+    grid-template-columns: 1fr;
+  }
+
+  .budget-workspace__metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 /* Budget KPI / heatmap responsive */
 @media (max-width: 768px) {
   .budget-kpi-value { font-size: 2rem; }
   .risk-heatmap { grid-template-columns: repeat(2, 1fr); }
+
+  .budget-workspace__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .budget-workspace__hero {
+    flex-direction: column;
+  }
 }
 
 /* Review layout override */

@@ -220,18 +220,6 @@ export const BudgetExecutionDashboard = ({ dashboard, onSelectPlan }: Props) => 
           color: #991b1b;
         }
 
-        @media (max-width: 1200px) {
-          .budget-execution-dashboard__health-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-          }
-
-          .budget-waterfall-row {
-          padding: 18px;
-          border-radius: 18px;
-          border: 1px solid var(--portal-border);
-          background: white;
-        }
-
         .budget-stage-card span {
           display: block;
           font-size: 0.78rem;

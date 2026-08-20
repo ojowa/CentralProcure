@@ -157,7 +157,25 @@ budgetRouter.get('/api/budget/dashboard', async (req, res) => {
         (SELECT COUNT(*) FROM post_award.appropriations WHERE status = 'Pending') AS "PendingApprovals"`
     );
 
-    res.json(result.rows[0]);
+    const row = result.rows[0];
+    const totalReleased = Number(row.TotalReleased) || 0;
+    const totalCommitted = Number(row.TotalCommitted) || 0;
+    const totalPaid = Number(row.TotalPaid) || 0;
+    const available = totalReleased - totalCommitted - totalPaid;
+    const pendingApprovals = Number(row.PendingApprovals) || 0;
+    const pendingPayments = Number(row.PendingPayments) || 0;
+    const queueCount = pendingApprovals + pendingPayments;
+
+    res.json({
+      ...row,
+      Available: available,
+      QueueCount: queueCount,
+      AwaitingBudgetReviewCount: pendingApprovals,
+      OnHoldCount: 0,
+      ReadyForApprovalCount: 0,
+      AtRiskCount: 0,
+      TopRisks: []
+    });
   } catch (error: any) {
     res.status(500).json({ ErrorMessage: error.message || 'An error occurred fetching budget dashboard.' });
   }

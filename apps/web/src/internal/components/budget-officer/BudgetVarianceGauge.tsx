@@ -48,7 +48,7 @@ export const BudgetVarianceGauge = ({ dashboard, className = '' }: Props) => {
           );
           mask: radial-gradient(farthest-side, transparent calc(100% - var(--stroke) / 2), black 0);
           -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - var(--stroke) / 2), black 0);
-          margin-bottom: -var(--stroke);
+          margin-bottom: calc(-1 * var(--stroke));
         }
         .budget-gauge-inner {
           background: white;

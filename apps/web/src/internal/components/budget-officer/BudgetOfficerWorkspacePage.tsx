@@ -142,7 +142,7 @@ export const BudgetOfficerWorkspacePage = ({ module, token, role }: Props) => {
     };
   }, [selectedPlanId, token]);
 
-  const handleDecision = async (decision: string) => {
+  const handleDecision = async (decision: string, note: string) => {
     if (!token || !detail) {
       setModalError('Select a plan before taking a budget decision.');
       return;
@@ -155,7 +155,7 @@ export const BudgetOfficerWorkspacePage = ({ module, token, role }: Props) => {
     try {
       const result = await decideBudgetConfirmation(token, detail.PlanId, {
         Decision: decision,
-        Note: decisionNote.trim() || undefined
+        Note: note.trim() || undefined
       });
       setFeedback(result.Message);
       setIsDecisionModalOpen(false); // Close modal on success
