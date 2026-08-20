@@ -14,6 +14,7 @@ ALTER TABLE identity.compliance_document_history
 
 -- 2. Drop and recreate the SP
 DROP FUNCTION IF EXISTS identity.upload_compliance_document(UUID, VARCHAR, TEXT, DATE, VARCHAR, TEXT);
+DROP PROCEDURE IF EXISTS identity.upload_compliance_document_sp(UUID, VARCHAR, TEXT, DATE, refcursor);
 
 CREATE OR REPLACE FUNCTION identity.upload_compliance_document(
     p_vendor_id UUID,
@@ -30,7 +31,8 @@ RETURNS TABLE (
     document_url TEXT,
     verification_status VARCHAR(50),
     file_name VARCHAR(255),
-    document_content TEXT
+    document_content TEXT,
+    created_at TIMESTAMPTZ
 )
 LANGUAGE plpgsql
 AS $$
@@ -40,28 +42,12 @@ DECLARE
     v_document_type VARCHAR(100);
     v_document_url TEXT;
     v_status VARCHAR(50);
-    v_old_file_name VARCHAR(255);
-    v_old_document_content TEXT;
-    v_old_document_url TEXT;
-    v_old_expiry_date DATE;
-    v_old_verification_status VARCHAR(50);
-    v_old_rejection_reason TEXT;
+    v_created_at TIMESTAMPTZ;
 BEGIN
     IF EXISTS (
         SELECT 1 FROM identity.compliance_documents cd
         WHERE cd.vendor_id = p_vendor_id AND cd.document_type = p_document_type
     ) THEN
-        -- Capture the OLD document state BEFORE overwriting
-        SELECT d.document_id, d.vendor_id, d.document_type, d.document_url,
-               d.verification_status, d.file_name, d.document_content,
-               d.expiry_date, d.rejection_reason
-        INTO v_document_id, v_vendor_id, v_document_type, v_document_url,
-             v_status, v_old_file_name, v_old_document_content,
-             v_old_expiry_date, v_old_rejection_reason
-        FROM identity.compliance_documents d
-        WHERE d.vendor_id = p_vendor_id AND d.document_type = p_document_type;
-
-        -- Insert OLD state into history BEFORE overwriting
         INSERT INTO identity.compliance_document_history (
             document_id, vendor_id, document_type, document_url,
             expiry_date, verification_status, file_name,
@@ -76,7 +62,6 @@ BEGIN
         FROM identity.compliance_documents d
         WHERE d.vendor_id = p_vendor_id AND d.document_type = p_document_type;
 
-        -- Now overwrite with new values
         UPDATE identity.compliance_documents cd2
         SET
             document_url = p_document_url,
@@ -95,9 +80,10 @@ BEGIN
                   cd2.document_url,
                   cd2.verification_status,
                   cd2.file_name,
-                  cd2.document_content
+                  cd2.document_content,
+                  cd2.created_at
         INTO v_document_id, v_vendor_id, v_document_type, v_document_url, v_status,
-             p_file_name, p_file_content;
+             p_file_name, p_file_content, v_created_at;
     ELSE
         INSERT INTO identity.compliance_documents (
             vendor_id, document_type, document_url, expiry_date,
@@ -112,11 +98,11 @@ BEGIN
                   compliance_documents.document_url,
                   compliance_documents.verification_status,
                   compliance_documents.file_name,
-                  compliance_documents.document_content
+                  compliance_documents.document_content,
+                  compliance_documents.created_at
         INTO v_document_id, v_vendor_id, v_document_type, v_document_url, v_status,
-             p_file_name, p_file_content;
+             p_file_name, p_file_content, v_created_at;
 
-        -- For new documents, also log the initial upload in history
         INSERT INTO identity.compliance_document_history (
             document_id, vendor_id, document_type, document_url,
             expiry_date, verification_status, file_name,
@@ -131,7 +117,7 @@ BEGIN
     END IF;
 
     RETURN QUERY SELECT v_document_id, v_vendor_id, v_document_type, v_document_url,
-                        v_status, p_file_name, p_file_content;
+                        v_status, p_file_name, p_file_content, v_created_at;
 END;
 $$;
 
