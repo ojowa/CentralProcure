@@ -206,6 +206,10 @@ export interface ComplianceHistoryResponse {
     Status: string;
     CreatedAt: string;
     FileUrl?: string;
+    FileName?: string;
+    RejectionReason?: string;
+    VerifiedBy?: string;
+    VerifiedAt?: string;
 }
 
 export const getVendorComplianceDocuments = async (): Promise<ComplianceDocumentResponse[]> => {
