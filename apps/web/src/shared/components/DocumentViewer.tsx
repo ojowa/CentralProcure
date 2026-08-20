@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { X, Download, FileText, Image as ImageIcon, AlertCircle, Loader2 } from 'lucide-react';
 
 type DocumentViewerProps = {
@@ -43,11 +43,13 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
   onDownload,
 }) => {
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const loadedDocId = useRef<string | null>(null);
 
   useEffect(() => {
     if (!isOpen || !documentId) return;
+    if (loadedDocId.current === documentId && blobUrl) return;
 
     let cancelled = false;
     const url = apiEndpoint === 'vendor'
@@ -56,7 +58,6 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
     setLoading(true);
     setError(null);
-    setBlobUrl(null);
 
     const authToken = token || getStoredToken(apiEndpoint);
     const headers: Record<string, string> = {};
@@ -67,8 +68,10 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
         if (!res.ok) throw new Error('Failed to load document');
         const blob = await res.blob();
         if (cancelled) return;
-        const url = window.URL.createObjectURL(blob);
-        setBlobUrl(url);
+        if (blobUrl) window.URL.revokeObjectURL(blobUrl);
+        const newUrl = window.URL.createObjectURL(blob);
+        setBlobUrl(newUrl);
+        loadedDocId.current = documentId;
         setLoading(false);
       })
       .catch((err) => {
@@ -78,16 +81,17 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
         }
       });
 
-    return () => {
-      cancelled = true;
-      if (blobUrl) window.URL.revokeObjectURL(blobUrl);
-    };
+    return () => { cancelled = true; };
   }, [isOpen, documentId, apiEndpoint, token]);
 
   useEffect(() => {
+    return () => {
+      if (blobUrl) window.URL.revokeObjectURL(blobUrl);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!isOpen) {
-      setBlobUrl(null);
-      setLoading(true);
       setError(null);
     }
   }, [isOpen]);
