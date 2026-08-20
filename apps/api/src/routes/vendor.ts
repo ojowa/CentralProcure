@@ -146,9 +146,13 @@ vendorRouter.get('/api/Vendor/compliance/history/:documentType', async (req, res
       DocumentType: h.document_type,
       DocumentUrl: h.document_url,
       FileUrl: h.document_url,
+      FileName: h.file_name,
       ExpiryDate: h.expiry_date,
       Status: h.verification_status,
       CreatedAt: h.created_at,
+      RejectionReason: h.rejection_reason,
+      VerifiedBy: h.verified_by,
+      VerifiedAt: h.verified_at,
     }));
 
     res.json({ Items: history });
