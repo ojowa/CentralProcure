@@ -26,6 +26,7 @@ type Requirement = {
 };
 
 type ComplianceDocumentEntry = ComplianceDocument & {
+  DocumentId?: string;
   LastUpdated?: string;
 };
 
@@ -213,6 +214,7 @@ const ComplianceDocumentsPage: React.FC = () => {
             ExpiryDate: expiry,
             FileUrl: match.FileUrl,
             FileName: match.FileName,
+            DocumentId: match.DocumentId,
             RejectionReason: match.RejectionReason ?? undefined,
             LastUpdated: match.CreatedAt ?? match.ExpiryDate ?? undefined
           } satisfies ComplianceDocumentEntry;
@@ -317,6 +319,7 @@ const ComplianceDocumentsPage: React.FC = () => {
         ExpiryDate: activeRequirement.expirable && expiryDate ? new Date(expiryDate).toISOString() : undefined,
         FileUrl: response.FileUrl,
         FileName: response.FileName,
+        DocumentId: response.DocumentId,
         RejectionReason: response.RejectionReason ?? undefined,
         LastUpdated: new Date().toISOString()
       };
@@ -616,22 +619,22 @@ const ComplianceDocumentsPage: React.FC = () => {
                           >
                             {doc?.Status && doc.Status !== 'Missing' ? 'Replace' : 'Upload'}
                           </button>
-                          {doc?.FileUrl && (
+                          {doc?.FileUrl && doc.DocumentId && (
                             <>
                               <button
                                 type="button"
-                                onClick={() => openViewer(doc.Id, requirement.name, doc.FileName || `${requirement.name}.pdf`)}
+                                onClick={() => openViewer(doc.DocumentId!, requirement.name, doc.FileName || `${requirement.name}.pdf`)}
                                 className="rounded-md border border-emerald-200 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50"
                               >
                                 View
                               </button>
                               <button
                                 type="button"
-                                onClick={() => void handleDownloadDocument(doc.Id, requirement.name)}
-                                disabled={downloadingDocId === doc.Id}
+                                onClick={() => void handleDownloadDocument(doc.DocumentId!, requirement.name)}
+                                disabled={downloadingDocId === doc.DocumentId}
                                 className="rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
                               >
-                                {downloadingDocId === doc.Id ? 'Downloading...' : 'Download'}
+                                {downloadingDocId === doc.DocumentId ? 'Downloading...' : 'Download'}
                               </button>
                             </>
                           )}
