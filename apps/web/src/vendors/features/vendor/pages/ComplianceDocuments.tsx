@@ -135,12 +135,19 @@ const ComplianceDocumentsPage: React.FC = () => {
   const [expiryDate, setExpiryDate] = useState<string>('');
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<ComplianceHistoryResponse[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [historyDoc, setHistoryDoc] = useState<Requirement | null>(null);
   const [downloadingDocId, setDownloadingDocId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!uploadSuccess) return;
+    const timer = setTimeout(() => setUploadSuccess(null), 5000);
+    return () => clearTimeout(timer);
+  }, [uploadSuccess]);
 
   useEffect(() => {
     if (!isReady) {
@@ -294,6 +301,7 @@ const ComplianceDocumentsPage: React.FC = () => {
 
     setUploading(true);
     setUploadError(null);
+    setUploadSuccess(null);
     try {
       const response = await uploadComplianceDocument(activeRequirement.id, uploadFile, expiryDate || undefined);
       const updated: ComplianceDocumentEntry = {
@@ -311,6 +319,7 @@ const ComplianceDocumentsPage: React.FC = () => {
         next.push(updated);
         return next;
       });
+      setUploadSuccess(`${activeRequirement.name} uploaded successfully.`);
       closeUpload();
     } catch (err: any) {
       setUploadError(err.message || 'Failed to upload document.');
@@ -481,6 +490,13 @@ const ComplianceDocumentsPage: React.FC = () => {
       {downloadError && (
         <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {downloadError}
+        </div>
+      )}
+
+      {uploadSuccess && (
+        <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 flex items-center justify-between">
+          <span>{uploadSuccess}</span>
+          <button type="button" onClick={() => setUploadSuccess(null)} className="ml-3 text-emerald-500 hover:text-emerald-700 font-bold">&times;</button>
         </div>
       )}
 
