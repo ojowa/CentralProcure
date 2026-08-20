@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { pool } from '../db.js';
 import type { AuthenticatedRequest } from '../middleware/auth.js';
 import type { TokenPayload } from '../lib/jwt.js';
-import { requirePermission, denyIfNoPermission } from '../middleware/permission.js';
+import { extractPayloadFromRequest } from '../lib/jwt.js';
 
 export const vendorRouter = Router();
 
@@ -180,8 +180,11 @@ vendorRouter.get('/api/Vendor/compliance/checklist', async (_req, res) => {
 
 // POST /api/Vendor/compliance/upload
 vendorRouter.post('/api/Vendor/compliance/upload', async (req, res) => {
-  const auth = await requirePermission(req, 'vendor.compliance_upload');
-  if (denyIfNoPermission(res, auth)) return;
+  const auth = extractPayloadFromRequest(req.headers.authorization);
+  if (!auth?.sub) {
+    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
+    return;
+  }
 
   if (!pool) {
     res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
@@ -333,8 +336,11 @@ const vendorProfileUpdateSchema = z.object({
 
 // PUT /api/Vendor/:vendorId
 vendorRouter.put('/api/Vendor/:vendorId', async (req, res) => {
-  const auth = await requirePermission(req, 'vendor.update');
-  if (denyIfNoPermission(res, auth)) return;
+  const auth = extractPayloadFromRequest(req.headers.authorization);
+  if (!auth?.sub) {
+    res.status(401).json({ ErrorMessage: 'Unauthorized.' });
+    return;
+  }
 
   if (!pool) {
     res.status(500).json({ ErrorMessage: 'Database connection is not configured.' });
