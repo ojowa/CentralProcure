@@ -185,6 +185,7 @@ export interface ComplianceDocumentResponse {
     ExpiryDate?: string;
     CreatedAt?: string;
     FileUrl?: string;
+    FileName?: string;
     RejectionReason?: string;
 }
 

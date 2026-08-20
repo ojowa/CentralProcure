@@ -32,6 +32,7 @@ export interface ComplianceDocument {
     ExpiryDate?: string;
     RejectionReason?: string;
     FileUrl?: string;
+    FileName?: string;
 }
 
 /**

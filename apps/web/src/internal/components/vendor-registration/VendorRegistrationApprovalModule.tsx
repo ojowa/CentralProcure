@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { DocumentViewer } from '../../../shared/components/DocumentViewer';
 import {
   decideVendorApproval,
   deleteVendor,
@@ -76,6 +77,10 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
   const [deleteReason, setDeleteReason] = useState('');
   const [error, setError] = useState('');
   const [feedback, setFeedback] = useState('');
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerDocId, setViewerDocId] = useState('');
+  const [viewerDocType, setViewerDocType] = useState('');
+  const [viewerFileName, setViewerFileName] = useState('');
   const [modalError, setModalError] = useState('');
   const [modalFeedback, setModalFeedback] = useState('');
 
@@ -191,6 +196,13 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
     } finally {
       setDownloadingDocumentId(null);
     }
+  };
+
+  const openViewer = (complianceDocument: VendorComplianceReviewItem) => {
+    setViewerDocId(complianceDocument.DocumentId);
+    setViewerDocType(complianceDocument.DocumentType);
+    setViewerFileName(complianceDocument.FileName || `${complianceDocument.DocumentType}.pdf`);
+    setViewerOpen(true);
   };
 
   const handleDelete = async () => {
@@ -472,6 +484,14 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
                                     <button
                                       type="button"
                                       className="plan-link"
+                                      onClick={() => openViewer(item)}
+                                      style={{ color: '#0b5d3b', fontWeight: 600 }}
+                                    >
+                                      View
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="plan-link"
                                       onClick={() => void handleDownload(item)}
                                       disabled={downloadingDocumentId === item.DocumentId}
                                     >
@@ -618,6 +638,15 @@ export const VendorRegistrationApprovalModule = ({ module, token, role, userEmai
           </div>
         </div>
       ) : null}
+
+      <DocumentViewer
+        isOpen={viewerOpen}
+        onClose={() => setViewerOpen(false)}
+        documentId={viewerDocId}
+        documentType={viewerDocType}
+        fileName={viewerFileName}
+        apiEndpoint="admin"
+      />
     </section>
   );
 };

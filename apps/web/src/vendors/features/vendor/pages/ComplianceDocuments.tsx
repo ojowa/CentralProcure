@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { jsPDF } from 'jspdf';
+import { DocumentViewer } from '../../../../shared/components/DocumentViewer';
 import {
   downloadComplianceChecklist,
   downloadComplianceDocument,
@@ -142,6 +143,10 @@ const ComplianceDocumentsPage: React.FC = () => {
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [historyDoc, setHistoryDoc] = useState<Requirement | null>(null);
   const [downloadingDocId, setDownloadingDocId] = useState<string | null>(null);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerDocId, setViewerDocId] = useState<string>('');
+  const [viewerDocType, setViewerDocType] = useState<string>('');
+  const [viewerFileName, setViewerFileName] = useState<string>('');
 
   useEffect(() => {
     if (!uploadSuccess) return;
@@ -207,6 +212,7 @@ const ComplianceDocumentsPage: React.FC = () => {
             Status: resolvedStatus,
             ExpiryDate: expiry,
             FileUrl: match.FileUrl,
+            FileName: match.FileName,
             RejectionReason: match.RejectionReason ?? undefined,
             LastUpdated: match.CreatedAt ?? match.ExpiryDate ?? undefined
           } satisfies ComplianceDocumentEntry;
@@ -310,6 +316,7 @@ const ComplianceDocumentsPage: React.FC = () => {
         Status: normalizeStatus(response.Status),
         ExpiryDate: activeRequirement.expirable && expiryDate ? new Date(expiryDate).toISOString() : undefined,
         FileUrl: response.FileUrl,
+        FileName: response.FileName,
         RejectionReason: response.RejectionReason ?? undefined,
         LastUpdated: new Date().toISOString()
       };
@@ -413,6 +420,13 @@ const ComplianceDocumentsPage: React.FC = () => {
     } finally {
       setDownloadingDocId(null);
     }
+  };
+
+  const openViewer = (documentId: string, documentType: string, fileName?: string) => {
+    setViewerDocId(documentId);
+    setViewerDocType(documentType);
+    setViewerFileName(fileName || `${documentType}.pdf`);
+    setViewerOpen(true);
   };
 
   const openHistory = async (req: Requirement) => {
@@ -603,14 +617,23 @@ const ComplianceDocumentsPage: React.FC = () => {
                             {doc?.Status && doc.Status !== 'Missing' ? 'Replace' : 'Upload'}
                           </button>
                           {doc?.FileUrl && (
-                            <button
-                              type="button"
-                              onClick={() => void handleDownloadDocument(doc.Id, requirement.name)}
-                              disabled={downloadingDocId === doc.Id}
-                              className="rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
-                            >
-                              {downloadingDocId === doc.Id ? 'Downloading...' : 'View'}
-                            </button>
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => openViewer(doc.Id, requirement.name, doc.FileName || `${requirement.name}.pdf`)}
+                                className="rounded-md border border-emerald-200 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50"
+                              >
+                                View
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void handleDownloadDocument(doc.Id, requirement.name)}
+                                disabled={downloadingDocId === doc.Id}
+                                className="rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+                              >
+                                {downloadingDocId === doc.Id ? 'Downloading...' : 'Download'}
+                              </button>
+                            </>
                           )}
                           <button
                             type="button"
@@ -811,11 +834,10 @@ const ComplianceDocumentsPage: React.FC = () => {
                       <div className="mt-3 flex flex-wrap gap-2">
                         <button
                           type="button"
-                          onClick={() => void handleDownloadDocument(item.DocumentId, item.DocumentType)}
-                          disabled={downloadingDocId === item.DocumentId}
+                          onClick={() => openViewer(item.DocumentId, item.DocumentType, item.FileName || `${item.DocumentType}.pdf`)}
                           className="rounded-md border border-emerald-200 px-2.5 py-1 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50"
                         >
-                          {downloadingDocId === item.DocumentId ? 'Downloading...' : 'View'}
+                          View
                         </button>
                         <button
                           type="button"
@@ -834,6 +856,15 @@ const ComplianceDocumentsPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      <DocumentViewer
+        isOpen={viewerOpen}
+        onClose={() => setViewerOpen(false)}
+        documentId={viewerDocId}
+        documentType={viewerDocType}
+        fileName={viewerFileName}
+        apiEndpoint="vendor"
+      />
     </div>
   );
 };
