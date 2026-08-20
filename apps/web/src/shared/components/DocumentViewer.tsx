@@ -10,6 +10,7 @@ type DocumentViewerProps = {
   documentType: string;
   fileName?: string;
   apiEndpoint: 'vendor' | 'admin';
+  token?: string;
   onDownload?: () => void;
 };
 
@@ -25,6 +26,12 @@ const isPdfFile = (name?: string) => {
   return ext === 'pdf' || !ext;
 };
 
+const getStoredToken = (apiEndpoint: 'vendor' | 'admin'): string | null => {
+  if (typeof window === 'undefined') return null;
+  const key = apiEndpoint === 'vendor' ? 'vendorAuthToken' : '__internal_jwt_token__';
+  return window.localStorage.getItem(key);
+};
+
 export const DocumentViewer: React.FC<DocumentViewerProps> = ({
   isOpen,
   onClose,
@@ -32,6 +39,7 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
   documentType,
   fileName,
   apiEndpoint,
+  token,
   onDownload,
 }) => {
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
@@ -50,7 +58,11 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
     setError(null);
     setBlobUrl(null);
 
-    fetch(url)
+    const authToken = token || getStoredToken(apiEndpoint);
+    const headers: Record<string, string> = {};
+    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+
+    fetch(url, { headers })
       .then(async (res) => {
         if (!res.ok) throw new Error('Failed to load document');
         const blob = await res.blob();
@@ -70,7 +82,7 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
       cancelled = true;
       if (blobUrl) window.URL.revokeObjectURL(blobUrl);
     };
-  }, [isOpen, documentId, apiEndpoint]);
+  }, [isOpen, documentId, apiEndpoint, token]);
 
   useEffect(() => {
     if (!isOpen) {
